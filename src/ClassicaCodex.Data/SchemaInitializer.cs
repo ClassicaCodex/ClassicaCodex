@@ -158,6 +158,45 @@ public static class SchemaInitializer
             Source             TEXT NULL
         );",
 
-        @"CREATE INDEX IF NOT EXISTS IX_Definitions_Normalized ON Definitions (Language, NormalizedHeadword);"
+        @"CREATE INDEX IF NOT EXISTS IX_Definitions_Normalized ON Definitions (Language, NormalizedHeadword);",
+
+        // Art & Archaeology objects - vases, coins, gems, sculptures, sites,
+        // buildings. Re-ingested wholesale each time the setup step runs
+        // (DELETE + re-INSERT, not an incremental upsert), the same "always
+        // rebuilds from scratch" choice WordIndex already makes - simpler
+        // and safer for a downloaded reference dataset than reconciling
+        // diffs against Perseus's own updates.
+        @"CREATE TABLE IF NOT EXISTS Artifacts (
+            ArtifactId       TEXT PRIMARY KEY,
+            Type             TEXT NOT NULL,
+            Name             TEXT NULL,
+            Region           TEXT NULL,
+            Context          TEXT NULL,
+            MatchedPlaceName TEXT NULL,
+            Period           TEXT NULL,
+            StartDate        TEXT NULL,
+            EndDate          TEXT NULL,
+            Collection       TEXT NULL,
+            Material         TEXT NULL,
+            Location         TEXT NULL,
+            Description      TEXT NULL,
+            PrimaryCitation  TEXT NULL
+        );",
+
+        @"CREATE INDEX IF NOT EXISTS IX_Artifacts_MatchedPlaceName ON Artifacts (MatchedPlaceName);",
+
+        // Perseus's own image metadata is a three-hop join (artifact -> one
+        // or more image ids -> caption/credits for that photo), collapsed
+        // here into one row per artifact-image pair at ingest time so the
+        // Places Map can query it directly without redoing the joins live.
+        @"CREATE TABLE IF NOT EXISTS ArtifactImages (
+            ArtifactId TEXT NOT NULL,
+            ImageId    TEXT NOT NULL,
+            Caption    TEXT NULL,
+            Credits    TEXT NULL,
+            CONSTRAINT PK_ArtifactImages PRIMARY KEY (ArtifactId, ImageId)
+        );",
+
+        @"CREATE INDEX IF NOT EXISTS IX_ArtifactImages_ArtifactId ON ArtifactImages (ArtifactId);"
     };
 }

@@ -26,7 +26,7 @@ public class TagBrowserForm : Form
         Height = 680;
         StartPosition = FormStartPosition.CenterParent;
 
-        var tagLabel = new Label { Text = "Tags:", Left = 12, Top = 10, Width = 200 };
+        var tagLabel = new Label { Text = "Tags: (right-click: artifacts)", Left = 12, Top = 10, Width = 220 };
         _tagList = new ListBox
         {
             Left = 12,
@@ -36,6 +36,8 @@ public class TagBrowserForm : Form
             Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left
         };
         _tagList.SelectedIndexChanged += async (_, _) => await LoadResultsAsync();
+        ListResultHelpers.AttachArtifactSearchMenu(_tagList,
+            i => i < _tagList.Items.Count && _tagList.Items[i] is Tag tag ? tag.Name : null, this);
 
         var resultsLabel = new Label
         {

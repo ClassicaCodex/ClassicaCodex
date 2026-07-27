@@ -1,3 +1,5 @@
+using ClassicaCodex.Core;
+using ClassicaCodex.Core.Models;
 using ClassicaCodex.Data.Repositories;
 
 namespace ClassicaCodex.UI;
@@ -10,6 +12,9 @@ public class PlacesMapForm : Form
     private readonly CheckBox _showAllPlacesCheckbox;
     private readonly TagRepository _tagRepo = new();
     private readonly TextNodeRepository _textNodeRepo = new();
+    private readonly ArtifactRepository _artifactRepo = new();
+
+    private readonly ArtifactBrowserControl _artifactBrowser;
 
     private List<(int WorkId, long TextNodeId, string AuthorName, string WorkTitle, string CitationRef, string Text)> _currentPassages = new();
 
@@ -44,20 +49,6 @@ public class PlacesMapForm : Form
         };
         _showAllPlacesCheckbox.CheckedChanged += (_, _) => _canvas.ShowAllKnownPlaces = _showAllPlacesCheckbox.Checked;
 
-        // Small swatches referencing MapCanvas's own color constants directly,
-        // not a guessed-at copy - so this key can never quietly go out of
-        // sync with what color the pins actually are.
-        var yourTagsSwatch = new Panel { Left = 210, Top = 50, Width = 12, Height = 12, BackColor = MapCanvas.PinFillColor };
-        var yourTagsLabel = new Label { Text = "Your tagged places", Left = 226, Top = 46, Width = 130 };
-        var knownPlacesSwatch = new Panel { Left = 366, Top = 50, Width = 12, Height = 12, BackColor = MapCanvas.KnownPlaceFillColor };
-        var knownPlacesLabel = new Label
-        {
-            Text = "All known places (click to search the text for it)",
-            Left = 382,
-            Top = 46,
-            Width = 320
-        };
-
         _canvas = new MapCanvas
         {
             Left = 12,
@@ -69,15 +60,38 @@ public class PlacesMapForm : Form
         };
         _canvas.PlaceClicked += async (name, isYourTag) =>
         {
+            await LoadArtifactsAsync(name);
             if (isYourTag) await LoadTaggedPassagesAsync(name);
             else await LoadSearchResultsAsync(name);
+        };
+
+        // Small swatches referencing the canvas's own instance colors
+        // directly, not a guessed-at copy - so this key can never quietly
+        // go out of sync with what color the pins actually are, in either
+        // theme.
+        var yourTagsSwatch = new Panel { Left = 210, Top = 50, Width = 12, Height = 12, BackColor = _canvas.PinFillColor };
+        var yourTagsLabel = new Label { Text = "Your tagged places", Left = 226, Top = 46, Width = 130 };
+        var knownPlacesSwatch = new Panel { Left = 366, Top = 50, Width = 12, Height = 12, BackColor = _canvas.KnownPlaceFillColor };
+        var knownPlacesLabel = new Label
+        {
+            Text = "All known places (click to search the text for it)",
+            Left = 382,
+            Top = 46,
+            Width = 320
+        };
+
+        _artifactBrowser = new ArtifactBrowserControl
+        {
+            Left = 884,
+            Top = 76,
+            Anchor = AnchorStyles.Top | AnchorStyles.Right
         };
 
         _selectedPlaceLabel = new Label
         {
             Text = "Click a place to see its passages here.",
             Left = 884,
-            Top = 76,
+            Top = 390,
             Width = 300,
             Font = new Font(Font, FontStyle.Bold),
             Anchor = AnchorStyles.Top | AnchorStyles.Right
@@ -86,9 +100,9 @@ public class PlacesMapForm : Form
         _passageList = new ListBox
         {
             Left = 884,
-            Top = 102,
+            Top = 416,
             Width = 300,
-            Height = 642,
+            Height = 328,
             Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Right,
             HorizontalScrollbar = true
         };
@@ -107,10 +121,12 @@ public class PlacesMapForm : Form
         Controls.Add(knownPlacesSwatch);
         Controls.Add(knownPlacesLabel);
         Controls.Add(_canvas);
+        Controls.Add(_artifactBrowser);
         Controls.Add(_selectedPlaceLabel);
         Controls.Add(_passageList);
 
         Load += async (_, _) => await LoadPlacesAsync();
+        ReadingTheme.AttachTo(this);
     }
 
     private async Task LoadPlacesAsync()
@@ -151,6 +167,12 @@ public class PlacesMapForm : Form
 
         _canvas.SetData(yourTagMarkers);
         _canvas.SetAllPlacesData(knownPlaceMarkers);
+    }
+
+    private async Task LoadArtifactsAsync(string placeName)
+    {
+        var artifacts = await _artifactRepo.GetByPlaceNameAsync(placeName);
+        _artifactBrowser.LoadArtifacts(artifacts);
     }
 
     private async Task LoadTaggedPassagesAsync(string placeName)

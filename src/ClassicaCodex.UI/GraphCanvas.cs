@@ -45,6 +45,9 @@ public class GraphCanvas : Panel
     /// <summary>Raised when an edge is clicked - passes the two endpoint tag names.</summary>
     public event Action<string, string>? EdgeClicked;
 
+    /// <summary>Raised on right-click over a node - passes the tag name. Separate from NodeClicked since a right-click is never the start of a drag the way a left-click can be.</summary>
+    public event Action<string>? NodeRightClicked;
+
     public GraphCanvas()
     {
         DoubleBuffered = true;
@@ -258,55 +261,55 @@ public class GraphCanvas : Panel
         switch (shape)
         {
             case NodeShape.Square:
-                {
-                    // A square of side r*sqrt(pi) matches a circle of radius r.
-                    var half = radius * 0.886f;
-                    var rect = new RectangleF(center.X - half, center.Y - half, half * 2, half * 2);
-                    graphics.FillRectangle(brush, rect);
-                    graphics.DrawRectangle(pen, rect.X, rect.Y, rect.Width, rect.Height);
-                    break;
-                }
+            {
+                // A square of side r*sqrt(pi) matches a circle of radius r.
+                var half = radius * 0.886f;
+                var rect = new RectangleF(center.X - half, center.Y - half, half * 2, half * 2);
+                graphics.FillRectangle(brush, rect);
+                graphics.DrawRectangle(pen, rect.X, rect.Y, rect.Width, rect.Height);
+                break;
+            }
 
             case NodeShape.Triangle:
-                {
-                    var points = RegularPolygon(center, radius * 1.35f, 3, startAngle: -90);
-                    graphics.FillPolygon(brush, points);
-                    graphics.DrawPolygon(pen, points);
-                    break;
-                }
+            {
+                var points = RegularPolygon(center, radius * 1.35f, 3, startAngle: -90);
+                graphics.FillPolygon(brush, points);
+                graphics.DrawPolygon(pen, points);
+                break;
+            }
 
             case NodeShape.Diamond:
-                {
-                    var points = RegularPolygon(center, radius * 1.25f, 4, startAngle: -90);
-                    graphics.FillPolygon(brush, points);
-                    graphics.DrawPolygon(pen, points);
-                    break;
-                }
+            {
+                var points = RegularPolygon(center, radius * 1.25f, 4, startAngle: -90);
+                graphics.FillPolygon(brush, points);
+                graphics.DrawPolygon(pen, points);
+                break;
+            }
 
             case NodeShape.Hexagon:
-                {
-                    var points = RegularPolygon(center, radius * 1.05f, 6, startAngle: -90);
-                    graphics.FillPolygon(brush, points);
-                    graphics.DrawPolygon(pen, points);
-                    break;
-                }
+            {
+                var points = RegularPolygon(center, radius * 1.05f, 6, startAngle: -90);
+                graphics.FillPolygon(brush, points);
+                graphics.DrawPolygon(pen, points);
+                break;
+            }
 
             case NodeShape.Star:
-                {
-                    var points = Star(center, radius * 1.4f, radius * 0.6f, 5);
-                    graphics.FillPolygon(brush, points);
-                    graphics.DrawPolygon(pen, points);
-                    break;
-                }
+            {
+                var points = Star(center, radius * 1.4f, radius * 0.6f, 5);
+                graphics.FillPolygon(brush, points);
+                graphics.DrawPolygon(pen, points);
+                break;
+            }
 
             default:
-                {
-                    var rect = new RectangleF(
-                        center.X - radius, center.Y - radius, radius * 2, radius * 2);
-                    graphics.FillEllipse(brush, rect);
-                    graphics.DrawEllipse(pen, rect);
-                    break;
-                }
+            {
+                var rect = new RectangleF(
+                    center.X - radius, center.Y - radius, radius * 2, radius * 2);
+                graphics.FillEllipse(brush, rect);
+                graphics.DrawEllipse(pen, rect);
+                break;
+            }
         }
     }
 
@@ -430,6 +433,12 @@ public class GraphCanvas : Panel
     {
         var hit = HitTest(e.Location);
         if (hit == null) return;
+
+        if (e.Button == MouseButtons.Right)
+        {
+            NodeRightClicked?.Invoke(hit.Name);
+            return;
+        }
 
         _dragging = hit;
         _dragOffset = new PointF(e.Location.X - hit.Position.X, e.Location.Y - hit.Position.Y);

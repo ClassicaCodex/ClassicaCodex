@@ -12,7 +12,8 @@ namespace ClassicaCodex.UI;
 public static class SetupDataSourceCatalog
 {
     public static List<SetupDataSource> Build(
-        AuthorRepository authorRepo, LemmaRepository lemmaRepo, DefinitionRepository definitionRepo)
+        AuthorRepository authorRepo, LemmaRepository lemmaRepo, DefinitionRepository definitionRepo,
+        ArtifactRepository artifactRepo)
     {
         var dataRoot = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "ClassicaCodexData");
@@ -168,6 +169,27 @@ public static class SetupDataSourceCatalog
                     return Task.CompletedTask;
                 },
                 CheckComplete = () => Task.FromResult(File.Exists(NaturalEarthCoastline.CanonicalPath))
+            },
+
+            new SetupDataSource
+            {
+                Title = "Art & Archaeology Data (Perseus)",
+                RepoUrl = "https://github.com/perseus-aa/json",
+                DisplayNote = "images stay on Perseus's own server, never downloaded",
+                DefaultDestination = Path.Combine(dataRoot, "artifacts"),
+                FetchMode = SetupFetchMode.SelfManaged,
+                PlainLanguageDescription =
+                    "Real objects from the ancient world - vases, coins, gems, sculptures, sites, and " +
+                    "buildings - with descriptions and photos, for the Places Map and Myth Network. " +
+                    "The catalog data downloads here; the photos themselves are always loaded live from " +
+                    "Perseus's own server when you view one, never saved to your computer, since Perseus's " +
+                    "copyright terms don't allow redistributing their images outside their own site.",
+                RunIngest = async (root, progress, ct) =>
+                {
+                    var service = new ArtifactIngestService();
+                    await service.IngestAsync(root, progress, ct);
+                },
+                CheckComplete = async () => await artifactRepo.HasDataAsync()
             }
         };
     }

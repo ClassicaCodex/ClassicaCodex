@@ -42,6 +42,7 @@ public class SetupWizardForm : Form
     private readonly AuthorRepository _authorRepo = new();
     private readonly LemmaRepository _lemmaRepo = new();
     private readonly DefinitionRepository _definitionRepo = new();
+    private readonly ArtifactRepository _artifactRepo = new();
     private readonly WordIndexRepository _wordIndexRepo = new();
 
     private PictureBox _wordIndexStatusIcon = null!;
@@ -64,7 +65,9 @@ public class SetupWizardForm : Form
         // *outer* height before chrome was ever subtracted from it.
         // 910 fit five data-source rows; the World Map Data row added a
         // sixth at 98px each, pushing everything below it down by the same.
-        ClientSize = new Size(900, 1008);
+        // 910 fit five rows; World Map Data made six at 1008; Art &
+        // Archaeology Data is the seventh, another 98px each time a row's added.
+        ClientSize = new Size(900, 1106);
         StartPosition = FormStartPosition.CenterParent;
 
         var explainer = new Label
@@ -82,7 +85,7 @@ public class SetupWizardForm : Form
 
         var y = 74;
 
-        foreach (var source in SetupDataSourceCatalog.Build(_authorRepo, _lemmaRepo, _definitionRepo))
+        foreach (var source in SetupDataSourceCatalog.Build(_authorRepo, _lemmaRepo, _definitionRepo, _artifactRepo))
         {
             AddRow(ref y, source);
         }
@@ -412,7 +415,12 @@ public class SetupWizardForm : Form
         {
             row.StatusLabel.Text = "Fetching...";
 
-            if (row.Source.FetchMode == SetupFetchMode.DirectDownload)
+            if (row.Source.FetchMode == SetupFetchMode.SelfManaged)
+            {
+                // Nothing to do here - RunIngest below does its own
+                // fetching, however many files that takes.
+            }
+            else if (row.Source.FetchMode == SetupFetchMode.DirectDownload)
             {
                 var downloadService = new FileDownloadService();
                 var target = Path.Combine(destination, row.Source.DownloadFileName!);

@@ -103,7 +103,8 @@ public class MythNetworkForm : Form
 
         var legend = new Label
         {
-            Text = "Circle size = how often you've used the tag. Line thickness = how strongly two tags co-occur. Drag nodes; click one to browse its passages.",
+            Text = "Circle size = how often you've used the tag. Line thickness = how strongly two tags co-occur. " +
+                   "Drag nodes; click one to browse its passages; right-click one to search for related artifacts.",
             Left = 296,
             Top = 40,
             Width = 700
@@ -120,6 +121,11 @@ public class MythNetworkForm : Form
         };
         _canvas.NodeClicked += async name => await LoadPassagesAsync(name);
         _canvas.EdgeClicked += async (nameA, nameB) => await LoadEdgePassagesAsync(nameA, nameB);
+        _canvas.NodeRightClicked += name =>
+        {
+            using var artifactForm = new ArtifactBrowserForm(name, name);
+            artifactForm.ShowDialog(this);
+        };
 
         _selectedTagLabel = new Label
         {

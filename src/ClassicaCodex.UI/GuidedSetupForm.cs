@@ -21,6 +21,7 @@ public class GuidedSetupForm : Form
     public event Action? CorpusChanged;
 
     private readonly AuthorRepository _authorRepo = new();
+    private readonly ArtifactRepository _artifactRepo = new();
     private readonly LemmaRepository _lemmaRepo = new();
     private readonly DefinitionRepository _definitionRepo = new();
     private readonly WordIndexRepository _wordIndexRepo = new();
@@ -66,7 +67,7 @@ public class GuidedSetupForm : Form
 
     public GuidedSetupForm()
     {
-        _sources = SetupDataSourceCatalog.Build(_authorRepo, _lemmaRepo, _definitionRepo);
+        _sources = SetupDataSourceCatalog.Build(_authorRepo, _lemmaRepo, _definitionRepo, _artifactRepo);
 
         Text = "Set Up Classica Codex";
         AppIcons.ApplyWindowIcon(this, "Settings");
@@ -446,7 +447,12 @@ public class GuidedSetupForm : Form
             Directory.CreateDirectory(source.DefaultDestination);
 
             _statusLabel.Text = "Downloading...";
-            if (source.FetchMode == SetupFetchMode.DirectDownload)
+            if (source.FetchMode == SetupFetchMode.SelfManaged)
+            {
+                // Nothing to do here - RunIngest below does its own
+                // fetching, however many files that takes.
+            }
+            else if (source.FetchMode == SetupFetchMode.DirectDownload)
             {
                 var downloadService = new FileDownloadService();
                 var target = Path.Combine(source.DefaultDestination, source.DownloadFileName!);

@@ -32,17 +32,24 @@ public class MapCanvas : Panel
     private const double MinLat = 22, MaxLat = 54;
     private const int Margin = 40;
 
-    private static readonly Color SeaColor = Color.FromArgb(196, 223, 235);
-    private static readonly Color LandColor = Color.FromArgb(232, 217, 181);
-    private static readonly Color CoastlineColor = Color.FromArgb(107, 90, 58);
+    private readonly Color _seaColor;
+    private readonly Color _landColor;
+    private readonly Color _coastlineColor;
+    private readonly Color _gridLineColor;
+    private readonly Color _axisLabelColor;
+    private readonly Color _markerLabelColor;
+    private readonly Color _emptyMessageColor;
 
     // Public: PlacesMapForm's legend swatches reference these directly,
     // so the key showing what each color means can never drift from what
-    // the pins are actually drawn in.
-    public static readonly Color PinFillColor = Color.FromArgb(165, 60, 50);
-    public static readonly Color KnownPlaceFillColor = Color.FromArgb(70, 110, 120);
+    // the pins are actually drawn in. Instance, not static - static would
+    // be fixed at whatever ReadingTheme.IsDark happened to be the first
+    // time this type was ever touched, never updating for a later
+    // MapCanvas opened after a theme change.
+    public readonly Color PinFillColor;
+    public readonly Color KnownPlaceFillColor;
     public static readonly Color PinHoverFillColor = Color.Gold;
-    private static readonly Color PinOutlineColor = Color.FromArgb(80, 40, 20);
+    private readonly Color _pinOutlineColor;
 
     private List<PlaceMarker> _allPlaceMarkers = new();
 
@@ -77,8 +84,35 @@ public class MapCanvas : Panel
 
     public MapCanvas()
     {
+        if (ReadingTheme.IsDark)
+        {
+            _seaColor = Color.FromArgb(28, 42, 58);
+            _landColor = Color.FromArgb(75, 65, 45);
+            _coastlineColor = Color.FromArgb(210, 190, 150);
+            _gridLineColor = Color.FromArgb(90, 100, 115);
+            _axisLabelColor = Color.FromArgb(180, 185, 195);
+            _markerLabelColor = Color.FromArgb(235, 235, 230);
+            _emptyMessageColor = Color.FromArgb(160, 160, 160);
+            PinFillColor = Color.FromArgb(215, 95, 80);
+            KnownPlaceFillColor = Color.FromArgb(100, 155, 170);
+            _pinOutlineColor = Color.FromArgb(35, 18, 10);
+        }
+        else
+        {
+            _seaColor = Color.FromArgb(196, 223, 235);
+            _landColor = Color.FromArgb(232, 217, 181);
+            _coastlineColor = Color.FromArgb(107, 90, 58);
+            _gridLineColor = Color.LightSteelBlue;
+            _axisLabelColor = Color.SlateGray;
+            _markerLabelColor = Color.Black;
+            _emptyMessageColor = Color.Gray;
+            PinFillColor = Color.FromArgb(165, 60, 50);
+            KnownPlaceFillColor = Color.FromArgb(70, 110, 120);
+            _pinOutlineColor = Color.FromArgb(80, 40, 20);
+        }
+
         DoubleBuffered = true;
-        BackColor = SeaColor;
+        BackColor = _seaColor;
 
         // Panels aren't focusable by default, and mouse-wheel events only
         // go to the focused control - without these two lines the wheel
@@ -161,10 +195,11 @@ public class MapCanvas : Panel
         if (_markers.Count == 0 && !showingAnyKnownPlaces)
         {
             using var emptyFont = new Font(Font, FontStyle.Italic);
+            using var emptyBrush = new SolidBrush(_emptyMessageColor);
             e.Graphics.DrawString(
                 "No place tags matched yet - tag a line with a place name (e.g. \"Athens\", \"Troy\", \"Rome\") " +
                 "and reopen this, or check \"Show all known places\" above to browse the full reference catalog.",
-                emptyFont, Brushes.Gray, new PointF(Margin + 8, Margin + 8));
+                emptyFont, emptyBrush, new PointF(Margin + 8, Margin + 8));
             return;
         }
 
@@ -185,12 +220,13 @@ public class MapCanvas : Panel
             using var path = BuildPinPath(tip, size);
             using var fillBrush = new SolidBrush(isHovered ? PinHoverFillColor : fillColor);
             g.FillPath(fillBrush, path);
-            using var pen = new Pen(PinOutlineColor, isHovered ? 2 : 1);
+            using var pen = new Pen(_pinOutlineColor, isHovered ? 2 : 1);
             g.DrawPath(pen, path);
 
             var labelFont = isHovered ? new Font(Font, FontStyle.Bold) : Font;
             var headRadius = size * 0.62f;
-            g.DrawString(marker.Name, labelFont, Brushes.Black, tip.X + headRadius + 4, tip.Y - size - headRadius - 7);
+            using var labelBrush = new SolidBrush(_markerLabelColor);
+            g.DrawString(marker.Name, labelFont, labelBrush, tip.X + headRadius + 4, tip.Y - size - headRadius - 7);
         }
     }
 
@@ -208,8 +244,8 @@ public class MapCanvas : Panel
     /// </summary>
     private void DrawCoastline(Graphics g)
     {
-        using var landBrush = new SolidBrush(LandColor);
-        using var coastPen = new Pen(CoastlineColor, 1.25f);
+        using var landBrush = new SolidBrush(_landColor);
+        using var coastPen = new Pen(_coastlineColor, 1.25f);
 
         var realCoastline = NaturalEarthCoastline.Load();
         if (realCoastline != null)
@@ -304,15 +340,16 @@ public class MapCanvas : Panel
 
     private void DrawGrid(Graphics g)
     {
-        using var gridPen = new Pen(Color.LightSteelBlue);
+        using var gridPen = new Pen(_gridLineColor);
         using var axisFont = new Font(Font, FontStyle.Regular);
+        using var axisBrush = new SolidBrush(_axisLabelColor);
 
         for (var lon = Math.Ceiling(MinLon / 10) * 10; lon <= MaxLon; lon += 10)
         {
             var p1 = LatLonToPoint(MinLat, lon);
             var p2 = LatLonToPoint(MaxLat, lon);
             g.DrawLine(gridPen, p1, p2);
-            g.DrawString($"{lon}°", axisFont, Brushes.SlateGray, p1.X - 10, p1.Y + 4);
+            g.DrawString($"{lon}°", axisFont, axisBrush, p1.X - 10, p1.Y + 4);
         }
 
         for (var lat = Math.Ceiling(MinLat / 10) * 10; lat <= MaxLat; lat += 10)
@@ -320,7 +357,7 @@ public class MapCanvas : Panel
             var p1 = LatLonToPoint(lat, MinLon);
             var p2 = LatLonToPoint(lat, MaxLon);
             g.DrawLine(gridPen, p1, p2);
-            g.DrawString($"{lat}°", axisFont, Brushes.SlateGray, 4, p1.Y - 7);
+            g.DrawString($"{lat}°", axisFont, axisBrush, 4, p1.Y - 7);
         }
     }
 

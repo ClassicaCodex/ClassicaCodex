@@ -14,7 +14,15 @@ public enum SetupFetchMode
     /// is enormous but only one file matters - cloning Natural Earth's
     /// several-gigabyte repository for one 800KB GeoJSON would be absurd.
     /// </summary>
-    DirectDownload
+    DirectDownload,
+
+    /// <summary>
+    /// The wizard's fetch step does nothing at all - RunIngest is fully
+    /// responsible for its own fetching, however many files or requests
+    /// that takes. For a source like Art & Archaeology data, which needs
+    /// thirteen separate files rather than one.
+    /// </summary>
+    SelfManaged
 }
 
 /// <summary>

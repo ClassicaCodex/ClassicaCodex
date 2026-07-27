@@ -83,4 +83,37 @@ public static class ListResultHelpers
         listBox.ContextMenuStrip = menu;
         return menu;
     }
+
+    /// <summary>
+    /// Adds a "Show related artifacts..." right-click item to a ListBox
+    /// whose selected item can be resolved to a searchable name - reuses
+    /// the same select-on-right-click convention as
+    /// AttachCopyToClipboardMenu, so both can coexist on the same list if
+    /// ever needed.
+    /// </summary>
+    public static void AttachArtifactSearchMenu(ListBox listBox, Func<int, string?> nameAt, Form owner)
+    {
+        var menu = listBox.ContextMenuStrip ?? new ContextMenuStrip();
+        var artifactItem = menu.Items.Add("Show related artifacts...");
+        ReadingTheme.ApplyToContextMenu(menu);
+
+        listBox.MouseDown += (_, e) =>
+        {
+            if (e.Button != MouseButtons.Right) return;
+            var index = listBox.IndexFromPoint(e.Location);
+            if (index >= 0) listBox.SelectedIndex = index;
+        };
+
+        artifactItem.Click += (_, _) =>
+        {
+            var index = listBox.SelectedIndex;
+            var name = index >= 0 ? nameAt(index) : null;
+            if (string.IsNullOrEmpty(name)) return;
+
+            using var artifactForm = new ArtifactBrowserForm(name, name);
+            artifactForm.ShowDialog(owner);
+        };
+
+        listBox.ContextMenuStrip = menu;
+    }
 }

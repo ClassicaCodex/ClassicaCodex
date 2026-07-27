@@ -1,4 +1,4 @@
-namespace ClassicaCodex.UI;
+namespace ClassicaCodex.Core;
 
 /// <summary>
 /// Approximate modern coordinates for well-known ancient places, used only
