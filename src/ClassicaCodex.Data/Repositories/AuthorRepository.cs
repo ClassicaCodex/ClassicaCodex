@@ -1,0 +1,83 @@
+using ClassicaCodex.Core.Models;
+using Microsoft.Data.Sqlite;
+
+namespace ClassicaCodex.Data.Repositories;
+
+public class AuthorRepository
+{
+    /// <summary>
+    /// Inserts the author if its CtsUrn is new, otherwise updates the existing
+    /// row and returns its id. Safe to call repeatedly during ingestion.
+    /// </summary>
+    public async Task<int> UpsertAsync(Author author, CancellationToken cancellationToken = default)
+    {
+        await using var conn = await DbConnectionFactory.OpenConnectionAsync(cancellationToken);
+
+        // SQLite's UPSERT: INSERT ... ON CONFLICT(...) DO UPDATE, with
+        // RETURNING to get the row's id back in the same round trip - the
+        // same job SQL Server's MERGE ... OUTPUT was doing.
+        const string sql = @"
+            INSERT INTO Authors (CtsUrn, Name, Namespace, Language)
+            VALUES (@CtsUrn, @Name, @Namespace, @Language)
+            ON CONFLICT(CtsUrn) DO UPDATE SET
+                Name = excluded.Name,
+                Namespace = excluded.Namespace,
+                Language = excluded.Language
+            RETURNING AuthorId;";
+
+        await using var cmd = conn.CreateCommand();
+        cmd.CommandText = sql;
+        cmd.Parameters.AddWithValue("@CtsUrn", author.CtsUrn);
+        cmd.Parameters.AddWithValue("@Name", author.Name);
+        cmd.Parameters.AddWithValue("@Namespace", author.Namespace);
+        cmd.Parameters.AddWithValue("@Language", (object?)author.Language ?? DBNull.Value);
+
+        var result = await cmd.ExecuteScalarAsync(cancellationToken);
+        return Convert.ToInt32(result);
+    }
+
+    public async Task<List<Author>> GetAllAsync(CancellationToken cancellationToken = default)
+    {
+        var results = new List<Author>();
+        await using var conn = await DbConnectionFactory.OpenConnectionAsync(cancellationToken);
+
+        const string sql = "SELECT AuthorId, CtsUrn, Name, Namespace, Language FROM Authors ORDER BY Name;";
+        await using var cmd = conn.CreateCommand();
+        cmd.CommandText = sql;
+        await using var reader = await cmd.ExecuteReaderAsync(cancellationToken);
+
+        while (await reader.ReadAsync(cancellationToken))
+        {
+            results.Add(new Author
+            {
+                AuthorId = reader.GetInt32(0),
+                CtsUrn = reader.GetString(1),
+                Name = reader.GetString(2),
+                Namespace = reader.GetString(3),
+                Language = reader.IsDBNull(4) ? null : reader.GetString(4)
+            });
+        }
+
+        return results;
+    }
+
+    /// <summary>
+    /// How many authors came from a given corpus - "greekLit" or
+    /// "latinLit", the exact string PerseusIngestService is handed for each
+    /// repo. This is the Setup Wizard's real signal for "has the Greek (or
+    /// Latin) text corpus actually been ingested" - NOT a count of editions
+    /// by language, which doesn't work: Perseus's Greek corpus legitimately
+    /// contains Latin-language editions (old Latin translations of Greek
+    /// works), so a Language='lat' count is already nonzero the moment the
+    /// Greek corpus alone has been loaded, well before the Latin corpus
+    /// itself has ever been fetched.
+    /// </summary>
+    public async Task<int> CountByNamespaceAsync(string ns, CancellationToken cancellationToken = default)
+    {
+        await using var conn = await DbConnectionFactory.OpenConnectionAsync(cancellationToken);
+        await using var cmd = conn.CreateCommand();
+        cmd.CommandText = "SELECT COUNT(*) FROM Authors WHERE Namespace = @Namespace;";
+        cmd.Parameters.AddWithValue("@Namespace", ns);
+        return Convert.ToInt32(await cmd.ExecuteScalarAsync(cancellationToken));
+    }
+}

@@ -1,0 +1,30 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <UseWindowsForms>true</UseWindowsForms>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>ClassicaCodex.UI</RootNamespace>
+    <ApplicationIcon></ApplicationIcon>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\ClassicaCodex.Core\ClassicaCodex.Core.csproj" />
+    <ProjectReference Include="..\ClassicaCodex.Data\ClassicaCodex.Data.csproj" />
+    <ProjectReference Include="..\ClassicaCodex.Ingestion\ClassicaCodex.Ingestion.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="DocumentFormat.OpenXml" Version="3.0.2" />
+    <PackageReference Include="PdfSharp" Version="6.2.4" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Shipped beside the executable; AppIcons loads them at runtime and
+         degrades to text-only buttons if the folder is missing. -->
+    <None Include="Icons\**\*.png" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+</Project>

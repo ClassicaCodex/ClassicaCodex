@@ -1,0 +1,565 @@
+using ClassicaCodex.Core.Models;
+using ClassicaCodex.Data.Repositories;
+
+namespace ClassicaCodex.UI;
+
+/// <summary>
+/// Opened from a reader pane's right-click menu. Starts from the clicked
+/// line and lets you grow the export to however many consecutive lines make
+/// up the passage you actually want, previews exactly what will be written,
+/// then saves it as .txt, .docx, or .pdf.
+/// </summary>
+public class PassageExportForm : Form
+{
+    private readonly TextNode _startNode;
+    private readonly int _editionId;
+    private readonly string _authorName;
+    private readonly string _workTitle;
+    private readonly string _fontName;
+    private readonly int? _counterpartEditionId;
+    private readonly bool _counterpartIsOriginal;
+    private readonly string _originalFontName;
+
+    private readonly RadioButton _lineCountModeRadio;
+    private readonly RadioButton _toEndModeRadio;
+    private readonly RadioButton _entireWorkModeRadio;
+    private readonly NumericUpDown _lineCountUpDown;
+    private readonly CheckBox _showCitationsCheckbox;
+    private readonly CheckBox _combineCheckbox;
+    private readonly CheckBox _bilingualCheckbox;
+    private readonly TextBox _previewBox;
+    private readonly RadioButton _txtRadio;
+    private readonly RadioButton _docxRadio;
+    private readonly RadioButton _pdfRadio;
+    private readonly Label _statusLabel;
+
+    private readonly TextNodeRepository _textNodeRepo = new();
+    private List<(string CitationRef, string Text)> _currentLines = new();
+
+    /// <summary>
+    /// The counterpart edition's passages in reading order. Kept as an
+    /// ordered list (not just a lookup) so passages with no equivalent in
+    /// the primary edition - introductions, arguments, cast lists that only
+    /// the translation carries - can still be emitted in the right place
+    /// rather than disappearing.
+    /// </summary>
+    private List<(string Key, string Text)> _counterpartOrdered = new();
+
+    /// <summary>Exact passage ref to its position in <see cref="_counterpartOrdered"/>.</summary>
+    private Dictionary<string, int>? _counterpartIndexByKey;
+
+    /// <summary>
+    /// Ancestor prefix to every counterpart position beneath it - "1.1" maps
+    /// to the positions of 1.1.1, 1.1.2 and so on. Used when the counterpart
+    /// edition divides its text more finely than the primary.
+    /// </summary>
+    private Dictionary<string, List<int>>? _counterpartIndicesByPrefix;
+
+    public PassageExportForm(
+        TextNode startNode, int editionId, string authorName, string workTitle, string fontName,
+        int? counterpartEditionId = null, bool counterpartIsOriginal = false, string? originalFontName = null)
+    {
+        _startNode = startNode;
+        _editionId = editionId;
+        _authorName = authorName;
+        _workTitle = workTitle;
+        _fontName = fontName;
+        _counterpartEditionId = counterpartEditionId;
+        _counterpartIsOriginal = counterpartIsOriginal;
+        _originalFontName = originalFontName ?? fontName;
+
+        Text = "Export Passage";
+        AppIcons.ApplyWindowIcon(this, "Export");
+        Width = 620;
+        Height = 660;
+        StartPosition = FormStartPosition.CenterParent;
+        FormBorderStyle = FormBorderStyle.FixedDialog;
+        MaximizeBox = false;
+        MinimizeBox = false;
+
+        var headerLabel = new Label
+        {
+            Text = $"{authorName}, {workTitle} - starting at [{startNode.CitationRef}]",
+            Left = 16,
+            Top = 14,
+            Width = 580,
+            Font = new Font(Font, FontStyle.Bold)
+        };
+
+        // Each radio set lives in its own Panel on purpose: WinForms scopes
+        // radio-button mutual exclusion to the parent container, so leaving
+        // these and the format radios all parented to the Form made every
+        // radio on the dialog one single group - picking "PDF" would clear
+        // the scope selection. Separate containers keep them independent.
+        var scopePanel = new Panel { Left = 12, Top = 38, Width = 584, Height = 58, BorderStyle = BorderStyle.FixedSingle };
+
+        _lineCountModeRadio = new RadioButton { Text = "Number of lines:", Left = 8, Top = 6, Width = 130, Checked = true };
+        _lineCountUpDown = new NumericUpDown { Left = 142, Top = 4, Width = 60, Minimum = 1, Maximum = 5000, Value = 1 };
+        _lineCountUpDown.ValueChanged += async (_, _) => await RefreshPreviewAsync();
+
+        _toEndModeRadio = new RadioButton { Text = "From here to end of work", Left = 220, Top = 6, Width = 180 };
+        _entireWorkModeRadio = new RadioButton { Text = "Entire work (from the beginning)", Left = 8, Top = 30, Width = 230 };
+
+        _lineCountModeRadio.CheckedChanged += async (_, _) =>
+        {
+            _lineCountUpDown.Enabled = _lineCountModeRadio.Checked;
+            if (_lineCountModeRadio.Checked) await RefreshPreviewAsync();
+        };
+        _toEndModeRadio.CheckedChanged += async (_, _) =>
+        {
+            if (_toEndModeRadio.Checked) await RefreshPreviewAsync();
+        };
+        _entireWorkModeRadio.CheckedChanged += async (_, _) =>
+        {
+            if (_entireWorkModeRadio.Checked) await RefreshPreviewAsync();
+        };
+
+        scopePanel.Controls.Add(_lineCountModeRadio);
+        scopePanel.Controls.Add(_lineCountUpDown);
+        scopePanel.Controls.Add(_toEndModeRadio);
+        scopePanel.Controls.Add(_entireWorkModeRadio);
+
+        _showCitationsCheckbox = new CheckBox { Text = "Show citation refs", Left = 16, Top = 104, Width = 170, Checked = true };
+        _showCitationsCheckbox.CheckedChanged += (_, _) => RefreshPreview();
+
+        _combineCheckbox = new CheckBox { Text = "Combine into one continuous passage", Left = 190, Top = 104, Width = 240 };
+        _combineCheckbox.CheckedChanged += (_, _) => RefreshPreview();
+
+        _bilingualCheckbox = new CheckBox
+        {
+            Text = "Include both original and translation",
+            Left = 16,
+            Top = 128,
+            Width = 300,
+            Enabled = counterpartEditionId != null
+        };
+        _bilingualCheckbox.CheckedChanged += async (_, _) => await RefreshPreviewAsync();
+
+        if (counterpartEditionId == null)
+        {
+            var tip = new ToolTip();
+            ReadingTheme.ApplyToToolTip(tip);
+            tip.SetToolTip(_bilingualCheckbox,
+                "This work doesn't have both an original and a translation loaded in the reader.");
+        }
+
+        var previewLabel = new Label { Text = "Preview:", Left = 16, Top = 156, Width = 200 };
+        _previewBox = new TextBox
+        {
+            Left = 16,
+            Top = 178,
+            Width = 580,
+            Height = 268,
+            Multiline = true,
+            ReadOnly = true,
+            ScrollBars = ScrollBars.Vertical,
+            Font = new Font(fontName, 10F)
+        };
+
+        // Was only a 10px gap to the preview box above (446 -> 456) -
+        // tight enough to read as crowding once the format row got busier
+        // with icons. Everything from here down is pushed down and given
+        // more room to breathe.
+        var formatLabel = new Label { Text = "Export as:", Left = 16, Top = 470, Width = 100 };
+
+        var formatPanel = new Panel { Left = 12, Top = 494, Width = 584, Height = 44, BorderStyle = BorderStyle.FixedSingle };
+
+        // Widened again to seat the bigger 22px icon (was 16px) plus a
+        // little padding, same 12px/10px gaps between the three preserved.
+        _txtRadio = new RadioButton { Text = "Plain text (.txt)", Left = 8, Top = 9, Width = 176, Checked = true };
+        _docxRadio = new RadioButton { Text = "Word document (.docx)", Left = 196, Top = 9, Width = 206 };
+        _pdfRadio = new RadioButton { Text = "PDF (.pdf)", Left = 412, Top = 9, Width = 146 };
+        AppIcons.Apply(_txtRadio, "ExportTxt", 22);
+        AppIcons.Apply(_docxRadio, "ExportDocx", 22);
+        AppIcons.Apply(_pdfRadio, "ExportPdf", 22);
+        formatPanel.Controls.Add(_txtRadio);
+        formatPanel.Controls.Add(_docxRadio);
+        formatPanel.Controls.Add(_pdfRadio);
+
+        _statusLabel = new Label { Left = 16, Top = 548, Width = 580, Height = 20, ForeColor = Color.DimGray };
+
+        var exportButton = new Button { Text = "Export...", Left = 424, Top = 576, Width = 90, Height = 30 };
+        exportButton.Click += async (_, _) => await ExportAsync();
+        AppIcons.Apply(exportButton, "Export", 16);
+
+        var closeButton = new Button { Text = "Close", Left = 520, Top = 576, Width = 76, Height = 30, DialogResult = DialogResult.Cancel };
+
+        Controls.Add(headerLabel);
+        Controls.Add(scopePanel);
+        Controls.Add(_showCitationsCheckbox);
+        Controls.Add(_combineCheckbox);
+        Controls.Add(_bilingualCheckbox);
+        Controls.Add(previewLabel);
+        Controls.Add(_previewBox);
+        Controls.Add(formatLabel);
+        Controls.Add(formatPanel);
+        Controls.Add(_statusLabel);
+        Controls.Add(exportButton);
+        Controls.Add(closeButton);
+
+        Load += async (_, _) => await RefreshPreviewAsync();
+        ReadingTheme.AttachTo(this);
+    }
+
+    /// <summary>
+    /// Finds the counterpart passage positions for a citation ref, allowing
+    /// for the two editions dividing their text at different depths.
+    ///
+    /// This is common and not a data defect: Caesar's Latin edition runs
+    /// book.chapter.section (1.1.1) while its English translation stops at
+    /// book.chapter (1.1), so exact matching finds nothing even though
+    /// every Latin section genuinely sits inside a translated chapter.
+    ///
+    /// Three passes, in order of precision: an exact hit; then walking *up*
+    /// the primary ref, so a fine-grained original finds the coarser
+    /// translated unit containing it; then walking *down*, so a coarse
+    /// original picks up the finer translated pieces beneath it.
+    /// </summary>
+    private List<int>? ResolveCounterpartIndices(string citationRef)
+    {
+        if (_counterpartIndexByKey == null) return null;
+
+        var passage = ExtractPassageRef(citationRef);
+        if (passage.Length == 0) return null;
+
+        if (_counterpartIndexByKey.TryGetValue(passage, out var exact))
+        {
+            return new List<int> { exact };
+        }
+
+        var parts = passage.Split('.');
+        for (var take = parts.Length - 1; take >= 1; take--)
+        {
+            var prefix = string.Join(".", parts.Take(take));
+            if (_counterpartIndexByKey.TryGetValue(prefix, out var coarser))
+            {
+                return new List<int> { coarser };
+            }
+        }
+
+        if (_counterpartIndicesByPrefix != null
+            && _counterpartIndicesByPrefix.TryGetValue(passage, out var finer))
+        {
+            return finer;
+        }
+
+        return null;
+    }
+
+    /// <summary>
+    /// The passage portion of a citation ref - "1.1.1" out of
+    /// "urn:cts:latinLit:phi0448.phi002.perseus-lat2.1.1.1".
+    ///
+    /// Perseus's TEI puts the full CTS URN in a div's @n attribute for many
+    /// works, so that's what ends up stored. The URN's last identifier
+    /// before the passage is the *version* - perseus-lat2 for the Latin,
+    /// perseus-eng1 for its translation - which differs between editions by
+    /// design, so whole-ref comparison never matches even on identical
+    /// lines.
+    ///
+    /// Perseus version identifiers always contain a hyphen (perseus-grc2,
+    /// perseus-eng1, perseus-lat2) while the passage segments after them
+    /// never do, which makes the hyphen a reliable boundary to cut at.
+    /// Everything after it is the passage reference both editions share.
+    ///
+    /// Refs that aren't URNs (a plain "1.1", or a scene-structured
+    /// "prologue.pr.1") are returned untouched. That matters: an earlier
+    /// version of this kept only trailing numeric segments, which turned
+    /// both "act1.scene1.1" and "act2.scene1.1" into plain "1" and silently
+    /// collided them in the lookup.
+    /// </summary>
+    private static string ExtractPassageRef(string citationRef)
+    {
+        if (string.IsNullOrWhiteSpace(citationRef)) return string.Empty;
+
+        if (citationRef.StartsWith("urn:", StringComparison.OrdinalIgnoreCase))
+        {
+            var segments = citationRef.Split('.');
+            for (var i = 0; i < segments.Length; i++)
+            {
+                if (!segments[i].Contains('-')) continue;
+
+                var passage = string.Join(".", segments.Skip(i + 1));
+                return passage.Length > 0 ? passage : citationRef;
+            }
+        }
+
+        return citationRef;
+    }
+
+    private async Task RefreshPreviewAsync()
+    {
+        List<TextNode> nodes;
+        var requestedCount = (int)_lineCountUpDown.Value;
+
+        if (_entireWorkModeRadio.Checked)
+        {
+            // Whole edition from its first line, not from wherever the
+            // right-click happened to be.
+            nodes = await _textNodeRepo.GetByEditionAsync(_editionId);
+        }
+        else
+        {
+            var lineCount = _toEndModeRadio.Checked ? int.MaxValue : requestedCount;
+            nodes = await _textNodeRepo.GetRangeAsync(_editionId, _startNode.TextNodeId, lineCount);
+        }
+
+        _currentLines = nodes.Select(n => (n.CitationRef, n.Text)).ToList();
+
+        // Citation ref is the only shared key between an original and its
+        // translation - they don't share line numbering, IDs, or ordering.
+        // Loaded lazily, and for the whole counterpart edition at once,
+        // since a lookup by citation needs the full map anyway and an
+        // edition is at most a few thousand rows.
+        if (_bilingualCheckbox.Checked && _counterpartEditionId != null)
+        {
+            var counterpartNodes = await _textNodeRepo.GetByEditionAsync(_counterpartEditionId.Value);
+
+            _counterpartOrdered = new List<(string Key, string Text)>();
+            _counterpartIndexByKey = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+            _counterpartIndicesByPrefix = new Dictionary<string, List<int>>(StringComparer.OrdinalIgnoreCase);
+
+            foreach (var n in counterpartNodes)
+            {
+                if (string.IsNullOrWhiteSpace(n.Text)) continue;
+
+                // Keyed by passage ref, not the raw stored ref - see
+                // ExtractPassageRef for why those can't be compared directly.
+                var key = ExtractPassageRef(n.CitationRef);
+                var index = _counterpartOrdered.Count;
+                _counterpartOrdered.Add((key, n.Text));
+
+                if (key.Length == 0) continue;
+                _counterpartIndexByKey.TryAdd(key, index);
+
+                // Also file this position under every ancestor prefix, so a
+                // coarser primary ref can pick up all the finer counterpart
+                // pieces sitting beneath it.
+                var parts = key.Split('.');
+                for (var take = 1; take < parts.Length; take++)
+                {
+                    var prefix = string.Join(".", parts.Take(take));
+                    if (!_counterpartIndicesByPrefix.TryGetValue(prefix, out var list))
+                    {
+                        list = new List<int>();
+                        _counterpartIndicesByPrefix[prefix] = list;
+                    }
+                    list.Add(index);
+                }
+            }
+        }
+        else
+        {
+            _counterpartOrdered = new List<(string Key, string Text)>();
+            _counterpartIndexByKey = null;
+            _counterpartIndicesByPrefix = null;
+        }
+
+        RefreshPreview();
+
+        if (_bilingualCheckbox.Checked && _counterpartIndexByKey != null)
+        {
+            var matched = _currentLines.Count(l => ResolveCounterpartIndices(l.CitationRef) != null);
+            _statusLabel.Text = matched == _currentLines.Count
+                ? $"{nodes.Count} line(s), all paired."
+                : $"{nodes.Count} line(s); {matched} paired by citation ref. Unpaired translation passages (introductions, cast lists) are still included.";
+        }
+        else
+        {
+            _statusLabel.Text = _lineCountModeRadio.Checked && nodes.Count < requestedCount
+                ? $"Only {nodes.Count} line(s) available from here to the end of the edition."
+                : $"{nodes.Count} line(s).";
+        }
+    }
+
+    /// <summary>
+    /// Rebuilds just the preview text from already-fetched lines - used
+    /// when a toggle changes, so flipping "Show citation refs" or "Combine"
+    /// doesn't need a database round-trip.
+    /// </summary>
+    private void RefreshPreview()
+    {
+        var chunks = BuildRenderChunks();
+        _previewBox.Text = string.Join(Environment.NewLine,
+            chunks.Select(c => string.IsNullOrEmpty(c.Label) ? c.Text : $"{c.Label} {c.Text}"));
+    }
+
+    /// <summary>
+    /// Turns the fetched lines into whatever the toggles say the output
+    /// should actually look like - shared by the preview and every export
+    /// format, so they can never drift out of sync with each other.
+    ///
+    /// Bilingual mode pairs each line with its counterpart by citation ref,
+    /// which is the only key the two editions genuinely share (they don't
+    /// share IDs, line numbering, or line counts). That pairing is
+    /// deliberately partial: a verse original is lineated per line while a
+    /// prose translation often carries one citation per paragraph, so many
+    /// original lines simply have no counterpart at that exact ref. Those
+    /// are emitted alone rather than dropped or guessed at - showing the
+    /// original with no translation beside it is honest; inventing an
+    /// alignment that isn't in the source data wouldn't be.
+    /// </summary>
+    private List<(string Label, string Text)> BuildRenderChunks()
+    {
+        if (_currentLines.Count == 0) return new();
+
+        var bilingual = _bilingualCheckbox.Checked && _counterpartIndexByKey != null;
+        var counterpartLabel = _counterpartIsOriginal ? "original" : "trans.";
+
+        if (_combineCheckbox.Checked)
+        {
+            var rangeLabel = !_showCitationsCheckbox.Checked ? string.Empty
+                : _currentLines.Count == 1 ? $"[{_currentLines[0].CitationRef}]"
+                : $"[{_currentLines.First().CitationRef}\u2013{_currentLines.Last().CitationRef}]";
+
+            var primaryText = string.Join(" ", _currentLines.Select(l => l.Text));
+
+            if (!bilingual)
+            {
+                return new List<(string, string)> { (rangeLabel, primaryText) };
+            }
+
+            // Combined + bilingual reads best as two continuous blocks - the
+            // whole passage in one language, then the whole passage in the
+            // other. Every counterpart passage is included exactly once, in
+            // its own reading order, so introductions and cast lists survive
+            // even though nothing in the original pairs with them.
+            var counterpartText = string.Join(" ", _counterpartOrdered.Select(c => c.Text));
+
+            var result = new List<(string, string)> { (rangeLabel, primaryText) };
+            if (counterpartText.Length > 0)
+            {
+                result.Add(($"({counterpartLabel})", counterpartText));
+            }
+            return result;
+        }
+
+        var chunks = new List<(string Label, string Text)>();
+
+        if (!bilingual)
+        {
+            foreach (var line in _currentLines)
+            {
+                var soloLabel = _showCitationsCheckbox.Checked ? $"[{line.CitationRef}]" : string.Empty;
+                chunks.Add((soloLabel, line.Text));
+            }
+            return chunks;
+        }
+
+        // Merge both sequences rather than walking the primary and hanging
+        // counterparts off it. Iterating the primary alone silently drops
+        // every counterpart passage that has no primary equivalent - which
+        // is exactly what introductions, prefatory arguments, and cast lists
+        // are, since they usually appear only in the translation. Tracking
+        // what's been emitted lets those appear in their proper position.
+        var emitted = new bool[_counterpartOrdered.Count];
+        var cursor = 0;
+
+        void EmitCounterpart(int index)
+        {
+            if (index < 0 || index >= _counterpartOrdered.Count || emitted[index]) return;
+            emitted[index] = true;
+            chunks.Add(($"({counterpartLabel})", _counterpartOrdered[index].Text));
+        }
+
+        foreach (var line in _currentLines)
+        {
+            var indices = ResolveCounterpartIndices(line.CitationRef);
+
+            if (indices is { Count: > 0 })
+            {
+                // Anything in the counterpart edition standing before this
+                // match and still unemitted belongs here - ahead of the line
+                // it precedes, not appended as an afterthought at the end.
+                var firstIndex = indices.Min();
+                for (; cursor < firstIndex; cursor++) EmitCounterpart(cursor);
+            }
+
+            var label = _showCitationsCheckbox.Checked ? $"[{line.CitationRef}]" : string.Empty;
+            chunks.Add((label, line.Text));
+
+            if (indices == null) continue;
+
+            // Emitted once each, so a coarse counterpart spanning many
+            // primary lines - an English chapter over a dozen Latin sections -
+            // appears alongside the first line it covers, not under each.
+            foreach (var index in indices) EmitCounterpart(index);
+        }
+
+        // Whatever's left: counterpart passages that follow the last matched
+        // line, or never matched anything at all.
+        for (var i = 0; i < _counterpartOrdered.Count; i++) EmitCounterpart(i);
+
+        return chunks;
+    }
+
+    private async Task ExportAsync()
+    {
+        if (_currentLines.Count == 0)
+        {
+            MessageBox.Show(this, "Nothing to export.", "Empty", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            return;
+        }
+
+        var extension = _txtRadio.Checked ? "txt" : _docxRadio.Checked ? "docx" : "pdf";
+        var filter = _txtRadio.Checked ? "Text file (*.txt)|*.txt"
+            : _docxRadio.Checked ? "Word document (*.docx)|*.docx"
+            : "PDF file (*.pdf)|*.pdf";
+
+        var suggestedName = $"{_authorName} - {_workTitle} {_startNode.CitationRef}".Replace(":", "_");
+        foreach (var invalid in Path.GetInvalidFileNameChars())
+        {
+            suggestedName = suggestedName.Replace(invalid, '_');
+        }
+
+        using var saveDialog = new SaveFileDialog
+        {
+            Filter = filter,
+            FileName = $"{suggestedName}.{extension}",
+            Title = "Export Passage"
+        };
+        if (saveDialog.ShowDialog(this) != DialogResult.OK) return;
+
+        var title = _showCitationsCheckbox.Checked
+            ? $"{_authorName}, {_workTitle} [{_currentLines.First().CitationRef}\u2013{_currentLines.Last().CitationRef}]"
+            : $"{_authorName}, {_workTitle}";
+        var sourceUrl = "Perseus Digital Library (via Classica Codex) - see About for full attribution and licensing.";
+        var chunks = BuildRenderChunks();
+
+        // A bilingual document has to render polytonic Greek regardless of
+        // which pane was right-clicked, and the translation pane's font
+        // (Georgia) has no Greek coverage - it'd come out as fallback
+        // glyphs or boxes. The original-language font (Palatino Linotype)
+        // handles both scripts, so it's the safe choice for mixed output.
+        var exportFont = _bilingualCheckbox.Checked ? _originalFontName : _fontName;
+
+        try
+        {
+            if (_txtRadio.Checked)
+            {
+                PassageExportService.ExportText(saveDialog.FileName, title, sourceUrl, chunks);
+            }
+            else if (_docxRadio.Checked)
+            {
+                PassageExportService.ExportDocx(saveDialog.FileName, title, sourceUrl, chunks, exportFont);
+            }
+            else
+            {
+                PassageExportService.ExportPdf(saveDialog.FileName, title, sourceUrl, chunks, exportFont);
+            }
+
+            var openFolder = MessageBox.Show(this,
+                $"Exported to {saveDialog.FileName}.\r\n\r\nOpen the containing folder?",
+                "Done", MessageBoxButtons.YesNo, MessageBoxIcon.Information);
+
+            if (openFolder == DialogResult.Yes)
+            {
+                System.Diagnostics.Process.Start("explorer.exe", $"/select,\"{saveDialog.FileName}\"");
+            }
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show(this, $"Export failed: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+        }
+    }
+}
