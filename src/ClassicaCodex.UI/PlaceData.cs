@@ -113,4 +113,27 @@ public static class PlaceData
 
         return null;
     }
+
+    /// <summary>
+    /// Every known place, one entry per unique coordinate. Several entries
+    /// above share a coordinate on purpose - Troy/Ilium, Thebes/Boeotian
+    /// Thebes - so a fuzzy tag match catches either name. Enumerating them
+    /// without deduplicating would draw two stacked pins on the same spot;
+    /// this keeps whichever name was listed first for each location.
+    /// </summary>
+    public static IReadOnlyList<(string Name, double Lat, double Lon)> All()
+    {
+        var seenCoordinates = new HashSet<(double, double)>();
+        var result = new List<(string, double, double)>();
+
+        foreach (var (key, lat, lon) in Entries)
+        {
+            if (seenCoordinates.Add((lat, lon)))
+            {
+                result.Add((key, lat, lon));
+            }
+        }
+
+        return result;
+    }
 }

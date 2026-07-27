@@ -7,7 +7,9 @@ public class PlacesMapForm : Form
     private readonly MapCanvas _canvas;
     private readonly ListBox _passageList;
     private readonly Label _selectedPlaceLabel;
+    private readonly CheckBox _showAllPlacesCheckbox;
     private readonly TagRepository _tagRepo = new();
+    private readonly TextNodeRepository _textNodeRepo = new();
 
     private List<(int WorkId, long TextNodeId, string AuthorName, string WorkTitle, string CitationRef, string Text)> _currentPassages = new();
 
@@ -32,22 +34,50 @@ public class PlacesMapForm : Form
             Width = 860
         };
 
+        _showAllPlacesCheckbox = new CheckBox
+        {
+            Text = "Show all known places",
+            Left = 12,
+            Top = 46,
+            Width = 170,
+            Height = 22
+        };
+        _showAllPlacesCheckbox.CheckedChanged += (_, _) => _canvas.ShowAllKnownPlaces = _showAllPlacesCheckbox.Checked;
+
+        // Small swatches referencing MapCanvas's own color constants directly,
+        // not a guessed-at copy - so this key can never quietly go out of
+        // sync with what color the pins actually are.
+        var yourTagsSwatch = new Panel { Left = 210, Top = 50, Width = 12, Height = 12, BackColor = MapCanvas.PinFillColor };
+        var yourTagsLabel = new Label { Text = "Your tagged places", Left = 226, Top = 46, Width = 130 };
+        var knownPlacesSwatch = new Panel { Left = 366, Top = 50, Width = 12, Height = 12, BackColor = MapCanvas.KnownPlaceFillColor };
+        var knownPlacesLabel = new Label
+        {
+            Text = "All known places (click to search the text for it)",
+            Left = 382,
+            Top = 46,
+            Width = 320
+        };
+
         _canvas = new MapCanvas
         {
             Left = 12,
-            Top = 44,
+            Top = 76,
             Width = 860,
-            Height = 700,
+            Height = 668,
             Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right,
             BorderStyle = BorderStyle.FixedSingle
         };
-        _canvas.PlaceClicked += async name => await LoadPassagesAsync(name);
+        _canvas.PlaceClicked += async (name, isYourTag) =>
+        {
+            if (isYourTag) await LoadTaggedPassagesAsync(name);
+            else await LoadSearchResultsAsync(name);
+        };
 
         _selectedPlaceLabel = new Label
         {
             Text = "Click a place to see its passages here.",
             Left = 884,
-            Top = 44,
+            Top = 76,
             Width = 300,
             Font = new Font(Font, FontStyle.Bold),
             Anchor = AnchorStyles.Top | AnchorStyles.Right
@@ -56,9 +86,9 @@ public class PlacesMapForm : Form
         _passageList = new ListBox
         {
             Left = 884,
-            Top = 70,
+            Top = 102,
             Width = 300,
-            Height = 674,
+            Height = 642,
             Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Right,
             HorizontalScrollbar = true
         };
@@ -71,6 +101,11 @@ public class PlacesMapForm : Form
                 : null);
 
         Controls.Add(legend);
+        Controls.Add(_showAllPlacesCheckbox);
+        Controls.Add(yourTagsSwatch);
+        Controls.Add(yourTagsLabel);
+        Controls.Add(knownPlacesSwatch);
+        Controls.Add(knownPlacesLabel);
         Controls.Add(_canvas);
         Controls.Add(_selectedPlaceLabel);
         Controls.Add(_passageList);
@@ -82,30 +117,67 @@ public class PlacesMapForm : Form
     {
         var (nodes, _) = await _tagRepo.GetCoOccurrenceGraphAsync();
 
-        var markers = new List<MapCanvas.PlaceMarker>();
+        var yourTagMarkers = new List<MapCanvas.PlaceMarker>();
+        var taggedCoordinates = new HashSet<(double, double)>();
         foreach (var node in nodes)
         {
             var coords = PlaceData.Lookup(node.Name);
             if (coords == null) continue;
 
-            markers.Add(new MapCanvas.PlaceMarker
+            yourTagMarkers.Add(new MapCanvas.PlaceMarker
             {
                 Name = node.Name,
                 Lat = coords.Value.Lat,
                 Lon = coords.Value.Lon,
-                UsageCount = node.UsageCount
+                UsageCount = node.UsageCount,
+                IsYourTag = true
             });
+            taggedCoordinates.Add((coords.Value.Lat, coords.Value.Lon));
         }
 
-        _canvas.SetData(markers);
+        // Everything in the full catalog EXCEPT places already covered
+        // above - otherwise a place you've tagged would show two stacked
+        // pins, one from each list, right on top of each other.
+        var knownPlaceMarkers = PlaceData.All()
+            .Where(p => !taggedCoordinates.Contains((p.Lat, p.Lon)))
+            .Select(p => new MapCanvas.PlaceMarker
+            {
+                Name = p.Name,
+                Lat = p.Lat,
+                Lon = p.Lon,
+                IsYourTag = false
+            })
+            .ToList();
+
+        _canvas.SetData(yourTagMarkers);
+        _canvas.SetAllPlacesData(knownPlaceMarkers);
     }
 
-    private async Task LoadPassagesAsync(string placeName)
+    private async Task LoadTaggedPassagesAsync(string placeName)
     {
-        _selectedPlaceLabel.Text = $"\"{placeName}\" (double-click a passage to jump to it):";
+        _selectedPlaceLabel.Text = $"Passages tagged \"{placeName}\" (double-click to jump):";
         _passageList.Items.Clear();
 
         _currentPassages = await _tagRepo.GetByTagAsync(placeName);
+        RenderPassageList();
+    }
+
+    /// <summary>
+    /// For a place you haven't tagged - there's no tag data to show, so
+    /// this runs the same word-form-aware text search the main search box
+    /// uses instead, over the place's literal name.
+    /// </summary>
+    private async Task LoadSearchResultsAsync(string placeName)
+    {
+        _selectedPlaceLabel.Text = $"Search results for \"{placeName}\" (double-click to jump):";
+        _passageList.Items.Clear();
+
+        _currentPassages = await _textNodeRepo.SearchAsync(placeName);
+        RenderPassageList();
+    }
+
+    private void RenderPassageList()
+    {
         foreach (var p in _currentPassages)
         {
             _passageList.Items.Add($"{p.AuthorName}, {p.WorkTitle}: {p.Text}");

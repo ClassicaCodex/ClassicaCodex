@@ -16,6 +16,16 @@ public class MapCanvas : Panel
         public double Lat;
         public double Lon;
         public int UsageCount;
+
+        /// <summary>
+        /// True for a place matched from your own tags (the original
+        /// behavior); false for a place shown only because it's in the
+        /// full PlaceData catalog and hasn't been tagged. Drives both pin
+        /// color and what a click does - a tag-search for the former, a
+        /// text search for the latter, since an untagged place has no tag
+        /// data to search.
+        /// </summary>
+        public bool IsYourTag = true;
     }
 
     private const double MinLon = -12, MaxLon = 56;
@@ -25,9 +35,24 @@ public class MapCanvas : Panel
     private static readonly Color SeaColor = Color.FromArgb(196, 223, 235);
     private static readonly Color LandColor = Color.FromArgb(232, 217, 181);
     private static readonly Color CoastlineColor = Color.FromArgb(107, 90, 58);
-    private static readonly Color PinFillColor = Color.FromArgb(165, 60, 50);
-    private static readonly Color PinHoverFillColor = Color.Gold;
+
+    // Public: PlacesMapForm's legend swatches reference these directly,
+    // so the key showing what each color means can never drift from what
+    // the pins are actually drawn in.
+    public static readonly Color PinFillColor = Color.FromArgb(165, 60, 50);
+    public static readonly Color KnownPlaceFillColor = Color.FromArgb(70, 110, 120);
+    public static readonly Color PinHoverFillColor = Color.Gold;
     private static readonly Color PinOutlineColor = Color.FromArgb(80, 40, 20);
+
+    private List<PlaceMarker> _allPlaceMarkers = new();
+
+    /// <summary>Whether the full PlaceData catalog is drawn alongside your tag-based pins.</summary>
+    public bool ShowAllKnownPlaces
+    {
+        get => _showAllKnownPlaces;
+        set { _showAllKnownPlaces = value; Invalidate(); }
+    }
+    private bool _showAllKnownPlaces;
 
     private List<PlaceMarker> _markers = new();
     private PlaceMarker? _hovered;
@@ -47,7 +72,8 @@ public class MapCanvas : Panel
     private Point _dragStart;
     private PointF _dragStartOffset;
 
-    public event Action<string>? PlaceClicked;
+    /// <summary>Fired on click with the place name and whether it came from your tags (true) or the full catalog only (false).</summary>
+    public event Action<string, bool>? PlaceClicked;
 
     public MapCanvas()
     {
@@ -71,6 +97,13 @@ public class MapCanvas : Panel
     public void SetData(List<PlaceMarker> markers)
     {
         _markers = markers;
+        Invalidate();
+    }
+
+    /// <summary>The full-catalog pins, shown only when ShowAllKnownPlaces is on. Expected to already exclude anything also in the tag-based list, so a tagged place doesn't get two stacked pins.</summary>
+    public void SetAllPlacesData(List<PlaceMarker> markers)
+    {
+        _allPlaceMarkers = markers;
         Invalidate();
     }
 
@@ -124,30 +157,40 @@ public class MapCanvas : Panel
         DrawCoastline(e.Graphics);
         DrawGrid(e.Graphics);
 
-        if (_markers.Count == 0)
+        var showingAnyKnownPlaces = ShowAllKnownPlaces && _allPlaceMarkers.Count > 0;
+        if (_markers.Count == 0 && !showingAnyKnownPlaces)
         {
             using var emptyFont = new Font(Font, FontStyle.Italic);
             e.Graphics.DrawString(
-                "No place tags matched yet - tag a line with a place name (e.g. \"Athens\", \"Troy\", \"Rome\") and reopen this.",
+                "No place tags matched yet - tag a line with a place name (e.g. \"Athens\", \"Troy\", \"Rome\") " +
+                "and reopen this, or check \"Show all known places\" above to browse the full reference catalog.",
                 emptyFont, Brushes.Gray, new PointF(Margin + 8, Margin + 8));
             return;
         }
 
-        foreach (var marker in _markers)
+        // Known-places pins drawn first, so a your-tags pin sitting near one
+        // renders on top rather than being partly hidden underneath it.
+        if (showingAnyKnownPlaces) DrawMarkers(e.Graphics, _allPlaceMarkers, KnownPlaceFillColor);
+        DrawMarkers(e.Graphics, _markers, PinFillColor);
+    }
+
+    private void DrawMarkers(Graphics g, List<PlaceMarker> markers, Color fillColor)
+    {
+        foreach (var marker in markers)
         {
             var tip = LatLonToPoint(marker.Lat, marker.Lon);
             var isHovered = marker == _hovered;
             var size = PinSize(marker.UsageCount);
 
             using var path = BuildPinPath(tip, size);
-            using var fillBrush = new SolidBrush(isHovered ? PinHoverFillColor : PinFillColor);
-            e.Graphics.FillPath(fillBrush, path);
+            using var fillBrush = new SolidBrush(isHovered ? PinHoverFillColor : fillColor);
+            g.FillPath(fillBrush, path);
             using var pen = new Pen(PinOutlineColor, isHovered ? 2 : 1);
-            e.Graphics.DrawPath(pen, path);
+            g.DrawPath(pen, path);
 
             var labelFont = isHovered ? new Font(Font, FontStyle.Bold) : Font;
             var headRadius = size * 0.62f;
-            e.Graphics.DrawString(marker.Name, labelFont, Brushes.Black, tip.X + headRadius + 4, tip.Y - size - headRadius - 7);
+            g.DrawString(marker.Name, labelFont, Brushes.Black, tip.X + headRadius + 4, tip.Y - size - headRadius - 7);
         }
     }
 
@@ -291,6 +334,19 @@ public class MapCanvas : Panel
             using var path = BuildPinPath(tip, size);
             if (path.IsVisible(p)) return marker;
         }
+
+        if (ShowAllKnownPlaces)
+        {
+            foreach (var marker in _allPlaceMarkers)
+            {
+                var tip = LatLonToPoint(marker.Lat, marker.Lon);
+                var size = PinSize(marker.UsageCount);
+
+                using var path = BuildPinPath(tip, size);
+                if (path.IsVisible(p)) return marker;
+            }
+        }
+
         return null;
     }
 
@@ -344,7 +400,7 @@ public class MapCanvas : Panel
         if (_dragMoved) return;
 
         var hit = HitTest(e.Location);
-        if (hit != null) PlaceClicked?.Invoke(hit.Name);
+        if (hit != null) PlaceClicked?.Invoke(hit.Name, hit.IsYourTag);
     }
 
     private void MapCanvas_MouseWheel(object? sender, MouseEventArgs e)
