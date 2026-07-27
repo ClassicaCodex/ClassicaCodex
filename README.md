@@ -4,6 +4,12 @@ A desktop reader and research tool for the [Perseus Digital Library](http://www.
 
 Built as a personal project, for reading and researching the classics more closely than a browser tab really allows.
 
+<img width="1805" height="769" alt="image" src="https://github.com/user-attachments/assets/d680005b-7226-4a14-94b0-1fadf02ba954" />
+
+<img width="1168" height="770" alt="image" src="https://github.com/user-attachments/assets/db82c1b9-5421-4a62-9c07-a2c11273e26b" />
+
+<img width="1171" height="759" alt="image" src="https://github.com/user-attachments/assets/01cbec82-500e-4d85-bea4-673bb3dc3acc" />
+
 
 ## Features
 
