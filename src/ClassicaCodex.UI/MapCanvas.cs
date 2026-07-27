@@ -25,7 +25,7 @@ public class MapCanvas : Panel
     private static readonly Color SeaColor = Color.FromArgb(196, 223, 235);
     private static readonly Color LandColor = Color.FromArgb(232, 217, 181);
     private static readonly Color CoastlineColor = Color.FromArgb(107, 90, 58);
-    private static readonly Color PinFillColor = Color.Firebrick;
+    private static readonly Color PinFillColor = Color.FromArgb(165, 60, 50);
     private static readonly Color PinHoverFillColor = Color.Gold;
     private static readonly Color PinOutlineColor = Color.FromArgb(80, 40, 20);
 
@@ -209,18 +209,24 @@ public class MapCanvas : Panel
     /// disagree.
     ///
     /// Log-scaled, not linear: real tag counts on well-used places run into
-    /// the thousands (Athens at ~5,000, Troy at ~1,400), and the old linear
-    /// formula capped at 15 tags - so every real place maxed out at the
-    /// same enormous size, and three maxed pins whose true coordinates are
-    /// only 2-3 degrees apart piled into one unreadable heap over the
-    /// Aegean. Log2 keeps a visible difference between 1,400 and 5,000
-    /// (one is still clearly bigger) at roughly half the old maximum size:
-    /// 1 tag = 10px, ~100 = 16px, ~5,000 = 21px.
+    /// the thousands (Athens at ~5,000, Troy at ~1,400), and a linear
+    /// formula capped at 15 tags would mean every real place maxes out at
+    /// the same enormous size, with pins whose true coordinates are only
+    /// 2-3 degrees apart piling into one unreadable heap over the Aegean.
+    /// Log2 keeps a visible difference between 1,400 and 5,000 (one is
+    /// still clearly bigger) while staying small enough not to dominate
+    /// the whole-Mediterranean view: 1 tag = 5.5px, ~100 = 8.3px, ~5,000 =
+    /// 11.1px.
     /// </summary>
     private static float PinSize(int usageCount)
     {
+        // Roughly half the previous range (was 9.9-21.4px) - a place with
+        // thousands of tags (Athens, Sparta) was landing near the old
+        // maximum, which reads fine once zoomed in close but dominates the
+        // view at the full-Mediterranean zoom level, where a 26px-wide pin
+        // head covers a meaningful fraction of Italy's own width on screen.
         var logComponent = Math.Log2(Math.Max(usageCount, 1) + 1);
-        return 9f + (float)Math.Min(logComponent, 13) * 0.95f;
+        return 5f + (float)Math.Min(logComponent, 13) * 0.5f;
     }
 
     /// <summary>
