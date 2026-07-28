@@ -190,6 +190,26 @@ public static class SetupDataSourceCatalog
                     await service.IngestAsync(root, progress, ct);
                 },
                 CheckComplete = async () => await artifactRepo.HasDataAsync()
+            },
+
+            new SetupDataSource
+            {
+                Title = "English Lemma Data & Dictionary (WordNet)",
+                RepoUrl = "https://wordnet.princeton.edu",
+                DisplayNote = "(Princeton WordNet - free for any use)",
+                DefaultDestination = Path.Combine(dataRoot, "wordnet"),
+                FetchMode = SetupFetchMode.SelfManaged,
+                PlainLanguageDescription =
+                    "Maps English word forms back to their dictionary headword, and supplies definitions - " +
+                    "the same thing the Greek and Latin lemma data does, but for the English translations " +
+                    "you already have loaded. Makes search find \"spoke\" when you type \"speak\", and makes " +
+                    "Word Study work on the translation side as well as the original.",
+                RunIngest = async (root, progress, ct) =>
+                {
+                    var service = new WordNetIngestService();
+                    await service.IngestAsync(root, progress, ct);
+                },
+                CheckComplete = async () => await lemmaRepo.CountByLanguageAsync("eng") > 0
             }
         };
     }

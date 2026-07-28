@@ -144,6 +144,16 @@ public static class MorphologyDecoder
     };
 
     /// <summary>
+    /// The word classes WordNet uses, exactly as WordNetIngestService
+    /// stores them. English morphology is thin enough that the word class
+    /// is the whole useful parse - there's no case, no aspect, no voice to
+    /// report - so these are stored and shown as plain words rather than
+    /// encoded positionally like the Greek and Latin tags.
+    /// </summary>
+    private static readonly HashSet<string> EnglishPartsOfSpeech =
+        new(StringComparer.Ordinal) { "noun", "verb", "adjective", "adverb" };
+
+    /// <summary>
     /// The handful of Latin part-of-speech prefixes confident enough to
     /// name. Deliberately short: the lascivaroma tag vocabulary hasn't been
     /// checked against the real corpus, so anything not listed here comes
@@ -163,8 +173,38 @@ public static class MorphologyDecoder
         ["NUM"] = "numeral"
     };
 
-    /// <summary>How many positions an AGDT tag has - the signature this format is recognized by.</summary>
+    /// <summary>
+    /// Pronoun and adverb subcategories that the two-character part-of-speech
+    /// field can carry. Deliberately partial: the corpus also contains codes
+    /// like "ne", "pa", "vc", "gm" and "ae" whose meanings aren't confirmed,
+    /// and those fall back to the plain category from the first character -
+    /// "pronoun" rather than a guessed-at refinement. Less specific is fine;
+    /// wrong is not.
+    /// </summary>
+    private static readonly Dictionary<string, string> PosSubcategories = new(StringComparer.Ordinal)
+    {
+        ["pd"] = "demonstrative pronoun",
+        ["pr"] = "relative pronoun",
+        ["pp"] = "personal pronoun",
+        ["ps"] = "possessive pronoun",
+        ["pi"] = "interrogative pronoun",
+        ["pk"] = "reflexive pronoun",
+        ["pc"] = "reciprocal pronoun",
+        ["dd"] = "demonstrative adverb",
+        ["dr"] = "relative adverb",
+        ["di"] = "interrogative adverb"
+    };
+
+    /// <summary>
+    /// The two tag layouts this corpus actually uses, confirmed by counting
+    /// them in the source XML: roughly 48,000 nine-character tags (on the
+    /// token elements) and 32,000 ten-character ones (on the lemma
+    /// elements). They are the same eight grammatical fields either way -
+    /// the longer form just carries a two-character part of speech, so
+    /// "v-sppemn-" and "v--sppemn-" are the identical analysis.
+    /// </summary>
     public const int AgdtTagLength = 9;
+    public const int ExtendedTagLength = 10;
 
     public static Parse Decode(string? rawTag)
     {
@@ -175,7 +215,26 @@ public static class MorphologyDecoder
 
         var tag = rawTag.Trim();
 
-        if (tag.Length == AgdtTagLength) return DecodeAgdt(tag);
+        if (tag.Length == AgdtTagLength) return DecodePositional(tag, posFieldWidth: 1);
+        if (tag.Length == ExtendedTagLength) return DecodePositional(tag, posFieldWidth: 2);
+
+        // English tags are already the plain word, since WordNet classifies
+        // only by word class and English inflection is too thin to warrant
+        // the positional scheme the classical corpora use. Checked before
+        // the Latin prefixes below because "verb" happens to start with the
+        // Latin code "VER" - it would decode by coincidence, while "noun"
+        // matched nothing and displayed raw. Same data, inconsistent
+        // presentation; naming them here makes it deliberate.
+        if (EnglishPartsOfSpeech.Contains(tag))
+        {
+            return new Parse
+            {
+                RawTag = tag,
+                IsDecoded = true,
+                Description = tag,
+                PartOfSpeech = tag
+            };
+        }
 
         // Not positional - try the Latin part-of-speech labels. Longest
         // prefix first, so "NOMcom" isn't shadowed by a shorter "NOM" if
@@ -198,34 +257,46 @@ public static class MorphologyDecoder
     }
 
     /// <summary>
-    /// Reads the 9-position tag and assembles the pieces in the order a
+    /// Reads the positional tag and assembles the pieces in the order a
     /// grammar actually states them, which differs by part of speech: a
     /// finite verb reads tense-voice-mood then person/number, while a noun
     /// reads gender-case-number. Assembling positionally instead would give
     /// technically-complete but unreadable output.
+    ///
+    /// posFieldWidth is where the eight grammatical fields begin - 1 for the
+    /// nine-character form, 2 for the ten-character one. Everything after
+    /// the part of speech is identical between them.
     /// </summary>
-    private static Parse DecodeAgdt(string tag)
+    private static Parse DecodePositional(string tag, int posFieldWidth)
     {
+        // Position 1 is the signature: every genuine tag names a part of
+        // speech there, and it is never "-". Length alone is far too weak a
+        // test - a tag from some other vocabulary can partially collide with
+        // these tables and produce a confident-looking parse that is simply
+        // wrong ("NOMcom123" otherwise reads as optative middle). Requiring
+        // a valid part of speech rejects those outright, and an unrecognized
+        // tag showing as raw text costs the reader nothing, while a
+        // fabricated parse actively misleads.
         var pos = Lookup(PartsOfSpeech, tag[0]);
-
-        // Position 1 is the signature: every genuine AGDT tag names a part
-        // of speech there, and it is never "-". Length alone is far too weak
-        // a test - a nine-character tag from some other vocabulary can
-        // partially collide with these tables and produce a confident-looking
-        // parse that is simply wrong ("NOMcom123" otherwise reads as optative
-        // middle). Requiring a valid part of speech rejects those outright,
-        // and an unrecognized tag showing as raw text costs the reader
-        // nothing, while a fabricated parse actively misleads.
         if (pos == null) return new Parse { RawTag = tag, IsDecoded = false };
 
-        var person = Lookup(Persons, tag[1]);
-        var number = Lookup(Numbers, tag[2]);
-        var tense = Lookup(Tenses, tag[3]);
-        var mood = Lookup(Moods, tag[4]);
-        var voice = Lookup(Voices, tag[5]);
-        var gender = Lookup(Genders, tag[6]);
-        var grammaticalCase = Lookup(Cases, tag[7]);
-        var degree = Lookup(Degrees, tag[8]);
+        // A two-character part of speech may refine the category - "pd" is a
+        // demonstrative pronoun rather than just a pronoun. Unknown
+        // refinements keep the plain category rather than being guessed at.
+        if (posFieldWidth == 2 && PosSubcategories.TryGetValue(tag[..2], out var refined))
+        {
+            pos = refined;
+        }
+
+        var f = posFieldWidth;
+        var person = Lookup(Persons, tag[f]);
+        var number = Lookup(Numbers, tag[f + 1]);
+        var tense = Lookup(Tenses, tag[f + 2]);
+        var mood = Lookup(Moods, tag[f + 3]);
+        var voice = Lookup(Voices, tag[f + 4]);
+        var gender = Lookup(Genders, tag[f + 5]);
+        var grammaticalCase = Lookup(Cases, tag[f + 6]);
+        var degree = Lookup(Degrees, tag[f + 7]);
 
         var sb = new StringBuilder();
 
@@ -340,22 +411,38 @@ public static class MorphologyDecoder
         };
 
     /// <summary>
-    /// Builds a SQLite GLOB pattern matching AGDT tags with the given
-    /// positions fixed and the rest free - selections of {0:'v', 4:'o'}
-    /// become "v???o????", i.e. any optative verb.
+    /// Builds SQLite GLOB patterns matching tags with the given positions
+    /// fixed and the rest free - selections of {0:'v', 4:'o'} become
+    /// "v???o????" and "v????o????", i.e. any optative verb in either
+    /// layout.
+    ///
+    /// Both are returned because both layouts are present in the corpus in
+    /// large numbers, and a pattern built for one silently matches none of
+    /// the other. The second position of the ten-character form is the
+    /// part-of-speech subcategory and is never constrained - a search for
+    /// "pronoun" should find demonstrative and relative pronouns alike.
     ///
     /// GLOB rather than LIKE deliberately: '?' matches exactly one
     /// character, so positions stay aligned, and GLOB is case-sensitive,
-    /// so a lowercase Greek tag can't accidentally match an uppercase Latin
-    /// one that happens to be nine characters long.
+    /// so a lowercase Greek pattern can't accidentally match an uppercase
+    /// Latin tag of the same length.
     /// </summary>
-    public static string BuildGlobPattern(IReadOnlyDictionary<int, char> selections)
+    public static (string NineChar, string TenChar) BuildGlobPatterns(IReadOnlyDictionary<int, char> selections)
     {
-        var pattern = new char[AgdtTagLength];
+        var nine = new char[AgdtTagLength];
         for (var i = 0; i < AgdtTagLength; i++)
         {
-            pattern[i] = selections.TryGetValue(i, out var code) ? code : '?';
+            nine[i] = selections.TryGetValue(i, out var code) ? code : '?';
         }
-        return new string(pattern);
+
+        var ten = new char[ExtendedTagLength];
+        ten[0] = selections.TryGetValue(0, out var posCode) ? posCode : '?';
+        ten[1] = '?';
+        for (var i = 1; i < AgdtTagLength; i++)
+        {
+            ten[i + 1] = selections.TryGetValue(i, out var code) ? code : '?';
+        }
+
+        return (new string(nine), new string(ten));
     }
 }

@@ -91,11 +91,10 @@ public class LemmaRepository
     /// rather than silently picking a winner.
     /// </summary>
     /// <summary>
-    /// Which lemma corpus a word belongs to, inferred from the script it's
-    /// written in. Greek and Latin don't share an alphabet, so this is
-    /// reliable here in a way a general language-detection heuristic
-    /// wouldn't be - and it avoids threading an edition's language down
-    /// through every caller just to ask a question the word itself answers.
+    /// Falls back to guessing the corpus from the word's script when the
+    /// caller doesn't know it. Reliable only for Greek, which has its own
+    /// alphabet - English and Latin share one, so callers that can tell
+    /// them apart should say so rather than rely on this.
     /// </summary>
     private static string DetectLanguage(string word)
     {
@@ -113,21 +112,37 @@ public class LemmaRepository
     }
 
     public async Task<List<(string Headword, string? PartOfSpeech)>> GetHeadwordsForFormAsync(
-        string form, CancellationToken cancellationToken = default)
+        string form, string? language = null, CancellationToken cancellationToken = default)
     {
         var results = new List<(string, string?)>();
         var normalized = WordNormalizer.Normalize(form);
         if (normalized.Length == 0) return results;
 
+        var effectiveLanguage = language ?? DetectLanguage(normalized);
+
+        // The two kinds of lemma data need different lookups.
+        //
+        // Greek and Latin ship a row per attested form, so the word as
+        // written is looked up directly. English ships base forms plus an
+        // exception list for irregulars, leaving regular endings to be
+        // stripped by rule - so "speaks" needs "speak" tried as well.
+        // EnglishLemmatizer supplies those candidates, ordered so the word
+        // itself is tried first and an exact match wins.
+        var formsToTry = effectiveLanguage == "eng"
+            ? EnglishLemmatizer.CandidateLemmas(normalized)
+            : new[] { normalized };
+
         await using var conn = await DbConnectionFactory.OpenConnectionAsync(cancellationToken);
 
         // Filtering by language matters twice over.
         //
-        // Correctness: the two lemma corpora are independent, and the Latin
-        // one tags Greek quotations as foreign words. Without this, looking
-        // up a Greek word returned those alongside the real Greek entries -
+        // Correctness: the lemma corpora are independent, and the Latin one
+        // tags Greek quotations as foreign words. Without this, looking up
+        // a Greek word returned those alongside the real Greek entries -
         // which is where junk like a "Greek" headword tagged FOR, or a
-        // transliterated "KAI", was coming from.
+        // transliterated "KAI", was coming from. English and Latin also
+        // share an alphabet, so nothing but the language column separates
+        // them at all.
         //
         // Speed: IX_Lemmas_NormalizedForm is on (Language, NormalizedForm).
         // A query that filters only on NormalizedForm can't use an index
@@ -139,15 +154,33 @@ public class LemmaRepository
             WHERE Language = @Language AND NormalizedForm = @NormalizedForm
             ORDER BY Headword;";
 
-        await using var cmd = conn.CreateCommand();
-        cmd.CommandText = sql;
-        cmd.Parameters.AddWithValue("@Language", DetectLanguage(normalized));
-        cmd.Parameters.AddWithValue("@NormalizedForm", normalized);
+        var seen = new HashSet<string>(StringComparer.Ordinal);
 
-        await using var reader = await cmd.ExecuteReaderAsync(cancellationToken);
-        while (await reader.ReadAsync(cancellationToken))
+        foreach (var candidate in formsToTry)
         {
-            results.Add((reader.GetString(0), reader.IsDBNull(1) ? null : reader.GetString(1)));
+            cancellationToken.ThrowIfCancellationRequested();
+
+            await using var cmd = conn.CreateCommand();
+            cmd.CommandText = sql;
+            cmd.Parameters.AddWithValue("@Language", effectiveLanguage);
+            cmd.Parameters.AddWithValue("@NormalizedForm", candidate);
+
+            await using var reader = await cmd.ExecuteReaderAsync(cancellationToken);
+            while (await reader.ReadAsync(cancellationToken))
+            {
+                var headword = reader.GetString(0);
+                var pos = reader.IsDBNull(1) ? null : reader.GetString(1);
+
+                // Several candidates can reduce to the same entry - "cities"
+                // yields both "city" and "citie", and a word that is already
+                // a base form matches itself as well as any stripped guess.
+                if (seen.Add($"{headword}\u0001{pos}")) results.Add((headword, pos));
+            }
+
+            // An exact hit on the word as written is the answer; only keep
+            // stripping when nothing has matched yet, so "saw" the noun
+            // isn't buried under speculative verb stems.
+            if (results.Count > 0) break;
         }
 
         return results;
@@ -158,7 +191,7 @@ public class LemmaRepository
     /// search for one word into a search for the whole paradigm.
     /// </summary>
     public async Task<List<string>> GetFormsForHeadwordAsync(
-        string headword, CancellationToken cancellationToken = default)
+        string headword, string? language = null, CancellationToken cancellationToken = default)
     {
         var results = new List<string>();
         await using var conn = await DbConnectionFactory.OpenConnectionAsync(cancellationToken);
@@ -171,7 +204,7 @@ public class LemmaRepository
 
         await using var cmd = conn.CreateCommand();
         cmd.CommandText = sql;
-        cmd.Parameters.AddWithValue("@Language", DetectLanguage(headword));
+        cmd.Parameters.AddWithValue("@Language", language ?? DetectLanguage(headword));
         cmd.Parameters.AddWithValue("@Headword", headword);
 
         await using var reader = await cmd.ExecuteReaderAsync(cancellationToken);

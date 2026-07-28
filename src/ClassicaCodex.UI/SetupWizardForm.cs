@@ -65,9 +65,10 @@ public class SetupWizardForm : Form
         // *outer* height before chrome was ever subtracted from it.
         // 910 fit five data-source rows; the World Map Data row added a
         // sixth at 98px each, pushing everything below it down by the same.
-        // 910 fit five rows; World Map Data made six at 1008; Art &
-        // Archaeology Data is the seventh, another 98px each time a row's added.
-        ClientSize = new Size(900, 1106);
+        // 910 fit five rows; each added row is another 98px. Eight now -
+        // this is getting tall enough that a scrollable panel is the real
+        // answer before a ninth gets added.
+        ClientSize = new Size(900, 1204);
         StartPosition = FormStartPosition.CenterParent;
 
         var explainer = new Label

@@ -675,7 +675,14 @@ public class MainForm : Form
             return;
         }
 
-        using var wordStudyForm = new WordStudyForm(node)
+        // Which pane the line came from determines its language, and that
+        // can't be inferred from the word itself - an English translation
+        // and a Latin original are both written in the Latin alphabet.
+        var edition = ReferenceEquals(list, _originalPane)
+            ? (_originalEditionCombo.SelectedItem as EditionOption)?.Edition
+            : (_translationEditionCombo.SelectedItem as EditionOption)?.Edition;
+
+        using var wordStudyForm = new WordStudyForm(node, edition?.Language)
         {
             OnNavigate = NavigateToPassageAsync
         };

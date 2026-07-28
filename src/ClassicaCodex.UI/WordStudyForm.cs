@@ -35,8 +35,18 @@ public class WordStudyForm : Form
     /// <summary>Set by MainForm before showing this dialog.</summary>
     public Func<int, long, Task>? OnNavigate { get; set; }
 
-    public WordStudyForm(TextNode sourceNode)
+    /// <summary>
+    /// language is the edition's language code ("grc", "lat", "eng"). It's
+    /// passed in rather than guessed because English and Latin share an
+    /// alphabet - nothing about an English word's spelling distinguishes it
+    /// from a Latin one, so only the edition knows.
+    /// </summary>
+    private readonly string? _language;
+
+    public WordStudyForm(TextNode sourceNode, string? language = null)
     {
+        _language = language;
+
         Text = "Word Study";
         AppIcons.ApplyWindowIcon(this, "WordStudy");
         Width = 1400;
@@ -202,15 +212,32 @@ public class WordStudyForm : Form
         _occurrenceList.Items.Clear();
         _formsBox.Text = "";
 
+        // Cleared here as well. The definition panel is only written when a
+        // headword gets selected, so on a word with no headwords at all
+        // that step never runs and the previous word's definition just sits
+        // there - looking like it belongs to the word now selected.
+        _definitionBox.Text = "";
+
         if (_wordList.SelectedItem is not string word) return;
 
-        _currentHeadwords = await _lemmaRepo.GetHeadwordsForFormAsync(word);
+        _currentHeadwords = await _lemmaRepo.GetHeadwordsForFormAsync(word, _language);
 
         if (_currentHeadwords.Count == 0)
         {
-            _headwordList.Items.Add("(not found in lemma data)");
-            _formsBox.Text = "No headword on record for this form. Either the lemma data doesn't " +
-                               "cover it, or no lemma data is loaded for this language.";
+            _headwordList.Items.Add("(no dictionary entry)");
+
+            // English needs its own explanation. WordNet is a lexicon of
+            // content words - nouns, verbs, adjectives, adverbs - and
+            // deliberately excludes the function words that hold sentences
+            // together. So "from", "of", "the" and "my" genuinely have no
+            // entry, and saying "not found in lemma data" for those reads
+            // as a loading failure when nothing is wrong at all.
+            _formsBox.Text = _language == "eng"
+                ? "WordNet covers nouns, verbs, adjectives and adverbs. Function words - prepositions, " +
+                  "articles, pronouns, conjunctions - aren't included in it, so common words like " +
+                  "\"from\", \"the\" and \"my\" have no entry by design."
+                : "No headword on record for this form. Either the lemma data doesn't " +
+                  "cover it, or no lemma data is loaded for this language.";
             return;
         }
 
@@ -260,7 +287,7 @@ public class WordStudyForm : Form
 
         await LoadDefinitionAsync(headword);
 
-        var forms = await _lemmaRepo.GetFormsForHeadwordAsync(headword);
+        var forms = await _lemmaRepo.GetFormsForHeadwordAsync(headword, _language);
         _formsBox.Text = forms.Count == 0
             ? "(no attested forms on record)"
             : $"Attested forms of {headword} ({forms.Count}):\r\n\r\n" + string.Join(", ", forms);
