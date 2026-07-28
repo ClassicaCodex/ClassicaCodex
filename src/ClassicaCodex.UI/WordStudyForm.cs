@@ -214,10 +214,35 @@ public class WordStudyForm : Form
             return;
         }
 
+        // Deduplicate on what the reader actually sees, not on the raw tag.
+        // The corpus stores the same analysis in two tag layouts (a nine- and
+        // a ten-character form), so a word can have two rows that are
+        // genuinely distinct in the database but decode to exactly the same
+        // parse - which showed up as the identical line listed twice. The
+        // filtered list replaces _currentHeadwords so its indices stay
+        // aligned with the list box, which the definition lookup relies on.
+        var deduplicated = new List<(string Headword, string? PartOfSpeech)>();
+        var seenDisplayText = new HashSet<string>(StringComparer.Ordinal);
+
         foreach (var (headword, pos) in _currentHeadwords)
         {
-            _headwordList.Items.Add(pos != null ? $"{headword}  [{pos}]" : headword);
+            // The stored tag is positional and unreadable on its own
+            // ("v-sppemn-"), so show the decoded parse where the format is
+            // recognized. An unrecognized tag still gets shown raw rather
+            // than hidden - it's real information from the corpus, just not
+            // in a vocabulary this can safely interpret.
+            var parse = MorphologyDecoder.Decode(pos);
+            var displayText = parse.IsDecoded
+                ? $"{headword}  -  {parse.Description}"
+                : pos != null ? $"{headword}  [{pos}]" : headword;
+
+            if (!seenDisplayText.Add(displayText)) continue;
+
+            deduplicated.Add((headword, pos));
+            _headwordList.Items.Add(displayText);
         }
+
+        _currentHeadwords = deduplicated;
 
         if (_headwordList.Items.Count > 0) _headwordList.SelectedIndex = 0;
     }

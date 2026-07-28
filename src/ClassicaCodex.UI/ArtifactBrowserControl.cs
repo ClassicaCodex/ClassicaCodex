@@ -33,6 +33,27 @@ public class ArtifactBrowserControl : UserControl
     // request defeats that and can exhaust sockets under rapid use).
     private static readonly HttpClient s_httpClient = new();
 
+    /// <summary>
+    /// Bytes of images fetched during this session, so paging back and
+    /// forth through a place's artifacts doesn't re-download over the
+    /// network each time - clicking Previous was previously a full round
+    /// trip to Perseus for something just displayed a second ago.
+    ///
+    /// In memory only, and only for as long as the app is running: this is
+    /// transient display state, the same thing a browser holds while you
+    /// look at a page, not a stored copy. Nothing is ever written to disk,
+    /// which is the line Perseus's terms actually draw.
+    ///
+    /// Raw bytes rather than Image objects deliberately - an Image handed
+    /// out of a cache has murky disposal ownership (the PictureBox would
+    /// dispose something the cache still references), while bytes are
+    /// immutable and a fresh Image is cheap to build from them. The
+    /// expensive part being avoided is the network, not the decode.
+    /// </summary>
+    private readonly Dictionary<string, byte[]> _imageBytesCache = new(StringComparer.Ordinal);
+    private readonly Queue<string> _imageCacheOrder = new();
+    private const int MaxCachedImages = 60;
+
     private List<Artifact> _allArtifacts = new();
     private List<Artifact> _currentArtifacts = new();
     private int _currentIndex;
@@ -203,7 +224,7 @@ public class ArtifactBrowserControl : UserControl
 
         try
         {
-            var bytes = await s_httpClient.GetByteArrayAsync(BuildIiifThumbnailUrl(firstImage.ImageId));
+            var bytes = await GetImageBytesAsync(firstImage.ImageId);
             _pictureBox.Image = Image.FromStream(new MemoryStream(bytes));
         }
         catch
@@ -213,6 +234,30 @@ public class ArtifactBrowserControl : UserControl
             // fails quietly rather than surfacing an error for something
             // this minor. The picture area is simply left blank.
         }
+    }
+
+    /// <summary>
+    /// Returns the image bytes, from the session cache when already
+    /// fetched. Eviction is plain FIFO rather than true LRU: browsing here
+    /// is overwhelmingly sequential (Next, Next, Next, then back a few),
+    /// so insertion order and recency are near enough the same thing, and
+    /// FIFO needs no bookkeeping on every hit.
+    /// </summary>
+    private async Task<byte[]> GetImageBytesAsync(string imageId)
+    {
+        if (_imageBytesCache.TryGetValue(imageId, out var cached)) return cached;
+
+        var bytes = await s_httpClient.GetByteArrayAsync(BuildIiifThumbnailUrl(imageId));
+
+        _imageBytesCache[imageId] = bytes;
+        _imageCacheOrder.Enqueue(imageId);
+
+        while (_imageCacheOrder.Count > MaxCachedImages)
+        {
+            _imageBytesCache.Remove(_imageCacheOrder.Dequeue());
+        }
+
+        return bytes;
     }
 
     /// <summary>Perseus's own IIIF pattern, confirmed directly against a live coin image and a live vase image - both resolved correctly at pct:50.</summary>

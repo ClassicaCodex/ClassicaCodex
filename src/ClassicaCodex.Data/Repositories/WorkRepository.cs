@@ -55,4 +55,47 @@ public class WorkRepository
 
         return results;
     }
+
+    /// <summary>
+    /// Every work in the library, grouped by author, in one query.
+    ///
+    /// The library tree previously called GetByAuthorAsync once per author
+    /// while building itself - with a full Perseus corpus that's hundreds
+    /// of authors, so hundreds of queries and hundreds of connections
+    /// opened and torn down before the tree could show anything. Authors
+    /// with no works simply don't appear as keys; the caller treats a
+    /// missing key as an empty list.
+    /// </summary>
+    public async Task<Dictionary<int, List<Work>>> GetAllGroupedByAuthorAsync(CancellationToken cancellationToken = default)
+    {
+        var grouped = new Dictionary<int, List<Work>>();
+
+        await using var conn = await DbConnectionFactory.OpenConnectionAsync(cancellationToken);
+        await using var cmd = conn.CreateCommand();
+        cmd.CommandTimeout = 120;
+        cmd.CommandText = @"SELECT WorkId, AuthorId, CtsUrn, Title, CitationScheme
+                            FROM Works ORDER BY AuthorId, Title;";
+
+        await using var reader = await cmd.ExecuteReaderAsync(cancellationToken);
+        while (await reader.ReadAsync(cancellationToken))
+        {
+            var work = new Work
+            {
+                WorkId = reader.GetInt32(0),
+                AuthorId = reader.GetInt32(1),
+                CtsUrn = reader.GetString(2),
+                Title = reader.GetString(3),
+                CitationScheme = reader.IsDBNull(4) ? null : reader.GetString(4)
+            };
+
+            if (!grouped.TryGetValue(work.AuthorId, out var list))
+            {
+                list = new List<Work>();
+                grouped[work.AuthorId] = list;
+            }
+            list.Add(work);
+        }
+
+        return grouped;
+    }
 }

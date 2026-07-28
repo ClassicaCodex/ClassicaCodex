@@ -56,9 +56,23 @@ public class LemmaIngestService
     /// '?' to forms its tagger couldn't confidently disambiguate - neither
     /// belongs in a stored word form.
     /// </summary>
+    /// <summary>
+    /// Strips the editorial markup that critical editions wrap around
+    /// supplied, doubtful, or restored text, so those markers don't end up
+    /// baked into a headword. Angle brackets are the convention for text
+    /// the editor supplied - the LSJ uses them the same way, in entries
+    /// like "a)&lt;m&gt;farme/nh" - and without stripping them a word shows
+    /// up in Word Study as a separate, useless headword like "&lt;ἦν&gt;"
+    /// sitting alongside the real one.
+    ///
+    /// Both the ASCII brackets and the Unicode angle-bracket variants are
+    /// covered, since which pair a given edition uses isn't consistent.
+    /// </summary>
     private static string CleanToken(string token)
     {
-        return token.Trim().Trim('{', '}', '?', '[', ']').Trim();
+        return token.Trim()
+            .Trim('{', '}', '?', '[', ']', '<', '>', '\u27e8', '\u27e9', '\u2329', '\u232a', '\u3008', '\u3009')
+            .Trim();
     }
 
     public async Task IngestAsync(

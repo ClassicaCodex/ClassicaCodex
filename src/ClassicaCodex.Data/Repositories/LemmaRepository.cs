@@ -90,6 +90,28 @@ public class LemmaRepository
     /// sometimes several, which is genuine ambiguity worth showing the user
     /// rather than silently picking a winner.
     /// </summary>
+    /// <summary>
+    /// Which lemma corpus a word belongs to, inferred from the script it's
+    /// written in. Greek and Latin don't share an alphabet, so this is
+    /// reliable here in a way a general language-detection heuristic
+    /// wouldn't be - and it avoids threading an edition's language down
+    /// through every caller just to ask a question the word itself answers.
+    /// </summary>
+    private static string DetectLanguage(string word)
+    {
+        foreach (var c in word)
+        {
+            // Greek and Coptic, plus Greek Extended (the polytonic
+            // accented forms that most of this corpus actually uses).
+            if ((c >= '\u0370' && c <= '\u03FF') || (c >= '\u1F00' && c <= '\u1FFF'))
+            {
+                return "grc";
+            }
+        }
+
+        return "lat";
+    }
+
     public async Task<List<(string Headword, string? PartOfSpeech)>> GetHeadwordsForFormAsync(
         string form, CancellationToken cancellationToken = default)
     {
@@ -99,14 +121,27 @@ public class LemmaRepository
 
         await using var conn = await DbConnectionFactory.OpenConnectionAsync(cancellationToken);
 
+        // Filtering by language matters twice over.
+        //
+        // Correctness: the two lemma corpora are independent, and the Latin
+        // one tags Greek quotations as foreign words. Without this, looking
+        // up a Greek word returned those alongside the real Greek entries -
+        // which is where junk like a "Greek" headword tagged FOR, or a
+        // transliterated "KAI", was coming from.
+        //
+        // Speed: IX_Lemmas_NormalizedForm is on (Language, NormalizedForm).
+        // A query that filters only on NormalizedForm can't use an index
+        // whose leading column is missing, so this lookup was scanning the
+        // whole Lemmas table - millions of rows - on every word clicked.
         const string sql = @"
             SELECT DISTINCT Headword, PartOfSpeech
             FROM Lemmas
-            WHERE NormalizedForm = @NormalizedForm
+            WHERE Language = @Language AND NormalizedForm = @NormalizedForm
             ORDER BY Headword;";
 
         await using var cmd = conn.CreateCommand();
         cmd.CommandText = sql;
+        cmd.Parameters.AddWithValue("@Language", DetectLanguage(normalized));
         cmd.Parameters.AddWithValue("@NormalizedForm", normalized);
 
         await using var reader = await cmd.ExecuteReaderAsync(cancellationToken);
@@ -131,11 +166,12 @@ public class LemmaRepository
         const string sql = @"
             SELECT DISTINCT Form
             FROM Lemmas
-            WHERE Headword = @Headword
+            WHERE Language = @Language AND Headword = @Headword
             ORDER BY Form;";
 
         await using var cmd = conn.CreateCommand();
         cmd.CommandText = sql;
+        cmd.Parameters.AddWithValue("@Language", DetectLanguage(headword));
         cmd.Parameters.AddWithValue("@Headword", headword);
 
         await using var reader = await cmd.ExecuteReaderAsync(cancellationToken);
@@ -159,15 +195,107 @@ public class LemmaRepository
     {
         var forms = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { form };
 
-        var headwords = await GetHeadwordsForFormAsync(form, cancellationToken);
-        foreach (var (headword, _) in headwords)
+        // One self-join rather than "look up the headwords, then run another
+        // query per headword". This runs on every lemma-aware search, and a
+        // form with several candidate headwords - which is common, since
+        // genuine ambiguity is exactly why the lemma tables are many-to-many
+        // - previously cost one connection and one round-trip each.
+        await using var conn = await DbConnectionFactory.OpenConnectionAsync(cancellationToken);
+        await using var cmd = conn.CreateCommand();
+        cmd.CommandText = @"
+            SELECT DISTINCT related.Form
+            FROM Lemmas source
+            JOIN Lemmas related
+              ON related.Headword = source.Headword
+             AND related.Language = source.Language
+            WHERE source.NormalizedForm = @NormalizedForm;";
+        cmd.Parameters.AddWithValue("@NormalizedForm", WordNormalizer.Normalize(form));
+
+        await using var reader = await cmd.ExecuteReaderAsync(cancellationToken);
+        while (await reader.ReadAsync(cancellationToken))
         {
-            foreach (var related in await GetFormsForHeadwordAsync(headword, cancellationToken))
-            {
-                forms.Add(related);
-            }
+            forms.Add(reader.GetString(0));
         }
 
         return forms.ToList();
+    }
+
+    /// <summary>
+    /// Finds passages containing word forms whose morphological tag matches
+    /// a positional pattern - "every aorist optative", "every genitive
+    /// plural". Goes Lemmas -> WordIndex -> TextNodes, the same route the
+    /// main lemma-aware search takes, so it inherits the same speed.
+    ///
+    /// GLOB rather than LIKE: '?' matches exactly one character so tag
+    /// positions stay aligned, and GLOB is case-sensitive, so a lowercase
+    /// Greek pattern can't match an uppercase Latin tag that happens to be
+    /// the same length. See MorphologyDecoder.BuildGlobPattern.
+    /// </summary>
+    public async Task<List<(int WorkId, long TextNodeId, string AuthorName, string WorkTitle, string CitationRef, string Text, string MatchedForm, string Headword, string Tag)>>
+        SearchByMorphologyAsync(string globPattern9, string globPattern10, string language, int maxResults = 2000, CancellationToken cancellationToken = default)
+    {
+        var results = new List<(int, long, string, string, string, string, string, string, string)>();
+
+        await using var conn = await DbConnectionFactory.OpenConnectionAsync(cancellationToken);
+        await using var cmd = conn.CreateCommand();
+        cmd.CommandTimeout = 120;
+
+        // Matching both patterns because the corpus carries both tag
+        // layouts in bulk - see MorphologyDecoder.BuildGlobPatterns.
+        // DISTINCT on the inner select: a line containing several forms that
+        // all match would otherwise repeat, and the join to Lemmas can also
+        // multiply rows when one form has several lemma candidates.
+        cmd.CommandText = @"
+            SELECT w.WorkId, tn.TextNodeId, a.Name, w.Title, tn.CitationRef, tn.Text,
+                   m.Form, m.Headword, m.PartOfSpeech
+            FROM (
+                SELECT DISTINCT l.NormalizedForm, l.Form, l.Headword, l.PartOfSpeech
+                FROM Lemmas l
+                WHERE l.Language = @Language
+                  AND l.PartOfSpeech IS NOT NULL
+                  AND (l.PartOfSpeech GLOB @Pattern9 OR l.PartOfSpeech GLOB @Pattern10)
+            ) m
+            JOIN WordIndex wi ON wi.NormalizedWord = m.NormalizedForm
+            JOIN TextNodes tn ON wi.TextNodeId = tn.TextNodeId
+            JOIN Editions e ON tn.EditionId = e.EditionId
+            JOIN Works w ON e.WorkId = w.WorkId
+            JOIN Authors a ON w.AuthorId = a.AuthorId
+            ORDER BY a.Name, w.Title, tn.SortOrder
+            LIMIT @MaxResults;";
+
+        cmd.Parameters.AddWithValue("@Pattern9", globPattern9);
+        cmd.Parameters.AddWithValue("@Pattern10", globPattern10);
+        cmd.Parameters.AddWithValue("@Language", language);
+        cmd.Parameters.AddWithValue("@MaxResults", maxResults);
+
+        await using var reader = await cmd.ExecuteReaderAsync(cancellationToken);
+        while (await reader.ReadAsync(cancellationToken))
+        {
+            results.Add((
+                reader.GetInt32(0), reader.GetInt64(1), reader.GetString(2), reader.GetString(3),
+                reader.GetString(4), reader.GetString(5), reader.GetString(6), reader.GetString(7),
+                reader.IsDBNull(8) ? string.Empty : reader.GetString(8)));
+        }
+
+        return results;
+    }
+
+    /// <summary>
+    /// How many distinct forms carry a decodable morphological tag, per
+    /// language. The morphology features are only meaningful if the loaded
+    /// lemma data actually carries tags - this is what lets the UI say so
+    /// plainly instead of just returning nothing and looking broken.
+    /// </summary>
+    public async Task<int> CountTaggedFormsAsync(string language, CancellationToken cancellationToken = default)
+    {
+        await using var conn = await DbConnectionFactory.OpenConnectionAsync(cancellationToken);
+        await using var cmd = conn.CreateCommand();
+        cmd.CommandText = @"
+            SELECT COUNT(DISTINCT NormalizedForm)
+            FROM Lemmas
+            WHERE Language = @Language AND PartOfSpeech IS NOT NULL;";
+        cmd.Parameters.AddWithValue("@Language", language);
+
+        return Convert.ToInt32(await cmd.ExecuteScalarAsync(cancellationToken));
     }
 }

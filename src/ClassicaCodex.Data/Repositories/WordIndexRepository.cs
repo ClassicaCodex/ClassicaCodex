@@ -58,11 +58,32 @@ public class WordIndexRepository
             await createCmd.ExecuteNonQueryAsync(cancellationToken);
         }
 
-        await using (var indexCmd = conn.CreateCommand())
-        {
-            indexCmd.CommandText = "CREATE INDEX IX_WordIndex_Word ON WordIndex (NormalizedWord, TextNodeId);";
-            await indexCmd.ExecuteNonQueryAsync(cancellationToken);
-        }
+        // Deliberately NOT creating the index here. Every INSERT into an
+        // indexed table has to update that index's B-tree as it goes, and
+        // this table takes tens of millions of rows - paying that cost per
+        // row is far more expensive than building the index once, in a
+        // single sort pass, after the data is all in. CreateIndexAsync
+        // below is called at the end of the build instead.
+    }
+
+    /// <summary>
+    /// Builds the lookup index, after the bulk load rather than before it -
+    /// see the note in ClearAsync for why the order matters. IF NOT EXISTS
+    /// so that an interrupted build followed by a re-run can't fail here;
+    /// a build that's cancelled partway simply leaves the table unindexed,
+    /// which makes searches slow but never wrong, and the next full run
+    /// recreates everything from scratch anyway.
+    /// </summary>
+    public async Task CreateIndexAsync(CancellationToken cancellationToken = default)
+    {
+        await using var conn = await DbConnectionFactory.OpenConnectionAsync(cancellationToken);
+        await using var indexCmd = conn.CreateCommand();
+        indexCmd.CommandText = "CREATE INDEX IF NOT EXISTS IX_WordIndex_Word ON WordIndex (NormalizedWord, TextNodeId);";
+
+        // The index build over a full corpus is a single large sort - it can
+        // legitimately take minutes, and the default timeout would abort it.
+        indexCmd.CommandTimeout = 600;
+        await indexCmd.ExecuteNonQueryAsync(cancellationToken);
     }
 
     /// <summary>

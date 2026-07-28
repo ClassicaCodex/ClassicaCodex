@@ -37,23 +37,57 @@ public class GitCorpusFetchService
             {
                 progress?.Report(new FetchProgress($"Connecting to {repoUrl}...", 0));
 
-                var cloneOptions = new CloneOptions
+                CloneOptions BuildCloneOptions(int? depth)
                 {
-                    Checkout = false, // the whole point - see class remarks
-                    FetchOptions =
+                    var options = new CloneOptions
                     {
-                        OnTransferProgress = tp =>
+                        Checkout = false, // the whole point - see class remarks
+                        FetchOptions =
                         {
-                            progress?.Report(new FetchProgress(
-                                $"Downloading... {tp.ReceivedObjects}/{tp.TotalObjects} objects, " +
-                                $"{tp.ReceivedBytes / 1024 / 1024} MB",
-                                0));
-                            return !cancellationToken.IsCancellationRequested;
+                            OnTransferProgress = tp =>
+                            {
+                                progress?.Report(new FetchProgress(
+                                    $"Downloading... {tp.ReceivedObjects}/{tp.TotalObjects} objects, " +
+                                    $"{tp.ReceivedBytes / 1024 / 1024} MB",
+                                    0));
+                                return !cancellationToken.IsCancellationRequested;
+                            }
                         }
-                    }
-                };
+                    };
 
-                Repository.Clone(repoUrl, tempClonePath, cloneOptions);
+                    if (depth.HasValue) options.FetchOptions.Depth = depth.Value;
+                    return options;
+                }
+
+                // Depth 1 - only the tip commit, none of the history behind
+                // it. Nothing downstream reads history: the extraction below
+                // walks repo.Head.Tip.Tree and nothing else, so every earlier
+                // commit fetched was pure waste. On these corpora that's the
+                // difference between a couple of gigabytes and a few hundred
+                // megabytes, because the same files have been revised many
+                // times over the repository's life and a full clone brings
+                // down every past version of each.
+                //
+                // FetchOptions.Depth needs LibGit2Sharp newer than 0.30.0 -
+                // the property doesn't exist there. Shallow clone is also
+                // relatively new in libgit2 (1.7+) and needs server
+                // cooperation, so a failure falls back to the full clone that
+                // always worked rather than failing setup outright.
+                try
+                {
+                    Repository.Clone(repoUrl, tempClonePath, BuildCloneOptions(depth: 1));
+                }
+                catch (LibGit2SharpException)
+                {
+                    progress?.Report(new FetchProgress(
+                        "Shallow download unavailable for this repository - fetching in full instead...", 0));
+
+                    // A failed clone can leave a partial directory behind,
+                    // and Repository.Clone refuses a non-empty target.
+                    TryDeleteDirectory(tempClonePath);
+                    Repository.Clone(repoUrl, tempClonePath, BuildCloneOptions(depth: null));
+                }
+
                 cancellationToken.ThrowIfCancellationRequested();
 
                 Directory.CreateDirectory(outputFolder);

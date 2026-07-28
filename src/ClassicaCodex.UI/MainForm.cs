@@ -8,6 +8,14 @@ public class MainForm : Form
     private readonly TreeView _libraryTree;
     private readonly Button _treeToggleButton;
     private bool _libraryTreeCollapsed;
+
+    /// <summary>
+    /// Set only while OpenWorkAsync assigns the tree selection itself, so
+    /// the AfterSelect handler skips the load that OpenWorkAsync is about
+    /// to do explicitly. Without it, opening a work from any other form
+    /// loads and re-measures the whole text twice.
+    /// </summary>
+    private bool _suppressTreeSelectionLoad;
     private readonly SyncListView _originalPane;
     private readonly SyncListView _translationPane;
     private readonly ComboBox _originalEditionCombo;
@@ -132,6 +140,16 @@ public class MainForm : Form
                 OnNavigate = NavigateToPassageAsync
             };
             placesMapForm.ShowDialog(this);
+        };
+
+        var morphologyButton = new Button { Text = "Morphology...", Left = 1458, Top = 10, Width = 130, Height = 30 };
+        morphologyButton.Click += (_, _) =>
+        {
+            using var morphologyForm = new MorphologyForm
+            {
+                OnNavigate = NavigateToPassageAsync
+            };
+            morphologyForm.ShowDialog(this);
         };
 
         // A small strip above the tree rather than a separate row in the
@@ -306,6 +324,7 @@ public class MainForm : Form
         Controls.Add(concordanceButton);
         Controls.Add(compareTranslationsButton);
         Controls.Add(placesMapButton);
+        Controls.Add(morphologyButton);
         Controls.Add(aboutButton);
         Controls.Add(setupWizardButton);
         Controls.Add(_themeButton);
@@ -322,6 +341,7 @@ public class MainForm : Form
         AppIcons.Apply(concordanceButton, "Concordance", 16);
         AppIcons.Apply(compareTranslationsButton, "CompareTexts", 16);
         AppIcons.Apply(placesMapButton, "PlaceMap", 16);
+        AppIcons.Apply(morphologyButton, "WordStudy", 16);
         AppIcons.Apply(setupWizardButton, "Settings", 16);
         AppIcons.Apply(aboutButton, "About", 16);
         AppIcons.Apply(_helpButton, "Help", 16);
@@ -440,9 +460,15 @@ public class MainForm : Form
         _libraryTree.Nodes.Clear();
 
         List<Author> authors;
+        Dictionary<int, List<Work>> worksByAuthor;
         try
         {
             authors = await _authorRepo.GetAllAsync();
+
+            // One query for every work in the library, rather than one per
+            // author inside the loop below - with a full corpus that was
+            // hundreds of round trips before the tree could render at all.
+            worksByAuthor = await _workRepo.GetAllGroupedByAuthorAsync();
         }
         catch (Exception ex)
         {
@@ -451,15 +477,30 @@ public class MainForm : Form
             return;
         }
 
-        foreach (var author in authors)
+        // Without this, every Nodes.Add triggers the tree to re-measure and
+        // repaint - thousands of times over a full corpus. The reader pane
+        // already does the same thing for the same reason.
+        _libraryTree.BeginUpdate();
+        try
         {
-            var authorNode = new TreeNode(author.Name) { Tag = author };
-            var works = await _workRepo.GetByAuthorAsync(author.AuthorId);
-            foreach (var work in works)
+            foreach (var author in authors)
             {
-                authorNode.Nodes.Add(new TreeNode(work.Title) { Tag = work });
+                var authorNode = new TreeNode(author.Name) { Tag = author };
+
+                if (worksByAuthor.TryGetValue(author.AuthorId, out var works))
+                {
+                    foreach (var work in works)
+                    {
+                        authorNode.Nodes.Add(new TreeNode(work.Title) { Tag = work });
+                    }
+                }
+
+                _libraryTree.Nodes.Add(authorNode);
             }
-            _libraryTree.Nodes.Add(authorNode);
+        }
+        finally
+        {
+            _libraryTree.EndUpdate();
         }
     }
 
@@ -688,6 +729,11 @@ public class MainForm : Form
 
     private async Task LibraryTree_AfterSelectAsync(TreeViewEventArgs e)
     {
+        // Checked before anything else, and before any await, so that
+        // OpenWorkAsync's programmatic selection can reliably suppress the
+        // duplicate load it would otherwise cause. See the note there.
+        if (_suppressTreeSelectionLoad) return;
+
         if (e.Node?.Tag is not Work work) return;
         await LoadEditionSelectorsAsync(work.WorkId);
     }
@@ -834,13 +880,11 @@ public class MainForm : Form
                 return;
             }
 
-            foreach (var node in nodes)
-            {
-                // The node itself is the item now (not wrapped in a Tag
-                // property), so right-click "Tag this line" and similar
-                // features read it straight back out of pane.Items.
-                pane.Items.Add(node);
-            }
+            // One bulk insert rather than a call per line. The node itself
+            // is the item (not wrapped in a Tag property), so right-click
+            // "Tag this line" and similar features read it straight back
+            // out of pane.Items.
+            pane.Items.AddRange(nodes.Cast<object>().ToArray());
         }
         finally
         {
@@ -911,7 +955,33 @@ public class MainForm : Form
         var workNode = FindWorkNode(workId);
         if (workNode == null) return false;
 
-        _libraryTree.SelectedNode = workNode;
+        // Already the selected work - its panes are populated and current,
+        // so there's nothing to reload. Jumping between passages of the
+        // work you're already reading (a search result, an echo, a tagged
+        // line) is then instant rather than a full reload of the whole text.
+        if (ReferenceEquals(_libraryTree.SelectedNode, workNode)) return true;
+
+        // Assigning SelectedNode raises AfterSelect, whose handler loads the
+        // work too - so without suppressing it here, every open from another
+        // form loaded and re-measured the entire text twice, and the two
+        // loads could interleave while both populated the same panes.
+        //
+        // The flag is checked as the first statement of that handler, before
+        // any await, so it is read synchronously during this assignment and
+        // is reliably still set. The explicit awaited call below is what
+        // actually loads, which keeps this method's completion meaning "the
+        // panes are populated" - callers depend on that to select a line
+        // immediately afterward.
+        _suppressTreeSelectionLoad = true;
+        try
+        {
+            _libraryTree.SelectedNode = workNode;
+        }
+        finally
+        {
+            _suppressTreeSelectionLoad = false;
+        }
+
         await LoadEditionSelectorsAsync(workId);
         return true;
     }
@@ -984,14 +1054,24 @@ public class MainForm : Form
         _searchResults.Items.Clear();
         _currentSearchResults = await _textNodeRepo.SearchAsync(query);
 
-        foreach (var r in _currentSearchResults.Take(500))
+        // Same reasoning as the library tree: each Add otherwise repaints
+        // the list, and this runs on every single search.
+        _searchResults.BeginUpdate();
+        try
         {
-            _searchResults.Items.Add($"{r.AuthorName}, {r.WorkTitle}: {r.Text}");
-        }
+            foreach (var r in _currentSearchResults.Take(500))
+            {
+                _searchResults.Items.Add($"{r.AuthorName}, {r.WorkTitle}: {r.Text}");
+            }
 
-        if (_currentSearchResults.Count == 0)
+            if (_currentSearchResults.Count == 0)
+            {
+                _searchResults.Items.Add("No matches.");
+            }
+        }
+        finally
         {
-            _searchResults.Items.Add("No matches.");
+            _searchResults.EndUpdate();
         }
     }
 

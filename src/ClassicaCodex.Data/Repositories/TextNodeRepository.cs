@@ -428,11 +428,12 @@ public class TextNodeRepository
         // corpus, and keep only the rarest handful - those are the words
         // worth searching on. A word that appears in 40,000 lines tells you
         // nothing; a word that appears in 6 tells you something.
-        var frequencies = new Dictionary<string, int>();
-        foreach (var word in candidateWords)
-        {
-            frequencies[word] = await CountTextNodesContainingWordAsync(word, cancellationToken);
-        }
+        // One batched query rather than one per candidate word. This loop
+        // previously cost two connections and two round-trips per word (the
+        // per-call HasDataAsync check was itself a query), so a line with
+        // fifteen candidate words meant sixty of them before a single echo
+        // was found. The whole set now resolves in one.
+        var frequencies = await CountTextNodesContainingWordsAsync(candidateWords, cancellationToken);
 
         var significantWords = frequencies
             .Where(kv => kv.Value > 0)
@@ -496,33 +497,76 @@ public class TextNodeRepository
     /// fast), falling back to a LIKE scan only if the index hasn't been
     /// built yet.
     /// </summary>
-    private async Task<int> CountTextNodesContainingWordAsync(string word, CancellationToken cancellationToken)
+    private async Task<Dictionary<string, int>> CountTextNodesContainingWordsAsync(
+        IReadOnlyList<string> words, CancellationToken cancellationToken)
     {
+        var frequencies = new Dictionary<string, int>(StringComparer.Ordinal);
+        if (words.Count == 0) return frequencies;
+
+        // Checked once for the whole batch, not once per word.
         var wordIndexRepo = new WordIndexRepository();
-        if (await wordIndexRepo.HasDataAsync(cancellationToken))
+        var hasIndex = await wordIndexRepo.HasDataAsync(cancellationToken);
+
+        await using var conn = await DbConnectionFactory.OpenConnectionAsync(cancellationToken);
+
+        if (hasIndex)
         {
-            var normalized = WordNormalizer.Normalize(word);
-            await using var conn = await DbConnectionFactory.OpenConnectionAsync(cancellationToken);
             await using var cmd = conn.CreateCommand();
-            cmd.CommandText = "SELECT COUNT(DISTINCT TextNodeId) FROM WordIndex WHERE NormalizedWord = @Word;";
-            cmd.Parameters.AddWithValue("@Word", normalized);
-            var result = await cmd.ExecuteScalarAsync(cancellationToken);
-            return Convert.ToInt32(result);
+            cmd.CommandTimeout = 120;
+
+            var paramNames = new List<string>(words.Count);
+            for (var i = 0; i < words.Count; i++)
+            {
+                var normalized = WordNormalizer.Normalize(words[i]);
+                paramNames.Add($"@w{i}");
+                cmd.Parameters.AddWithValue($"@w{i}", normalized);
+            }
+
+            cmd.CommandText = $@"
+                SELECT NormalizedWord, COUNT(DISTINCT TextNodeId)
+                FROM WordIndex
+                WHERE NormalizedWord IN ({string.Join(",", paramNames)})
+                GROUP BY NormalizedWord;";
+
+            await using var reader = await cmd.ExecuteReaderAsync(cancellationToken);
+            while (await reader.ReadAsync(cancellationToken))
+            {
+                frequencies[reader.GetString(0)] = reader.GetInt32(1);
+            }
+
+            // GROUP BY only returns rows for words that actually occur, so
+            // anything absent genuinely has a count of zero. The caller
+            // filters those out, but it should see them rather than find
+            // the key missing entirely.
+            foreach (var word in words)
+            {
+                var normalized = WordNormalizer.Normalize(word);
+                frequencies.TryAdd(normalized, 0);
+            }
+
+            return frequencies;
         }
 
-        await using var likeConn = await DbConnectionFactory.OpenConnectionAsync(cancellationToken);
-        await using var likeCmd = likeConn.CreateCommand();
-        likeCmd.CommandText = "SELECT COUNT(*) FROM TextNodes WHERE Text LIKE @Word;";
-        likeCmd.Parameters.AddWithValue("@Word", $"%{word}%");
-        var likeResult = await likeCmd.ExecuteScalarAsync(cancellationToken);
-        return Convert.ToInt32(likeResult);
+        // No word index built yet - fall back to a LIKE scan per word, the
+        // same fallback the single-word version had. Genuinely slow, but
+        // this path only runs before "Build Word Index" has ever been run.
+        foreach (var word in words)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            await using var likeCmd = conn.CreateCommand();
+            likeCmd.CommandText = "SELECT COUNT(*) FROM TextNodes WHERE Text LIKE @Word;";
+            likeCmd.Parameters.AddWithValue("@Word", $"%{word}%");
+            frequencies[word] = Convert.ToInt32(await likeCmd.ExecuteScalarAsync(cancellationToken));
+        }
+
+        return frequencies;
     }
 
     /// <summary>
     /// Candidate lines containing any of the given rare words, restricted to
     /// the same edition kind (original-vs-translation) as the source and
     /// excluding the source line itself. Tries the word index first, same
-    /// fallback story as CountTextNodesContainingWordAsync. Capped at 3000
+    /// fallback story as CountTextNodesContainingWordsAsync. Capped at 3000
     /// raw rows so a LIKE fallback on a huge corpus can't run away -
     /// scoring/ranking happens afterward in FindEchoesAsync.
     /// </summary>

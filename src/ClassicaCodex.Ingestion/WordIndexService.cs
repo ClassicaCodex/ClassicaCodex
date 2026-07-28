@@ -90,6 +90,13 @@ public class WordIndexService
             entriesWritten += pending.Count;
         }
 
+        // Built here rather than before the load - see ClearAsync. This is a
+        // single large sort over everything just written, so it gets its own
+        // progress message: it can run for minutes with no row-level
+        // progress to report, and silence there reads as a freeze.
+        progress?.Report(new WordIndexProgress(nodesProcessed, totalNodes, entriesWritten, "Building lookup index..."));
+        await _wordIndexRepo.CreateIndexAsync(cancellationToken);
+
         progress?.Report(new WordIndexProgress(nodesProcessed, totalNodes, entriesWritten));
     }
 }
