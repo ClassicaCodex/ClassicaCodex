@@ -4,6 +4,19 @@ A desktop reader and research tool for the [Perseus Digital Library](http://www.
 
 Built as a personal project, for reading and researching the classics more closely than a browser tab really allows.
 
+## Download
+
+Download the latest Windows release from the
+[GitHub Releases page](https://github.com/ClassicaCodex/ClassicaCodex/releases/latest).
+
+1. Download the Windows ZIP file.
+2. Extract the entire archive.
+3. Run `ClassicaCodex.UI.exe`.
+4. Follow the setup wizard to download and ingest the classical corpora.
+
+> Windows may show an “Unknown publisher” warning because the application is not code-signed.
+> 
+
 <img width="1805" height="769" alt="image" src="https://github.com/user-attachments/assets/d680005b-7226-4a14-94b0-1fadf02ba954" />
 
 <img width="1168" height="770" alt="image" src="https://github.com/user-attachments/assets/db82c1b9-5421-4a62-9c07-a2c11273e26b" />
