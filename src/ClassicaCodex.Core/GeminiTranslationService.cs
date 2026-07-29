@@ -201,6 +201,93 @@ public static class GeminiTranslationService
         }
     }
 
+    /// <summary>
+    /// Translates a batch of passages from one edition in a single request,
+    /// each tagged with its own citation ref so the response can be matched
+    /// back to the right line - the same citation-tagged-block approach
+    /// FindEchoesAsync uses, adapted for "translate every line" instead of
+    /// "find matching lines". CreateTranslationForm calls this once per
+    /// batch to build a whole new translation edition, since a whole work's
+    /// output can't fit in a single request's response budget the way
+    /// FindEchoesAsync's much shorter output can - that's a caller-side
+    /// concern, not something handled in here; this method just translates
+    /// whatever list of passages it's given.
+    ///
+    /// Returns only the citation refs Gemini actually responded with - a ref
+    /// that went in but didn't come back means the caller knows to retry
+    /// just that line, rather than silently ending up with a gap it can't see.
+    /// </summary>
+    public static async Task<List<(string CitationRef, string TranslatedText)>> TranslateBatchAsync(
+        List<(string CitationRef, string Text)> passages,
+        string? sourceLanguage,
+        string? targetLanguage,
+        string authorName,
+        string workTitle,
+        string apiKey,
+        CancellationToken cancellationToken = default)
+    {
+        var sourceLanguageName = TranslationLanguageNames.DisplayName(sourceLanguage);
+        var targetLanguageName = TranslationLanguageNames.DisplayName(targetLanguage);
+        var taggedText = string.Join("\n", passages.Select(p => $"[{p.CitationRef}] {p.Text}"));
+
+        var prompt =
+            $"Translate each of the following numbered {sourceLanguageName} passages into clear, readable " +
+            $"{targetLanguageName} prose. They are from {authorName}, {workTitle}. Each passage below is " +
+            "tagged with its own citation reference in square brackets - repeat that exact reference back " +
+            "for each one in your response, translating every single passage listed, in the same order.\n\n" +
+            $"{taggedText}\n\n" +
+            "Respond with ONLY a JSON array, no other text and no markdown code fences, in this exact " +
+            "shape: [{\"citationRef\": \"...\", \"translatedText\": \"...\"}]";
+
+        string rawResponse;
+        try
+        {
+            rawResponse = await TranslateWithModelAsync(PrimaryModel, allowFallback: true, prompt, apiKey, cancellationToken);
+        }
+        catch (QuotaExceededException)
+        {
+            throw new InvalidOperationException(
+                "Both Gemini models have hit today's free-tier usage limit. Try again after the daily reset.");
+        }
+
+        return ParseTranslatedBatch(rawResponse);
+    }
+
+    /// <summary>Same defensive JSON handling as ParseEchoCandidates - a stray markdown fence is stripped rather than left to fail parsing outright.</summary>
+    private static List<(string CitationRef, string TranslatedText)> ParseTranslatedBatch(string rawResponse)
+    {
+        var cleaned = rawResponse.Trim();
+        if (cleaned.StartsWith("```"))
+        {
+            var firstNewline = cleaned.IndexOf('\n');
+            if (firstNewline >= 0) cleaned = cleaned[(firstNewline + 1)..];
+            if (cleaned.EndsWith("```")) cleaned = cleaned[..^3];
+            cleaned = cleaned.Trim();
+        }
+
+        try
+        {
+            using var doc = JsonDocument.Parse(cleaned);
+            var results = new List<(string, string)>();
+
+            foreach (var item in doc.RootElement.EnumerateArray())
+            {
+                var citationRef = item.TryGetProperty("citationRef", out var refProp) ? refProp.GetString() : null;
+                var translatedText = item.TryGetProperty("translatedText", out var textProp) ? textProp.GetString() : null;
+
+                if (string.IsNullOrWhiteSpace(citationRef) || translatedText == null) continue;
+                results.Add((citationRef, translatedText));
+            }
+
+            return results;
+        }
+        catch (JsonException ex)
+        {
+            throw new InvalidOperationException(
+                $"Gemini's response wasn't in the expected format, so this batch couldn't be read. ({ex.Message})");
+        }
+    }
+
     private static async Task<string> TranslateWithModelAsync(
         string model, bool allowFallback, string prompt, string apiKey, CancellationToken cancellationToken)
     {

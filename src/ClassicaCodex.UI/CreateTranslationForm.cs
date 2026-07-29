@@ -1,0 +1,489 @@
+using ClassicaCodex.Core.Models;
+using ClassicaCodex.Data.Repositories;
+using ClassicaCodex.Ingestion;
+
+namespace ClassicaCodex.UI;
+
+/// <summary>
+/// Opened by right-clicking a work in the library tree and choosing
+/// "Create Translation...". Translates a whole original-language work into
+/// a brand new Translation-kind edition, saved permanently to the library -
+/// the direct answer to how much of the Renaissance and First1KGreek
+/// corpora sit original-only with no translation at all.
+///
+/// Gemini-only, same reasoning as Cross-Language Echo: this is optional,
+/// bulk, speculative content generation, not core reading comprehension -
+/// there's no reason it should need anyone's credit card.
+///
+/// Two things this form exists to get right, both learned from watching a
+/// real 802-line work actually run:
+///
+///  - A whole work's translation can't come back in a single API response
+///    (output-token budgets, not input context, are the real ceiling), so
+///    this sends the work in batches and shows the translation building up
+///    live. Results are tracked by citation ref in a dictionary, not
+///    insertion order, since any line a batch didn't return gets one
+///    consolidated retry pass *after* the main loop - an append-only
+///    approach would put those lines at the end, out of order.
+///  - A long work is genuinely slow - dozens of requests, several minutes,
+///    a real and evidenced chance of hitting the free tier's daily limit
+///    partway through. So progress is persisted to the database after every
+///    single batch, automatically, not only when a Save button is clicked -
+///    closing this dialog (or the whole app) mid-run loses nothing already
+///    translated. Reopening "Create Translation" for the same work later
+///    finds that edition, loads what's already done, and only sends the
+///    lines still missing - it doesn't start over and doesn't re-spend
+///    quota on lines already finished.
+/// </summary>
+public class CreateTranslationForm : Form
+{
+    private const int BatchSize = 25;
+    private const int InterBatchDelayMs = 2500;
+    private const string GeminiTranslatorLabel = "Gemini (AI-generated)";
+
+    private readonly int _workId;
+    private readonly string _workCtsUrn;
+    private readonly string _authorName;
+    private readonly string _workTitle;
+    private readonly int _sourceEditionId;
+    private readonly string? _sourceLanguage;
+    private readonly string? _targetLanguage;
+
+    private readonly TextNodeRepository _textNodeRepo = new();
+    private readonly EditionRepository _editionRepo = new();
+    private readonly WordIndexService _wordIndexService = new();
+
+    private List<TextNode> _sourceNodes = new();
+    private readonly Dictionary<string, string> _translatedByRef = new(StringComparer.OrdinalIgnoreCase);
+    private CancellationTokenSource? _cancellation;
+
+    // Null until the first successful batch persists something - created
+    // once, then reused for every save after that (including auto-saves),
+    // so repeated saves update the same edition instead of multiplying into
+    // a new one each time. "Start Fresh Instead" resets this to null on
+    // purpose, to begin a genuinely separate attempt.
+    private int? _workingEditionId;
+
+    private readonly Label _headerLabel;
+    private readonly Label _disclosureLabel;
+    private readonly Label _resumeLabel;
+    private readonly Button _startFreshButton;
+    private readonly Label _originalHeader;
+    private readonly TextBox _originalBox;
+    private readonly Label _translatedHeader;
+    private readonly TextBox _translatedBox;
+    private readonly Button _translateButton;
+    private readonly Button _stopButton;
+    private readonly Button _saveNowButton;
+    private readonly Label _statusLabel;
+    private readonly Button _closeButton;
+
+    public CreateTranslationForm(
+        Work work, string authorName, int sourceEditionId, string? sourceLanguage, string? targetLanguage)
+    {
+        _workId = work.WorkId;
+        _workCtsUrn = work.CtsUrn;
+        _authorName = authorName;
+        _workTitle = work.Title;
+        _sourceEditionId = sourceEditionId;
+        _sourceLanguage = sourceLanguage;
+        _targetLanguage = targetLanguage ?? "eng";
+
+        Text = "Create Translation";
+        AppIcons.ApplyWindowIcon(this, "Translate");
+        Width = 1040;
+        Height = 740;
+        StartPosition = FormStartPosition.CenterParent;
+        MinimumSize = new Size(760, 540);
+
+        _headerLabel = new Label
+        {
+            Left = 16, Top = 12, Width = 990,
+            Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right,
+            Text = $"{authorName}, {work.Title} \u2014 loading..."
+        };
+
+        _disclosureLabel = new Label
+        {
+            Left = 16, Top = 36, Width = 990, Height = 48,
+            Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right,
+            ForeColor = Color.DarkRed,
+            Text = "Sends this work to Gemini's API over the internet, in batches - the only part of " +
+                   "Classica Codex that isn't offline. A long work can mean dozens of requests and several " +
+                   "minutes. Progress is saved after every batch automatically, so closing this dialog (or " +
+                   "hitting today's free-tier limit) never loses what's already translated - reopen this " +
+                   "later to pick up exactly where it left off."
+        };
+
+        _resumeLabel = new Label
+        {
+            Left = 16, Top = 84, Width = 780, Height = 20,
+            Anchor = AnchorStyles.Top | AnchorStyles.Left,
+            ForeColor = Color.DimGray,
+            Visible = false
+        };
+        _startFreshButton = new Button
+        {
+            Left = 800, Top = 82, Width = 206, Height = 24,
+            Anchor = AnchorStyles.Top | AnchorStyles.Right,
+            Text = "Start a New Attempt Instead",
+            Visible = false
+        };
+        _startFreshButton.Click += (_, _) => StartFresh();
+
+        _originalHeader = new Label { Left = 16, Top = 112, Width = 490, Font = new Font(Font, FontStyle.Bold) };
+        _originalBox = new TextBox
+        {
+            Left = 16, Top = 134, Width = 490, Height = 410,
+            Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left,
+            Multiline = true, ReadOnly = true, ScrollBars = ScrollBars.Vertical
+        };
+
+        _translatedHeader = new Label
+        {
+            Left = 516, Top = 112, Width = 490,
+            Anchor = AnchorStyles.Top | AnchorStyles.Right,
+            Font = new Font(Font, FontStyle.Bold),
+            Text = "Translation (not started)"
+        };
+        _translatedBox = new TextBox
+        {
+            Left = 516, Top = 134, Width = 490, Height = 410,
+            Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right,
+            Multiline = true, ReadOnly = true, ScrollBars = ScrollBars.Vertical
+        };
+
+        _translateButton = new Button
+        {
+            Left = 16, Top = 556, Width = 200, Height = 30,
+            Anchor = AnchorStyles.Bottom | AnchorStyles.Left,
+            Text = "Translate with Gemini (free)",
+            Enabled = false
+        };
+        _translateButton.Click += async (_, _) => await OnTranslateClickedAsync();
+
+        _stopButton = new Button
+        {
+            Left = 224, Top = 556, Width = 90, Height = 30,
+            Anchor = AnchorStyles.Bottom | AnchorStyles.Left,
+            Text = "Stop",
+            Enabled = false
+        };
+        _stopButton.Click += (_, _) => _cancellation?.Cancel();
+
+        _statusLabel = new Label
+        {
+            Left = 322, Top = 561, Width = 684,
+            Anchor = AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right,
+            ForeColor = Color.DimGray
+        };
+
+        _saveNowButton = new Button
+        {
+            Left = 16, Top = 596, Width = 200, Height = 30,
+            Anchor = AnchorStyles.Bottom | AnchorStyles.Left,
+            Text = "Save Now",
+            Enabled = false
+        };
+        _saveNowButton.Click += async (_, _) => await OnSaveNowClickedAsync();
+
+        _closeButton = new Button
+        {
+            Left = 934, Top = 596, Width = 72, Height = 30,
+            Anchor = AnchorStyles.Bottom | AnchorStyles.Right,
+            Text = "Close",
+            DialogResult = DialogResult.Cancel
+        };
+        CancelButton = _closeButton;
+
+        Controls.Add(_headerLabel);
+        Controls.Add(_disclosureLabel);
+        Controls.Add(_resumeLabel);
+        Controls.Add(_startFreshButton);
+        Controls.Add(_originalHeader);
+        Controls.Add(_originalBox);
+        Controls.Add(_translatedHeader);
+        Controls.Add(_translatedBox);
+        Controls.Add(_translateButton);
+        Controls.Add(_stopButton);
+        Controls.Add(_statusLabel);
+        Controls.Add(_saveNowButton);
+        Controls.Add(_closeButton);
+
+        Load += async (_, _) => await LoadSourceAndCheckForResumeAsync();
+        FormClosed += (_, _) => _cancellation?.Cancel();
+
+        ReadingTheme.AttachTo(this);
+    }
+
+    private async Task LoadSourceAndCheckForResumeAsync()
+    {
+        _sourceNodes = await _textNodeRepo.GetByEditionAsync(_sourceEditionId);
+        _originalHeader.Text = $"Original ({TranslationLanguageNames.DisplayName(_sourceLanguage)})";
+        _originalBox.Text = string.Join(" ", _sourceNodes.Select(n => n.Text));
+        _headerLabel.Text = $"{_authorName}, {_workTitle} \u2014 {_sourceNodes.Count:N0} line(s)";
+
+        if (_sourceNodes.Count == 0)
+        {
+            _statusLabel.Text = "This edition has no text to translate.";
+            return;
+        }
+
+        // Look for a prior Gemini attempt on this same work - the most
+        // recently created one if there's more than one, by EditionId,
+        // since that's assigned in creation order. Anything found here
+        // becomes the working edition: further translation appends to it,
+        // and Save updates it in place rather than creating another one.
+        var existingEditions = await _editionRepo.GetByWorkAsync(_workId);
+        var priorAttempt = existingEditions
+            .Where(e => e.Translator == GeminiTranslatorLabel)
+            .OrderByDescending(e => e.EditionId)
+            .FirstOrDefault();
+
+        if (priorAttempt != null)
+        {
+            var priorNodes = await _textNodeRepo.GetByEditionAsync(priorAttempt.EditionId);
+            foreach (var node in priorNodes)
+            {
+                // Defensive: an edition saved by an earlier version of this
+                // feature could contain the old "no translation returned"
+                // placeholder text for gaps, rather than simply omitting
+                // them. Those aren't real translations and shouldn't count
+                // as already done, or they'd never get retried.
+                if (node.Text == "[Gemini did not return a translation for this line]") continue;
+                _translatedByRef[node.CitationRef] = node.Text;
+            }
+
+            _workingEditionId = priorAttempt.EditionId;
+            _resumeLabel.Visible = true;
+            _startFreshButton.Visible = true;
+            _resumeLabel.Text = $"Resuming a previous attempt - {_translatedByRef.Count:N0} of " +
+                                 $"{_sourceNodes.Count:N0} lines already translated.";
+        }
+
+        RefreshTranslatedPreview();
+        UpdateButtonsForCurrentProgress();
+    }
+
+    /// <summary>Abandons resuming and starts a genuinely separate attempt - the next persist creates a brand new edition rather than updating the one just found.</summary>
+    private void StartFresh()
+    {
+        _workingEditionId = null;
+        _translatedByRef.Clear();
+        _resumeLabel.Visible = false;
+        _startFreshButton.Visible = false;
+        RefreshTranslatedPreview();
+        UpdateButtonsForCurrentProgress();
+    }
+
+    private void UpdateButtonsForCurrentProgress()
+    {
+        var remaining = _sourceNodes.Count - _translatedByRef.Count;
+        _translateButton.Enabled = remaining > 0;
+        _translateButton.Text = remaining == _sourceNodes.Count
+            ? "Translate with Gemini (free)"
+            : $"Translate Remaining {remaining:N0} Line(s)";
+        _saveNowButton.Enabled = _translatedByRef.Count > 0;
+        _translatedHeader.Text = $"Translation ({_translatedByRef.Count:N0} of {_sourceNodes.Count:N0} lines)";
+    }
+
+    private async Task OnTranslateClickedAsync()
+    {
+        if (string.IsNullOrWhiteSpace(TranslationSettings.GeminiApiKey))
+        {
+            using var settingsForm = new TranslateApiSettingsForm();
+            settingsForm.ShowDialog(this);
+            if (string.IsNullOrWhiteSpace(TranslationSettings.GeminiApiKey)) return;
+        }
+
+        // Only what isn't already translated - the whole point of resuming.
+        var remainingNodes = _sourceNodes.Where(n => !_translatedByRef.ContainsKey(n.CitationRef)).ToList();
+        if (remainingNodes.Count == 0) return;
+
+        var batchCount = (int)Math.Ceiling(remainingNodes.Count / (double)BatchSize);
+        var confirmed = MessageBox.Show(this,
+            $"This will send the remaining {remainingNodes.Count:N0} line(s) of {_workTitle} to Gemini's " +
+            $"API over the internet, in about {batchCount} separate requests. This could take several " +
+            "minutes, and may run into today's free-tier usage limit before it finishes - whatever gets " +
+            "translated is saved automatically as it goes, so nothing already done would be lost.\n\n" +
+            "Continue?",
+            "Send to Gemini's API?",
+            MessageBoxButtons.YesNo, MessageBoxIcon.Warning) == DialogResult.Yes;
+        if (!confirmed) return;
+
+        _translateButton.Enabled = false;
+        _startFreshButton.Enabled = false;
+        _stopButton.Enabled = true;
+        _cancellation = new CancellationTokenSource();
+        var apiKey = TranslationSettings.GeminiApiKey!;
+
+        var missingAfterMainPass = new List<TextNode>();
+        var batches = remainingNodes.Chunk(BatchSize).Select(c => c.ToList()).ToList();
+        var stoppedEarly = false;
+
+        for (var b = 0; b < batches.Count; b++)
+        {
+            if (_cancellation.IsCancellationRequested) { stoppedEarly = true; break; }
+
+            _statusLabel.ForeColor = Color.DimGray;
+            _statusLabel.Text = $"Translating batch {b + 1} of {batches.Count} " +
+                                 $"({_translatedByRef.Count:N0} of {_sourceNodes.Count:N0} lines so far)...";
+
+            var missing = await TranslateOneBatchAsync(batches[b], apiKey, _cancellation.Token);
+            if (missing == null) { stoppedEarly = true; break; }
+
+            missingAfterMainPass.AddRange(missing);
+            RefreshTranslatedPreview();
+
+            // Saved after every batch, not just at the end or on an
+            // explicit click - this is the actual fix for "a long run can
+            // die partway through and shouldn't lose everything before it."
+            await PersistProgressAsync();
+
+            if (b < batches.Count - 1 && !_cancellation.IsCancellationRequested)
+            {
+                try { await Task.Delay(InterBatchDelayMs, _cancellation.Token); }
+                catch (OperationCanceledException) { stoppedEarly = true; break; }
+            }
+        }
+
+        if (!stoppedEarly && missingAfterMainPass.Count > 0 && !_cancellation.IsCancellationRequested)
+        {
+            _statusLabel.Text = $"Retrying {missingAfterMainPass.Count} line(s) that didn't come back the first time...";
+            await TranslateOneBatchAsync(missingAfterMainPass, apiKey, _cancellation.Token);
+            RefreshTranslatedPreview();
+            await PersistProgressAsync();
+        }
+
+        var translatedCount = _translatedByRef.Count;
+        _statusLabel.ForeColor = translatedCount == _sourceNodes.Count ? Color.DimGray : Color.DarkRed;
+        _statusLabel.Text = stoppedEarly
+            ? $"Stopped - {translatedCount:N0} of {_sourceNodes.Count:N0} lines translated, already saved. " +
+              "Reopen this later to finish the rest."
+            : translatedCount == _sourceNodes.Count
+                ? $"Finished - all {translatedCount:N0} lines translated and saved."
+                : $"Finished this pass, but {_sourceNodes.Count - translatedCount:N0} line(s) never came back " +
+                  "from Gemini. Already saved - reopen this later to try those again.";
+
+        _stopButton.Enabled = false;
+        _startFreshButton.Enabled = true;
+        UpdateButtonsForCurrentProgress();
+    }
+
+    private async Task<List<TextNode>?> TranslateOneBatchAsync(
+        List<TextNode> batch, string apiKey, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var passages = batch.Select(n => (n.CitationRef, n.Text)).ToList();
+            var results = await GeminiTranslationService.TranslateBatchAsync(
+                passages, _sourceLanguage, _targetLanguage, _authorName, _workTitle, apiKey, cancellationToken);
+
+            foreach (var (citationRef, translatedText) in results)
+            {
+                _translatedByRef[citationRef] = translatedText;
+            }
+
+            return batch.Where(n => !_translatedByRef.ContainsKey(n.CitationRef)).ToList();
+        }
+        catch (OperationCanceledException)
+        {
+            return batch;
+        }
+        catch (Exception ex)
+        {
+            _statusLabel.ForeColor = Color.DarkRed;
+            _statusLabel.Text = $"Stopped: {ex.Message}";
+            return null;
+        }
+    }
+
+    /// <summary>Rebuilds the preview in original source order every time, since the retry pass finishes after the main loop and would otherwise land at the end instead of back in place.</summary>
+    private void RefreshTranslatedPreview()
+    {
+        var parts = _sourceNodes
+            .Select(n => _translatedByRef.TryGetValue(n.CitationRef, out var t) ? t : null)
+            .Where(t => t != null);
+        _translatedBox.Text = string.Join(" ", parts);
+        UpdateButtonsForCurrentProgress();
+    }
+
+    private async Task OnSaveNowClickedAsync()
+    {
+        _saveNowButton.Enabled = false;
+        try
+        {
+            await PersistProgressAsync();
+            MessageBox.Show(this,
+                $"Saved - {_translatedByRef.Count:N0} of {_sourceNodes.Count:N0} lines. Reopen this work " +
+                "(or switch editions) to see it listed as \"trans. Gemini (AI-generated)\".",
+                "Saved", MessageBoxButtons.OK, MessageBoxIcon.Information);
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show(this, $"Couldn't save: {ex.Message}", "Save failed",
+                MessageBoxButtons.OK, MessageBoxIcon.Error);
+        }
+        finally
+        {
+            _saveNowButton.Enabled = _translatedByRef.Count > 0;
+        }
+    }
+
+    /// <summary>
+    /// Creates the working edition on first use, then just clears and
+    /// reinserts its TextNodes from the current _translatedByRef state -
+    /// the same clear-then-rebuild pattern already used everywhere else in
+    /// this app for re-running an ingest. Only ever writes lines that are
+    /// genuinely translated; a line not yet done is simply absent from the
+    /// edition rather than placeholder-filled, since an absent line is an
+    /// honest, already-handled case everywhere else (PassageAligner already
+    /// reports "no matching passage" correctly), and leaving it absent is
+    /// what makes resuming later possible to detect at all.
+    /// </summary>
+    private async Task PersistProgressAsync()
+    {
+        if (_translatedByRef.Count == 0) return;
+
+        if (_workingEditionId == null)
+        {
+            var newCtsUrn = $"{_workCtsUrn}.ai-gemini-{DateTime.UtcNow:yyyyMMddHHmmss}";
+            _workingEditionId = await _editionRepo.UpsertAsync(new Edition
+            {
+                WorkId = _workId,
+                CtsUrn = newCtsUrn,
+                Kind = EditionKind.Translation,
+                Language = _targetLanguage,
+                Translator = GeminiTranslatorLabel,
+                SourcePath = null
+            });
+        }
+
+        await _editionRepo.ClearTextNodesAsync(_workingEditionId.Value);
+
+        var nodesToSave = new List<TextNode>();
+        var sortOrder = 0;
+        foreach (var sourceNode in _sourceNodes)
+        {
+            if (!_translatedByRef.TryGetValue(sourceNode.CitationRef, out var translated)) continue;
+
+            nodesToSave.Add(new TextNode
+            {
+                EditionId = _workingEditionId.Value,
+                CitationRef = sourceNode.CitationRef,
+                SortOrder = sortOrder++,
+                Text = translated
+            });
+        }
+
+        await _textNodeRepo.BulkInsertAsync(nodesToSave);
+
+        // Right after the TextNodes themselves, not before and not as a
+        // separate step someone has to remember - this is the actual fix
+        // for Create Translation silently going stale in Auto-Tag's
+        // lemma-expansion search. Edition-scoped, not a full corpus
+        // rebuild: a few thousand lines at most, so this stays fast enough
+        // to run after every single batch without slowing anything down.
+        await _wordIndexService.ReindexEditionAsync(_workingEditionId.Value);
+    }
+}

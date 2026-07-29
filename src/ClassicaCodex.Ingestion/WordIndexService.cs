@@ -11,8 +11,12 @@ public record WordIndexProgress(long NodesProcessed, long TotalNodes, long Entri
 /// accents, and record one (word, line) pair per distinct word in the line.
 ///
 /// This is pure derived data - it can be rebuilt from the corpus at any time
-/// and holds nothing the user created, so a rebuild always starts by
-/// clearing rather than trying to merge.
+/// and holds nothing the user created, so a full rebuild always starts by
+/// clearing rather than trying to merge. ReindexEditionAsync is the
+/// exception: a single edition re-indexed in place, for callers (right now,
+/// just CreateTranslationForm) that create or update one edition's content
+/// live and need the index to stay current for it without paying for a
+/// whole-corpus rebuild every time.
 /// </summary>
 public class WordIndexService
 {
@@ -59,16 +63,7 @@ public class WordIndexService
                 afterId = textNodeId;
                 nodesProcessed++;
 
-                // Distinct per line: a word repeated in one line only needs
-                // one index entry, since the index answers "which lines
-                // contain this word", not "how many times".
-                var words = text
-                    .Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries)
-                    .Select(WordNormalizer.Normalize)
-                    .Where(w => w.Length > 0 && w.Length <= 200)
-                    .Distinct(StringComparer.Ordinal);
-
-                foreach (var word in words)
+                foreach (var word in TokenizeLine(text))
                 {
                     pending.Add((word, textNodeId));
                 }
@@ -99,4 +94,53 @@ public class WordIndexService
 
         progress?.Report(new WordIndexProgress(nodesProcessed, totalNodes, entriesWritten));
     }
+
+    /// <summary>
+    /// Re-indexes exactly one edition's current TextNodes - clears just this
+    /// edition's existing entries first, then re-tokenizes and re-inserts
+    /// from scratch. Meant to be called right after that edition's TextNodes
+    /// themselves are rewritten, so the two never drift out of sync: if a
+    /// caller clears and reinserts an edition's lines (getting fresh
+    /// TextNodeIds every time, as CreateTranslationForm's incremental save
+    /// does), the old index rows would otherwise point at ids that no
+    /// longer exist rather than simply being absent.
+    ///
+    /// Deliberately not the same code path as BuildAsync - that one defers
+    /// creating the lookup index until after a corpus-wide bulk load
+    /// finishes, which only pays for itself at that scale. An edition is at
+    /// most a few thousand lines; the index (already built, if BuildAsync
+    /// has ever run) just gets maintained incrementally by SQLite as these
+    /// rows go in, the same as any other ordinary insert.
+    /// </summary>
+    public async Task ReindexEditionAsync(int editionId, CancellationToken cancellationToken = default)
+    {
+        await _wordIndexRepo.DeleteByEditionAsync(editionId, cancellationToken);
+
+        var nodes = await _wordIndexRepo.GetTextNodesByEditionAsync(editionId, cancellationToken);
+        var pending = new List<(string Word, long TextNodeId)>();
+
+        foreach (var (textNodeId, text) in nodes)
+        {
+            foreach (var word in TokenizeLine(text))
+            {
+                pending.Add((word, textNodeId));
+            }
+        }
+
+        await _wordIndexRepo.BulkInsertAsync(pending, cancellationToken);
+    }
+
+    /// <summary>
+    /// One line's distinct, normalized, indexable words - shared by both
+    /// BuildAsync and ReindexEditionAsync so a full rebuild and an
+    /// incremental one can never quietly disagree on what counts as a word.
+    /// Distinct per line: a word repeated in one line only needs one index
+    /// entry, since the index answers "which lines contain this word", not
+    /// "how many times".
+    /// </summary>
+    private static IEnumerable<string> TokenizeLine(string text) =>
+        text.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries)
+            .Select(WordNormalizer.Normalize)
+            .Where(w => w.Length > 0 && w.Length <= 200)
+            .Distinct(StringComparer.Ordinal);
 }

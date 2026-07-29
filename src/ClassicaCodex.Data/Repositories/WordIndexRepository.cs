@@ -97,6 +97,26 @@ public class WordIndexRepository
     /// alone. 400 rows/statement keeps parameter count (800) comfortably
     /// under SQLite's limit even on an older bundled version.
     /// </summary>
+    /// <summary>
+    /// Removes just one edition's entries, ahead of re-indexing it - not the
+    /// whole-table ClearAsync a full rebuild uses. Needed because
+    /// CreateTranslationForm's save clears and reinserts an in-progress
+    /// edition's TextNodes on every batch, which means the TextNodeIds
+    /// themselves change each time (fresh auto-increment values on every
+    /// insert) - the old index rows would otherwise point at ids that no
+    /// longer exist, rather than just being absent.
+    /// </summary>
+    public async Task DeleteByEditionAsync(int editionId, CancellationToken cancellationToken = default)
+    {
+        await using var conn = await DbConnectionFactory.OpenConnectionAsync(cancellationToken);
+        await using var cmd = conn.CreateCommand();
+        cmd.CommandText =
+            "DELETE FROM WordIndex WHERE TextNodeId IN (SELECT TextNodeId FROM TextNodes WHERE EditionId = @EditionId);";
+        cmd.Parameters.AddWithValue("@EditionId", editionId);
+        cmd.CommandTimeout = 60;
+        await cmd.ExecuteNonQueryAsync(cancellationToken);
+    }
+
     public async Task BulkInsertAsync(
         IReadOnlyCollection<(string Word, long TextNodeId)> entries,
         CancellationToken cancellationToken = default)
@@ -149,13 +169,12 @@ public class WordIndexRepository
     /// How many distinct lines the index actually covers right now - not
     /// the same as GetTextNodeCountAsync once any source has been ingested
     /// since the last build. The index is pure derived data with no
-    /// automatic refresh hook (see WordIndexService's own remarks): nothing
-    /// re-runs it when a new Setup source finishes ingesting, so a Renaissance
-    /// or First1KGreek pass added after the last build leaves every line it
-    /// contributed silently unindexed. SetupWizardForm compares this against
-    /// GetTextNodeCountAsync to say so, rather than leaving that gap to be
-    /// discovered obliquely through a search that should have found
-    /// something and didn't.
+    /// automatic refresh hook: nothing re-runs it when a new Setup source
+    /// finishes ingesting, so a Renaissance or First1KGreek pass added
+    /// after the last build leaves every line it contributed silently
+    /// unindexed. SetupWizardForm compares this against GetTextNodeCountAsync
+    /// to say so, rather than leaving that gap to be discovered obliquely
+    /// through a search that should have found something and didn't.
     /// </summary>
     public async Task<long> GetIndexedTextNodeCountAsync(CancellationToken cancellationToken = default)
     {
@@ -171,6 +190,28 @@ public class WordIndexRepository
     /// id rather than OFFSET keeps each batch an index seek instead of
     /// re-scanning everything before it.
     /// </summary>
+    /// <summary>Every current TextNode for one edition, id + text - what ReindexEditionAsync tokenizes.</summary>
+    public async Task<List<(long TextNodeId, string Text)>> GetTextNodesByEditionAsync(
+        int editionId, CancellationToken cancellationToken = default)
+    {
+        var results = new List<(long, string)>();
+        await using var conn = await DbConnectionFactory.OpenConnectionAsync(cancellationToken);
+
+        const string sql = "SELECT TextNodeId, Text FROM TextNodes WHERE EditionId = @EditionId;";
+        await using var cmd = conn.CreateCommand();
+        cmd.CommandText = sql;
+        cmd.CommandTimeout = 60;
+        cmd.Parameters.AddWithValue("@EditionId", editionId);
+
+        await using var reader = await cmd.ExecuteReaderAsync(cancellationToken);
+        while (await reader.ReadAsync(cancellationToken))
+        {
+            results.Add((reader.GetInt64(0), reader.GetString(1)));
+        }
+
+        return results;
+    }
+
     public async Task<List<(long TextNodeId, string Text)>> GetTextNodeBatchAsync(
         long afterTextNodeId, int batchSize, CancellationToken cancellationToken = default)
     {

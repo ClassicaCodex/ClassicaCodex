@@ -191,6 +191,25 @@ public class MainForm : Form
         };
         _libraryTree.AfterSelect += async (_, e) => await LibraryTree_AfterSelectAsync(e);
 
+        // Right-click doesn't select a TreeNode the way left-click does, so
+        // the node under the cursor is selected explicitly first - otherwise
+        // this would act on whatever was last left-clicked, not on what the
+        // person actually right-clicked. Only Work-level nodes carry a Work
+        // in their Tag (author nodes don't), so the item is simply hidden
+        // rather than shown-but-disabled for anything else.
+        var libraryTreeMenu = new ContextMenuStrip();
+        var createTranslationItem = libraryTreeMenu.Items.Add("Create Translation...");
+        createTranslationItem.Image = AppIcons.Get("Translate", 16);
+        createTranslationItem.Click += async (_, _) => await CreateTranslationForSelectedWorkAsync();
+        libraryTreeMenu.Opening += (_, _) => createTranslationItem.Visible = _libraryTree.SelectedNode?.Tag is Work;
+        _libraryTree.MouseUp += (_, e) =>
+        {
+            if (e.Button != MouseButtons.Right) return;
+            var node = _libraryTree.GetNodeAt(e.Location);
+            if (node != null) _libraryTree.SelectedNode = node;
+        };
+        _libraryTree.ContextMenuStrip = libraryTreeMenu;
+
         var splitContainer = new SplitContainer
         {
             Left = 320,
@@ -712,6 +731,35 @@ public class MainForm : Form
     /// (comparing a work against its own text isn't the question this tool
     /// answers).
     /// </summary>
+    /// <summary>
+    /// Needs the work's Original-kind edition specifically - there has to
+    /// be something to translate *from*. A work with only translations
+    /// already ingested (rare, but possible for a stray edition-only entry)
+    /// gets a clear message instead of a form with nothing to show.
+    /// </summary>
+    private async Task CreateTranslationForSelectedWorkAsync()
+    {
+        if (_libraryTree.SelectedNode?.Tag is not Work work) return;
+
+        var editions = await _editionRepo.GetByWorkAsync(work.WorkId);
+        var originalEdition = editions.FirstOrDefault(e => e.Kind == EditionKind.Original);
+        if (originalEdition == null)
+        {
+            MessageBox.Show(this,
+                $"\"{work.Title}\" has no original-language edition ingested, so there's nothing to " +
+                "translate from.",
+                "Nothing to translate", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            return;
+        }
+
+        var author = await _authorRepo.GetByIdAsync(work.AuthorId);
+        var authorName = author?.Name ?? "Unknown Author";
+
+        using var createTranslationForm = new CreateTranslationForm(
+            work, authorName, originalEdition.EditionId, originalEdition.Language, targetLanguage: "eng");
+        createTranslationForm.ShowDialog(this);
+    }
+
     private async Task ShowCrossLanguageEchoForSelectedLineAsync(SyncListView list)
     {
         if (list.SelectedIndex < 0 || list.Items[list.SelectedIndex] is not TextNode node)
@@ -817,6 +865,12 @@ public class MainForm : Form
     /// richer, structured case (citation, edition, bilingual layout). This
     /// is meant to be the fast, no-dialog version for quickly pasting a
     /// line somewhere else.
+    /// </summary>
+    /// <summary>
+    /// Speaks the selected line with whatever voice is installed on this
+    /// Windows machine. No confirmation dialog, unlike Translate or
+    /// Cross-Language Echo - there's nothing to disclose here, since
+    /// SpeechService never touches the network.
     /// </summary>
     private void CopySelectedLineToClipboard(SyncListView list)
     {

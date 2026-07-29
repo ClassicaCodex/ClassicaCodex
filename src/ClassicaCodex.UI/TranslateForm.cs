@@ -12,8 +12,15 @@ namespace ClassicaCodex.UI;
 /// language apply based on which pane was clicked - this form just acts on
 /// whatever direction it's given.
 ///
-/// Two independent sections, deliberately kept visually distinct:
+/// Three independent sections, deliberately kept visually distinct:
 ///
+///  - "Listen" - reads the passage aloud with whatever voice is installed
+///    on this Windows machine (SpeechService). Fully offline, no
+///    confirmation needed - nothing here ever touches the network. Greek
+///    text is transliterated to a rough Latin spelling first
+///    (GreekPhoneticTransliterator), since a stock voice reads raw Greek
+///    script by naming each Unicode character rather than attempting to say
+///    it - confirmed on a real machine, not a guess.
 ///  - "Ingested Translation"/"Ingested Original" (the header names whichever
 ///    one is actually being looked for) - purely local. If the counterpart
 ///    edition is loaded in its pane, this looks up the same citation ref in
@@ -52,6 +59,11 @@ public class TranslateForm : Form
     private readonly bool _counterpartIsTranslation;
 
     private readonly TextBox _originalBox;
+    private readonly ComboBox _voiceComboBox;
+    private readonly Button _readAloudButton;
+    private readonly Button _stopReadingButton;
+    private readonly Label _listenStatusLabel;
+    private readonly System.Windows.Forms.Timer _listenPollTimer;
     private readonly Label _ingestedHeader;
     private readonly Label _ingestedStatusLabel;
     private readonly TextBox _ingestedTranslationBox;
@@ -76,7 +88,7 @@ public class TranslateForm : Form
         Text = "Translate";
         AppIcons.ApplyWindowIcon(this, "Translate");
         Width = 640;
-        Height = 620;
+        Height = 712;
         StartPosition = FormStartPosition.CenterParent;
 
         var citationLabel = new Label
@@ -100,10 +112,51 @@ public class TranslateForm : Form
             Text = node.Text
         };
 
-        _ingestedHeader = new Label
+        var listenHeader = new Label
         {
             Left = 16,
             Top = 138,
+            Width = 590,
+            Font = new Font(Font, FontStyle.Bold),
+            Text = "Listen"
+        };
+        var voiceLabel = new Label { Left = 16, Top = 163, Width = 50, Text = "Voice:" };
+        _voiceComboBox = new ComboBox
+        {
+            Left = 68,
+            Top = 159,
+            Width = 340,
+            DropDownStyle = ComboBoxStyle.DropDownList
+        };
+        _voiceComboBox.SelectedIndexChanged += (_, _) => OnVoiceSelectionChanged();
+
+        var moreVoicesLink = new LinkLabel { Left = 418, Top = 162, Width = 188, Text = "Get more voices..." };
+        moreVoicesLink.LinkClicked += (_, _) => OpenWindowsSpeechSettings();
+
+        _readAloudButton = new Button { Left = 16, Top = 190, Width = 180, Height = 28, Text = "\u25B6 Read Aloud" };
+        _readAloudButton.Click += (_, _) => OnReadAloudClicked();
+
+        _stopReadingButton = new Button
+        {
+            Left = 204, Top = 190, Width = 100, Height = 28, Text = "\u25A0 Stop", Enabled = false
+        };
+        _stopReadingButton.Click += (_, _) => SpeechService.Stop();
+
+        _listenStatusLabel = new Label { Left = 312, Top = 195, Width = 294, ForeColor = Color.DimGray };
+
+        // Polls rather than subscribing to SpeechSynthesizer's own
+        // SpeakCompleted event - that event fires on a background thread,
+        // and marshaling it back to the UI thread correctly is more
+        // plumbing than a simple poll needs for something this low-stakes.
+        // 300ms is frequent enough that the buttons feel responsive without
+        // meaningfully taxing anything.
+        _listenPollTimer = new System.Windows.Forms.Timer { Interval = 300 };
+        _listenPollTimer.Tick += (_, _) => RefreshListenButtonStates();
+
+        _ingestedHeader = new Label
+        {
+            Left = 16,
+            Top = 230,
             Width = 590,
             Font = new Font(Font, FontStyle.Bold),
             Text = _counterpartIsTranslation ? "Ingested Translation" : "Ingested Original"
@@ -111,7 +164,7 @@ public class TranslateForm : Form
         _ingestedStatusLabel = new Label
         {
             Left = 16,
-            Top = 160,
+            Top = 252,
             Width = 590,
             Height = 48,
             ForeColor = Color.DimGray,
@@ -120,7 +173,7 @@ public class TranslateForm : Form
         _ingestedTranslationBox = new TextBox
         {
             Left = 16,
-            Top = 212,
+            Top = 304,
             Width = 590,
             Height = 62,
             Multiline = true,
@@ -131,7 +184,7 @@ public class TranslateForm : Form
         var aiHeader = new Label
         {
             Left = 16,
-            Top = 288,
+            Top = 380,
             Width = 590,
             Font = new Font(Font, FontStyle.Bold),
             Text = "AI Translation"
@@ -139,7 +192,7 @@ public class TranslateForm : Form
         _aiWarningLabel = new Label
         {
             Left = 16,
-            Top = 310,
+            Top = 402,
             Width = 590,
             Height = 34,
             ForeColor = Color.DarkRed,
@@ -147,26 +200,26 @@ public class TranslateForm : Form
                    "offline. Nothing is sent unless you click one of the two buttons below."
         };
 
-        _claudeButton = new Button { Left = 16, Top = 348, Width = 280, Height = 28 };
+        _claudeButton = new Button { Left = 16, Top = 440, Width = 280, Height = 28 };
         _claudeButton.Click += async (_, _) => await OnAiButtonClickAsync(
             "Claude",
             () => TranslationSettings.AnthropicApiKey,
             (key, ct) => ClaudeTranslationService.TranslateAsync(
                 _node.Text, _sourceLanguage, _targetLanguage, _authorName, _workTitle, _node.CitationRef, key, ct));
 
-        _geminiButton = new Button { Left = 306, Top = 348, Width = 280, Height = 28 };
+        _geminiButton = new Button { Left = 306, Top = 440, Width = 280, Height = 28 };
         _geminiButton.Click += async (_, _) => await OnAiButtonClickAsync(
             "Gemini",
             () => TranslationSettings.GeminiApiKey,
             (key, ct) => GeminiTranslationService.TranslateAsync(
                 _node.Text, _sourceLanguage, _targetLanguage, _authorName, _workTitle, _node.CitationRef, key, ct));
 
-        _aiStatusLabel = new Label { Left = 16, Top = 380, Width = 590, ForeColor = Color.DimGray };
+        _aiStatusLabel = new Label { Left = 16, Top = 472, Width = 590, ForeColor = Color.DimGray };
 
         _aiResultBox = new TextBox
         {
             Left = 16,
-            Top = 404,
+            Top = 496,
             Width = 590,
             Height = 110,
             Multiline = true,
@@ -176,13 +229,20 @@ public class TranslateForm : Form
 
         var closeButton = new Button
         {
-            Text = "Close", Left = 526, Top = 528, Width = 80, DialogResult = DialogResult.Cancel
+            Text = "Close", Left = 526, Top = 620, Width = 80, DialogResult = DialogResult.Cancel
         };
         CancelButton = closeButton;
 
         Controls.Add(citationLabel);
         Controls.Add(originalLabel);
         Controls.Add(_originalBox);
+        Controls.Add(listenHeader);
+        Controls.Add(voiceLabel);
+        Controls.Add(_voiceComboBox);
+        Controls.Add(moreVoicesLink);
+        Controls.Add(_readAloudButton);
+        Controls.Add(_stopReadingButton);
+        Controls.Add(_listenStatusLabel);
         Controls.Add(_ingestedHeader);
         Controls.Add(_ingestedStatusLabel);
         Controls.Add(_ingestedTranslationBox);
@@ -195,8 +255,92 @@ public class TranslateForm : Form
         Controls.Add(closeButton);
 
         RefreshAiButtonStates();
+        LoadVoiceList();
         Load += async (_, _) => await LoadIngestedMatchAsync();
+
+        // Speech shouldn't keep playing after the dialog that started it is
+        // gone, and the poll timer has nothing left to watch once the form
+        // is closed either way.
+        FormClosed += (_, _) =>
+        {
+            _listenPollTimer.Stop();
+            _listenPollTimer.Dispose();
+            SpeechService.Stop();
+        };
+
         ReadingTheme.AttachTo(this);
+    }
+
+    private void LoadVoiceList()
+    {
+        var voices = SpeechService.GetInstalledVoices();
+        if (voices.Count == 0)
+        {
+            _voiceComboBox.Enabled = false;
+            _readAloudButton.Enabled = false;
+            _listenStatusLabel.ForeColor = Color.DarkRed;
+            _listenStatusLabel.Text = "No speech voice found on this computer.";
+            return;
+        }
+
+        var preferredName = TranslationSettingsSafeGetPreferredVoice();
+        foreach (var voice in voices)
+        {
+            _voiceComboBox.Items.Add(new VoiceOption(voice));
+        }
+
+        var selected = preferredName != null
+            ? _voiceComboBox.Items.Cast<VoiceOption>().FirstOrDefault(v => v.Voice.Name == preferredName)
+            : null;
+        _voiceComboBox.SelectedItem = selected ?? _voiceComboBox.Items[0];
+    }
+
+    // Small indirection so a missing/corrupt settings file can't throw out
+    // of the constructor path.
+    private static string? TranslationSettingsSafeGetPreferredVoice()
+    {
+        try { return SpeechSettings.PreferredVoiceName; }
+        catch { return null; }
+    }
+
+    private void OnVoiceSelectionChanged()
+    {
+        if (_voiceComboBox.SelectedItem is VoiceOption option)
+        {
+            SpeechService.SetVoice(option.Voice.Name);
+        }
+    }
+
+    private void OnReadAloudClicked()
+    {
+        SpeechService.Speak(_node.Text, _sourceLanguage);
+        _listenPollTimer.Start();
+        RefreshListenButtonStates();
+    }
+
+    private void RefreshListenButtonStates()
+    {
+        var speaking = SpeechService.IsSpeaking;
+        _stopReadingButton.Enabled = speaking;
+        _listenStatusLabel.ForeColor = Color.DimGray;
+        _listenStatusLabel.Text = speaking ? "Speaking..." : string.Empty;
+
+        if (!speaking) _listenPollTimer.Stop();
+    }
+
+    private void OpenWindowsSpeechSettings()
+    {
+        try
+        {
+            System.Diagnostics.Process.Start(
+                new System.Diagnostics.ProcessStartInfo("ms-settings:speech") { UseShellExecute = true });
+        }
+        catch
+        {
+            // If the specific settings page URI isn't recognized on this
+            // Windows build, there's nothing more useful to do than leave
+            // the link inert - not worth a dialog over.
+        }
     }
 
     private async Task LoadIngestedMatchAsync()
@@ -317,5 +461,12 @@ public class TranslateForm : Form
         {
             RefreshAiButtonStates();
         }
+    }
+
+    private class VoiceOption
+    {
+        public InstalledVoiceToken Voice { get; }
+        public VoiceOption(InstalledVoiceToken voice) => Voice = voice;
+        public override string ToString() => $"{Voice.Name} ({Voice.CultureDisplayName}, {Voice.Gender})";
     }
 }

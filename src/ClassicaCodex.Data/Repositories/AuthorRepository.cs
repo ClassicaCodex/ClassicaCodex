@@ -36,6 +36,29 @@ public class AuthorRepository
         return Convert.ToInt32(result);
     }
 
+    /// <summary>Single-author lookup by id - CreateTranslationForm needs the author's name for its prompt context and doesn't need the whole table for that.</summary>
+    public async Task<Author?> GetByIdAsync(int authorId, CancellationToken cancellationToken = default)
+    {
+        await using var conn = await DbConnectionFactory.OpenConnectionAsync(cancellationToken);
+
+        const string sql = "SELECT AuthorId, CtsUrn, Name, Namespace, Language FROM Authors WHERE AuthorId = @AuthorId;";
+        await using var cmd = conn.CreateCommand();
+        cmd.CommandText = sql;
+        cmd.Parameters.AddWithValue("@AuthorId", authorId);
+        await using var reader = await cmd.ExecuteReaderAsync(cancellationToken);
+
+        if (!await reader.ReadAsync(cancellationToken)) return null;
+
+        return new Author
+        {
+            AuthorId = reader.GetInt32(0),
+            CtsUrn = reader.GetString(1),
+            Name = reader.GetString(2),
+            Namespace = reader.GetString(3),
+            Language = reader.IsDBNull(4) ? null : reader.GetString(4)
+        };
+    }
+
     public async Task<List<Author>> GetAllAsync(CancellationToken cancellationToken = default)
     {
         var results = new List<Author>();

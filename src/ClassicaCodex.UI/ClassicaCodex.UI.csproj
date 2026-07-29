@@ -19,6 +19,10 @@
   <ItemGroup>
     <PackageReference Include="DocumentFormat.OpenXml" Version="3.0.2" />
     <PackageReference Include="PdfSharp" Version="6.2.4" />
+    <!-- Windows' own offline speech synthesis (SAPI) - Read Aloud's only
+         mechanism for now. No network, no API key, no cost: it just asks
+         whatever voice is already installed on the machine to speak. -->
+    <PackageReference Include="System.Speech" Version="8.0.0" />
   </ItemGroup>
 
   <ItemGroup>
