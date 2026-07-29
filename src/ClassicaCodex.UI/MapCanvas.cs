@@ -28,8 +28,18 @@ public class MapCanvas : Panel
         public bool IsYourTag = true;
     }
 
+    // MaxLat raised from 54 to 59 alongside PlaceData's Renaissance/Byzantine
+    // additions - just enough to fit Moscow, Edinburgh, and Elsinore (the
+    // northernmost of the new entries, at 55.8-56.0) with a little padding,
+    // not a general-purpose world view. One honest gap this opens: the
+    // hand-drawn fallback coastline (AncientWorldCoastline) already reaches
+    // this far for the British Isles, but was never drawn for Scandinavia or
+    // Russia, so Moscow and Elsinore's pins will sit on bare sea color
+    // without Natural Earth's real coastline data loaded - a labeled point
+    // with no local landmass under it, same graceful-degradation tradeoff
+    // every optional-data feature here already accepts, not a bug.
     private const double MinLon = -12, MaxLon = 56;
-    private const double MinLat = 22, MaxLat = 54;
+    private const double MinLat = 22, MaxLat = 59;
     private const int Margin = 40;
 
     private readonly Color _seaColor;

@@ -8,6 +8,21 @@ namespace ClassicaCodex.Core;
 /// geocoding). Coverage is necessarily partial; some ancient site locations
 /// are themselves disputed (Zama, for instance) and given only a rough best
 /// guess here.
+///
+/// Extended alongside the Renaissance and First1KGreek corpora: Byzantine
+/// cities relevant to the newly-dated authors on the Timeline (Nicaea,
+/// Nicomedia, Trebizond), and places named in Shakespeare, Holinshed, and
+/// Hakluyt (Venice, Verona, Elsinore, Edinburgh, Dublin, Moscow, and a
+/// couple of Hakluyt's own trade-route stops - Aleppo, Astrakhan - that
+/// happened to already fall inside the map's existing range).
+///
+/// Deliberately not attempted: Hakluyt's most distant destinations - India,
+/// the Americas, the Arctic passages - which would need a far larger
+/// eastward and westward stretch than a few new points justify, and would
+/// shrink the classical Mediterranean cluster that's the map's main reason
+/// for existing. MapCanvas's viewport grew only as far north as this batch
+/// actually needs (see its own MaxLat comment) - not into genuinely new
+/// territory the hand-drawn fallback coastline was never meant to cover.
 /// </summary>
 public static class PlaceData
 {
@@ -95,12 +110,61 @@ public static class PlaceData
         ("Sidon", 33.5571, 35.3729),
         ("Nineveh", 36.3600, 43.1500),
         ("Ur", 30.9626, 46.1027),
+
+        // Byzantine cities, added alongside First1KGreek's newly-dated
+        // authors - Nicaea and Nicomedia for Eustratius and Michael of
+        // Ephesus's circle, Trebizond for the wider Byzantine world.
+        ("Nicaea", 40.4300, 29.7200),
+        ("Nicomedia", 40.7700, 29.9200),
+        ("Trebizond", 41.0000, 39.7200),
+
+        // Renaissance / early modern, added alongside canonical-engLit.
+        // Country-name aliases (Scotland, Ireland, Denmark, Muscovy) share
+        // a coordinate with their representative city, the same pattern
+        // already used above for Byzantium/Constantinople - someone tagging
+        // the play's setting is at least as likely to write the country as
+        // the city.
+        ("Venice", 45.4408, 12.3155),
+        ("Verona", 45.4384, 10.9916),
+        ("Prague", 50.0755, 14.4378),
+        ("Bohemia", 50.0755, 14.4378),
+        ("Elsinore", 56.0360, 12.6147),
+        ("Denmark", 56.0360, 12.6147),
+        ("Edinburgh", 55.9533, -3.1883),
+        ("Scotland", 55.9533, -3.1883),
+        ("Dublin", 53.3498, -6.2603),
+        ("Ireland", 53.3498, -6.2603),
+        ("Navarre", 42.8169, -1.6432),
+        ("Moscow", 55.7558, 37.6173),
+        ("Muscovy", 55.7558, 37.6173),
+
+        // Two of Hakluyt's own trade-route waypoints - Aleppo also turns up
+        // in Shakespeare (the witches' sailor in Macbeth 1.3) - that needed
+        // no expansion of the map's range at all; both already sit inside
+        // the existing box.
+        ("Aleppo", 36.2021, 37.1343),
+        ("Astrakhan", 46.3497, 48.0408),
     };
 
-    /// <summary>Best-effort fuzzy match against whatever you named a place tag.</summary>
+    /// <summary>
+    /// Best-effort fuzzy match against whatever you named a place tag.
+    /// Checks for an exact match across every entry first, before any
+    /// substring check runs - the same fix AuthorEraData needed once its own
+    /// table grew dense enough for real collisions (three people all named
+    /// some form of Heraclitus). Nothing here collides today as far as I
+    /// checked, but a straight substring-only match doesn't get safer as
+    /// more entries are added - it gets riskier - so this closes the same
+    /// class of bug before it has a chance to show up.
+    /// </summary>
     public static (double Lat, double Lon)? Lookup(string placeName)
     {
         var normalized = placeName.Trim();
+
+        foreach (var (key, lat, lon) in Entries)
+        {
+            if (string.Equals(key, normalized, StringComparison.OrdinalIgnoreCase))
+                return (lat, lon);
+        }
 
         foreach (var (key, lat, lon) in Entries)
         {
