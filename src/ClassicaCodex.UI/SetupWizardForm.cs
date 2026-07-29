@@ -65,10 +65,14 @@ public class SetupWizardForm : Form
         // *outer* height before chrome was ever subtracted from it.
         // 910 fit five data-source rows; the World Map Data row added a
         // sixth at 98px each, pushing everything below it down by the same.
-        // 910 fit five rows; each added row is another 98px. Eight now -
-        // this is getting tall enough that a scrollable panel is the real
-        // answer before a ninth gets added.
-        ClientSize = new Size(900, 1204);
+        // Capped and scrolling rather than growing with each source. Every
+        // added row was another 98px, and at nine sources the form would be
+        // ~1300px tall - past the usable height of a 1080p screen, which
+        // would put the bottom rows and the Close button somewhere they
+        // simply can't be reached. AutoScroll keeps everything reachable no
+        // matter how many sources the catalog grows to.
+        ClientSize = new Size(900, 900);
+        AutoScroll = true;
         StartPosition = FormStartPosition.CenterParent;
 
         var explainer = new Label

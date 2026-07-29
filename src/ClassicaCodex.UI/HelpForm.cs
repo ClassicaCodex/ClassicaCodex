@@ -14,7 +14,7 @@ public class HelpForm : Form
     private static readonly (string Title, string Body)[] Topics =
     {
         ("Getting started", """
-Classica Codex reads the Perseus Digital Library - the Greek and Latin classics, their English translations, dictionaries, and the linguistic data that makes searching them work properly.
+Classica Codex reads the Perseus Digital Library - the Greek and Latin classics, their English translations, dictionaries, and the linguistic data that makes searching them work properly - plus two optional collections that extend it further: Shakespeare and the other Renaissance writers who reworked classical material in English, and Greek writing from after the classical period into late antiquity.
 
 Everything starts in Setup Wizard, on the main toolbar. It asks how you'd like to set things up:
 
@@ -37,7 +37,7 @@ Downloads are large and take a while. Run one at a time and let each finish.
 Pick an author in the library tree on the left, then a work beneath it. The original-language text loads on the left, its translation on the right.
 
 Two editions of the same thing
-   The dropdown above each pane lists every edition of that work you have. Where a work has several translations, you can switch between translators freely - the other pane stays where it is.
+   The dropdown above each pane lists every edition of that work you have. Where a work has several translations, you can switch between translators freely - the other pane stays where it is. The original-language side can carry more than one edition too, when a later collection added an alternate older edition of a work Perseus already had (a couple of Sophocles' plays, among others) - each entry in the dropdown names which.
 
 Scrolling and selection are synced between the panes. That works best on verse, where a translation keeps roughly the same line structure as the original. Prose translations often carry far fewer citation points than the original does, so the two sides drift apart; that's how the texts were digitized, not a fault in the alignment.
 
@@ -48,8 +48,27 @@ Right-click a line for:
    Bookmark this line - save it with a note
    Find Echoes - look for passages elsewhere that share rare wording
    Reception History - the same, split into earlier and later authors
+   Translate - look up or generate an English rendering of the line
    Word Study - look the words up properly
    Export - write the passage out to a file
+"""),
+
+        ("Translate", """
+Right-click a line and choose Translate, just above Word Study.
+
+Ingested Translation
+   If a translation edition of the work is loaded in the translation pane, this looks up the same passage in it automatically - the same citation matching Export's bilingual mode already uses, so it still lines up correctly even where the translation divides its text more coarsely than the original.
+
+AI Translation
+   The one part of Classica Codex that isn't offline. Two providers, side by side, since they trade off differently rather than one simply being better:
+
+   Claude (Anthropic)
+      Costs money - there's no free tier, though a single passage runs a small fraction of a cent. Doesn't train on what you send it. Needs its own developer account and API key, separate from a claude.ai login or a Claude Pro/Max subscription even if you already have one.
+
+   Gemini (Google)
+      Genuinely free - no payment method, no expiration, through Google AI Studio. The tradeoff: Google's free tier may use what you send it to improve their models, so this one isn't private the way Claude's API is. Worth knowing before choosing it for anything you'd rather not have looked at.
+
+   Whichever you pick needs an internet connection - the only thing in this app that does. Nothing is sent until you click a button, and by default the app asks you to confirm every single time before it does. That confirmation can be turned off from AI Translation Settings once you're comfortable with it - it's a preference, not a one-time warning.
 """),
 
         ("Searching", """

@@ -1,3 +1,4 @@
+using ClassicaCodex.Core;
 using ClassicaCodex.Core.Models;
 using ClassicaCodex.Data.Repositories;
 
@@ -32,6 +33,19 @@ public class MainForm : Form
     private readonly WorkRepository _workRepo = new();
     private readonly EditionRepository _editionRepo = new();
     private readonly TextNodeRepository _textNodeRepo = new();
+
+    /// <summary>
+    /// A preface/front-matter block held back from the reader pane, per
+    /// pane - some translations carry a translator's preface as its own
+    /// citation ("...perseus-eng4.preface"), which doesn't correspond to
+    /// anything in the original and used to just sit at the top of the
+    /// translation list, out of sync with the original pane and easy to
+    /// mistake for the first line of the actual text. Held here instead,
+    /// null when the current edition has none, and surfaced only through
+    /// "View Preface..." on that pane's right-click menu.
+    /// </summary>
+    private (string CitationRef, string Text)? _originalPrefaceMatch;
+    private (string CitationRef, string Text)? _translationPrefaceMatch;
     private readonly TagRepository _tagRepo = new();
     private readonly BookmarkRepository _bookmarkRepo = new();
 
@@ -485,7 +499,23 @@ public class MainForm : Form
         {
             foreach (var author in authors)
             {
-                var authorNode = new TreeNode(author.Name) { Tag = author };
+                // The tree is one flat alphabetical list of every author in
+                // the library, so a Renaissance name lands between two
+                // classical ones with nothing to distinguish it - King
+                // James I sits quietly between Isocrates and Jerome. A
+                // label on the non-classical corpora makes them findable
+                // without reorganizing the tree, which would cost an extra
+                // expand on every Greek or Latin lookup to help with a
+                // collection that's a fraction of the size.
+                var label = author.Namespace switch
+                {
+                    "engLit" => $"{author.Name}  (English)",
+                    "greekLit" or "latinLit" => author.Name,
+                    null or "" => author.Name,
+                    _ => $"{author.Name}  ({author.Namespace})"
+                };
+
+                var authorNode = new TreeNode(label) { Tag = author };
 
                 if (worksByAuthor.TryGetValue(author.AuthorId, out var works))
                 {
@@ -527,20 +557,37 @@ public class MainForm : Form
         var receptionItem = menu.Items.Add("Reception History...");
         receptionItem.Image = AppIcons.Get("ReceptionTracker", 16);
         receptionItem.Click += (_, _) => ShowReceptionHistoryForSelectedLine(list);
+        var translateItem = menu.Items.Add("Translate...");
+        translateItem.Image = AppIcons.Get("Translate", 16);
+        translateItem.Click += async (_, _) => await ShowTranslateForSelectedLineAsync(list);
         var wordStudyItem = menu.Items.Add("Word Study...");
         wordStudyItem.Image = AppIcons.Get("WordStudy", 16);
         wordStudyItem.Click += (_, _) => ShowWordStudyForSelectedLine(list);
         var exportItem = menu.Items.Add("Export...");
         exportItem.Image = AppIcons.Get("Export", 16);
         exportItem.Click += async (_, _) => await ExportSelectedLineAsync(list, font.Name);
+
+        // Not a per-line action like everything above - a preface belongs to
+        // the edition, not the clicked line - so it's appended after a
+        // separator and only made visible when one actually exists for
+        // whatever's currently loaded in this pane, checked fresh each time
+        // the menu opens rather than baked in once at construction.
+        menu.Items.Add(new ToolStripSeparator());
+        var prefaceItem = menu.Items.Add("View Preface...");
+        prefaceItem.Image = AppIcons.Get("Preface", 16);
+        prefaceItem.Click += (_, _) => ShowPrefaceForPane(list);
+        menu.Opening += (_, _) => prefaceItem.Visible = GetPrefaceMatch(list) != null;
+
         list.ContextMenuStrip = menu;
         _lineContextMenus.Add(menu);
         _lineContextMenuIcons.Add((tagItem, "AutoTag"));
         _lineContextMenuIcons.Add((bookmarkItem, "Bookmarks"));
         _lineContextMenuIcons.Add((echoItem, "SimilarWorks"));
         _lineContextMenuIcons.Add((receptionItem, "ReceptionTracker"));
+        _lineContextMenuIcons.Add((translateItem, "Translate"));
         _lineContextMenuIcons.Add((wordStudyItem, "WordStudy"));
         _lineContextMenuIcons.Add((exportItem, "Export"));
+        _lineContextMenuIcons.Add((prefaceItem, "Preface"));
 
         list.MouseUp += (_, e) =>
         {
@@ -664,6 +711,65 @@ public class MainForm : Form
             OnNavigate = NavigateToPassageAsync
         };
         receptionForm.ShowDialog(this);
+    }
+
+    /// <summary>
+    /// Same node/pane-language lookup as Word Study below, but now
+    /// bidirectional: the counterpart is whichever pane *wasn't* clicked, so
+    /// a click in the original pane looks toward the translation (as
+    /// before), while a click in the translation pane now looks toward the
+    /// original instead of uselessly matching against its own edition. The
+    /// counterpart's language also becomes the AI translation target, so
+    /// clicking an English line asks for a rendering into the work's
+    /// original language rather than English-to-English.
+    /// </summary>
+    private async Task ShowTranslateForSelectedLineAsync(SyncListView list)
+    {
+        if (list.SelectedIndex < 0 || list.Items[list.SelectedIndex] is not TextNode node)
+        {
+            MessageBox.Show(this, "Select a line first.", "Nothing selected",
+                MessageBoxButtons.OK, MessageBoxIcon.Information);
+            return;
+        }
+
+        var clickedOriginal = ReferenceEquals(list, _originalPane);
+
+        var sourceEdition = clickedOriginal
+            ? (_originalEditionCombo.SelectedItem as EditionOption)?.Edition
+            : (_translationEditionCombo.SelectedItem as EditionOption)?.Edition;
+
+        var counterpartEdition = clickedOriginal
+            ? (_translationEditionCombo.SelectedItem as EditionOption)?.Edition
+            : (_originalEditionCombo.SelectedItem as EditionOption)?.Edition;
+
+        var sourceInfo = await _textNodeRepo.GetTextNodeSourceInfoAsync(node.TextNodeId);
+        var authorName = sourceInfo?.AuthorName ?? "Unknown Author";
+        var workTitle = sourceInfo?.WorkTitle ?? "Unknown Work";
+
+        using var translateForm = new TranslateForm(
+            node, sourceEdition?.Language, counterpartEdition?.Language, authorName, workTitle,
+            counterpartEdition?.EditionId, counterpartIsTranslation: clickedOriginal);
+        translateForm.ShowDialog(this);
+    }
+
+    /// <summary>
+    /// Opens whatever preface is currently held for this pane - the menu
+    /// item that triggers this is only visible when GetPrefaceMatch(list)
+    /// is non-null in the first place, so the null case here is just a
+    /// safety net, not an expected path.
+    /// </summary>
+    private void ShowPrefaceForPane(SyncListView list)
+    {
+        var match = GetPrefaceMatch(list);
+        if (match == null) return;
+
+        var edition = ReferenceEquals(list, _originalPane)
+            ? (_originalEditionCombo.SelectedItem as EditionOption)?.Edition
+            : (_translationEditionCombo.SelectedItem as EditionOption)?.Edition;
+        var descriptor = edition != null ? GetEditionDescriptor(edition) : "this edition";
+
+        using var prefaceForm = new PrefaceForm($"Preface \u2014 {descriptor}", match.Value.Text);
+        prefaceForm.ShowDialog(this);
     }
 
     private void ShowWordStudyForSelectedLine(SyncListView list)
@@ -801,9 +907,25 @@ public class MainForm : Form
         return $"{AuthorEraData.FormatYear(start)}-{AuthorEraData.FormatYear(end)}";
     }
 
-    private static string BuildEditionLabel(Edition edition, string? authorName, string? workTitle)
+    private static string BuildEditionLabel(
+        Edition edition, string? authorName, string? workTitle, bool disambiguate = false)
     {
         var descriptor = GetEditionDescriptor(edition);
+
+        // Only reached when two or more editions of this work produced the
+        // identical descriptor above - which never used to happen (each work
+        // had at most one Original edition) until a second data source could
+        // add alternate editions of an already-covered work (First1KGreek
+        // adding old 19th/20th-century editions alongside canonical-greekLit's
+        // own, e.g. Sophocles' Ajax). The CTS URN suffix is the one piece of
+        // per-edition identity every edition already carries - not as
+        // readable as an editor's name would be, but truthful and guaranteed
+        // unique, and needs no new data.
+        if (disambiguate)
+        {
+            var suffix = edition.CtsUrn.Split(new[] { '.', ':' }, StringSplitOptions.RemoveEmptyEntries).LastOrDefault();
+            if (!string.IsNullOrEmpty(suffix)) descriptor += $" ({suffix})";
+        }
 
         var context = new List<string>();
         if (!string.IsNullOrWhiteSpace(authorName)) context.Add(authorName);
@@ -838,12 +960,27 @@ public class MainForm : Form
         ComboBox combo, List<Edition> editions, string? authorName, string? workTitle)
     {
         combo.Items.Clear();
-        foreach (var edition in editions.OrderBy(GetEditionDescriptor, StringComparer.OrdinalIgnoreCase))
+
+        // Editions of one work that reduce to the same descriptor (two
+        // Original-Greek editions of the same play is the case that surfaced
+        // this - see BuildEditionLabel) would otherwise show as
+        // indistinguishable duplicate rows. Flag just those for the suffix;
+        // everyone else's label is untouched, so the ordinary one-edition
+        // case still reads exactly as clean as before.
+        var collisions = editions
+            .GroupBy(GetEditionDescriptor, StringComparer.OrdinalIgnoreCase)
+            .Where(g => g.Count() > 1)
+            .SelectMany(g => g)
+            .ToHashSet();
+
+        foreach (var edition in editions
+                     .OrderBy(GetEditionDescriptor, StringComparer.OrdinalIgnoreCase)
+                     .ThenBy(e => e.CtsUrn, StringComparer.OrdinalIgnoreCase))
         {
             combo.Items.Add(new EditionOption
             {
                 Edition = edition,
-                Label = BuildEditionLabel(edition, authorName, workTitle)
+                Label = BuildEditionLabel(edition, authorName, workTitle, collisions.Contains(edition))
             });
         }
 
@@ -869,6 +1006,11 @@ public class MainForm : Form
         {
             pane.Items.Clear();
 
+            // Reset up front so switching to an edition with none (or
+            // clearing the pane entirely) doesn't leave a stale preface
+            // pointing at the previous work.
+            SetPrefaceMatch(pane, null);
+
             if (edition == null)
             {
                 pane.Items.Add(emptyMessage);
@@ -887,17 +1029,58 @@ public class MainForm : Form
                 return;
             }
 
+            // Some translations carry a translator's preface as its own
+            // citation (Perseus's convention is a trailing ".preface"
+            // segment, e.g. "...perseus-eng4.preface") - front matter with
+            // nothing on the original side to sync against, so it just sat
+            // at the top of the list looking like the play's first line.
+            // Held back here and offered through the right-click menu
+            // instead, on whichever pane it belongs to.
+            var prefaceNodes = nodes.Where(IsPrefaceNode).ToList();
+            var bodyNodes = prefaceNodes.Count == 0 ? nodes : nodes.Except(prefaceNodes).ToList();
+
+            if (prefaceNodes.Count > 0)
+            {
+                var combinedText = string.Join(
+                    Environment.NewLine + Environment.NewLine, prefaceNodes.Select(n => n.Text));
+                SetPrefaceMatch(pane, (prefaceNodes[0].CitationRef, combinedText));
+            }
+
             // One bulk insert rather than a call per line. The node itself
             // is the item (not wrapped in a Tag property), so right-click
             // "Tag this line" and similar features read it straight back
             // out of pane.Items.
-            pane.Items.AddRange(nodes.Cast<object>().ToArray());
+            pane.Items.AddRange(bodyNodes.Cast<object>().ToArray());
         }
         finally
         {
             pane.EndUpdate();
         }
     }
+
+    /// <summary>
+    /// True for a translator's preface or similar front matter - Perseus's
+    /// convention is a citation ending in a "preface" segment (bare
+    /// "...perseus-eng4.preface", or "...preface.1", "...preface.2" if the
+    /// preface itself was split into several paragraphs), distinct from any
+    /// numbered passage. Uses PassageAligner's own URN-stripping so this
+    /// stays consistent with how citation refs are read everywhere else,
+    /// rather than a second, separately-maintained way of parsing them.
+    /// </summary>
+    private static bool IsPrefaceNode(TextNode node)
+    {
+        var passage = PassageAligner.ExtractPassageRef(node.CitationRef);
+        return passage.StartsWith("preface", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private void SetPrefaceMatch(SyncListView pane, (string CitationRef, string Text)? match)
+    {
+        if (ReferenceEquals(pane, _originalPane)) _originalPrefaceMatch = match;
+        else _translationPrefaceMatch = match;
+    }
+
+    private (string CitationRef, string Text)? GetPrefaceMatch(SyncListView pane) =>
+        ReferenceEquals(pane, _originalPane) ? _originalPrefaceMatch : _translationPrefaceMatch;
 
     /// <summary>
     /// Called from the tag browser when you double-click a tagged passage:

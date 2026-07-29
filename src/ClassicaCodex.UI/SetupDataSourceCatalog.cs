@@ -1,3 +1,4 @@
+using ClassicaCodex.Core.Models;
 using ClassicaCodex.Data.Repositories;
 using ClassicaCodex.Ingestion;
 
@@ -210,6 +211,117 @@ public static class SetupDataSourceCatalog
                     await service.IngestAsync(root, progress, ct);
                 },
                 CheckComplete = async () => await lemmaRepo.CountByLanguageAsync("eng") > 0
+            },
+
+            new SetupDataSource
+            {
+                Title = "English Literature (Renaissance, optional)",
+                RepoUrl = "https://github.com/PerseusDL/canonical-engLit",
+                DisplayNote = "(Marlowe, Shakespeare, Hakluyt - needs English Lemma Data above)",
+                DefaultDestination = Path.Combine(dataRoot, "english-texts"),
+                PlainLanguageDescription =
+                    "Perseus's Renaissance and early modern collection - Marlowe, Shakespeare, Holinshed, " +
+                    "Hakluyt. Useful mainly for reception: how later writers reworked classical material. " +
+                    "Note that these are 16th and 17th century English, while the English dictionary above " +
+                    "is modern, so archaic forms like \"hath\" and \"doth\" won't find a headword.",
+                RunIngest = async (root, progress, ct) =>
+                {
+                    var wrapped = new Progress<IngestProgress>(p =>
+                        progress.Report($"{p.CurrentAuthor}: {p.CurrentWork} ({p.WorksProcessed}/{p.TotalWorks})"));
+
+                    // CTS layout (english-texts/data) - Sidney, James I.
+                    await new PerseusIngestService().IngestAsync(
+                        new[] { (Path.Combine(root, "data"), "engLit") }, wrapped, ct);
+
+                    // Pre-CTS layout (english-texts/Renaissance/**/opensource) -
+                    // the Shakespeare canon, Marlowe, Holinshed, Hakluyt, etc.
+                    // Runs second so its name-based de-dup can fold Sidney and
+                    // James I into the author rows the CTS pass just created.
+                    var renaissance = Path.Combine(root, "Renaissance");
+                    if (Directory.Exists(renaissance))
+                        await new RenaissanceIngestService().IngestAsync(renaissance, wrapped, ct);
+                },
+                CheckComplete = async () => await authorRepo.CountByNamespaceAsync("engLit") > 0
+            },
+
+            new SetupDataSource
+            {
+                Title = "Post-Classical Greek Texts (optional)",
+                RepoUrl = "https://github.com/OpenGreekAndLatin/First1KGreek",
+                DisplayNote = "extends the Ancient Greek Texts above into late antiquity - same library, not a separate one",
+                DefaultDestination = Path.Combine(dataRoot, "first1k-greek"),
+                PlainLanguageDescription =
+                    "The Open Greek and Latin project's sequel to the Ancient Greek Texts above - Greek " +
+                    "(and a little Latin) written after the classical period, into late antiquity. Authors " +
+                    "and works already in your library (from a handful of famous plays this collection also " +
+                    "carries alternate 19th/20th-century editions of) just gain an extra edition to choose " +
+                    "from in the original-language dropdown - nothing gets overwritten. Big download, several " +
+                    "hundred megabytes.",
+                RunIngest = async (root, progress, ct) =>
+                {
+                    // Verified against a real clone before writing this, not
+                    // inferred: same data/<textgroup>/<work>/__cts__.xml CTS
+                    // layout as canonical-greekLit, same CTS URN scheme, and
+                    // a TEI-P5/EpiDoc body (flat <div><l n="..."> - no DOCTYPE,
+                    // no custom entities beyond what XmlEntitySanitizer
+                    // already covers) that PerseusIngestService and TeiParser
+                    // already read correctly. So this is just a second pass
+                    // of the exact same service used above, not a new
+                    // importer - the two corpora share the "greekLit"
+                    // namespace deliberately, because they're the same
+                    // umbrella collection (OGL scopes First1KGreek to avoid
+                    // works canonical-greekLit already has - but where the
+                    // two DO overlap, e.g. Sophocles' Ajax, it's because this
+                    // corpus adds older alternate editions of an
+                    // already-covered play, not a duplicate of the same one).
+                    //
+                    // That overlap is what makes this safe rather than risky:
+                    // Author/Work upserts key on CTS URN, so Sophocles and
+                    // Ajax merge into the rows the first pass already
+                    // created, while each edition file keys on its own
+                    // filename (e.g. "tlg0011.tlg003.1st1K-grc1" vs whatever
+                    // canonical-greekLit's own Ajax edition is named) - so new
+                    // editions land as additional rows under the existing
+                    // work rather than clearing anyone's existing text.
+                    var service = new PerseusIngestService();
+                    var wrapped = new Progress<IngestProgress>(p =>
+                        progress.Report($"{p.CurrentAuthor}: {p.CurrentWork} ({p.WorksProcessed}/{p.TotalWorks})"));
+                    await service.IngestAsync(
+                        new[] { (Path.Combine(root, "data"), "greekLit") }, wrapped, ct);
+
+                    // One of this corpus's 309 textgroups (heb0001, "Hebrew
+                    // Bible") embeds its own urn:cts:hebrewlit: prefix rather
+                    // than greekLit - genuinely not Greek literature, just
+                    // swept in because it lives in the same repo. The pass
+                    // above still labels it "greekLit" (IngestRepoAsync
+                    // applies one namespace to everything it walks), so
+                    // correct that one row's label afterward rather than
+                    // teaching the shared ingest walker about a single
+                    // exception. Re-upserting on the same CtsUrn updates the
+                    // existing row in place; it's a no-op if this textgroup
+                    // isn't present.
+                    await authorRepo.UpsertAsync(new Author
+                    {
+                        CtsUrn = "urn:cts:hebrewlit:heb0001",
+                        Name = "Hebrew Bible",
+                        Namespace = "hebrewLit"
+                    }, ct);
+                },
+                // Not DB-backed the way the check above this one is, because
+                // Authors.Namespace="greekLit" is already >0 from the
+                // classical corpus alone and can't tell "loaded" apart from
+                // "First1KGreek specifically hasn't run yet". Falls back to
+                // the same filesystem check the World Map source above uses:
+                // does the destination have a populated data/ folder. Same
+                // caveat as that one - a custom Advanced Setup destination
+                // won't be seen here.
+                CheckComplete = () =>
+                {
+                    var probe = Path.Combine(dataRoot, "first1k-greek", "data");
+                    var complete = Directory.Exists(probe)
+                        && Directory.EnumerateFiles(probe, "*.xml", SearchOption.AllDirectories).Any();
+                    return Task.FromResult(complete);
+                }
             }
         };
     }

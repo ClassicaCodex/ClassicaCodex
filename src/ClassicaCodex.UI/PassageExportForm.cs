@@ -1,3 +1,4 @@
+using ClassicaCodex.Core;
 using ClassicaCodex.Core.Models;
 using ClassicaCodex.Data.Repositories;
 
@@ -37,23 +38,12 @@ public class PassageExportForm : Form
     private List<(string CitationRef, string Text)> _currentLines = new();
 
     /// <summary>
-    /// The counterpart edition's passages in reading order. Kept as an
-    /// ordered list (not just a lookup) so passages with no equivalent in
-    /// the primary edition - introductions, arguments, cast lists that only
-    /// the translation carries - can still be emitted in the right place
-    /// rather than disappearing.
+    /// Aligns the counterpart edition's passages against the primary by
+    /// citation ref - see PassageAligner's own remarks for why an exact-only
+    /// match isn't enough. Null when bilingual mode is off or there's no
+    /// counterpart edition to align against.
     /// </summary>
-    private List<(string Key, string Text)> _counterpartOrdered = new();
-
-    /// <summary>Exact passage ref to its position in <see cref="_counterpartOrdered"/>.</summary>
-    private Dictionary<string, int>? _counterpartIndexByKey;
-
-    /// <summary>
-    /// Ancestor prefix to every counterpart position beneath it - "1.1" maps
-    /// to the positions of 1.1.1, 1.1.2 and so on. Used when the counterpart
-    /// edition divides its text more finely than the primary.
-    /// </summary>
-    private Dictionary<string, List<int>>? _counterpartIndicesByPrefix;
+    private PassageAligner? _aligner;
 
     public PassageExportForm(
         TextNode startNode, int editionId, string authorName, string workTitle, string fontName,
@@ -202,90 +192,11 @@ public class PassageExportForm : Form
     }
 
     /// <summary>
-    /// Finds the counterpart passage positions for a citation ref, allowing
-    /// for the two editions dividing their text at different depths.
-    ///
-    /// This is common and not a data defect: Caesar's Latin edition runs
-    /// book.chapter.section (1.1.1) while its English translation stops at
-    /// book.chapter (1.1), so exact matching finds nothing even though
-    /// every Latin section genuinely sits inside a translated chapter.
-    ///
-    /// Three passes, in order of precision: an exact hit; then walking *up*
-    /// the primary ref, so a fine-grained original finds the coarser
-    /// translated unit containing it; then walking *down*, so a coarse
-    /// original picks up the finer translated pieces beneath it.
+    /// Positions in the counterpart edition aligned with this citation ref -
+    /// delegates to the shared PassageAligner; see its remarks for why exact
+    /// matching alone isn't enough.
     /// </summary>
-    private List<int>? ResolveCounterpartIndices(string citationRef)
-    {
-        if (_counterpartIndexByKey == null) return null;
-
-        var passage = ExtractPassageRef(citationRef);
-        if (passage.Length == 0) return null;
-
-        if (_counterpartIndexByKey.TryGetValue(passage, out var exact))
-        {
-            return new List<int> { exact };
-        }
-
-        var parts = passage.Split('.');
-        for (var take = parts.Length - 1; take >= 1; take--)
-        {
-            var prefix = string.Join(".", parts.Take(take));
-            if (_counterpartIndexByKey.TryGetValue(prefix, out var coarser))
-            {
-                return new List<int> { coarser };
-            }
-        }
-
-        if (_counterpartIndicesByPrefix != null
-            && _counterpartIndicesByPrefix.TryGetValue(passage, out var finer))
-        {
-            return finer;
-        }
-
-        return null;
-    }
-
-    /// <summary>
-    /// The passage portion of a citation ref - "1.1.1" out of
-    /// "urn:cts:latinLit:phi0448.phi002.perseus-lat2.1.1.1".
-    ///
-    /// Perseus's TEI puts the full CTS URN in a div's @n attribute for many
-    /// works, so that's what ends up stored. The URN's last identifier
-    /// before the passage is the *version* - perseus-lat2 for the Latin,
-    /// perseus-eng1 for its translation - which differs between editions by
-    /// design, so whole-ref comparison never matches even on identical
-    /// lines.
-    ///
-    /// Perseus version identifiers always contain a hyphen (perseus-grc2,
-    /// perseus-eng1, perseus-lat2) while the passage segments after them
-    /// never do, which makes the hyphen a reliable boundary to cut at.
-    /// Everything after it is the passage reference both editions share.
-    ///
-    /// Refs that aren't URNs (a plain "1.1", or a scene-structured
-    /// "prologue.pr.1") are returned untouched. That matters: an earlier
-    /// version of this kept only trailing numeric segments, which turned
-    /// both "act1.scene1.1" and "act2.scene1.1" into plain "1" and silently
-    /// collided them in the lookup.
-    /// </summary>
-    private static string ExtractPassageRef(string citationRef)
-    {
-        if (string.IsNullOrWhiteSpace(citationRef)) return string.Empty;
-
-        if (citationRef.StartsWith("urn:", StringComparison.OrdinalIgnoreCase))
-        {
-            var segments = citationRef.Split('.');
-            for (var i = 0; i < segments.Length; i++)
-            {
-                if (!segments[i].Contains('-')) continue;
-
-                var passage = string.Join(".", segments.Skip(i + 1));
-                return passage.Length > 0 ? passage : citationRef;
-            }
-        }
-
-        return citationRef;
-    }
+    private List<int>? ResolveCounterpartIndices(string citationRef) => _aligner?.ResolveIndices(citationRef);
 
     private async Task RefreshPreviewAsync()
     {
@@ -314,50 +225,16 @@ public class PassageExportForm : Form
         if (_bilingualCheckbox.Checked && _counterpartEditionId != null)
         {
             var counterpartNodes = await _textNodeRepo.GetByEditionAsync(_counterpartEditionId.Value);
-
-            _counterpartOrdered = new List<(string Key, string Text)>();
-            _counterpartIndexByKey = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
-            _counterpartIndicesByPrefix = new Dictionary<string, List<int>>(StringComparer.OrdinalIgnoreCase);
-
-            foreach (var n in counterpartNodes)
-            {
-                if (string.IsNullOrWhiteSpace(n.Text)) continue;
-
-                // Keyed by passage ref, not the raw stored ref - see
-                // ExtractPassageRef for why those can't be compared directly.
-                var key = ExtractPassageRef(n.CitationRef);
-                var index = _counterpartOrdered.Count;
-                _counterpartOrdered.Add((key, n.Text));
-
-                if (key.Length == 0) continue;
-                _counterpartIndexByKey.TryAdd(key, index);
-
-                // Also file this position under every ancestor prefix, so a
-                // coarser primary ref can pick up all the finer counterpart
-                // pieces sitting beneath it.
-                var parts = key.Split('.');
-                for (var take = 1; take < parts.Length; take++)
-                {
-                    var prefix = string.Join(".", parts.Take(take));
-                    if (!_counterpartIndicesByPrefix.TryGetValue(prefix, out var list))
-                    {
-                        list = new List<int>();
-                        _counterpartIndicesByPrefix[prefix] = list;
-                    }
-                    list.Add(index);
-                }
-            }
+            _aligner = new PassageAligner(counterpartNodes);
         }
         else
         {
-            _counterpartOrdered = new List<(string Key, string Text)>();
-            _counterpartIndexByKey = null;
-            _counterpartIndicesByPrefix = null;
+            _aligner = null;
         }
 
         RefreshPreview();
 
-        if (_bilingualCheckbox.Checked && _counterpartIndexByKey != null)
+        if (_bilingualCheckbox.Checked && _aligner != null)
         {
             var matched = _currentLines.Count(l => ResolveCounterpartIndices(l.CitationRef) != null);
             _statusLabel.Text = matched == _currentLines.Count
@@ -403,7 +280,7 @@ public class PassageExportForm : Form
     {
         if (_currentLines.Count == 0) return new();
 
-        var bilingual = _bilingualCheckbox.Checked && _counterpartIndexByKey != null;
+        var bilingual = _bilingualCheckbox.Checked && _aligner != null;
         var counterpartLabel = _counterpartIsOriginal ? "original" : "trans.";
 
         if (_combineCheckbox.Checked)
@@ -424,7 +301,7 @@ public class PassageExportForm : Form
             // other. Every counterpart passage is included exactly once, in
             // its own reading order, so introductions and cast lists survive
             // even though nothing in the original pairs with them.
-            var counterpartText = string.Join(" ", _counterpartOrdered.Select(c => c.Text));
+            var counterpartText = string.Join(" ", _aligner!.Ordered.Select(c => c.Text));
 
             var result = new List<(string, string)> { (rangeLabel, primaryText) };
             if (counterpartText.Length > 0)
@@ -452,14 +329,15 @@ public class PassageExportForm : Form
         // is exactly what introductions, prefatory arguments, and cast lists
         // are, since they usually appear only in the translation. Tracking
         // what's been emitted lets those appear in their proper position.
-        var emitted = new bool[_counterpartOrdered.Count];
+        var counterpartOrdered = _aligner!.Ordered;
+        var emitted = new bool[counterpartOrdered.Count];
         var cursor = 0;
 
         void EmitCounterpart(int index)
         {
-            if (index < 0 || index >= _counterpartOrdered.Count || emitted[index]) return;
+            if (index < 0 || index >= counterpartOrdered.Count || emitted[index]) return;
             emitted[index] = true;
-            chunks.Add(($"({counterpartLabel})", _counterpartOrdered[index].Text));
+            chunks.Add(($"({counterpartLabel})", counterpartOrdered[index].Text));
         }
 
         foreach (var line in _currentLines)
@@ -488,7 +366,7 @@ public class PassageExportForm : Form
 
         // Whatever's left: counterpart passages that follow the last matched
         // line, or never matched anything at all.
-        for (var i = 0; i < _counterpartOrdered.Count; i++) EmitCounterpart(i);
+        for (var i = 0; i < counterpartOrdered.Count; i++) EmitCounterpart(i);
 
         return chunks;
     }

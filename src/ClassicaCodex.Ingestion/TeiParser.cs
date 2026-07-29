@@ -1,6 +1,6 @@
 using System.Text;
-using System.Text.RegularExpressions;
 using System.Xml.Linq;
+using ClassicaCodex.Core;
 using ClassicaCodex.Core.Models;
 
 namespace ClassicaCodex.Ingestion;
@@ -30,54 +30,6 @@ public class TeiParser
     // namespace, because Perseus carries both TEI P5 (namespaced) and TEI P4
     // (a <TEI.2> root with no namespace) files, and both need to parse.
     private static readonly HashSet<string> LeafElements = new() { "l", "p", "said", "lg" };
-    // Entity names, not just [A-Za-z0-9_]: XML allows '.', '-' and ':' in a
-    // Name, and Perseus uses them for its metadata entities (&Perseus.publish;,
-    // &fund.NEH;). Matching only \w left those unresolved, so the parser hit
-    // them as undeclared entities and skipped the whole file.
-    private static readonly Regex EntityPattern = new(@"&([A-Za-z_:][\w.:-]*);", RegexOptions.Compiled);
-
-    // The five entities XML itself declares - never touch these.
-    private static readonly HashSet<string> StandardXmlEntities = new() { "amp", "lt", "gt", "quot", "apos" };
-
-    // Standard ISO-8859-1 / HTML4 named entities, plus the common HTML4
-    // "special characters" set (smart quotes, dashes, ellipsis, etc.) that
-    // show up in editorial apparatus. This is what actually fixes files
-    // that reference things like &iacute; or &mdash; with no DTD in sight.
-    private static readonly Dictionary<string, char> NamedEntities = new()
-    {
-        ["nbsp"] = '\u00A0', ["iexcl"] = '\u00A1', ["cent"] = '\u00A2', ["pound"] = '\u00A3',
-        ["curren"] = '\u00A4', ["yen"] = '\u00A5', ["brvbar"] = '\u00A6', ["sect"] = '\u00A7',
-        ["uml"] = '\u00A8', ["copy"] = '\u00A9', ["ordf"] = '\u00AA', ["laquo"] = '\u00AB',
-        ["not"] = '\u00AC', ["shy"] = '\u00AD', ["reg"] = '\u00AE', ["macr"] = '\u00AF',
-        ["deg"] = '\u00B0', ["plusmn"] = '\u00B1', ["sup2"] = '\u00B2', ["sup3"] = '\u00B3',
-        ["acute"] = '\u00B4', ["micro"] = '\u00B5', ["para"] = '\u00B6', ["middot"] = '\u00B7',
-        ["cedil"] = '\u00B8', ["sup1"] = '\u00B9', ["ordm"] = '\u00BA', ["raquo"] = '\u00BB',
-        ["frac14"] = '\u00BC', ["frac12"] = '\u00BD', ["frac34"] = '\u00BE', ["iquest"] = '\u00BF',
-        ["Agrave"] = '\u00C0', ["Aacute"] = '\u00C1', ["Acirc"] = '\u00C2', ["Atilde"] = '\u00C3',
-        ["Auml"] = '\u00C4', ["Aring"] = '\u00C5', ["AElig"] = '\u00C6', ["Ccedil"] = '\u00C7',
-        ["Egrave"] = '\u00C8', ["Eacute"] = '\u00C9', ["Ecirc"] = '\u00CA', ["Euml"] = '\u00CB',
-        ["Igrave"] = '\u00CC', ["Iacute"] = '\u00CD', ["Icirc"] = '\u00CE', ["Iuml"] = '\u00CF',
-        ["ETH"] = '\u00D0', ["Ntilde"] = '\u00D1', ["Ograve"] = '\u00D2', ["Oacute"] = '\u00D3',
-        ["Ocirc"] = '\u00D4', ["Otilde"] = '\u00D5', ["Ouml"] = '\u00D6', ["times"] = '\u00D7',
-        ["Oslash"] = '\u00D8', ["Ugrave"] = '\u00D9', ["Uacute"] = '\u00DA', ["Ucirc"] = '\u00DB',
-        ["Uuml"] = '\u00DC', ["Yacute"] = '\u00DD', ["THORN"] = '\u00DE', ["szlig"] = '\u00DF',
-        ["agrave"] = '\u00E0', ["aacute"] = '\u00E1', ["acirc"] = '\u00E2', ["atilde"] = '\u00E3',
-        ["auml"] = '\u00E4', ["aring"] = '\u00E5', ["aelig"] = '\u00E6', ["ccedil"] = '\u00E7',
-        ["egrave"] = '\u00E8', ["eacute"] = '\u00E9', ["ecirc"] = '\u00EA', ["euml"] = '\u00EB',
-        ["igrave"] = '\u00EC', ["iacute"] = '\u00ED', ["icirc"] = '\u00EE', ["iuml"] = '\u00EF',
-        ["eth"] = '\u00F0', ["ntilde"] = '\u00F1', ["ograve"] = '\u00F2', ["oacute"] = '\u00F3',
-        ["ocirc"] = '\u00F4', ["otilde"] = '\u00F5', ["ouml"] = '\u00F6', ["divide"] = '\u00F7',
-        ["oslash"] = '\u00F8', ["ugrave"] = '\u00F9', ["uacute"] = '\u00FA', ["ucirc"] = '\u00FB',
-        ["uuml"] = '\u00FC', ["yacute"] = '\u00FD', ["thorn"] = '\u00FE', ["yuml"] = '\u00FF',
-        // Common HTML4 special characters seen in editorial apparatus
-        ["ndash"] = '\u2013', ["mdash"] = '\u2014', ["lsquo"] = '\u2018', ["rsquo"] = '\u2019',
-        ["sbquo"] = '\u201A', ["ldquo"] = '\u201C', ["rdquo"] = '\u201D', ["bdquo"] = '\u201E',
-        ["dagger"] = '\u2020', ["Dagger"] = '\u2021', ["permil"] = '\u2030', ["lsaquo"] = '\u2039',
-        ["rsaquo"] = '\u203A', ["euro"] = '\u20AC', ["trade"] = '\u2122', ["hellip"] = '\u2026',
-        ["OElig"] = '\u0152', ["oelig"] = '\u0153', ["Scaron"] = '\u0160', ["scaron"] = '\u0161',
-        ["Yuml"] = '\u0178', ["circ"] = '\u02C6', ["tilde"] = '\u02DC'
-    };
-
     public class ParsedNode
     {
         public string CitationRef { get; set; } = string.Empty;
@@ -100,10 +52,18 @@ public class TeiParser
             && char.IsDigit(name[3]);
     }
 
-    public List<ParsedNode> Parse(string xmlFilePath)
+    public List<ParsedNode> Parse(string xmlFilePath) => ParseXml(File.ReadAllText(xmlFilePath));
+
+    /// <summary>
+    /// Same as <see cref="Parse"/> but takes the raw XML directly instead of a
+    /// file path. Lets a caller pre-process first - the Renaissance importer
+    /// strips the P4 DOCTYPE (whose external parameter entity can't be resolved
+    /// offline) before handing the text over, keeping that concern out of the
+    /// Greek/Latin file path entirely.
+    /// </summary>
+    public List<ParsedNode> ParseXml(string rawXml)
     {
-        var raw = File.ReadAllText(xmlFilePath);
-        var sanitized = SanitizeEntities(raw);
+        var sanitized = SanitizeEntities(rawXml);
         var doc = XDocument.Parse(sanitized, LoadOptions.None);
 
         // Matched by local name rather than the TEI P5 namespace. The older
@@ -166,18 +126,12 @@ public class TeiParser
     /// obscure character is safer than a wrong one, and it keeps the whole
     /// file from failing to load over one unknown entity.
     /// </summary>
-    private static string SanitizeEntities(string xml)
-    {
-        return EntityPattern.Replace(xml, match =>
-        {
-            var name = match.Groups[1].Value;
-
-            if (StandardXmlEntities.Contains(name)) return match.Value;
-            if (name.StartsWith('#')) return match.Value; // numeric entity, leave as-is
-
-            return NamedEntities.TryGetValue(name, out var ch) ? ch.ToString() : string.Empty;
-        });
-    }
+    // Entity resolution lives in one place - ClassicaCodex.Core.XmlEntitySanitizer -
+    // so the text ingest and the lexicon ingest can't drift apart on which
+    // named entities they know. They had drifted: this copy was missing the
+    // macron/breve vowels the Core table carries, so &omacr;/&amacr; and the
+    // like were dropped from text bodies while the lexica resolved them fine.
+    private static string SanitizeEntities(string xml) => XmlEntitySanitizer.Sanitize(xml);
 
     /// <summary>
     /// Walks a division tree collecting leaf text.

@@ -181,6 +181,12 @@ public class PerseusIngestService
         {
             "greekLit" => "grc",
             "latinLit" => "lat",
+            // The Renaissance and early-modern collection. Without this the
+            // namespace falls through to null, which leaves both the edition
+            // Kind unresolved and the language unset - and an edition with no
+            // language can't reach the English lemma data at all, since
+            // English and Latin are only distinguishable by that column.
+            "engLit" => "eng",
             _ => null
         };
 

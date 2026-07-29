@@ -74,7 +74,19 @@ public static class XmlEntitySanitizer
         ["abreve"] = "\u0103", ["ebreve"] = "\u0115", ["ibreve"] = "\u012D",
         ["obreve"] = "\u014F", ["ubreve"] = "\u016D",
         ["Abreve"] = "\u0102", ["Ebreve"] = "\u0114", ["Ibreve"] = "\u012C",
-        ["Obreve"] = "\u014E", ["Ubreve"] = "\u016C"
+        ["Obreve"] = "\u014E", ["Ubreve"] = "\u016C",
+
+        // Parentheses and a few accented letters that turn up in the
+        // Renaissance / early-modern English corpus (Holinshed's and
+        // Hakluyt's old-spelling prose, foreign proper names) but weren't in
+        // the classical set. lpar/rpar are literal parentheses - dropping
+        // them silently mangled the text. sacute stands in for the long-s in
+        // some old-spelling passages ("bicau&sacute;e" -> "bicauśe"); ś is the
+        // standard expansion and at least preserves a visible character.
+        ["lpar"] = "\u0028", ["rpar"] = "\u0029",
+        ["cacute"] = "\u0107", ["nacute"] = "\u0144", ["racute"] = "\u0155",
+        ["sacute"] = "\u015B", ["gacute"] = "\u01F5", ["uring"] = "\u016F",
+        ["ecaron"] = "\u011B"
     };
 
     public static string Sanitize(string input)

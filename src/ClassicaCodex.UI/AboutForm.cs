@@ -105,6 +105,39 @@ public class AboutForm : Form
             "https://github.com/lascivaroma/latin-lemmatized-texts",
             null);
 
+        AddSourceSection(
+            scrollHost, ref y,
+            "Renaissance & Early Modern English Texts",
+            "Shakespeare, Marlowe, Holinshed, Hakluyt, Sidney, James I, Wilson, and Peacham - Perseus's " +
+            "collection of the writers who reworked and responded to classical material in English.",
+            "Perseus Digital Library (PerseusDL/canonical-engLit)",
+            "Creative Commons Attribution-ShareAlike 4.0 International",
+            "https://github.com/PerseusDL/canonical-engLit",
+            "Same Perseus/Tufts terms as the Greek and Latin texts above - this repository carries the " +
+            "same standard license text PerseusDL applies across its canonical-* collections.");
+
+        AddSourceSection(
+            scrollHost, ref y,
+            "Post-Classical Greek Texts",
+            "The Open Greek and Latin project's sequel to Perseus's own Greek collection - Greek (and a " +
+            "little Latin) written after the classical period, into late antiquity. Deliberately scoped by " +
+            "its own maintainers to avoid works Perseus already carries; where the two do overlap, it's " +
+            "because this collection adds an older alternate edition of an already-covered work, not a " +
+            "duplicate of it.",
+            "Open Greek and Latin Project (OpenGreekAndLatin/First1KGreek)",
+            "Creative Commons Attribution-ShareAlike 4.0 International",
+            "https://github.com/OpenGreekAndLatin/First1KGreek",
+            null);
+
+        AddParagraph(scrollHost,
+            "One more thing worth being plain about, separate from the data sources above: Translate's " +
+            "AI option can send a selected passage to a live third-party API on request - either " +
+            "Anthropic's Claude or Google's Gemini, whichever you set up. Neither is a dataset bundled " +
+            "with this app; each needs its own API key, and each has its own terms - Gemini's free tier " +
+            "in particular may use what's sent to it to improve Google's models, which Claude's paid API " +
+            "doesn't. Nothing is sent unless you explicitly ask for it. See Help for the details.",
+            ref y, 672, Color.DimGray);
+
         var closeButton = new Button
         {
             Text = "Close",
