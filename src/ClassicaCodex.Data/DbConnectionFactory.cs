@@ -147,6 +147,35 @@ public static class DbConnectionFactory
         await cmd.ExecuteNonQueryAsync(cancellationToken);
     }
 
+    /// <summary>
+    /// Opens a connection and hands it back ready to use. Caller owns disposal.
+    ///
+    /// Five PRAGMAs are set on every connection because SQLite defaults them
+    /// off/unset per-connection rather than persisting them with the file:
+    ///
+    ///  - foreign_keys (off by default - without this, every FK constraint in
+    ///    the schema is silently decorative).
+    ///  - journal_mode=WAL (better concurrent read/write behavior; cheap to
+    ///    re-assert even though it only truly needs setting once per
+    ///    database file).
+    ///  - synchronous=NORMAL - SQLite's own documentation recommends this
+    ///    pairing specifically: WAL mode already gives NORMAL the same
+    ///    durability guarantee FULL gives in the default rollback-journal
+    ///    mode, so this isn't a safety tradeoff, just skipping an fsync on
+    ///    every transaction commit instead of only at WAL checkpoints. Bulk
+    ///    write operations (WordIndexService's rebuild, any future full
+    ///    corpus reingest) are the ones that feel this the most.
+    ///  - temp_store=MEMORY - keeps SQLite's temporary b-trees (built for any
+    ///    large ORDER BY, GROUP BY, or CREATE INDEX) in memory instead of
+    ///    spilling to disk temp files. WordIndexRepository.CreateIndexAsync's
+    ///    sort over the whole rebuilt index is exactly this case.
+    ///  - cache_size=-64000 - SQLite's own default page cache is a
+    ///    conservative 2MB, sized for a much smaller database than this one
+    ///    has grown into across the Renaissance and First1KGreek additions.
+    ///    64MB is a modest, safe step up for a single-user desktop app, not
+    ///    a tuned-to-the-byte number - keeps more of an actively-read work's
+    ///    pages resident instead of round-tripping to disk on every query.
+    /// </summary>
     public static async Task<SqliteConnection> OpenConnectionAsync(CancellationToken cancellationToken = default)
     {
         var conn = CreateConnection();
@@ -154,7 +183,12 @@ public static class DbConnectionFactory
 
         await using (var pragmaCmd = conn.CreateCommand())
         {
-            pragmaCmd.CommandText = "PRAGMA foreign_keys = ON; PRAGMA journal_mode = WAL;";
+            pragmaCmd.CommandText =
+                "PRAGMA foreign_keys = ON; " +
+                "PRAGMA journal_mode = WAL; " +
+                "PRAGMA synchronous = NORMAL; " +
+                "PRAGMA temp_store = MEMORY; " +
+                "PRAGMA cache_size = -64000;";
             await pragmaCmd.ExecuteNonQueryAsync(cancellationToken);
         }
 

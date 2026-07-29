@@ -1,3 +1,4 @@
+using ClassicaCodex.Core;
 using System.Net;
 using System.Net.Http;
 using System.Text;
@@ -89,6 +90,114 @@ public static class GeminiTranslationService
             throw new InvalidOperationException(
                 "Both Gemini models have hit today's free-tier usage limit. Try again after the daily " +
                 "reset, or use Claude for now.");
+        }
+    }
+
+    /// <summary>
+    /// Reads a whole comparison work (pre-formatted, citation-tagged text -
+    /// see CrossLanguageEchoForm for how that's built and truncated) looking
+    /// for passages that echo the same theme or image as a source passage in
+    /// a different language, rather than the same literal words - the thing
+    /// Find Echoes' rare-word matching structurally can't do across
+    /// languages. Deliberately Gemini-only: this is a new, more speculative
+    /// tool than Translate, and there's no reason a free feature needs a
+    /// paid fallback bolted on.
+    ///
+    /// Returns raw candidates exactly as the model reported them - it's
+    /// CrossLanguageEchoForm's job to verify each CitationRef against real
+    /// TextNodes before showing anything as a genuine result, the same
+    /// "don't just trust what the AI said" principle Translate's own
+    /// ingested-passage lookup already follows.
+    /// </summary>
+    public static async Task<List<EchoCandidate>> FindEchoesAsync(
+        string sourcePassageText,
+        string? sourceLanguage,
+        string sourceAuthorName,
+        string sourceWorkTitle,
+        string sourceCitationRef,
+        string comparisonAuthorName,
+        string comparisonWorkTitle,
+        string? comparisonLanguage,
+        string taggedComparisonText,
+        string apiKey,
+        CancellationToken cancellationToken = default)
+    {
+        var sourceLanguageName = TranslationLanguageNames.DisplayName(sourceLanguage);
+        var comparisonLanguageName = TranslationLanguageNames.DisplayName(comparisonLanguage);
+
+        var prompt =
+            "You are looking for thematic or imagistic echoes - a shared idea, image, or motif, not shared " +
+            "exact wording - between one passage and a whole other work, in a different language.\n\n" +
+            $"SOURCE PASSAGE ({sourceLanguageName}), from {sourceAuthorName}, {sourceWorkTitle}, at " +
+            $"{sourceCitationRef}:\n{sourcePassageText}\n\n" +
+            $"COMPARISON WORK ({comparisonLanguageName}), {comparisonAuthorName}, {comparisonWorkTitle}. Each " +
+            $"line is tagged with its citation reference in square brackets:\n\n{taggedComparisonText}\n\n" +
+            "Identify passages in the comparison work that genuinely seem to echo the source passage's central " +
+            "image, theme, or idea - not passages that merely share common words. For each real candidate, " +
+            "report its citation reference exactly as tagged above, a confidence level, and a one-sentence " +
+            "rationale naming the shared image or idea. If there are no genuine echoes, return an empty list - " +
+            "don't strain to find something. Never invent a citation reference that isn't tagged above.\n\n" +
+            "Respond with ONLY a JSON array, no other text and no markdown code fences, in this exact shape: " +
+            "[{\"citationRef\": \"...\", \"confidence\": \"high|medium|low\", \"rationale\": \"...\"}]";
+
+        string rawResponse;
+        try
+        {
+            rawResponse = await TranslateWithModelAsync(PrimaryModel, allowFallback: true, prompt, apiKey, cancellationToken);
+        }
+        catch (QuotaExceededException)
+        {
+            throw new InvalidOperationException(
+                "Both Gemini models have hit today's free-tier usage limit. Try again after the daily reset.");
+        }
+
+        return ParseEchoCandidates(rawResponse);
+    }
+
+    /// <summary>
+    /// Defensive JSON parsing - a model asked for "only JSON" still
+    /// sometimes wraps the answer in a markdown code fence anyway, so that
+    /// gets stripped before parsing rather than letting it fail outright.
+    /// A candidate missing its citation ref is dropped silently here (it's
+    /// unusable, not a hallucination in the sense CrossLanguageEchoForm
+    /// checks for); a response that isn't valid JSON at all surfaces as a
+    /// clear error instead of a confusing empty result list.
+    /// </summary>
+    private static List<EchoCandidate> ParseEchoCandidates(string rawResponse)
+    {
+        var cleaned = rawResponse.Trim();
+        if (cleaned.StartsWith("```"))
+        {
+            var firstNewline = cleaned.IndexOf('\n');
+            if (firstNewline >= 0) cleaned = cleaned[(firstNewline + 1)..];
+            if (cleaned.EndsWith("```")) cleaned = cleaned[..^3];
+            cleaned = cleaned.Trim();
+        }
+
+        try
+        {
+            using var doc = JsonDocument.Parse(cleaned);
+            var results = new List<EchoCandidate>();
+
+            foreach (var item in doc.RootElement.EnumerateArray())
+            {
+                var citationRef = item.TryGetProperty("citationRef", out var refProp) ? refProp.GetString() : null;
+                if (string.IsNullOrWhiteSpace(citationRef)) continue;
+
+                var confidence = item.TryGetProperty("confidence", out var confProp)
+                    ? confProp.GetString() ?? "unspecified" : "unspecified";
+                var rationale = item.TryGetProperty("rationale", out var ratProp)
+                    ? ratProp.GetString() ?? string.Empty : string.Empty;
+
+                results.Add(new EchoCandidate(citationRef, confidence, rationale));
+            }
+
+            return results;
+        }
+        catch (JsonException ex)
+        {
+            throw new InvalidOperationException(
+                $"Gemini's response wasn't in the expected format, so no candidates could be read from it. ({ex.Message})");
         }
     }
 

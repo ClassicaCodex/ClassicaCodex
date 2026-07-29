@@ -73,6 +73,20 @@ public static class SchemaInitializer
             CONSTRAINT FK_Editions_Works FOREIGN KEY (WorkId) REFERENCES Works(WorkId)
         );",
 
+        // SQLite doesn't auto-index foreign key columns the way some other
+        // engines do - these two carry the load of the app's single most
+        // frequent query shape (every work-open calls
+        // EditionRepository.GetByWorkAsync, and the library tree/author
+        // grouping both walk Works by AuthorId) without one. Harmless at the
+        // corpus size this schema was first written against; worth adding
+        // now that the library runs several times bigger across Renaissance
+        // and First1KGreek editions than it did then. CREATE INDEX IF NOT
+        // EXISTS is safe to add any time - it only ever helps read queries,
+        // at the cost of a one-time build and a little index upkeep on
+        // writes, which ingestion already pays for the indexes above.
+        @"CREATE INDEX IF NOT EXISTS IX_Editions_WorkId ON Editions (WorkId);",
+        @"CREATE INDEX IF NOT EXISTS IX_Works_AuthorId ON Works (AuthorId);",
+
         // CitationRef is plain TEXT - most works cite by simple numbers
         // ("1.1"), but some Perseus texts (a handful of Aeschines/Demosthenes
         // orations) use whole descriptive phrases as a div's @n attribute

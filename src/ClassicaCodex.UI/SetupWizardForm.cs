@@ -261,8 +261,41 @@ public class SetupWizardForm : Form
             row.StatusIcon.Image = AppIcons.Get(complete ? "Complete" : "Error", 18);
         }
 
-        var wordIndexComplete = await _wordIndexRepo.HasDataAsync();
-        _wordIndexStatusIcon.Image = AppIcons.Get(wordIndexComplete ? "Complete" : "Error", 18);
+        var wordIndexHasData = await _wordIndexRepo.HasDataAsync();
+        if (!wordIndexHasData)
+        {
+            _wordIndexStatusIcon.Image = AppIcons.Get("Error", 18);
+            _wordIndexStatusLabel.Text = "Not built yet.";
+        }
+        else
+        {
+            // The index is pure derived data with no automatic refresh hook
+            // - ingesting a new Setup source (Renaissance, First1KGreek, or
+            // anything added later) doesn't touch it. A count comparison is
+            // what catches that silently: "has data" alone stayed true the
+            // whole time Shakespeare's lines sat unindexed after a source
+            // was added post-build, which is exactly why Auto-Tag's
+            // lemma-expansion search could go on finding only what existed
+            // at the last build and nothing added since, with nothing here
+            // to say so.
+            var totalLines = await _wordIndexRepo.GetTextNodeCountAsync();
+            var indexedLines = await _wordIndexRepo.GetIndexedTextNodeCountAsync();
+
+            if (indexedLines >= totalLines)
+            {
+                _wordIndexStatusIcon.Image = AppIcons.Get("Complete", 18);
+                _wordIndexStatusLabel.Text = $"Up to date - {indexedLines:N0} lines indexed.";
+            }
+            else
+            {
+                _wordIndexStatusIcon.Image = AppIcons.Get("Warning", 18);
+                _wordIndexStatusLabel.Text =
+                    $"Out of date - {indexedLines:N0} of {totalLines:N0} lines indexed. " +
+                    $"{totalLines - indexedLines:N0} line(s) were added since the last build " +
+                    "(likely a new source ingested afterward) and won't turn up in lemma-expansion " +
+                    "searches like Auto-Tag's until this is rebuilt.";
+            }
+        }
     }
 
     private async Task BuildWordIndexAsync()

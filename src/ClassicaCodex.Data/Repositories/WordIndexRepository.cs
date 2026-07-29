@@ -146,6 +146,27 @@ public class WordIndexRepository
     }
 
     /// <summary>
+    /// How many distinct lines the index actually covers right now - not
+    /// the same as GetTextNodeCountAsync once any source has been ingested
+    /// since the last build. The index is pure derived data with no
+    /// automatic refresh hook (see WordIndexService's own remarks): nothing
+    /// re-runs it when a new Setup source finishes ingesting, so a Renaissance
+    /// or First1KGreek pass added after the last build leaves every line it
+    /// contributed silently unindexed. SetupWizardForm compares this against
+    /// GetTextNodeCountAsync to say so, rather than leaving that gap to be
+    /// discovered obliquely through a search that should have found
+    /// something and didn't.
+    /// </summary>
+    public async Task<long> GetIndexedTextNodeCountAsync(CancellationToken cancellationToken = default)
+    {
+        await using var conn = await DbConnectionFactory.OpenConnectionAsync(cancellationToken);
+        await using var cmd = conn.CreateCommand();
+        cmd.CommandText = "SELECT COUNT(DISTINCT TextNodeId) FROM WordIndex;";
+        cmd.CommandTimeout = 300;
+        return Convert.ToInt64(await cmd.ExecuteScalarAsync(cancellationToken));
+    }
+
+    /// <summary>
     /// Reads a batch of text nodes by ascending id, for indexing. Paging by
     /// id rather than OFFSET keeps each batch an index seek instead of
     /// re-scanning everything before it.

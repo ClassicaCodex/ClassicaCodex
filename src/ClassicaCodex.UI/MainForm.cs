@@ -543,6 +543,9 @@ public class MainForm : Form
         };
 
         var menu = new ContextMenuStrip();
+        var copyItem = menu.Items.Add("Copy to Clipboard");
+        copyItem.Image = AppIcons.Get("CopyToClipboard", 16);
+        copyItem.Click += (_, _) => CopySelectedLineToClipboard(list);
         var tagItem = menu.Items.Add("Tag this line...");
         tagItem.Image = AppIcons.Get("AutoTag", 16);
         tagItem.Click += async (_, _) => await TagSelectedLineAsync(list);
@@ -554,6 +557,9 @@ public class MainForm : Form
         // closest fit for "passages that echo this one elsewhere".
         echoItem.Image = AppIcons.Get("SimilarWorks", 16);
         echoItem.Click += (_, _) => FindEchoesForSelectedLine(list);
+        var crossLanguageEchoItem = menu.Items.Add("Find Cross-Language Echo...");
+        crossLanguageEchoItem.Image = AppIcons.Get("SimilarWorks", 16);
+        crossLanguageEchoItem.Click += async (_, _) => await ShowCrossLanguageEchoForSelectedLineAsync(list);
         var receptionItem = menu.Items.Add("Reception History...");
         receptionItem.Image = AppIcons.Get("ReceptionTracker", 16);
         receptionItem.Click += (_, _) => ShowReceptionHistoryForSelectedLine(list);
@@ -580,9 +586,11 @@ public class MainForm : Form
 
         list.ContextMenuStrip = menu;
         _lineContextMenus.Add(menu);
+        _lineContextMenuIcons.Add((copyItem, "CopyToClipboard"));
         _lineContextMenuIcons.Add((tagItem, "AutoTag"));
         _lineContextMenuIcons.Add((bookmarkItem, "Bookmarks"));
         _lineContextMenuIcons.Add((echoItem, "SimilarWorks"));
+        _lineContextMenuIcons.Add((crossLanguageEchoItem, "SimilarWorks"));
         _lineContextMenuIcons.Add((receptionItem, "ReceptionTracker"));
         _lineContextMenuIcons.Add((translateItem, "Translate"));
         _lineContextMenuIcons.Add((wordStudyItem, "WordStudy"));
@@ -697,6 +705,38 @@ public class MainForm : Form
         echoForm.ShowDialog(this);
     }
 
+    /// <summary>
+    /// Same node/pane-language lookup Translate and Word Study already use.
+    /// The edition currently loaded in whichever pane was clicked is what
+    /// gets excluded from the comparison-work picker inside the form itself
+    /// (comparing a work against its own text isn't the question this tool
+    /// answers).
+    /// </summary>
+    private async Task ShowCrossLanguageEchoForSelectedLineAsync(SyncListView list)
+    {
+        if (list.SelectedIndex < 0 || list.Items[list.SelectedIndex] is not TextNode node)
+        {
+            MessageBox.Show(this, "Select a line first.", "Nothing selected",
+                MessageBoxButtons.OK, MessageBoxIcon.Information);
+            return;
+        }
+
+        var sourceEdition = ReferenceEquals(list, _originalPane)
+            ? (_originalEditionCombo.SelectedItem as EditionOption)?.Edition
+            : (_translationEditionCombo.SelectedItem as EditionOption)?.Edition;
+
+        var sourceInfo = await _textNodeRepo.GetTextNodeSourceInfoAsync(node.TextNodeId);
+        var authorName = sourceInfo?.AuthorName ?? "Unknown Author";
+        var workTitle = sourceInfo?.WorkTitle ?? "Unknown Work";
+
+        using var crossEchoForm = new CrossLanguageEchoForm(
+            node, sourceEdition?.Language, authorName, workTitle, sourceEdition?.EditionId ?? -1)
+        {
+            OnNavigate = NavigateToPassageAsync
+        };
+        crossEchoForm.ShowDialog(this);
+    }
+
     private void ShowReceptionHistoryForSelectedLine(SyncListView list)
     {
         if (list.SelectedIndex < 0 || list.Items[list.SelectedIndex] is not TextNode node)
@@ -770,6 +810,37 @@ public class MainForm : Form
 
         using var prefaceForm = new PrefaceForm($"Preface \u2014 {descriptor}", match.Value.Text);
         prefaceForm.ShowDialog(this);
+    }
+
+    /// <summary>
+    /// Plain text only, no citation prefix - Export already exists for the
+    /// richer, structured case (citation, edition, bilingual layout). This
+    /// is meant to be the fast, no-dialog version for quickly pasting a
+    /// line somewhere else.
+    /// </summary>
+    private void CopySelectedLineToClipboard(SyncListView list)
+    {
+        if (list.SelectedIndex < 0 || list.Items[list.SelectedIndex] is not TextNode node)
+        {
+            MessageBox.Show(this, "Select a line first.", "Nothing selected",
+                MessageBoxButtons.OK, MessageBoxIcon.Information);
+            return;
+        }
+
+        try
+        {
+            Clipboard.SetText(node.Text);
+        }
+        catch (Exception ex)
+        {
+            // The Windows clipboard is a shared, single-owner resource that
+            // another process can be holding for a moment (a known,
+            // occasional WinForms quirk, not something this app is doing
+            // wrong) - worth a clear message instead of an unhandled crash
+            // over something this minor.
+            MessageBox.Show(this, $"Couldn't copy to the clipboard: {ex.Message}", "Copy failed",
+                MessageBoxButtons.OK, MessageBoxIcon.Warning);
+        }
     }
 
     private void ShowWordStudyForSelectedLine(SyncListView list)
