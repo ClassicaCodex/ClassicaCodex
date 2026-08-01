@@ -19,6 +19,7 @@ public static class DbConnectionFactory
 
     public static string? DatabasePath => _databasePath;
 
+    /// <param name="databasePath">Full path to the SQLite file to open from now on.</param>
     /// <param name="remember">
     /// Whether to write this path to the preference file, so the next launch
     /// reopens it. True for anything the user chose. False for a database

@@ -122,6 +122,24 @@ public sealed class TempDatabase : IDisposable
     public async Task<long> CountAsync(string table) =>
         await ScalarAsync<long>($"SELECT COUNT(*) FROM {table};");
 
+    /// <summary>
+    /// Column names in declaration order - for checking that a table built
+    /// by the current DDL and one arrived at by migration actually match.
+    /// </summary>
+    public async Task<string[]> ColumnNamesAsync(string table)
+    {
+        var names = new List<string>();
+
+        await using var conn = await DbConnectionFactory.OpenConnectionAsync();
+        await using var cmd = conn.CreateCommand();
+        cmd.CommandText = $"PRAGMA table_info({table});";
+
+        await using var reader = await cmd.ExecuteReaderAsync();
+        while (await reader.ReadAsync()) names.Add(reader.GetString(1));
+
+        return names.ToArray();
+    }
+
     public async Task<bool> TableExistsAsync(string table) =>
         await ScalarAsync<long>(
             $"SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='{table}';") == 1;

@@ -772,6 +772,44 @@ public class TextNodeRepository
         return sourceTotal == 0 ? null : (covered, sourceTotal);
     }
 
+    /// <summary>
+    /// The line at a citation reference within a work, whichever edition of
+    /// it holds one - for restoring a remembered reading position.
+    ///
+    /// Takes a work's CTS URN rather than an id because the caller is a
+    /// preference file that outlives any particular database. Prefers the
+    /// original-language edition when more than one edition has that
+    /// reference, since that is the side someone reading a classical text is
+    /// usually anchored to.
+    ///
+    /// Null when the work is gone or that reference no longer exists - both
+    /// ordinary after a corpus changes, and both meaning "just open normally".
+    /// </summary>
+    public async Task<(int WorkId, long TextNodeId)?> FindByWorkUrnAndCitationAsync(
+        string workCtsUrn, string citationRef, CancellationToken cancellationToken = default)
+    {
+        await using var conn = await DbConnectionFactory.OpenConnectionAsync(cancellationToken);
+        await using var cmd = conn.CreateCommand();
+        cmd.CommandTimeout = 30;
+
+        cmd.CommandText = @"
+            SELECT w.WorkId, tn.TextNodeId
+            FROM TextNodes tn
+            JOIN Editions e ON tn.EditionId = e.EditionId
+            JOIN Works w ON e.WorkId = w.WorkId
+            WHERE w.CtsUrn = @WorkCtsUrn AND tn.CitationRef = @CitationRef
+            ORDER BY CASE WHEN e.Kind = 'Original' THEN 0 ELSE 1 END, tn.SortOrder
+            LIMIT 1;";
+
+        cmd.Parameters.AddWithValue("@WorkCtsUrn", workCtsUrn);
+        cmd.Parameters.AddWithValue("@CitationRef", citationRef);
+
+        await using var reader = await cmd.ExecuteReaderAsync(cancellationToken);
+        if (!await reader.ReadAsync(cancellationToken)) return null;
+
+        return (reader.GetInt32(0), reader.GetInt64(1));
+    }
+
     /// <summary>Author/work/citation context for a single text node - used by the reception tracker.</summary>
     public async Task<(string AuthorName, string WorkTitle, string CitationRef, string Text)?> GetTextNodeSourceInfoAsync(
         long textNodeId, CancellationToken cancellationToken = default)

@@ -40,8 +40,21 @@ public static class AppIcons
 
         try
         {
-            var path = Path.Combine(IconDirectory, name + ".png");
-            if (File.Exists(path))
+            // An icon that ships a light variant is one of the illustrated
+            // set: the file loaded in dark mode is already its dark-mode
+            // artwork, so lifting it only washes it out. Everything without
+            // one is an older glyph drawn in dark ink for a light surface,
+            // which genuinely disappears against a dark button.
+            //
+            // This replaced a luminance threshold, which was a guess that
+            // went wrong as soon as the artwork changed: stripping the tile
+            // panels moved Stylometry from 95 to 65 against a threshold of
+            // 70, so it would have started being brightened for no reason
+            // other than its bar chart being a bit darker than its siblings.
+            var brightenForDarkMode = !HasLightVariant(name);
+
+            var path = ResolvePath(name, isDark);
+            if (path != null)
             {
                 // Loaded via a stream copy rather than Image.FromFile, which
                 // keeps a lock on the file for the lifetime of the Image.
@@ -54,7 +67,16 @@ public static class AppIcons
                     graphics.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.HighQuality;
                     graphics.PixelOffsetMode = System.Drawing.Drawing2D.PixelOffsetMode.HighQuality;
 
-                    if (isDark)
+                    // Only the glyph-style icons want brightening. The set
+                    // now mixes two kinds: line glyphs drawn on transparency,
+                    // and full tiles with their own opaque background. On a
+                    // tile the transform lifts the background rather than the
+                    // artwork, turning a deliberate dark panel into a grey
+                    // square that reads worse than leaving it alone -
+                    // measured on this set, the tiles sit at a mean luminance
+                    // of 71 against a button fill of 48, so they're already
+                    // clear of it and need no help.
+                    if (isDark && brightenForDarkMode)
                     {
                         // Lightens every pixel 30% of the way toward white
                         // (alpha untouched) - not recoloring, just brightening.
@@ -101,6 +123,41 @@ public static class AppIcons
     }
 
     /// <summary>
+    /// Whether this icon ships a light-mode counterpart, which is what marks
+    /// it as one of the illustrated set rather than an older line glyph.
+    /// </summary>
+    private static bool HasLightVariant(string name) =>
+        File.Exists(Path.Combine(IconDirectory, "Light", name + ".png"));
+
+    /// <summary>
+    /// The file to load for this icon in this theme.
+    ///
+    /// The illustrated icons are pale artwork on transparency, which reads
+    /// on a dark button as drawn. On a light one it needs darkening, so each
+    /// has a counterpart in Icons/Light holding the same shape with the
+    /// artwork brought down. That isn't cosmetic: measured across the set,
+    /// the artwork against parchment sits at a contrast ratio of about 2.3
+    /// to 2.8 undarkened, and about 4.4 to 9.2 darkened.
+    ///
+    /// Falls back to the single shared file when no light variant exists,
+    /// which is the case for every older glyph icon - those were drawn for a
+    /// light surface to begin with and get the brightening pass in dark mode
+    /// instead.
+    /// </summary>
+    private static string? ResolvePath(string name, bool isDark)
+    {
+        if (!isDark)
+        {
+            var light = Path.Combine(IconDirectory, "Light", name + ".png");
+            if (File.Exists(light)) return light;
+        }
+
+        var shared = Path.Combine(IconDirectory, name + ".png");
+        return File.Exists(shared) ? shared : null;
+    }
+
+
+    /// <summary>
     /// Puts an icon on a button, left of its text, and leaves the button
     /// untouched if that icon isn't available.
     /// </summary>
@@ -110,6 +167,18 @@ public static class AppIcons
         if (image == null) return;
 
         button.Image = image;
+
+        // An IconButton has no text, so the image is the whole content and
+        // belongs in the middle. The layout below is for a labelled button,
+        // and applied here it would shove the icon to the left edge and
+        // leave a gap where the text would have been.
+        if (button is IconButton)
+        {
+            button.ImageAlign = ContentAlignment.MiddleCenter;
+            button.Padding = Padding.Empty;
+            return;
+        }
+
         button.ImageAlign = ContentAlignment.MiddleLeft;
         button.TextAlign = ContentAlignment.MiddleRight;
         button.TextImageRelation = TextImageRelation.ImageBeforeText;

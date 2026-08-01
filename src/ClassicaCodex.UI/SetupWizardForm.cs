@@ -44,14 +44,11 @@ public class SetupWizardForm : Form
     private readonly DefinitionRepository _definitionRepo = new();
     private readonly ArtifactRepository _artifactRepo = new();
     private readonly EditionRepository _editionRepo = new();
-    private readonly WordIndexRepository _wordIndexRepo = new();
 
-    private PictureBox _wordIndexStatusIcon = null!;
 
-    private ProgressBar _wordIndexProgressBar = null!;
-    private Label _wordIndexStatusLabel = null!;
-    private Label _wordIndexElapsedLabel = null!;
-    private Button _wordIndexButton = null!;
+
+
+
     private System.Windows.Forms.Timer? _heartbeat;
     private DateTime _operationStart;
 
@@ -175,49 +172,110 @@ public class SetupWizardForm : Form
 
         y += 140;
 
-        _wordIndexStatusIcon = new PictureBox
+        // Word index and AI translation both open on their own now.
+        //
+        // The index check counts distinct indexed lines against every line
+        // in the library - two aggregates over a million rows plus - and it
+        // ran every time this dialog opened, so just glancing at the data
+        // sources paid for a scan nobody asked for. Behind a button, only
+        // someone who wants the answer waits for it.
+        var toolsTitle = new Label
         {
-            Left = 12,
-            Top = y + 1,
-            Width = 18,
-            Height = 18,
-            SizeMode = PictureBoxSizeMode.Zoom
-        };
-
-        var wordIndexTitle = new Label
-        {
-            Text = "Build Word Index",
+            Text = "Tools",
             Left = 36,
             Top = y,
             Width = 836,
             Font = new Font(Font, FontStyle.Bold)
         };
+
+        var wordIndexButton = new Button
+        {
+            Text = "Word Index...", Left = 12, Top = y + 24, Width = 170, Height = 30
+        };
+        wordIndexButton.Click += (_, _) =>
+        {
+            using var form = new WordIndexForm();
+            form.ShowDialog(this);
+        };
+
         var wordIndexDesc = new Label
         {
-            Text = "Run this once after the text corpora above are loaded - it's what makes lemma-aware search fast. " +
-                   "Safe to rerun any time; it always rebuilds from scratch.",
-            Left = 12,
-            Top = y + 20,
-            Width = 860,
+            Text = "Check whether the word index covers everything ingested, and rebuild it. " +
+                   "This is what makes lemma-aware search fast.",
+            Left = 192,
+            Top = y + 30,
+            Width = 680,
             ForeColor = Color.DimGray
         };
 
-        _wordIndexProgressBar = new ProgressBar { Left = 12, Top = y + 44, Width = 860, Height = 22 };
-        _wordIndexStatusLabel = new Label { Left = 12, Top = y + 70, Width = 860, Height = 20, Text = "Idle." };
-        _wordIndexElapsedLabel = new Label { Left = 12, Top = y + 92, Width = 860, Height = 20, ForeColor = Color.DimGray };
+        var translationButton = new Button
+        {
+            Text = "AI Translation...", Left = 12, Top = y + 62, Width = 170, Height = 30
+        };
+        translationButton.Click += (_, _) =>
+        {
+            using var form = new TranslateApiSettingsForm();
+            form.ShowDialog(this);
+        };
 
-        _wordIndexButton = new Button { Text = "Build Word Index", Left = 12, Top = y + 116, Width = 160, Height = 30 };
-        _wordIndexButton.Click += async (_, _) => await BuildWordIndexAsync();
+        var translationDesc = new Label
+        {
+            Text = "API keys for Claude and Gemini, and whether to confirm before anything is sent. " +
+                   "Optional - the app is fully offline without them.",
+            Left = 192,
+            Top = y + 68,
+            Width = 680,
+            ForeColor = Color.DimGray
+        };
 
-        Controls.Add(_wordIndexStatusIcon);
-        Controls.Add(wordIndexTitle);
+        Controls.Add(toolsTitle);
+        Controls.Add(wordIndexButton);
         Controls.Add(wordIndexDesc);
-        Controls.Add(_wordIndexProgressBar);
-        Controls.Add(_wordIndexStatusLabel);
-        Controls.Add(_wordIndexElapsedLabel);
-        Controls.Add(_wordIndexButton);
+        Controls.Add(translationButton);
+        Controls.Add(translationDesc);
 
-        y += 156;
+        y += 108;
+
+        // Reading preferences, in the one dialog that already collects
+        // everything that isn't a corpus - the database location and the
+        // word index both live here too.
+        var readingTitle = new Label
+        {
+            Text = "Reading",
+            Left = 36,
+            Top = y,
+            Width = 836,
+            Font = new Font(Font, FontStyle.Bold)
+        };
+
+        var reopenCheck = new CheckBox
+        {
+            Text = "Open where I last left off",
+            Left = 12,
+            Top = y + 22,
+            Width = 300,
+            Checked = ReadingPosition.ReopenOnLaunch
+        };
+
+        var reopenDesc = new Label
+        {
+            Text = "Reopens the passage you were last reading when the app starts. " +
+                   "Turn it off if opening a long work at launch feels slow - your place is still " +
+                   "remembered either way, so switching it back on picks up where you were.",
+            Left = 32,
+            Top = y + 44,
+            Width = 840,
+            Height = 34,
+            ForeColor = Color.DimGray
+        };
+
+        reopenCheck.CheckedChanged += (_, _) => ReadingPosition.ReopenOnLaunch = reopenCheck.Checked;
+
+        Controls.Add(readingTitle);
+        Controls.Add(reopenCheck);
+        Controls.Add(reopenDesc);
+
+        y += 88;
 
         var closeButton = new Button
         {
@@ -252,7 +310,6 @@ public class SetupWizardForm : Form
         if (!DbConnectionFactory.IsConfigured)
         {
             foreach (var row in _rows) row.StatusIcon.Image = AppIcons.Get("Error", 18);
-            _wordIndexStatusIcon.Image = AppIcons.Get("Error", 18);
             return;
         }
 
@@ -260,100 +317,6 @@ public class SetupWizardForm : Form
         {
             var complete = await row.CheckComplete();
             row.StatusIcon.Image = AppIcons.Get(complete ? "Complete" : "Error", 18);
-        }
-
-        var wordIndexHasData = await _wordIndexRepo.HasDataAsync();
-        if (!wordIndexHasData)
-        {
-            _wordIndexStatusIcon.Image = AppIcons.Get("Error", 18);
-            _wordIndexStatusLabel.Text = "Not built yet.";
-        }
-        else
-        {
-            // The index is pure derived data with no automatic refresh hook
-            // - ingesting a new Setup source (Renaissance, First1KGreek, or
-            // anything added later) doesn't touch it. A count comparison is
-            // what catches that silently: "has data" alone stayed true the
-            // whole time Shakespeare's lines sat unindexed after a source
-            // was added post-build, which is exactly why Auto-Tag's
-            // lemma-expansion search could go on finding only what existed
-            // at the last build and nothing added since, with nothing here
-            // to say so.
-            var totalLines = await _wordIndexRepo.GetTextNodeCountAsync();
-            var indexedLines = await _wordIndexRepo.GetIndexedTextNodeCountAsync();
-
-            if (indexedLines >= totalLines)
-            {
-                _wordIndexStatusIcon.Image = AppIcons.Get("Complete", 18);
-                _wordIndexStatusLabel.Text = $"Up to date - {indexedLines:N0} lines indexed.";
-            }
-            else
-            {
-                _wordIndexStatusIcon.Image = AppIcons.Get("Warning", 18);
-                _wordIndexStatusLabel.Text =
-                    $"Out of date - {indexedLines:N0} of {totalLines:N0} lines indexed. " +
-                    $"{totalLines - indexedLines:N0} line(s) were added since the last build " +
-                    "(likely a new source ingested afterward) and won't turn up in lemma-expansion " +
-                    "searches like Auto-Tag's until this is rebuilt.";
-            }
-        }
-    }
-
-    private async Task BuildWordIndexAsync()
-    {
-        var confirm = MessageBox.Show(this,
-            "Build the word index over every ingested line?\r\n\r\n" +
-            "This is what makes lemma-aware search fast - without it, each search scans the whole corpus " +
-            "once per word form. It takes a few minutes on a full corpus and can be rebuilt any time.",
-            "Build Word Index", MessageBoxButtons.OKCancel, MessageBoxIcon.Question);
-        if (confirm != DialogResult.OK) return;
-
-        SetAllRowsEnabled(false);
-        _wordIndexProgressBar.Style = ProgressBarStyle.Marquee;
-        _cts = new CancellationTokenSource();
-        StartHeartbeat(_wordIndexElapsedLabel);
-
-        var progress = new Progress<WordIndexProgress>(p =>
-        {
-            if (p.TotalNodes > 0 && p.Phase == "Indexing")
-            {
-                var percent = (int)Math.Min(100, p.NodesProcessed * 100 / p.TotalNodes);
-                _wordIndexProgressBar.Style = ProgressBarStyle.Blocks;
-                _wordIndexProgressBar.Value = percent;
-                _wordIndexStatusLabel.Text =
-                    $"Indexing... {p.NodesProcessed:N0}/{p.TotalNodes:N0} lines ({percent}%), {p.EntriesWritten:N0} entries written.";
-            }
-            else
-            {
-                _wordIndexProgressBar.Style = ProgressBarStyle.Marquee;
-                _wordIndexStatusLabel.Text = p.Phase;
-            }
-        });
-
-        try
-        {
-            var service = new WordIndexService();
-            await Task.Run(() => service.BuildAsync(progress, _cts.Token), _cts.Token);
-
-            _wordIndexStatusLabel.Text = "Word index built.";
-            MessageBox.Show(this, "Word index built. Lemma searches should be much faster now.", "Done",
-                MessageBoxButtons.OK, MessageBoxIcon.Information);
-        }
-        catch (OperationCanceledException)
-        {
-            _wordIndexStatusLabel.Text = "Cancelled.";
-        }
-        catch (Exception ex)
-        {
-            _wordIndexStatusLabel.Text = "Failed - see message.";
-            MessageBox.Show(this, ex.Message, "Build failed", MessageBoxButtons.OK, MessageBoxIcon.Error);
-        }
-        finally
-        {
-            StopHeartbeat();
-            _wordIndexProgressBar.Style = ProgressBarStyle.Blocks;
-            SetAllRowsEnabled(true);
-            await RefreshCompletionIconsAsync();
         }
     }
 
@@ -503,6 +466,5 @@ public class SetupWizardForm : Form
         {
             row.ActionButton.Enabled = enabled;
         }
-        _wordIndexButton.Enabled = enabled;
     }
 }

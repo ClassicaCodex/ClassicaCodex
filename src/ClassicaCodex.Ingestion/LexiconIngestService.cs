@@ -42,6 +42,7 @@ public class LexiconIngestService
 
     private const int MaxEntryLength = 20000;
 
+    /// <param name="path">Folder or single file to ingest lexicon entries from.</param>
     /// <param name="fallbackLanguage">
     /// Language ("grc"/"lat") to fall back on for a file whose own name and
     /// folder don't reveal one. Detection is per file (see
@@ -52,6 +53,8 @@ public class LexiconIngestService
     /// Lexicon name to fall back on when the file can't identify its own and
     /// the language doesn't imply one.
     /// </param>
+    /// <param name="progress">Reports files processed as the run proceeds.</param>
+    /// <param name="cancellationToken">Cancels a run in progress.</param>
     public async Task IngestAsync(
         string path,
         string fallbackLanguage,

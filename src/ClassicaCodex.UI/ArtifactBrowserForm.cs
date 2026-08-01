@@ -17,7 +17,7 @@ public class ArtifactBrowserForm : Form
     public ArtifactBrowserForm(string title, string searchTerm)
     {
         Text = $"Artifacts - {title}";
-        AppIcons.ApplyWindowIcon(this, "PlaceMap");
+        AppIcons.ApplyWindowIcon(this, "Images");
         ClientSize = new Size(324, 344);
         StartPosition = FormStartPosition.CenterParent;
         MaximizeBox = false;

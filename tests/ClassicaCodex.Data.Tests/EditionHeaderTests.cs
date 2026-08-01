@@ -112,9 +112,10 @@ public class EditionHeaderTests
     {
         using var db = await TempDatabase.CreateAsync();
 
-        Assert.Equal(3, await db.ScalarAsync<int>("PRAGMA user_version;"));
+        Assert.Equal(6, await db.ScalarAsync<int>("PRAGMA user_version;"));
         Assert.True(await db.TableExistsAsync("EditionHeaders"));
         Assert.True(await db.TableExistsAsync("EditionResponsibilities"));
+        Assert.True(await db.TableExistsAsync("RecentSearches"));
     }
 
     /// <summary>
@@ -135,7 +136,7 @@ public class EditionHeaderTests
 
         await SchemaInitializer.EnsureSchemaAsync();
 
-        Assert.Equal(3, await db.ScalarAsync<int>("PRAGMA user_version;"));
+        Assert.Equal(6, await db.ScalarAsync<int>("PRAGMA user_version;"));
         Assert.True(await db.TableExistsAsync("EditionHeaders"));
 
         var bookmark = Assert.Single(await new BookmarkRepository().GetAllAsync());
@@ -145,8 +146,7 @@ public class EditionHeaderTests
     }
 
     /// <summary>
-    /// A database already at v2 - which is what anyone who has been running
-    /// this build has - takes only the v3 step.
+    /// A database at v2 takes every step after it in one pass.
     ///
     /// Built by creating a current database and removing what v3 added,
     /// rather than by stamping the legacy fixture at 2: that fixture has the
@@ -155,18 +155,20 @@ public class EditionHeaderTests
     /// migration 2 was supposed to have created.
     /// </summary>
     [Fact]
-    public async Task DatabaseAtVersionTwoUpgradesToThree()
+    public async Task DatabaseAtVersionTwoUpgradesToCurrent()
     {
         using var db = await TempDatabase.CreateAsync();
         await db.ExecuteAsync(
-            "DROP TABLE EditionResponsibilities; DROP TABLE EditionHeaders; PRAGMA user_version = 2;");
+            "DROP TABLE RecentSearches; DROP TABLE EditionResponsibilities; " +
+            "DROP TABLE EditionHeaders; PRAGMA user_version = 2;");
 
         Assert.False(await db.TableExistsAsync("EditionHeaders"));
 
         await SchemaInitializer.EnsureSchemaAsync();
 
-        Assert.Equal(3, await db.ScalarAsync<int>("PRAGMA user_version;"));
+        Assert.Equal(6, await db.ScalarAsync<int>("PRAGMA user_version;"));
         Assert.True(await db.TableExistsAsync("EditionHeaders"));
         Assert.True(await db.TableExistsAsync("EditionResponsibilities"));
+        Assert.True(await db.TableExistsAsync("RecentSearches"));
     }
 }

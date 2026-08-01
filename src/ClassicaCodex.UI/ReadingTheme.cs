@@ -29,10 +29,16 @@ public static class ReadingTheme
     public static bool IsDark => Mode == ReadingThemeMode.Dark;
 
     // Window chrome / form background
-    public static Color Background => IsDark ? Color.FromArgb(30, 30, 32) : SystemColors.Control;
+    // Light mode is parchment rather than the system grey - the same tone
+    // the icon tiles are drawn on, so the toolbar reads as one surface
+    // instead of illustrations pasted onto a control panel. It suits a
+    // reader for texts that spent most of their life on vellum.
+    public static Color Background => IsDark ? Color.FromArgb(30, 30, 32) : Color.FromArgb(237, 231, 218);
 
     // Reading surfaces - text panes, trees, lists
-    public static Color Surface => IsDark ? Color.FromArgb(24, 24, 26) : Color.White;
+    // A shade lighter than the chrome around it, so a reading pane still
+    // reads as the page rather than merging into the frame.
+    public static Color Surface => IsDark ? Color.FromArgb(24, 24, 26) : Color.FromArgb(250, 247, 240);
 
     public static Color Text => IsDark ? Color.FromArgb(232, 228, 218) : Color.Black;
 
@@ -42,10 +48,10 @@ public static class ReadingTheme
 
     public static Color SelectionText => IsDark ? Color.FromArgb(245, 243, 238) : SystemColors.HighlightText;
 
-    public static Color Border => IsDark ? Color.FromArgb(60, 60, 64) : SystemColors.ControlDark;
+    public static Color Border => IsDark ? Color.FromArgb(60, 60, 64) : Color.FromArgb(199, 190, 172);
 
     /// <summary>Column-header strip - a shade off the reading surface so it reads as chrome, not content.</summary>
-    public static Color HeaderBackground => IsDark ? Color.FromArgb(44, 44, 50) : SystemColors.Control;
+    public static Color HeaderBackground => IsDark ? Color.FromArgb(44, 44, 50) : Color.FromArgb(228, 220, 204);
 
     /// <summary>
     /// Owner-draws a ListView's column headers so they follow the theme.
@@ -295,12 +301,31 @@ public static class ReadingTheme
                 ApplyNativeScrollbarTheme(combo);
                 break;
 
+            // Before the general Button case, which would otherwise claim
+            // these and put a border back around them.
+            case IconButton iconButton:
+                iconButton.FlatStyle = FlatStyle.Flat;
+                iconButton.FlatAppearance.BorderSize = 0;
+
+                // Matches the toolbar it sits on, so only the icon reads as
+                // a shape. The hover and press tints are the sole feedback -
+                // deliberately faint, since a full-strength highlight behind
+                // an already-busy tile just muddies it.
+                iconButton.BackColor = Background;
+                iconButton.ForeColor = Text;
+                iconButton.FlatAppearance.MouseOverBackColor =
+                    IsDark ? Color.FromArgb(58, 58, 64) : Color.FromArgb(222, 214, 196);
+                iconButton.FlatAppearance.MouseDownBackColor =
+                    IsDark ? Color.FromArgb(72, 72, 80) : Color.FromArgb(208, 198, 176);
+                iconButton.UseVisualStyleBackColor = false;
+                break;
+
             case Button button:
                 // A Button ignores BackColor entirely under the default
                 // FlatStyle.System rendering, so dark mode has to switch it
                 // to Flat for the color to apply at all.
                 button.FlatStyle = IsDark ? FlatStyle.Flat : FlatStyle.Standard;
-                button.BackColor = IsDark ? Color.FromArgb(48, 48, 52) : SystemColors.Control;
+                button.BackColor = IsDark ? Color.FromArgb(48, 48, 52) : Color.FromArgb(232, 226, 212);
                 button.ForeColor = IsDark ? Text : SystemColors.ControlText;
                 button.FlatAppearance.BorderColor = Border;
                 button.UseVisualStyleBackColor = !IsDark;

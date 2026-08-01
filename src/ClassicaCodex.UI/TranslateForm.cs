@@ -155,6 +155,7 @@ public class TranslateForm : Form
         moreVoicesLink.LinkClicked += (_, _) => OpenWindowsSpeechSettings();
 
         _readAloudButton = new Button { Left = 16, Top = 190, Width = 180, Height = 28, Text = "\u25B6 Read Aloud" };
+        AppIcons.Apply(_readAloudButton, "Pronunciation", 16);
         _readAloudButton.Click += (_, _) => OnReadAloudClicked();
 
         _stopReadingButton = new Button

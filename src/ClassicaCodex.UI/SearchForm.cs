@@ -36,14 +36,21 @@ public class SearchForm : Form
     private readonly ListBox _resultsList;
     private readonly Label _statusLabel;
     private readonly Button _clearFiltersButton;
+    private readonly ComboBox _recentBox;
 
     private readonly TextNodeRepository _textNodeRepo = new();
     private readonly AuthorRepository _authorRepo = new();
     private readonly TagRepository _tagRepo = new();
+    private readonly RecentSearchRepository _recentRepo = new();
 
     private List<(int WorkId, long TextNodeId, string AuthorName, string WorkTitle, string CitationRef, string Text)> _results = new();
     private List<string> _highlightTerms = new();
     private List<Author> _authors = new();
+    private List<RecentSearch> _recent = new();
+
+    // Set while a recent search is being restored into the controls, so the
+    // combo's own SelectedIndexChanged doesn't re-enter and run again.
+    private bool _applyingRecent;
     private int _displayedCount;
     private bool _searching;
 
@@ -107,12 +114,24 @@ public class SearchForm : Form
         };
         _clearFiltersButton.Click += (_, _) => ClearFilters();
 
+        // --- recent searches -------------------------------------------
+        var recentLabel = new Label { Text = "Recent:", Left = 14, Top = 52, Width = 54 };
+        _recentBox = new ComboBox
+        {
+            Left = 68,
+            Top = 48,
+            Width = 560,
+            Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right,
+            DropDownStyle = ComboBoxStyle.DropDownList
+        };
+        _recentBox.SelectedIndexChanged += async (_, _) => await ApplySelectedRecentAsync();
+
         // --- filter panel ----------------------------------------------
         var filterPanel = new GroupBox
         {
             Text = "Narrow the search",
             Left = 12,
-            Top = 48,
+            Top = 84,
             Width = 1060,
             Height = 104,
             Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right
@@ -185,9 +204,9 @@ public class SearchForm : Form
         _resultsList = new ListBox
         {
             Left = 12,
-            Top = 160,
+            Top = 196,
             Width = 1060,
-            Height = 480,
+            Height = 444,
             Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right,
             HorizontalScrollbar = true,
             DrawMode = DrawMode.OwnerDrawFixed
@@ -220,10 +239,15 @@ public class SearchForm : Form
         Controls.AddRange(new Control[]
         {
             queryLabel, _queryBox, _searchButton, _clearFiltersButton,
+            recentLabel, _recentBox,
             filterPanel, _resultsList, _statusLabel
         });
 
-        Load += async (_, _) => await LoadFilterOptionsAsync();
+        Load += async (_, _) =>
+        {
+            await LoadFilterOptionsAsync();
+            await LoadRecentAsync();
+        };
         ReadingTheme.AttachTo(this);
     }
 
@@ -260,8 +284,165 @@ public class SearchForm : Form
         }
     }
 
+    private async Task LoadRecentAsync()
+    {
+        try
+        {
+            _recent = await _recentRepo.GetAllAsync();
+
+            _applyingRecent = true;
+            _recentBox.Items.Clear();
+            _recentBox.Items.Add(_recent.Count == 0 ? "(no recent searches yet)" : "(pick a recent search)");
+            foreach (var recent in _recent) _recentBox.Items.Add(recent.Name);
+            _recentBox.SelectedIndex = 0;
+            _applyingRecent = false;
+        }
+        catch (Exception ex)
+        {
+            _applyingRecent = false;
+            _statusLabel.Text = $"Couldn't load recent searches: {ex.Message}";
+        }
+    }
+
+    /// <summary>
+    /// Restores a recent search into the controls and runs it.
+    ///
+    /// Runs it rather than only loading it: someone reaching into this list
+    /// wants the results back, and if they want to adjust something the
+    /// filters are all sitting there afterwards anyway.
+    ///
+    /// Author and era are matched by name and label rather than restored
+    /// from an id, so an entry recorded against an older library still
+    /// selects the right thing - and quietly selects nothing, rather than
+    /// the wrong thing, when that author is no longer loaded.
+    /// </summary>
+    private async Task ApplySelectedRecentAsync()
+    {
+        if (_applyingRecent) return;
+        if (_recentBox.SelectedIndex <= 0 || _recentBox.SelectedIndex - 1 >= _recent.Count) return;
+
+        var recent = _recent[_recentBox.SelectedIndex - 1];
+
+        _applyingRecent = true;
+        try
+        {
+            _queryBox.Text = recent.Query;
+
+            _matchModeBox.SelectedIndex = recent.MatchMode switch
+            {
+                nameof(SearchMatchMode.WholeWord) => 1,
+                nameof(SearchMatchMode.AllWords) => 2,
+                _ => 0
+            };
+
+            var languages = recent.Languages.Split(',', StringSplitOptions.RemoveEmptyEntries);
+            _greekCheck.Checked = languages.Contains("grc");
+            _latinCheck.Checked = languages.Contains("lat");
+            _englishCheck.Checked = languages.Contains("eng");
+
+            _kindBox.SelectedIndex = recent.OriginalsOnly switch { true => 1, false => 2, null => 0 };
+            _bookmarkedCheck.Checked = recent.BookmarkedOnly;
+
+            SelectByText(_authorBox, recent.AuthorName);
+            SelectByText(_tagBox, recent.TagName);
+            SelectByText(_eraBox, recent.EraLabel);
+        }
+        finally
+        {
+            _applyingRecent = false;
+        }
+
+        await RunSearchAsync();
+    }
+
+    /// <summary>
+    /// Selects an entry by its text, falling back to the first item - which
+    /// is always the "(any)" option - when it isn't there. An entry naming
+    /// an author whose corpus isn't currently loaded must not silently land
+    /// on whichever author happens to sit at that position now.
+    /// </summary>
+    private static void SelectByText(ComboBox combo, string? text)
+    {
+        if (combo.Items.Count == 0) return;
+
+        if (!string.IsNullOrEmpty(text))
+        {
+            for (var i = 0; i < combo.Items.Count; i++)
+            {
+                if (combo.Items[i]?.ToString() == text)
+                {
+                    combo.SelectedIndex = i;
+                    return;
+                }
+            }
+        }
+
+        combo.SelectedIndex = 0;
+    }
+
+    /// <summary>
+    /// Files the search that just ran into the recent list.
+    ///
+    /// Its description is its identity - DescribeSearch already renders the
+    /// query and every active filter, and the table's unique constraint on
+    /// that string is what makes re-running a search move it up the list
+    /// instead of adding a duplicate.
+    ///
+    /// Failing to record is not worth telling anyone about: the search
+    /// itself succeeded, and the results are on screen.
+    /// </summary>
+    private async Task RecordCurrentAsync()
+    {
+        var languages = new List<string>();
+        if (_greekCheck.Checked) languages.Add("grc");
+        if (_latinCheck.Checked) languages.Add("lat");
+        if (_englishCheck.Checked) languages.Add("eng");
+
+        var entry = new RecentSearch
+        {
+            Name = DescribeSearch(),
+            Query = _queryBox.Text.Trim(),
+            MatchMode = _matchModeBox.SelectedIndex switch
+            {
+                1 => nameof(SearchMatchMode.WholeWord),
+                2 => nameof(SearchMatchMode.AllWords),
+                _ => nameof(SearchMatchMode.Contains)
+            },
+            Languages = string.Join(",", languages),
+            Corpora = string.Empty,
+            OriginalsOnly = _kindBox.SelectedIndex switch { 1 => true, 2 => false, _ => null },
+            AuthorName = _authorBox.SelectedIndex > 0 ? _authorBox.SelectedItem?.ToString() : null,
+            TagName = _tagBox.SelectedIndex > 0 ? _tagBox.SelectedItem?.ToString() : null,
+            BookmarkedOnly = _bookmarkedCheck.Checked,
+            EraLabel = _eraBox.SelectedIndex > 0 ? _eraBox.SelectedItem?.ToString() : null
+        };
+
+        try
+        {
+            await _recentRepo.RecordAsync(entry);
+            await LoadRecentAsync();
+        }
+        catch (Exception ex)
+        {
+            // Says so rather than failing silently. Swallowing this hid two
+            // separate bugs during development - a malformed statement, then
+            // a schema that only half-migrated - and in both cases the
+            // symptom was an empty list with nothing anywhere to explain it.
+            // The search itself did succeed, so this is appended to the
+            // result count rather than replacing it.
+            _statusLabel.Text += $"  (couldn't add to Recent: {ex.Message})";
+        }
+    }
+
+
     private void ClearFilters()
     {
+        // The picker would otherwise still name a search these controls no
+        // longer match.
+        _applyingRecent = true;
+        if (_recentBox.Items.Count > 0) _recentBox.SelectedIndex = 0;
+        _applyingRecent = false;
+
         _matchModeBox.SelectedIndex = 0;
         _greekCheck.Checked = false;
         _latinCheck.Checked = false;
@@ -386,6 +567,13 @@ public class SearchForm : Form
                 ? "No matches."
                 : $"{hits.DisplayCount} match(es). Double-click to open in the reader; " +
                   "right-click to copy or export.";
+
+            // Recorded at the end rather than the start: a search that threw
+            // isn't one worth offering back. Replaying an entry from the
+            // list records it too, which is what moves it to the top - a
+            // recent list should reflect what was actually run most
+            // recently, however it was launched.
+            await RecordCurrentAsync();
         }
         catch (Exception ex)
         {

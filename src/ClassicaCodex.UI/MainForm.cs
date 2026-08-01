@@ -65,6 +65,16 @@ public class MainForm : Form
     // only have moved the problem to the first time someone switched.
     private readonly List<ContextMenuStrip> _themedContextMenus = new();
 
+    // One ToolTip for the whole toolbar. A ToolTip is a component rather
+    // than a control, so the theme's tree walk never reaches it - it gets
+    // re-themed explicitly alongside the context menus.
+    private readonly ToolTip _toolbarTips = new();
+
+    // The work currently in the reader, kept so a reading position can name
+    // it by CTS URN rather than by an id that means nothing outside this
+    // database file.
+    private Work? _openWork;
+
     // These menu items get their icon once, at construction - which happens
     // before ReadingTheme.Load() ever runs (that's in Shown, this is in the
     // constructor). So on a saved dark-mode preference, they'd otherwise be
@@ -74,14 +84,23 @@ public class MainForm : Form
     // current, the same as it does for the menu's own colors above.
     private readonly List<(ToolStripItem Item, string IconName)> _themedMenuItemIcons = new();
 
+    // Toolbar icons need the same treatment as the menu icons above, and for
+    // a sharper reason now that each has a separate light and dark file: the
+    // constructor runs before ReadingTheme.Load(), so every icon is first
+    // fetched as though the theme were light. Without re-fetching on the
+    // toggle, a dark-mode session shows the light-mode artwork for its whole
+    // life - pale parchment tiles on a dark toolbar.
+    private readonly List<(Button Button, string IconName)> _themedButtonIcons = new();
+
     public MainForm()
     {
         Text = "Classica Codex";
+        AppIcons.ApplyWindowIcon(this, "AppIcon");
         Width = 1840;
         Height = 800;
         StartPosition = FormStartPosition.CenterScreen;
 
-        var tagsButton = new Button { Text = "Tags...", Left = 532, Top = 10, Width = 80, Height = 30 };
+        var tagsButton = new IconButton { Text = "Tags...", Left = 532, Top = 10, Width = 80, Height = 30 };
         tagsButton.Click += (_, _) =>
         {
             using var tagBrowser = new TagBrowserForm
@@ -91,10 +110,10 @@ public class MainForm : Form
             tagBrowser.ShowDialog(this);
         };
 
-        _searchButton = new Button { Text = "Search...", Left = 10, Top = 12, Width = 110 };
+        _searchButton = new IconButton { Text = "Search...", Left = 10, Top = 12, Width = 110 };
         _searchButton.Click += (_, _) => OpenSearchWindow();
 
-        var bookmarksButton = new Button { Text = "Bookmarks...", Left = 416, Top = 10, Width = 110, Height = 30 };
+        var bookmarksButton = new IconButton { Text = "Bookmarks...", Left = 416, Top = 10, Width = 110, Height = 30 };
         bookmarksButton.Click += (_, _) =>
         {
             using var bookmarksForm = new BookmarksForm
@@ -104,7 +123,7 @@ public class MainForm : Form
             bookmarksForm.ShowDialog(this);
         };
 
-        var mythNetworkButton = new Button { Text = "Myth Network...", Left = 622, Top = 10, Width = 140, Height = 30 };
+        var mythNetworkButton = new IconButton { Text = "Myth Network...", Left = 622, Top = 10, Width = 140, Height = 30 };
         mythNetworkButton.Click += (_, _) =>
         {
             using var networkForm = new MythNetworkForm
@@ -114,7 +133,7 @@ public class MainForm : Form
             networkForm.ShowDialog(this);
         };
 
-        var timelineButton = new Button { Text = "Timeline...", Left = 768, Top = 10, Width = 100, Height = 30 };
+        var timelineButton = new IconButton { Text = "Timeline...", Left = 768, Top = 10, Width = 100, Height = 30 };
         timelineButton.Click += (_, _) =>
         {
             using var timelineForm = new TimelineForm
@@ -124,7 +143,7 @@ public class MainForm : Form
             timelineForm.ShowDialog(this);
         };
 
-        var stylometryButton = new Button { Text = "Stylometry...", Left = 874, Top = 10, Width = 120, Height = 30 };
+        var stylometryButton = new IconButton { Text = "Stylometry...", Left = 874, Top = 10, Width = 120, Height = 30 };
         stylometryButton.Click += (_, _) =>
         {
             using var stylometryForm = new StylometryForm
@@ -134,7 +153,7 @@ public class MainForm : Form
             stylometryForm.ShowDialog(this);
         };
 
-        var concordanceButton = new Button { Text = "Concordance...", Left = 1000, Top = 10, Width = 130, Height = 30 };
+        var concordanceButton = new IconButton { Text = "Concordance...", Left = 1000, Top = 10, Width = 130, Height = 30 };
         concordanceButton.Click += (_, _) =>
         {
             using var concordanceForm = new ConcordanceForm
@@ -144,14 +163,14 @@ public class MainForm : Form
             concordanceForm.ShowDialog(this);
         };
 
-        var compareTranslationsButton = new Button { Text = "Compare Translations...", Left = 1136, Top = 10, Width = 180, Height = 30 };
+        var compareTranslationsButton = new IconButton { Text = "Compare Translations...", Left = 1136, Top = 10, Width = 180, Height = 30 };
         compareTranslationsButton.Click += (_, _) =>
         {
             using var compareTranslationsForm = new CompareTranslationsForm();
             compareTranslationsForm.ShowDialog(this);
         };
 
-        var placesMapButton = new Button { Text = "Places Map...", Left = 1322, Top = 10, Width = 130, Height = 30 };
+        var placesMapButton = new IconButton { Text = "Places Map...", Left = 1322, Top = 10, Width = 130, Height = 30 };
         placesMapButton.Click += (_, _) =>
         {
             using var placesMapForm = new PlacesMapForm
@@ -161,7 +180,7 @@ public class MainForm : Form
             placesMapForm.ShowDialog(this);
         };
 
-        var morphologyButton = new Button { Text = "Morphology...", Left = 1458, Top = 10, Width = 130, Height = 30 };
+        var morphologyButton = new IconButton { Text = "Morphology...", Left = 1458, Top = 10, Width = 130, Height = 30 };
         morphologyButton.Click += (_, _) =>
         {
             using var morphologyForm = new MorphologyForm
@@ -179,7 +198,7 @@ public class MainForm : Form
         _treeToggleButton = new Button
         {
             Left = 10,
-            Top = 50,
+            Top = 58,
             Width = 300,
             Height = 24,
             Text = "\u25C0 Collapse Library"
@@ -189,9 +208,9 @@ public class MainForm : Form
         _libraryTree = new TreeView
         {
             Left = 10,
-            Top = 78,
+            Top = 86,
             Width = 300,
-            Height = 662,
+            Height = 654,
             Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left
         };
         _libraryTree.AfterSelect += async (_, e) => await LibraryTree_AfterSelectAsync(e);
@@ -235,9 +254,9 @@ public class MainForm : Form
         var splitContainer = new SplitContainer
         {
             Left = 320,
-            Top = 78,
+            Top = 86,
             Width = 1360,
-            Height = 472,
+            Height = 464,
             Orientation = Orientation.Vertical
         };
 
@@ -270,14 +289,14 @@ public class MainForm : Form
         Controls.Add(mythNetworkButton);
         Controls.Add(timelineButton);
         Controls.Add(stylometryButton);
-        var aboutButton = new Button { Top = 10, Width = 36, Height = 30 };
+        var aboutButton = new IconButton { Top = 10, Width = 36, Height = 30 };
         aboutButton.Click += (_, _) =>
         {
             using var aboutForm = new AboutForm();
             aboutForm.ShowDialog(this);
         };
 
-        var setupWizardButton = new Button { Top = 10, Width = 36, Height = 30 };
+        var setupWizardButton = new IconButton { Top = 10, Width = 36, Height = 30 };
         setupWizardButton.Click += (_, _) =>
         {
             using var choiceForm = new SetupModeChoiceForm();
@@ -300,14 +319,14 @@ public class MainForm : Form
             // Cancel: closed the picker without choosing - nothing to do.
         };
 
-        _themeButton = new Button { Top = 10, Width = 36, Height = 30 };
+        _themeButton = new IconButton { Top = 10, Width = 36, Height = 30 };
         _themeButton.Click += (_, _) =>
         {
             ReadingTheme.Toggle();
             ApplyTheme();
         };
 
-        _helpButton = new Button { Top = 10, Width = 36, Height = 30 };
+        _helpButton = new IconButton { Top = 10, Width = 36, Height = 30 };
         _helpButton.Click += (_, _) =>
         {
             using var helpForm = new HelpForm();
@@ -342,24 +361,98 @@ public class MainForm : Form
 
         // Icons are optional - AppIcons leaves a button alone when its file
         // isn't present, so the toolbar still works text-only.
-        AppIcons.Apply(tagsButton, "AutoTag", 16);
-        AppIcons.Apply(_searchButton, "Search", 16);
-        AppIcons.Apply(bookmarksButton, "Bookmarks", 16);
-        AppIcons.Apply(mythNetworkButton, "MythNetwork", 16);
-        AppIcons.Apply(timelineButton, "Timeline", 16);
-        AppIcons.Apply(stylometryButton, "Stylometry", 16);
-        AppIcons.Apply(concordanceButton, "Concordance", 16);
-        AppIcons.Apply(compareTranslationsButton, "CompareTexts", 16);
-        AppIcons.Apply(placesMapButton, "PlaceMap", 16);
-        AppIcons.Apply(morphologyButton, "WordStudy", 16);
-        AppIcons.Apply(setupWizardButton, "Settings", 16);
-        AppIcons.Apply(aboutButton, "About", 16);
-        AppIcons.Apply(_helpButton, "Help", 16);
+        //
+        // Icon-only, with the label moved to a tooltip. The icons are drawn
+        // as detailed tiles rather than flat glyphs, and at the 16px a
+        // labelled button leaves room for they turn to mush - dropping the
+        // text buys enough width to show them at 24px, where the artwork is
+        // actually readable. The name isn't lost, just moved: it's one hover
+        // away, and it's on AccessibleName for anything reading the UI aloud.
+        //
+        // Positions are computed here rather than written per button. The
+        // previous hand-tuned Left values had to be re-tuned by hand every
+        // time a button's width changed, which is exactly the kind of thing
+        // that drifts a pixel at a time until the row looks crooked.
+        _toolbarTips.InitialDelay = 400;
+        _toolbarTips.ReshowDelay = 200;
+        ReadingTheme.ApplyToToolTip(_toolbarTips);
+
+        var toolbarButtons = new (Button Button, string Label, string Icon)[]
+        {
+            (_searchButton, "Search", "Search"),
+            (bookmarksButton, "Bookmarks", "Bookmarks"),
+            (tagsButton, "Tags", "AutoTag"),
+            (mythNetworkButton, "Myth Network", "MythNetwork"),
+            (timelineButton, "Timeline", "Timeline"),
+            (stylometryButton, "Stylometry", "Stylometry"),
+            (concordanceButton, "Concordance", "Concordance"),
+            (compareTranslationsButton, "Compare Translations", "CompareTexts"),
+            (placesMapButton, "Places Map", "PlaceMap"),
+            (morphologyButton, "Morphology", "Morphology")
+        };
+
+        // The icon nearly fills the button - these are illustrations, and
+        // they earn their space. The few pixels left over are what the hover
+        // tint shows through, which is the only chrome an IconButton has.
+        const int toolbarSize = 46;
+        const int toolbarIcon = 40;
+        const int toolbarGap = 4;
+        var toolbarLeft = 10;
+
+        foreach (var (button, label, icon) in toolbarButtons)
+        {
+            button.Text = string.Empty;
+            button.Width = toolbarSize;
+            button.Height = toolbarSize;
+            button.Top = 4;
+            button.Left = toolbarLeft;
+            button.AccessibleName = label;
+            _toolbarTips.SetToolTip(button, label);
+            AppIcons.Apply(button, icon, toolbarIcon);
+            _themedButtonIcons.Add((button, icon));
+
+            toolbarLeft += toolbarSize + toolbarGap;
+
+            // A wider gap after Search: it opens the window someone reaches
+            // for most, and grouping the analysis tools apart from it keeps
+            // a row of ten identical squares from reading as one undivided
+            // block.
+            if (ReferenceEquals(button, _searchButton)) toolbarLeft += 14;
+        }
+
+        // The four on the right were already icon-only, but had no labels at
+        // all - not even a tooltip - so a new icon there was a guess.
+        _toolbarTips.SetToolTip(setupWizardButton, "Setup");
+        _toolbarTips.SetToolTip(_themeButton, "Light / dark mode");
+        _toolbarTips.SetToolTip(_helpButton, "Help");
+        _toolbarTips.SetToolTip(aboutButton, "About");
+        setupWizardButton.AccessibleName = "Setup";
+        _themeButton.AccessibleName = "Light / dark mode";
+        _helpButton.AccessibleName = "Help";
+        aboutButton.AccessibleName = "About";
+
+        foreach (var button in new[] { setupWizardButton, _themeButton, _helpButton, aboutButton })
+        {
+            button.Width = toolbarSize;
+            button.Height = toolbarSize;
+            button.Top = 4;
+        }
+
+        AppIcons.Apply(setupWizardButton, "Settings", toolbarIcon);
+        AppIcons.Apply(aboutButton, "About", toolbarIcon);
+        AppIcons.Apply(_helpButton, "Help", toolbarIcon);
+        _themedButtonIcons.Add((setupWizardButton, "Settings"));
+        _themedButtonIcons.Add((aboutButton, "About"));
+        _themedButtonIcons.Add((_helpButton, "Help"));
         Controls.Add(_libraryTree);
         Controls.Add(_treeToggleButton);
         Controls.Add(splitContainer);
 
-        Load += async (_, _) => await LoadLibraryTreeAsync();
+        Load += async (_, _) =>
+        {
+            await LoadLibraryTreeAsync();
+            await RestoreReadingPositionAsync();
+        };
 
         // Deliberately NOT using Anchor for these three - Anchor bakes in a
         // distance captured at the moment a control is added to Controls,
@@ -425,6 +518,7 @@ public class MainForm : Form
         // Not part of the control tree Apply just walked (see the field
         // comment), so themed explicitly here alongside everything else.
         foreach (var menu in _themedContextMenus) ReadingTheme.ApplyToContextMenu(menu);
+        ReadingTheme.ApplyToToolTip(_toolbarTips);
 
         // Same reason: an icon set once at construction time, before this
         // ran for the first time, would otherwise never revisit whichever
@@ -433,13 +527,46 @@ public class MainForm : Form
         // name, since - unlike the six above - these two can change icons
         // for a reason other than the theme.
         foreach (var (item, iconName) in _themedMenuItemIcons) item.Image = AppIcons.Get(iconName, 16);
+        foreach (var (button, iconName) in _themedButtonIcons) AppIcons.Apply(button, iconName, 40);
         AppIcons.Apply(_treeToggleButton, _libraryTreeCollapsed ? "Expand" : "Collapse", 14);
 
         // Icon shows what clicking will switch *to*, not the current state -
         // no text label needed, the sun/moon glyph already says it plainly.
-        AppIcons.Apply(_themeButton, ReadingTheme.IsDark ? "LightMode" : "DarkMode", 16);
+        AppIcons.Apply(_themeButton, ReadingTheme.IsDark ? "LightMode" : "DarkMode", 40);
 
         Invalidate(true);
+    }
+
+    /// <summary>
+    /// Reopens whatever was last being read.
+    ///
+    /// Everything here is best-effort by design. The remembered work may
+    /// have been removed, the corpus re-ingested with different citation
+    /// references, or the position saved against a different database
+    /// entirely - all of which simply mean the app opens the way it did
+    /// before any of this existed, which is a perfectly good outcome and not
+    /// worth a message about.
+    /// </summary>
+    private async Task RestoreReadingPositionAsync()
+    {
+        if (!ReadingPosition.ReopenOnLaunch) return;
+
+        var saved = ReadingPosition.Load();
+        if (saved == null) return;
+
+        try
+        {
+            var target = await _textNodeRepo.FindByWorkUrnAndCitationAsync(
+                saved.Value.WorkCtsUrn, saved.Value.CitationRef);
+
+            if (target == null) return;
+
+            await NavigateToPassageAsync(target.Value.WorkId, target.Value.TextNodeId);
+        }
+        catch (Exception)
+        {
+            // See above - opening at nothing is the fallback, not an error.
+        }
     }
 
     private async Task LoadLibraryTreeAsync()
@@ -623,6 +750,25 @@ public class MainForm : Form
 
         target.SelectOnly(index);
         target.EnsureVisible(index);
+
+        RememberReadingPosition(source, index);
+    }
+
+    /// <summary>
+    /// Notes where the reader is, for the next launch.
+    ///
+    /// Hooked to a click rather than to selection changing, for the same
+    /// reason the mirroring above is: programmatic selection fires
+    /// constantly during jumps and would overwrite a real position with
+    /// whatever a search or tag browser happened to land on.
+    /// </summary>
+    private void RememberReadingPosition(SyncListView pane, int index)
+    {
+        if (_openWork == null) return;
+        if (index < 0 || index >= pane.Items.Count) return;
+        if (pane.Items[index] is not TextNode node) return;
+
+        ReadingPosition.Save(_openWork.CtsUrn, node.CitationRef);
     }
 
     private async Task TagSelectedLineAsync(SyncListView list)
@@ -962,6 +1108,8 @@ public class MainForm : Form
         if (_suppressTreeSelectionLoad) return;
 
         if (e.Node?.Tag is not Work work) return;
+
+        _openWork = work;
         await LoadEditionSelectorsAsync(work.WorkId);
     }
 
@@ -1266,6 +1414,13 @@ public class MainForm : Form
     {
         var workNode = FindWorkNode(workId);
         if (workNode == null) return false;
+
+        // Also set here, not only in the tree's own handler: every open that
+        // arrives from another window - a search result, an echo, a tagged
+        // line - deliberately suppresses that handler, and without this the
+        // reader would hold a work that reading-position tracking couldn't
+        // name.
+        if (workNode.Tag is Work work) _openWork = work;
 
         // Already the selected work - its panes are populated and current,
         // so there's nothing to reload. Jumping between passages of the

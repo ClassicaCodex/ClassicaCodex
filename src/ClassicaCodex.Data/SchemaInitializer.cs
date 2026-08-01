@@ -50,7 +50,7 @@ public static class SchemaInitializer
     /// doing anything - and without "delete your database and re-ingest"
     /// ever being the release note.
     /// </summary>
-    private const int TargetSchemaVersion = 3;
+    private const int TargetSchemaVersion = 6;
 
     public static async Task EnsureSchemaAsync(CancellationToken cancellationToken = default)
     {
@@ -285,6 +285,94 @@ public static class SchemaInitializer
                 CONSTRAINT PK_EditionResponsibilities PRIMARY KEY (EditionId, SortOrder),
                 CONSTRAINT FK_EditionResponsibilities_Editions FOREIGN KEY (EditionId) REFERENCES Editions(EditionId)
             );"
+        },
+
+        // v4: created this table under its original name, back when these
+        // were searches you saved and managed by hand. Left exactly as it
+        // shipped - a database that already ran it has a table called
+        // SavedSearches, and rewriting a migration after the fact would
+        // leave that file with no path to the current schema. v5 renames it.
+        [4] = new[]
+        {
+            @"CREATE TABLE IF NOT EXISTS SavedSearches (
+                SavedSearchId  INTEGER PRIMARY KEY AUTOINCREMENT,
+                Name           TEXT NOT NULL,
+                Query          TEXT NOT NULL,
+                MatchMode      TEXT NOT NULL,
+                Languages      TEXT NOT NULL DEFAULT '',
+                Corpora        TEXT NOT NULL DEFAULT '',
+                OriginalsOnly  INTEGER NULL,
+                AuthorName     TEXT NULL,
+                TagName        TEXT NULL,
+                BookmarkedOnly INTEGER NOT NULL DEFAULT 0,
+                EraLabel       TEXT NULL,
+                CreatedAt      TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                CONSTRAINT UQ_SavedSearches_Name UNIQUE (Name)
+            );"
+        },
+
+        // v5: the same table, renamed to match what it now holds - searches
+        // recorded automatically as they are run, rather than ones someone
+        // named and filed. Renaming rather than recreating keeps whatever a
+        // v4 database already collected.
+        //
+        // The column keeps the name Name: it holds the search's description
+        // now rather than a title someone typed, but the unique constraint
+        // on it is doing real work either way. Two runs that describe
+        // identically are the same search, so the constraint is what makes
+        // re-running one move it up the list instead of filling the list
+        // with copies of itself.
+        [5] = new[]
+        {
+            "ALTER TABLE SavedSearches RENAME TO RecentSearches;"
+        },
+
+        // v6: give the table the column names the current schema declares.
+        //
+        // v5 renamed the table and not the column inside it, so a migrated
+        // database ended up with SavedSearchId where a freshly created one -
+        // which skips migrations entirely and just gets the current DDL -
+        // has RecentSearchId. Every query then worked on a new install and
+        // failed on a real library.
+        //
+        // The correction had to come as a new step rather than an edit to
+        // v5. A database that already ran v5 is stamped at 5 and the runner
+        // only applies versions above the one recorded, so a fix folded into
+        // v5 would reach every database except the ones that need it.
+        //
+        // Rebuilt rather than renamed because both shapes are out there now,
+        // and ALTER TABLE RENAME COLUMN fails on the one where the column
+        // already has the right name. Copying by the column names the two
+        // shapes share sidesteps the question entirely - the id is left out
+        // of the copy and simply reassigned, which costs nothing for a list
+        // of the last ten searches.
+        [6] = new[]
+        {
+            @"CREATE TABLE RecentSearches_v6 (
+                RecentSearchId INTEGER PRIMARY KEY AUTOINCREMENT,
+                Name           TEXT NOT NULL,
+                Query          TEXT NOT NULL,
+                MatchMode      TEXT NOT NULL,
+                Languages      TEXT NOT NULL DEFAULT '',
+                Corpora        TEXT NOT NULL DEFAULT '',
+                OriginalsOnly  INTEGER NULL,
+                AuthorName     TEXT NULL,
+                TagName        TEXT NULL,
+                BookmarkedOnly INTEGER NOT NULL DEFAULT 0,
+                EraLabel       TEXT NULL,
+                CreatedAt      TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                CONSTRAINT UQ_RecentSearches_Name UNIQUE (Name)
+            );",
+
+            @"INSERT INTO RecentSearches_v6
+                (Name, Query, MatchMode, Languages, Corpora, OriginalsOnly,
+                 AuthorName, TagName, BookmarkedOnly, EraLabel, CreatedAt)
+              SELECT Name, Query, MatchMode, Languages, Corpora, OriginalsOnly,
+                     AuthorName, TagName, BookmarkedOnly, EraLabel, CreatedAt
+              FROM RecentSearches;",
+
+            "DROP TABLE RecentSearches;",
+            "ALTER TABLE RecentSearches_v6 RENAME TO RecentSearches;"
         }
     };
 
@@ -443,6 +531,32 @@ public static class SchemaInitializer
             CONSTRAINT PK_EditionResponsibilities PRIMARY KEY (EditionId, SortOrder),
             CONSTRAINT FK_EditionResponsibilities_Editions FOREIGN KEY (EditionId) REFERENCES Editions(EditionId)
         );",
+
+        // RecentSearches - a named query with its filters, for the searches
+        // someone runs repeatedly.
+        //
+        // Deliberately holds no foreign keys. The author is stored by name
+        // and the era by its label, resolved to whatever the library
+        // currently contains at the moment the search is loaded - so a saved
+        // search survives a corpus being re-ingested into a fresh database,
+        // which renumbers every author id. Referential integrity would be
+        // the wrong tool here: a search naming an author you no longer have
+        // isn't corrupt, it just finds nothing until that corpus is back.
+            @"CREATE TABLE IF NOT EXISTS RecentSearches (
+                RecentSearchId  INTEGER PRIMARY KEY AUTOINCREMENT,
+                Name           TEXT NOT NULL,
+                Query          TEXT NOT NULL,
+                MatchMode      TEXT NOT NULL,
+                Languages      TEXT NOT NULL DEFAULT '',
+                Corpora        TEXT NOT NULL DEFAULT '',
+                OriginalsOnly  INTEGER NULL,
+                AuthorName     TEXT NULL,
+                TagName        TEXT NULL,
+                BookmarkedOnly INTEGER NOT NULL DEFAULT 0,
+                EraLabel       TEXT NULL,
+                CreatedAt      TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                CONSTRAINT UQ_RecentSearches_Name UNIQUE (Name)
+            );",
 
         // Bookmarks - your own notes pinned to a specific passage, e.g.
         // "check this against Ovid's version" or "cf. Norseverse thesis".

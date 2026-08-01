@@ -65,6 +65,13 @@ View Details
 
    This is read from the file each time you ask rather than stored in the library, so it needs the corpus files still to be where setup put them. If you've since deleted them the reader carries on working perfectly and this view simply says the header isn't available for that edition.
 
+Where you left off
+   The app reopens the last passage you were reading. It is remembered as the work's CTS URN and the citation reference rather than as an internal identifier, so it still points at the same passage after a corpus is re-ingested - and if that work or line is no longer there, the app simply opens as it always did rather than complaining.
+
+   Only clicking a line updates it. Jumping to a search result or a tagged passage moves the reader without changing where you left off, so following a reference doesn't cost you your place.
+
+   If reopening a long work at launch feels slow, turn off "Open where I last left off" under Reading in the Setup Wizard. Your place is still recorded either way, so switching it back on picks up where you were rather than starting over.
+
 View Preface
    Some translations carry a translator's preface or similar front matter. It has nothing on the original side to line up against, so it's kept out of the reader rather than sitting at the top of the text looking like the first line of the work. Where an edition has one, "View Preface..." appears on that pane's right-click menu.
 """),
@@ -123,6 +130,13 @@ Narrowing
    Tagged and Bookmarked - search only inside your own tagged passages, or only ones you've bookmarked.
 
 Clear Filters resets the narrowing without clearing what you typed.
+
+Recent searches
+   Every search you run is remembered, with its filters, and listed in the Recent box - most recent first, the last ten kept. There is nothing to save and nothing to tidy up.
+
+   Pick one and it loads and runs straight away. Running the same search again moves it back to the top rather than listing it twice, so the list stays a record of what you have actually been doing.
+
+   Each entry records the author by name and the era by its label, not by internal identifiers - so it still means the same thing after a corpus has been re-ingested, and if it names an author you no longer have loaded it simply finds nothing rather than quietly matching somebody else.
 
 Era dates are the same rough consensus estimates the Timeline uses, which is why the periods are broad. An author counts as being in a period if their dates overlap it at all, so someone who straddles a boundary appears under both rather than falling between them.
 
@@ -259,7 +273,7 @@ None of the texts, dictionaries, or linguistic data belong to this app - see Abo
 A few things the app reports about itself, and what they actually mean.
 
 "Out of date - N of M lines indexed"
-   In Setup Wizard, under Build Word Index. The word index is built from the texts, and nothing rebuilds it automatically when a new corpus is ingested afterward - so this is telling you a source was added since the last build and its lines won't turn up in lemma-aware search yet. Rebuilding is safe at any time and always starts from scratch.
+   In Setup Wizard, under Tools, open Word Index. The word index is built from the texts, and nothing rebuilds it automatically when a new corpus is ingested afterward - so this is telling you a source was added since the last build and its lines won't turn up in lemma-aware search yet. Rebuilding is safe at any time and always starts from scratch.
 
 "N file(s) were skipped"
    After a setup step. A corpus is tens of thousands of files and a few failing to parse is ordinary - the rest ingested normally. What it means concretely is that the works in those particular files won't be in your library. The first several are listed, and the full list goes to:
