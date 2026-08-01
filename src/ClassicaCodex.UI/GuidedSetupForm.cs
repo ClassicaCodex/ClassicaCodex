@@ -22,6 +22,7 @@ public class GuidedSetupForm : Form
 
     private readonly AuthorRepository _authorRepo = new();
     private readonly ArtifactRepository _artifactRepo = new();
+    private readonly EditionRepository _editionRepo = new();
     private readonly LemmaRepository _lemmaRepo = new();
     private readonly DefinitionRepository _definitionRepo = new();
     private readonly WordIndexRepository _wordIndexRepo = new();
@@ -67,7 +68,7 @@ public class GuidedSetupForm : Form
 
     public GuidedSetupForm()
     {
-        _sources = SetupDataSourceCatalog.Build(_authorRepo, _lemmaRepo, _definitionRepo, _artifactRepo);
+        _sources = SetupDataSourceCatalog.Build(_authorRepo, _lemmaRepo, _definitionRepo, _artifactRepo, _editionRepo);
 
         Text = "Set Up Classica Codex";
         AppIcons.ApplyWindowIcon(this, "Settings");
@@ -466,9 +467,14 @@ public class GuidedSetupForm : Form
             }
 
             _statusLabel.Text = "Installing...";
-            await Task.Run(() => source.RunIngest(source.DefaultDestination, progress, _cts.Token), _cts.Token);
+            var outcome = await Task.Run(
+                () => source.RunIngest(source.DefaultDestination, progress, _cts.Token), _cts.Token);
 
-            _statusLabel.Text = $"{source.Title} is ready.";
+            _statusLabel.Text = outcome.HasSkippedFiles
+                ? $"{source.Title} is ready, but {outcome.SkippedCount:N0} file(s) were skipped."
+                : $"{source.Title} is ready.";
+
+            SetupSkipReport.ShowIfAny(this, source.Title, outcome);
         }
         catch (OperationCanceledException)
         {

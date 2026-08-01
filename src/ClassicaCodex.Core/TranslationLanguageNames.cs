@@ -1,4 +1,4 @@
-namespace ClassicaCodex.UI;
+namespace ClassicaCodex.Core;
 
 /// <summary>
 /// Turns an edition's language code into the phrase an AI translation

@@ -123,8 +123,7 @@ public class PassageAligner
     /// but seeing "this came from 1.3, not near where I am" is what confirms
     /// it. When a coarse ref matches several finer counterpart passages, the
     /// ref shown is the first one, where the passage begins.
-    /// </summary>
-    /// <summary>
+    ///
     /// Same match as ResolveText, plus the counterpart's own citation ref
     /// and how many counterpart passages were assembled into it. The count
     /// matters for more than curiosity: an exact or coarser hit (count == 1)

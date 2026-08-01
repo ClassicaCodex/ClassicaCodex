@@ -7,6 +7,29 @@ namespace ClassicaCodex.Data.Repositories;
 public class TextNodeRepository
 {
     /// <summary>
+    /// How many matching lines a search returns before it stops and says so.
+    /// Not a correctness limit - it's there so a two-letter query against a
+    /// multi-million-line corpus doesn't try to materialise the whole thing
+    /// into a List and take the app down with it.
+    /// </summary>
+    public const int DefaultMaxResults = 5000;
+
+    /// <summary>
+    /// How many inflected forms get expanded into a single query. A large
+    /// Greek paradigm can run past this; when it does the search is still
+    /// correct as far as it goes, but incomplete, and SearchHits.Truncated
+    /// says so rather than letting it pass for a full answer.
+    /// </summary>
+    private const int MaxFormsPerQuery = 200;
+
+    /// <summary>
+    /// The same cap for the no-index fallback path, which builds one LIKE
+    /// clause per form rather than an IN list - far more expensive per form,
+    /// hence the much lower ceiling.
+    /// </summary>
+    private const int MaxFormsPerLikeQuery = 60;
+
+    /// <summary>
     /// Inserts text nodes for one edition. Given "ingest everything" scope,
     /// this runs for every edition in every work - potentially low millions
     /// of rows across a full corpus - so it batches multiple rows into each
@@ -24,21 +47,23 @@ public class TextNodeRepository
         const int rowsPerStatement = 200;
 
         await using var conn = await DbConnectionFactory.OpenConnectionAsync(cancellationToken);
-        await using var transaction = conn.BeginTransaction();
+        await using var transaction = await conn.BeginTransactionAsync(cancellationToken);
 
         for (var offset = 0; offset < nodes.Count; offset += rowsPerStatement)
         {
             cancellationToken.ThrowIfCancellationRequested();
 
-            var batch = nodes.Skip(offset).Take(rowsPerStatement).ToList();
+            // Indexed rather than Skip().Take() - see WordIndexRepository's
+            // note; Skip() restarts from element zero on every batch.
+            var batchSize = Math.Min(rowsPerStatement, nodes.Count - offset);
 
             await using var cmd = conn.CreateCommand();
-            cmd.Transaction = transaction;
+            cmd.Transaction = (SqliteTransaction)transaction;
 
-            var valueRows = new List<string>(batch.Count);
-            for (var i = 0; i < batch.Count; i++)
+            var valueRows = new List<string>(batchSize);
+            for (var i = 0; i < batchSize; i++)
             {
-                var node = batch[i];
+                var node = nodes[offset + i];
                 valueRows.Add($"(@e{i},@c{i},@s{i},@t{i})");
                 cmd.Parameters.AddWithValue($"@e{i}", node.EditionId);
                 cmd.Parameters.AddWithValue($"@c{i}", node.CitationRef);
@@ -90,24 +115,31 @@ public class TextNodeRepository
     /// carry the real Greek/Latin search workload). Plain LIKE is the whole
     /// path now.
     /// </summary>
-    public async Task<List<(int WorkId, long TextNodeId, string AuthorName, string WorkTitle, string CitationRef, string Text)>> SearchAsync(
-        string query, CancellationToken cancellationToken = default)
+    public async Task<SearchHits> SearchAsync(
+        string query, int maxResults = DefaultMaxResults, CancellationToken cancellationToken = default)
     {
         var results = new List<(int, long, string, string, string, string)>();
         await using var conn = await DbConnectionFactory.OpenConnectionAsync(cancellationToken);
 
+        // LIMIT one more than we intend to keep: if that extra row comes
+        // back, there was at least one more match than we're showing, which
+        // is exactly what Truncated needs to know. Cheaper and more honest
+        // than a second COUNT(*) over the same predicate.
         const string sql = @"
             SELECT w.WorkId, tn.TextNodeId, a.Name, w.Title, tn.CitationRef, tn.Text
             FROM TextNodes tn
             JOIN Editions e ON tn.EditionId = e.EditionId
             JOIN Works w ON e.WorkId = w.WorkId
             JOIN Authors a ON w.AuthorId = a.AuthorId
-            WHERE tn.Text LIKE @Query
-            ORDER BY a.Name, w.Title, tn.SortOrder;";
+            WHERE tn.Text LIKE @Query ESCAPE '\'
+            ORDER BY a.Name, w.Title, tn.SortOrder
+            LIMIT @Limit;";
 
         await using var cmd = conn.CreateCommand();
         cmd.CommandText = sql;
-        cmd.Parameters.AddWithValue("@Query", $"%{query}%");
+        cmd.CommandTimeout = 180;
+        cmd.Parameters.AddWithValue("@Query", $"%{EscapeLikeWildcards(query)}%");
+        cmd.Parameters.AddWithValue("@Limit", maxResults + 1);
 
         await using var reader = await cmd.ExecuteReaderAsync(cancellationToken);
         while (await reader.ReadAsync(cancellationToken))
@@ -121,8 +153,269 @@ public class TextNodeRepository
                 reader.GetString(5)));
         }
 
-        return results;
+        var truncated = results.Count > maxResults;
+        if (truncated) results.RemoveRange(maxResults, results.Count - maxResults);
+
+        return new SearchHits(results, truncated);
     }
+
+    /// <summary>
+    /// Search with filters, for the search window.
+    ///
+    /// Built as one SQL statement rather than by filtering in memory: the
+    /// narrowing is exactly what keeps a broad query from hitting the result
+    /// cap, so it has to happen before the LIMIT, not after. Filtering
+    /// afterwards would mean "the first 5000 matches anywhere, of which
+    /// three happen to be Aeschylus" instead of "the first 5000 in
+    /// Aeschylus".
+    ///
+    /// Every clause is optional and every value is parameterised. The only
+    /// SQL assembled from a variable is the count of placeholders in the IN
+    /// lists, which is derived from collection sizes rather than content.
+    /// </summary>
+    public async Task<SearchHits> SearchFilteredAsync(
+        SearchFilters filters, CancellationToken cancellationToken = default)
+    {
+        var query = filters.Query.Trim();
+        if (query.Length == 0) return SearchHits.Empty;
+
+        // An era that matched no authors is a real result - no passages can
+        // qualify - and must not be confused with "no era filter".
+        if (filters.EraAuthorIds is { Count: 0 }) return SearchHits.Empty;
+
+        var results = new List<(int, long, string, string, string, string)>();
+        await using var conn = await DbConnectionFactory.OpenConnectionAsync(cancellationToken);
+        await using var cmd = conn.CreateCommand();
+        cmd.CommandTimeout = 180;
+
+        var where = new List<string>();
+
+        // Whole-word matching wants the word index, and asks the connection
+        // that's already open rather than opening a second one.
+        var indexAvailable = filters.MatchMode == SearchMatchMode.WholeWord
+                             && await WordIndexRepository.HasDataAsync(conn, cancellationToken);
+
+        AppendTextPredicate(cmd, where, query, filters.MatchMode, indexAvailable);
+
+        if (filters.Languages.Count > 0)
+        {
+            where.Add($"e.Language IN ({AddParameters(cmd, "lang", filters.Languages)})");
+        }
+
+        if (filters.Corpora.Count > 0)
+        {
+            where.Add($"a.Namespace IN ({AddParameters(cmd, "ns", filters.Corpora)})");
+        }
+
+        if (filters.OriginalsOnly != null)
+        {
+            where.Add("e.Kind = @Kind");
+            cmd.Parameters.AddWithValue("@Kind", filters.OriginalsOnly.Value ? "Original" : "Translation");
+        }
+
+        if (filters.AuthorId != null)
+        {
+            where.Add("a.AuthorId = @AuthorId");
+            cmd.Parameters.AddWithValue("@AuthorId", filters.AuthorId.Value);
+        }
+
+        if (filters.WorkId != null)
+        {
+            where.Add("w.WorkId = @WorkId");
+            cmd.Parameters.AddWithValue("@WorkId", filters.WorkId.Value);
+        }
+
+        if (filters.EraAuthorIds is { Count: > 0 })
+        {
+            where.Add($"a.AuthorId IN ({AddParameters(cmd, "era", filters.EraAuthorIds.Select(id => id.ToString()))})");
+        }
+
+        // Tags and bookmarks hang off (EditionId, CitationRef), not off the
+        // text node - see SchemaInitializer's PassageTags comment - so these
+        // join on the passage rather than the row.
+        if (!string.IsNullOrWhiteSpace(filters.TagName))
+        {
+            where.Add(@"EXISTS (
+                SELECT 1 FROM PassageTags pt
+                JOIN Tags t ON pt.TagId = t.TagId
+                WHERE pt.EditionId = tn.EditionId AND pt.CitationRef = tn.CitationRef
+                  AND t.Name = @TagName)");
+            cmd.Parameters.AddWithValue("@TagName", filters.TagName);
+        }
+
+        if (filters.BookmarkedOnly)
+        {
+            where.Add(@"EXISTS (
+                SELECT 1 FROM Bookmarks b
+                WHERE b.EditionId = tn.EditionId AND b.CitationRef = tn.CitationRef)");
+        }
+
+        cmd.Parameters.AddWithValue("@Limit", filters.MaxResults + 1);
+
+        cmd.CommandText = $@"
+            SELECT w.WorkId, tn.TextNodeId, a.Name, w.Title, tn.CitationRef, tn.Text
+            FROM TextNodes tn
+            JOIN Editions e ON tn.EditionId = e.EditionId
+            JOIN Works w ON e.WorkId = w.WorkId
+            JOIN Authors a ON w.AuthorId = a.AuthorId
+            WHERE {string.Join(" AND ", where)}
+            ORDER BY a.Name, w.Title, tn.SortOrder
+            LIMIT @Limit;";
+
+        // Only for the LIKE fallback. The index path has already matched on
+        // whole normalized words, and re-checking the raw text against an
+        // unaccented query here would throw away exactly the rows the index
+        // was able to find.
+        var wholeWordTargets = filters.MatchMode == SearchMatchMode.WholeWord && !indexAvailable
+            ? query.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries)
+                .Select(WordNormalizer.Normalize)
+                .Where(w => w.Length > 0)
+                .ToHashSet(StringComparer.Ordinal)
+            : null;
+
+        var rowsRead = 0;
+
+        await using var reader = await cmd.ExecuteReaderAsync(cancellationToken);
+        while (await reader.ReadAsync(cancellationToken))
+        {
+            rowsRead++;
+            var text = reader.GetString(5);
+
+            if (wholeWordTargets != null)
+            {
+                var isWholeWordHit = text
+                    .Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries)
+                    .Select(WordNormalizer.Normalize)
+                    .Any(w => w.Length > 0 && wholeWordTargets.Contains(w));
+
+                if (!isWholeWordHit) continue;
+            }
+
+            results.Add((
+                reader.GetInt32(0), reader.GetInt64(1), reader.GetString(2),
+                reader.GetString(3), reader.GetString(4), text));
+        }
+
+        // Measured against rows read rather than rows kept: the whole-word
+        // confirmation runs after the LIMIT, so this can return fewer than
+        // the cap and still have been clipped.
+        var truncated = rowsRead > filters.MaxResults;
+        if (truncated && results.Count > filters.MaxResults)
+        {
+            results.RemoveRange(filters.MaxResults, results.Count - filters.MaxResults);
+        }
+
+        return new SearchHits(results, truncated);
+    }
+
+    /// <summary>
+    /// The text half of the WHERE clause.
+    ///
+    /// WholeWord is done with GLOB rather than a regular expression, since
+    /// SQLite ships no regex by default: "[^a-z]" style character classes
+    /// are the one pattern facility available, and bounding the term with
+    /// non-letters on each side is what "whole word" means here. It's
+    /// case-sensitive where LIKE isn't, so both cases of the first letter
+    /// are tried.
+    /// </summary>
+    private static void AppendTextPredicate(
+        SqliteCommand cmd, List<string> where, string query, SearchMatchMode mode, bool indexAvailable)
+    {
+        switch (mode)
+        {
+            case SearchMatchMode.AllWords:
+                var words = query.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries);
+                for (var i = 0; i < words.Length; i++)
+                {
+                    where.Add($"tn.Text LIKE @w{i} ESCAPE '\\'");
+                    cmd.Parameters.AddWithValue($"@w{i}", $"%{EscapeLikeWildcards(words[i])}%");
+                }
+
+                // A query of only punctuation splits to nothing, which would
+                // leave the WHERE clause empty and return the whole corpus.
+                if (words.Length == 0) where.Add("1 = 0");
+                break;
+
+            case SearchMatchMode.WholeWord when indexAvailable:
+                // Against the word index, which stores one normalized word
+                // per line - accents stripped, final sigma folded. That
+                // makes this both genuinely whole-word (the index holds
+                // words, not substrings) and accent-insensitive, so a Greek
+                // word matches however the edition accents it.
+                //
+                // It has to come from the index rather than from LIKE: a
+                // LIKE pattern is compared against the raw text, so a query
+                // typed without accents contains characters the text simply
+                // doesn't have, and no amount of confirming afterwards can
+                // recover a row the prefilter already excluded.
+                var indexTargets = query
+                    .Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries)
+                    .Select(WordNormalizer.Normalize)
+                    .Where(w => w.Length > 0)
+                    .Distinct(StringComparer.Ordinal)
+                    .ToList();
+
+                if (indexTargets.Count == 0)
+                {
+                    where.Add("1 = 0");
+                    break;
+                }
+
+                where.Add($@"EXISTS (
+                    SELECT 1 FROM WordIndex wi
+                    WHERE wi.TextNodeId = tn.TextNodeId
+                      AND wi.NormalizedWord IN ({AddParameters(cmd, "ww", indexTargets)}))");
+                break;
+
+            case SearchMatchMode.WholeWord:
+                // No word index built yet. Falls back to a LIKE prefilter
+                // plus the normalized confirmation below, which still
+                // rejects substrings correctly but can only find a word
+                // spelled as typed - accent-insensitivity is exactly the
+                // part the index was providing. Building the index from the
+                // Setup Wizard restores it.
+                where.Add("tn.Text LIKE @Query ESCAPE '\\'");
+                cmd.Parameters.AddWithValue("@Query", $"%{EscapeLikeWildcards(query)}%");
+                break;
+
+            default:
+                where.Add("tn.Text LIKE @Query ESCAPE '\\'");
+                cmd.Parameters.AddWithValue("@Query", $"%{EscapeLikeWildcards(query)}%");
+                break;
+        }
+    }
+
+    /// <summary>
+    /// Adds one parameter per value and returns the placeholder list for an
+    /// IN clause. The generated SQL depends only on how many values there
+    /// are, never on what they contain.
+    /// </summary>
+    private static string AddParameters(SqliteCommand cmd, string prefix, IEnumerable<string> values)
+    {
+        var names = new List<string>();
+        var index = 0;
+
+        foreach (var value in values)
+        {
+            var name = $"@{prefix}{index++}";
+            names.Add(name);
+            cmd.Parameters.AddWithValue(name, value);
+        }
+
+        return string.Join(",", names);
+    }
+
+    /// <summary>
+    /// Neutralises LIKE's own wildcards in text the user typed. Without this,
+    /// searching for a literal "100%" or "de_" silently means something else
+    /// entirely - "%" matches any run of characters and "_" any single one -
+    /// and the person gets a wall of unrelated results with no clue why.
+    /// Paired with ESCAPE '\' on every LIKE that takes user input.
+    /// </summary>
+    private static string EscapeLikeWildcards(string value) => value
+        .Replace("\\", "\\\\")
+        .Replace("%", "\\%")
+        .Replace("_", "\\_");
 
     /// <summary>
     /// Finds lines containing any of the given word forms. This is the
@@ -136,18 +429,17 @@ public class TextNodeRepository
     /// happens in memory here rather than in SQL, so this pulls candidate
     /// rows with a LIKE prefilter and then filters them properly in C#.
     /// </summary>
-    public async Task<List<(int WorkId, long TextNodeId, string AuthorName, string WorkTitle, string CitationRef, string Text)>> SearchByFormsAsync(
-        IReadOnlyList<string> forms, CancellationToken cancellationToken = default)
+    public async Task<SearchHits> SearchByFormsAsync(
+        IReadOnlyList<string> forms, int maxResults = DefaultMaxResults, CancellationToken cancellationToken = default)
     {
-        var results = new List<(int, long, string, string, string, string)>();
-        if (forms.Count == 0) return results;
+        if (forms.Count == 0) return SearchHits.Empty;
 
         // Fast path: if the inverted word index has been built, resolve
         // everything in one joined query.
-        var indexed = await TrySearchViaWordIndexAsync(forms, cancellationToken);
+        var indexed = await TrySearchViaWordIndexAsync(forms, maxResults, cancellationToken);
         if (indexed != null) return indexed;
 
-        return await SearchByFormsWithLikeAsync(forms, cancellationToken);
+        return await SearchByFormsWithLikeAsync(forms, maxResults, cancellationToken);
     }
 
     /// <summary>
@@ -155,23 +447,29 @@ public class TextNodeRepository
     /// empty list) when the index hasn't been built, so the caller can tell
     /// "no index" apart from "index found nothing" and fall back.
     /// </summary>
-    private async Task<List<(int WorkId, long TextNodeId, string AuthorName, string WorkTitle, string CitationRef, string Text)>?> TrySearchViaWordIndexAsync(
-        IReadOnlyList<string> forms, CancellationToken cancellationToken)
+    private async Task<SearchHits?> TrySearchViaWordIndexAsync(
+        IReadOnlyList<string> forms, int maxResults, CancellationToken cancellationToken)
     {
-        var wordIndexRepo = new WordIndexRepository();
-        if (!await wordIndexRepo.HasDataAsync(cancellationToken)) return null;
+        // Opened once and reused for the has-data check below and the real
+        // query that follows it - see WordIndexRepository.HasDataAsync's
+        // connection-taking overload for why that used to be two opens.
+        await using var conn = await DbConnectionFactory.OpenConnectionAsync(cancellationToken);
+        if (!await WordIndexRepository.HasDataAsync(conn, cancellationToken)) return null;
 
-        var normalized = forms
+        var allNormalized = forms
             .Select(WordNormalizer.Normalize)
             .Where(f => f.Length > 0)
             .Distinct(StringComparer.Ordinal)
-            .Take(200)
             .ToList();
 
-        var results = new List<(int, long, string, string, string, string)>();
-        if (normalized.Count == 0) return results;
+        var formsTruncated = allNormalized.Count > MaxFormsPerQuery;
+        var normalized = formsTruncated
+            ? allNormalized.Take(MaxFormsPerQuery).ToList()
+            : allNormalized;
 
-        await using var conn = await DbConnectionFactory.OpenConnectionAsync(cancellationToken);
+        var results = new List<(int, long, string, string, string, string)>();
+        if (normalized.Count == 0) return SearchHits.Empty;
+
         await using var cmd = conn.CreateCommand();
         cmd.CommandTimeout = 120;
 
@@ -181,21 +479,27 @@ public class TextNodeRepository
             paramNames.Add($"@w{i}");
             cmd.Parameters.AddWithValue($"@w{i}", normalized[i]);
         }
-        cmd.Parameters.AddWithValue("@MaxResults", 5000);
+        cmd.Parameters.AddWithValue("@Limit", maxResults + 1);
 
+        // The LIMIT belongs on the OUTER query, not the inner one. Inside the
+        // subquery it clipped an unordered set of ids and only THEN sorted
+        // what survived - so the "first 5000" a reader saw were an arbitrary
+        // 5000 that happened to come back first, presented in author order as
+        // though they were the first 5000 alphabetically. Out here it means
+        // what it looks like it means.
         cmd.CommandText = $@"
             SELECT w.WorkId, tn.TextNodeId, a.Name, w.Title, tn.CitationRef, tn.Text
             FROM (
                 SELECT DISTINCT TextNodeId
                 FROM WordIndex
                 WHERE NormalizedWord IN ({string.Join(",", paramNames)})
-                LIMIT @MaxResults
             ) ids
             JOIN TextNodes tn ON ids.TextNodeId = tn.TextNodeId
             JOIN Editions e ON tn.EditionId = e.EditionId
             JOIN Works w ON e.WorkId = w.WorkId
             JOIN Authors a ON w.AuthorId = a.AuthorId
-            ORDER BY a.Name, w.Title, tn.SortOrder;";
+            ORDER BY a.Name, w.Title, tn.SortOrder
+            LIMIT @Limit;";
 
         await using var reader = await cmd.ExecuteReaderAsync(cancellationToken);
         while (await reader.ReadAsync(cancellationToken))
@@ -205,18 +509,22 @@ public class TextNodeRepository
                 reader.GetString(3), reader.GetString(4), reader.GetString(5)));
         }
 
-        return results;
+        var rowsTruncated = results.Count > maxResults;
+        if (rowsTruncated) results.RemoveRange(maxResults, results.Count - maxResults);
+
+        return new SearchHits(results, rowsTruncated || formsTruncated);
     }
 
-    private async Task<List<(int WorkId, long TextNodeId, string AuthorName, string WorkTitle, string CitationRef, string Text)>> SearchByFormsWithLikeAsync(
-        IReadOnlyList<string> forms, CancellationToken cancellationToken)
+    private async Task<SearchHits> SearchByFormsWithLikeAsync(
+        IReadOnlyList<string> forms, int maxResults, CancellationToken cancellationToken)
     {
         var results = new List<(int, long, string, string, string, string)>();
 
         // Cap the SQL side - a big paradigm can run to hundreds of forms and
         // there's no point building a huge OR. The rest get caught by the
         // in-memory pass over whatever comes back.
-        var sqlForms = forms.Take(60).ToList();
+        var formsTruncated = forms.Count > MaxFormsPerLikeQuery;
+        var sqlForms = formsTruncated ? forms.Take(MaxFormsPerLikeQuery).ToList() : forms.ToList();
 
         await using var conn = await DbConnectionFactory.OpenConnectionAsync(cancellationToken);
 
@@ -225,9 +533,11 @@ public class TextNodeRepository
         cmd.CommandTimeout = 180;
         for (var i = 0; i < sqlForms.Count; i++)
         {
-            clauses.Add($"tn.Text LIKE @f{i}");
-            cmd.Parameters.AddWithValue($"@f{i}", $"%{sqlForms[i]}%");
+            clauses.Add($"tn.Text LIKE @f{i} ESCAPE '\'");
+            cmd.Parameters.AddWithValue($"@f{i}", $"%{EscapeLikeWildcards(sqlForms[i])}%");
         }
+
+        cmd.Parameters.AddWithValue("@Limit", maxResults + 1);
 
         cmd.CommandText = $@"
             SELECT w.WorkId, tn.TextNodeId, a.Name, w.Title, tn.CitationRef, tn.Text
@@ -237,14 +547,17 @@ public class TextNodeRepository
             JOIN Authors a ON w.AuthorId = a.AuthorId
             WHERE {string.Join(" OR ", clauses)}
             ORDER BY a.Name, w.Title, tn.SortOrder
-            LIMIT 5000;";
+            LIMIT @Limit;";
 
         var normalizedTargets = new HashSet<string>(
             forms.Select(WordNormalizer.Normalize).Where(f => f.Length > 0), StringComparer.Ordinal);
 
+        var rowsRead = 0;
+
         await using var reader = await cmd.ExecuteReaderAsync(cancellationToken);
         while (await reader.ReadAsync(cancellationToken))
         {
+            rowsRead++;
             var text = reader.GetString(5);
 
             // Confirm a real whole-word hit rather than an accidental
@@ -261,10 +574,18 @@ public class TextNodeRepository
                 reader.GetString(3), reader.GetString(4), text));
         }
 
-        return results;
+        // The whole-word filter above runs after the LIMIT, so this path can
+        // return fewer than maxResults and still have been clipped - hence
+        // comparing against the row budget rather than the surviving count.
+        var rowsTruncated = rowsRead > maxResults;
+        if (rowsTruncated && results.Count > maxResults)
+        {
+            results.RemoveRange(maxResults, results.Count - maxResults);
+        }
+
+        return new SearchHits(results, rowsTruncated || formsTruncated);
     }
 
-    /// <summary>Author/work/citation context for a single text node - used by the reception tracker.</summary>
     /// <summary>
     /// N consecutive lines within one edition, starting at a given
     /// TextNodeId's position. What the export dialog uses to grab a whole
@@ -323,6 +644,135 @@ public class TextNodeRepository
         return result == null || result == DBNull.Value ? null : Convert.ToInt32(result);
     }
 
+    /// <summary>
+    /// Which edition each of these lines belongs to.
+    ///
+    /// Exists for cross-work export. The views that gather passages from all
+    /// over the library - the Tag Browser, Concordance, Echo results - carry
+    /// the work each line came from but not the edition, because until now
+    /// nothing downstream needed it. Pairing a line with its translation
+    /// does: the counterpart is a sibling edition of the same work, and you
+    /// can't ask which sibling to use without knowing which one you're
+    /// standing on.
+    ///
+    /// Resolved in one query rather than per line - a tag can easily cover
+    /// several hundred passages, and that many round trips for what is
+    /// ultimately a small lookup table would be felt.
+    /// </summary>
+    public async Task<Dictionary<long, int>> GetEditionIdsAsync(
+        IReadOnlyList<long> textNodeIds, CancellationToken cancellationToken = default)
+    {
+        var result = new Dictionary<long, int>();
+        if (textNodeIds.Count == 0) return result;
+
+        await using var conn = await DbConnectionFactory.OpenConnectionAsync(cancellationToken);
+
+        const int batchSize = 400;
+        for (var offset = 0; offset < textNodeIds.Count; offset += batchSize)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            var thisBatch = Math.Min(batchSize, textNodeIds.Count - offset);
+
+            await using var cmd = conn.CreateCommand();
+            cmd.CommandTimeout = 60;
+
+            var paramNames = new List<string>(thisBatch);
+            for (var i = 0; i < thisBatch; i++)
+            {
+                paramNames.Add($"@n{i}");
+                cmd.Parameters.AddWithValue($"@n{i}", textNodeIds[offset + i]);
+            }
+
+            cmd.CommandText =
+                $"SELECT TextNodeId, EditionId FROM TextNodes WHERE TextNodeId IN ({string.Join(",", paramNames)});";
+
+            await using var reader = await cmd.ExecuteReaderAsync(cancellationToken);
+            while (await reader.ReadAsync(cancellationToken))
+            {
+                result[reader.GetInt64(0)] = reader.GetInt32(1);
+            }
+        }
+
+        return result;
+    }
+
+    /// <summary>
+    /// How many lines an edition holds, without loading any of them -
+    /// GetByEditionAsync would pull a few thousand rows into memory to
+    /// answer what is a single COUNT.
+    /// </summary>
+    public async Task<int> CountByEditionAsync(int editionId, CancellationToken cancellationToken = default)
+    {
+        await using var conn = await DbConnectionFactory.OpenConnectionAsync(cancellationToken);
+        await using var cmd = conn.CreateCommand();
+        cmd.CommandText = "SELECT COUNT(*) FROM TextNodes WHERE EditionId = @EditionId;";
+        cmd.Parameters.AddWithValue("@EditionId", editionId);
+        cmd.CommandTimeout = 60;
+        return Convert.ToInt32(await cmd.ExecuteScalarAsync(cancellationToken));
+    }
+
+    /// <summary>
+    /// How much of a work an AI-generated translation edition actually
+    /// covers, as (lines translated, lines in the source edition).
+    ///
+    /// Only meaningful for AI translations, and only because of an invariant
+    /// they alone satisfy: CreateTranslationForm writes one line per source
+    /// line, under the source's own citation ref. So a source ref with no
+    /// counterpart really is a line that hasn't been translated yet - which
+    /// is an ordinary state, since a long work takes many batches and the
+    /// free tier has a daily limit.
+    ///
+    /// The same comparison would be meaningless for an ingested translation:
+    /// a prose translation of a verse original is legitimately divided far
+    /// more coarsely, and counting its lines against the original's would
+    /// report every published translation in the library as nine-tenths
+    /// missing.
+    ///
+    /// The source edition isn't recorded anywhere, so it's inferred as
+    /// whichever original-language edition of the work shares the most
+    /// citation refs with this one. That's the edition it must have been
+    /// built from, and inferring it means this works for translations
+    /// generated before any of this existed.
+    ///
+    /// Null when the work has no original-language edition to compare
+    /// against, which leaves the caller with nothing to claim either way.
+    /// </summary>
+    public async Task<(int Translated, int SourceTotal)?> GetTranslationCoverageAsync(
+        int translationEditionId, int workId, CancellationToken cancellationToken = default)
+    {
+        await using var conn = await DbConnectionFactory.OpenConnectionAsync(cancellationToken);
+        await using var cmd = conn.CreateCommand();
+        cmd.CommandTimeout = 60;
+
+        cmd.CommandText = @"
+            SELECT COUNT(*) AS SourceTotal,
+                   SUM(CASE WHEN EXISTS (
+                       SELECT 1 FROM TextNodes t
+                       WHERE t.EditionId = @TranslationEditionId
+                         AND t.CitationRef = src.CitationRef) THEN 1 ELSE 0 END) AS Covered
+            FROM TextNodes src
+            JOIN Editions e ON src.EditionId = e.EditionId
+            WHERE e.WorkId = @WorkId
+              AND e.Kind = 'Original'
+              AND e.EditionId <> @TranslationEditionId
+            GROUP BY src.EditionId
+            ORDER BY Covered DESC
+            LIMIT 1;";
+
+        cmd.Parameters.AddWithValue("@TranslationEditionId", translationEditionId);
+        cmd.Parameters.AddWithValue("@WorkId", workId);
+
+        await using var reader = await cmd.ExecuteReaderAsync(cancellationToken);
+        if (!await reader.ReadAsync(cancellationToken)) return null;
+
+        var sourceTotal = reader.GetInt32(0);
+        var covered = reader.IsDBNull(1) ? 0 : reader.GetInt32(1);
+
+        return sourceTotal == 0 ? null : (covered, sourceTotal);
+    }
+
+    /// <summary>Author/work/citation context for a single text node - used by the reception tracker.</summary>
     public async Task<(string AuthorName, string WorkTitle, string CitationRef, string Text)?> GetTextNodeSourceInfoAsync(
         long textNodeId, CancellationToken cancellationToken = default)
     {
@@ -503,11 +953,11 @@ public class TextNodeRepository
         var frequencies = new Dictionary<string, int>(StringComparer.Ordinal);
         if (words.Count == 0) return frequencies;
 
-        // Checked once for the whole batch, not once per word.
-        var wordIndexRepo = new WordIndexRepository();
-        var hasIndex = await wordIndexRepo.HasDataAsync(cancellationToken);
-
+        // Checked once for the whole batch, not once per word - and against
+        // the same connection the query below uses, rather than a separate
+        // connection just for the check.
         await using var conn = await DbConnectionFactory.OpenConnectionAsync(cancellationToken);
+        var hasIndex = await WordIndexRepository.HasDataAsync(conn, cancellationToken);
 
         if (hasIndex)
         {
@@ -574,14 +1024,20 @@ public class TextNodeRepository
         List<string> words, string editionKind, long excludeTextNodeId, CancellationToken cancellationToken)
     {
         var results = new List<(int, long, string, string, string, string)>();
-        var wordIndexRepo = new WordIndexRepository();
 
-        if (await wordIndexRepo.HasDataAsync(cancellationToken))
+        // One connection for the method, whichever branch below ends up
+        // running - the has-data check, the indexed query if it's there,
+        // and the LIKE fallback if it isn't. This used to open up to three
+        // separate connections for one logical lookup: one for the check,
+        // one for the indexed query, one for the LIKE fallback (the last
+        // two mutually exclusive, but the check's was always paid).
+        await using var conn = await DbConnectionFactory.OpenConnectionAsync(cancellationToken);
+
+        if (await WordIndexRepository.HasDataAsync(conn, cancellationToken))
         {
             var normalized = words.Select(WordNormalizer.Normalize).Where(w => w.Length > 0).Distinct().ToList();
             if (normalized.Count == 0) return results;
 
-            await using var conn = await DbConnectionFactory.OpenConnectionAsync(cancellationToken);
             await using var cmd = conn.CreateCommand();
             cmd.CommandTimeout = 120;
 
@@ -617,8 +1073,7 @@ public class TextNodeRepository
             return results;
         }
 
-        await using var likeConn = await DbConnectionFactory.OpenConnectionAsync(cancellationToken);
-        await using var likeCmd = likeConn.CreateCommand();
+        await using var likeCmd = conn.CreateCommand();
         likeCmd.CommandTimeout = 180;
 
         var likeClauses = new List<string>();

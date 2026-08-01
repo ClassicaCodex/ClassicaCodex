@@ -39,7 +39,7 @@ public class TagRepository
     /// would mean that many round-trips. Batched to stay well under
     /// SQLite's per-statement variable limit, and skips anything already
     /// tagged (INSERT OR IGNORE, backed by the primary key on
-    /// (TextNodeId, TagId)) rather than erroring on the duplicate.
+    /// (EditionId, CitationRef, TagId)) rather than erroring on the duplicate.
     /// </summary>
     public async Task<int> BulkTagTextNodesAsync(
         int tagId, IReadOnlyList<long> textNodeIds, CancellationToken cancellationToken = default)
@@ -53,7 +53,10 @@ public class TagRepository
 
         for (var offset = 0; offset < textNodeIds.Count; offset += batchSize)
         {
-            var batch = textNodeIds.Skip(offset).Take(batchSize).ToList();
+            // Indexed rather than Skip().Take(): Skip() on an IReadOnlyList
+            // restarts from element zero on every batch, making the loop
+            // quadratic in the row count.
+            var thisBatch = Math.Min(batchSize, textNodeIds.Count - offset);
 
             // SQLite doesn't support aliasing VALUES-constructor columns the
             // way SQL Server does, so the id list is built as a UNION ALL of
@@ -63,17 +66,18 @@ public class TagRepository
             await using var cmd = conn.CreateCommand();
             cmd.CommandTimeout = 120;
 
-            for (var i = 0; i < batch.Count; i++)
+            for (var i = 0; i < thisBatch; i++)
             {
                 selectRows.Add(i == 0 ? $"SELECT @id{i} AS TextNodeId" : $"SELECT @id{i}");
-                cmd.Parameters.AddWithValue($"@id{i}", batch[i]);
+                cmd.Parameters.AddWithValue($"@id{i}", textNodeIds[offset + i]);
             }
             cmd.Parameters.AddWithValue("@TagId", tagId);
 
             cmd.CommandText = $@"
-                INSERT OR IGNORE INTO TextNodeTags (TextNodeId, TagId)
-                SELECT s.TextNodeId, @TagId
-                FROM ({string.Join(" UNION ALL ", selectRows)}) AS s;";
+                INSERT OR IGNORE INTO PassageTags (EditionId, CitationRef, TagId)
+                SELECT DISTINCT tn.EditionId, tn.CitationRef, @TagId
+                FROM ({string.Join(" UNION ALL ", selectRows)}) AS s
+                JOIN TextNodes tn ON tn.TextNodeId = s.TextNodeId;";
 
             totalTagged += await cmd.ExecuteNonQueryAsync(cancellationToken);
         }
@@ -90,7 +94,7 @@ public class TagRepository
         // text - safer than relying on multi-statement batching support.
         await using (var cmd1 = conn.CreateCommand())
         {
-            cmd1.CommandText = "DELETE FROM TextNodeTags WHERE TagId = @TagId;";
+            cmd1.CommandText = "DELETE FROM PassageTags WHERE TagId = @TagId;";
             cmd1.Parameters.AddWithValue("@TagId", tagId);
             await cmd1.ExecuteNonQueryAsync(cancellationToken);
         }
@@ -113,7 +117,7 @@ public class TagRepository
 
         await using (var cmd1 = conn.CreateCommand())
         {
-            cmd1.CommandText = "DELETE FROM TextNodeTags;";
+            cmd1.CommandText = "DELETE FROM PassageTags;";
             cmd1.CommandTimeout = 120;
             await cmd1.ExecuteNonQueryAsync(cancellationToken);
         }
@@ -130,7 +134,13 @@ public class TagRepository
     {
         await using var conn = await DbConnectionFactory.OpenConnectionAsync(cancellationToken);
 
-        const string sql = "INSERT OR IGNORE INTO TextNodeTags (TextNodeId, TagId) VALUES (@TextNodeId, @TagId);";
+        // Stored against the passage, not the node id the caller happens to
+        // be holding - see SchemaInitializer's PassageTags comment.
+        const string sql = @"
+            INSERT OR IGNORE INTO PassageTags (EditionId, CitationRef, TagId)
+            SELECT DISTINCT tn.EditionId, tn.CitationRef, @TagId
+            FROM TextNodes tn
+            WHERE tn.TextNodeId = @TextNodeId;";
 
         await using var cmd = conn.CreateCommand();
         cmd.CommandText = sql;
@@ -145,9 +155,9 @@ public class TagRepository
         await using var conn = await DbConnectionFactory.OpenConnectionAsync(cancellationToken);
 
         const string sql = @"
-            SELECT t.TagId, t.Name, t.Category, COUNT(tnt.TextNodeId) AS UsageCount
+            SELECT t.TagId, t.Name, t.Category, COUNT(tnt.TagId) AS UsageCount
             FROM Tags t
-            LEFT JOIN TextNodeTags tnt ON t.TagId = tnt.TagId
+            LEFT JOIN PassageTags tnt ON t.TagId = tnt.TagId
             GROUP BY t.TagId, t.Name, t.Category
             ORDER BY t.Name;";
 
@@ -175,9 +185,9 @@ public class TagRepository
 
         const string sql = @"
             SELECT w.WorkId, tn.TextNodeId, a.Name, w.Title, tn.CitationRef, tn.Text
-            FROM TextNodeTags tnt
+            FROM PassageTags tnt
             JOIN Tags t ON tnt.TagId = t.TagId
-            JOIN TextNodes tn ON tnt.TextNodeId = tn.TextNodeId
+            JOIN TextNodes tn ON tnt.EditionId = tn.EditionId AND tnt.CitationRef = tn.CitationRef
             JOIN Editions e ON tn.EditionId = e.EditionId
             JOIN Works w ON e.WorkId = w.WorkId
             JOIN Authors a ON w.AuthorId = a.AuthorId
@@ -220,9 +230,9 @@ public class TagRepository
         await using var conn = await DbConnectionFactory.OpenConnectionAsync(cancellationToken);
 
         const string nodesSql = @"
-            SELECT t.TagId, t.Name, t.Category, COUNT(tnt.TextNodeId) AS UsageCount
+            SELECT t.TagId, t.Name, t.Category, COUNT(tnt.TagId) AS UsageCount
             FROM Tags t
-            LEFT JOIN TextNodeTags tnt ON t.TagId = tnt.TagId
+            LEFT JOIN PassageTags tnt ON t.TagId = tnt.TagId
             GROUP BY t.TagId, t.Name, t.Category
             ORDER BY t.Name;";
 
@@ -248,8 +258,8 @@ public class TagRepository
 
         const string touchesSql = @"
             SELECT DISTINCT tnt.TagId, w.WorkId
-            FROM TextNodeTags tnt
-            JOIN TextNodes tn ON tnt.TextNodeId = tn.TextNodeId
+            FROM PassageTags tnt
+            JOIN TextNodes tn ON tnt.EditionId = tn.EditionId AND tnt.CitationRef = tn.CitationRef
             JOIN Editions e ON tn.EditionId = e.EditionId
             JOIN Works w ON e.WorkId = w.WorkId;";
 
@@ -308,9 +318,9 @@ public class TagRepository
         await using var conn = await DbConnectionFactory.OpenConnectionAsync(cancellationToken);
 
         const string nodesSql = @"
-            SELECT t.TagId, t.Name, t.Category, COUNT(tnt.TextNodeId) AS UsageCount
+            SELECT t.TagId, t.Name, t.Category, COUNT(tnt.TagId) AS UsageCount
             FROM Tags t
-            LEFT JOIN TextNodeTags tnt ON t.TagId = tnt.TagId
+            LEFT JOIN PassageTags tnt ON t.TagId = tnt.TagId
             GROUP BY t.TagId, t.Name, t.Category
             ORDER BY t.Name;";
 
@@ -335,8 +345,8 @@ public class TagRepository
 
         const string occurrencesSql = @"
             SELECT tnt.TagId, tn.EditionId, tn.SortOrder
-            FROM TextNodeTags tnt
-            JOIN TextNodes tn ON tnt.TextNodeId = tn.TextNodeId;";
+            FROM PassageTags tnt
+            JOIN TextNodes tn ON tnt.EditionId = tn.EditionId AND tnt.CitationRef = tn.CitationRef;";
 
         await using (var cmd = conn.CreateCommand())
         {
@@ -414,9 +424,9 @@ public class TagRepository
 
         const string rowsSql = @"
             SELECT t.Name, tn.TextNodeId, e.EditionId, w.WorkId, tn.SortOrder, a.Name, w.Title, tn.CitationRef, tn.Text
-            FROM TextNodeTags tnt
+            FROM PassageTags tnt
             JOIN Tags t ON tnt.TagId = t.TagId
-            JOIN TextNodes tn ON tnt.TextNodeId = tn.TextNodeId
+            JOIN TextNodes tn ON tnt.EditionId = tn.EditionId AND tnt.CitationRef = tn.CitationRef
             JOIN Editions e ON tn.EditionId = e.EditionId
             JOIN Works w ON e.WorkId = w.WorkId
             JOIN Authors a ON w.AuthorId = a.AuthorId

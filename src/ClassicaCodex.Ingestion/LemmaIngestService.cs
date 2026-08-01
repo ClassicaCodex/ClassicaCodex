@@ -51,13 +51,14 @@ public class LemmaIngestService
     private static readonly string[] PosAttributeNames = { "p", "pos", "postag", "tag", "msd" };
 
     /// <summary>
-    /// Strips this corpus's own annotation markers off a token. The Latin
-    /// dataset wraps split enclitics in braces ({breuibusque}) and appends
-    /// '?' to forms its tagger couldn't confidently disambiguate - neither
+    /// Strips both kinds of marker that wrap a raw token, neither of which
     /// belongs in a stored word form.
-    /// </summary>
-    /// <summary>
-    /// Strips the editorial markup that critical editions wrap around
+    ///
+    /// First, this corpus's own annotation: the Latin dataset wraps split
+    /// enclitics in braces ({breuibusque}) and appends '?' to forms its
+    /// tagger couldn't confidently disambiguate.
+    ///
+    /// Second, the editorial markup that critical editions wrap around
     /// supplied, doubtful, or restored text, so those markers don't end up
     /// baked into a headword. Angle brackets are the convention for text
     /// the editor supplied - the LSJ uses them the same way, in entries

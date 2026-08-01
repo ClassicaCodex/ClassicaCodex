@@ -18,6 +18,15 @@ public class PlacesMapForm : Form
 
     private List<(int WorkId, long TextNodeId, string AuthorName, string WorkTitle, string CitationRef, string Text)> _currentPassages = new();
 
+    /// <summary>
+    /// The place whose passages are listed, kept separately from the label
+    /// above the list. That label is a full sentence - "Passages tagged
+    /// "Delphi" (double-click to jump):" - which is right for the screen and
+    /// wrong for anything that needs the bare name, like the title of an
+    /// export.
+    /// </summary>
+    private string _selectedPlaceName = string.Empty;
+
     /// <summary>Set by MainForm before showing this dialog.</summary>
     public Func<int, long, Task>? OnNavigate { get; set; }
 
@@ -113,6 +122,10 @@ public class PlacesMapForm : Form
             i => i < _currentPassages.Count
                 ? $"{_currentPassages[i].AuthorName}, {_currentPassages[i].WorkTitle} [{_currentPassages[i].CitationRef}]: {_currentPassages[i].Text}"
                 : null);
+        ListResultHelpers.AttachExportMenu(_passageList, () => (
+            $"Passages mentioning {_selectedPlaceName}",
+            _currentPassages.Select(r => new ExportPassage(
+                r.WorkId, r.TextNodeId, r.AuthorName, r.WorkTitle, r.CitationRef, r.Text)).ToList()), this);
 
         Controls.Add(legend);
         Controls.Add(_showAllPlacesCheckbox);
@@ -177,6 +190,7 @@ public class PlacesMapForm : Form
 
     private async Task LoadTaggedPassagesAsync(string placeName)
     {
+        _selectedPlaceName = placeName;
         _selectedPlaceLabel.Text = $"Passages tagged \"{placeName}\" (double-click to jump):";
         _passageList.Items.Clear();
 
@@ -191,14 +205,16 @@ public class PlacesMapForm : Form
     /// </summary>
     private async Task LoadSearchResultsAsync(string placeName)
     {
+        _selectedPlaceName = placeName;
         _selectedPlaceLabel.Text = $"Search results for \"{placeName}\" (double-click to jump):";
         _passageList.Items.Clear();
 
-        _currentPassages = await _textNodeRepo.SearchAsync(placeName);
-        RenderPassageList();
+        var hits = await _textNodeRepo.SearchAsync(placeName);
+        _currentPassages = hits.Rows;
+        RenderPassageList(hits.Truncated);
     }
 
-    private void RenderPassageList()
+    private void RenderPassageList(bool truncated = false)
     {
         foreach (var p in _currentPassages)
         {
@@ -208,6 +224,10 @@ public class PlacesMapForm : Form
         if (_currentPassages.Count == 0)
         {
             _passageList.Items.Add("(no passages found)");
+        }
+        else if (truncated)
+        {
+            _passageList.Items.Add($"--- stopped at {_currentPassages.Count}; there are more ---");
         }
     }
 

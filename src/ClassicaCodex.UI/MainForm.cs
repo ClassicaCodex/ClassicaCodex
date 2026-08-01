@@ -23,11 +23,12 @@ public class MainForm : Form
     private readonly ComboBox _translationEditionCombo;
     private readonly Button _themeButton;
     private readonly Button _helpButton;
-    private readonly TextBox _searchBox;
     private readonly Button _searchButton;
-    private readonly ListBox _searchResults;
-    private readonly Button _resultsToggleButton;
-    private bool _searchResultsCollapsed;
+
+    // Non-modal and reused: reopening Search shouldn't lose the filters you
+    // just set, and a search window you have to close to read what it found
+    // would be a worse one than the inline strip it replaced.
+    private SearchForm? _searchForm;
 
     private readonly AuthorRepository _authorRepo = new();
     private readonly WorkRepository _workRepo = new();
@@ -50,14 +51,19 @@ public class MainForm : Form
     private readonly BookmarkRepository _bookmarkRepo = new();
 
     private bool _syncingScroll;
-    private List<string> _highlightTerms = new();
-    private List<(int WorkId, long TextNodeId, string AuthorName, string WorkTitle, string CitationRef, string Text)> _currentSearchResults = new();
 
     // ContextMenuStrip isn't a child Control, so ReadingTheme.Apply's tree
     // walk never reaches it - these are tracked here so ApplyTheme can
     // re-theme them explicitly, the same way it re-themes everything else
-    // on a toggle. One per reader pane (original, translation).
-    private readonly List<ContextMenuStrip> _lineContextMenus = new();
+    // on a toggle. The two reader panes' line menus, the search results
+    // menu, and the library tree's own menu.
+    //
+    // Adding a menu here rather than calling ApplyToContextMenu once at
+    // construction is what makes it follow a later theme toggle: the
+    // library tree's menu was themed nowhere at all and so stayed light
+    // against a dark window, and theming it once in the constructor would
+    // only have moved the problem to the first time someone switched.
+    private readonly List<ContextMenuStrip> _themedContextMenus = new();
 
     // These menu items get their icon once, at construction - which happens
     // before ReadingTheme.Load() ever runs (that's in Shown, this is in the
@@ -66,7 +72,7 @@ public class MainForm : Form
     // forever, since nothing else ever revisits them. Tracked here so
     // ApplyTheme can re-fetch each one against whatever theme is actually
     // current, the same as it does for the menu's own colors above.
-    private readonly List<(ToolStripItem Item, string IconName)> _lineContextMenuIcons = new();
+    private readonly List<(ToolStripItem Item, string IconName)> _themedMenuItemIcons = new();
 
     public MainForm()
     {
@@ -85,9 +91,8 @@ public class MainForm : Form
             tagBrowser.ShowDialog(this);
         };
 
-        _searchBox = new TextBox { Left = 10, Top = 14, Width = 300, PlaceholderText = "Search (matches word forms, e.g. \"run\" finds \"running\")" };
-        _searchButton = new Button { Text = "Search", Left = 316, Top = 12, Width = 90 };
-        _searchButton.Click += async (_, _) => await RunSearchAsync();
+        _searchButton = new Button { Text = "Search...", Left = 10, Top = 12, Width = 110 };
+        _searchButton.Click += (_, _) => OpenSearchWindow();
 
         var bookmarksButton = new Button { Text = "Bookmarks...", Left = 416, Top = 10, Width = 110, Height = 30 };
         bookmarksButton.Click += (_, _) =>
@@ -198,10 +203,26 @@ public class MainForm : Form
         // in their Tag (author nodes don't), so the item is simply hidden
         // rather than shown-but-disabled for anything else.
         var libraryTreeMenu = new ContextMenuStrip();
+
+        var viewDetailsItem = libraryTreeMenu.Items.Add("View Details...");
+        viewDetailsItem.Image = AppIcons.Get("Help", 16);
+        viewDetailsItem.Click += (_, _) => ShowDetailsForSelectedWork();
+        _themedMenuItemIcons.Add((viewDetailsItem, "Help"));
+
         var createTranslationItem = libraryTreeMenu.Items.Add("Create Translation...");
         createTranslationItem.Image = AppIcons.Get("Translate", 16);
         createTranslationItem.Click += async (_, _) => await CreateTranslationForSelectedWorkAsync();
-        libraryTreeMenu.Opening += (_, _) => createTranslationItem.Visible = _libraryTree.SelectedNode?.Tag is Work;
+        _themedMenuItemIcons.Add((createTranslationItem, "Translate"));
+
+        // Both items act on a work, and only work nodes carry one in their
+        // Tag. Cancelling outright rather than hiding both: with every item
+        // invisible the menu still opens, as an empty grey sliver next to
+        // the cursor, which reads as a glitch rather than as "nothing to do
+        // here".
+        libraryTreeMenu.Opening += (_, e) =>
+        {
+            if (_libraryTree.SelectedNode?.Tag is not Work) e.Cancel = true;
+        };
         _libraryTree.MouseUp += (_, e) =>
         {
             if (e.Button != MouseButtons.Right) return;
@@ -209,6 +230,7 @@ public class MainForm : Form
             if (node != null) _libraryTree.SelectedNode = node;
         };
         _libraryTree.ContextMenuStrip = libraryTreeMenu;
+        _themedContextMenus.Add(libraryTreeMenu);
 
         var splitContainer = new SplitContainer
         {
@@ -242,44 +264,7 @@ public class MainForm : Form
         splitContainer.Panel2.Controls.Add(_translationPane);
         splitContainer.Panel2.Controls.Add(_translationEditionCombo);
 
-        // A Button rather than a Label - it's the collapse/expand toggle for
-        // the results list below it, not just a caption, so it should look
-        // and feel clickable the same way the theme toggle already does.
-        _resultsToggleButton = new Button
-        {
-            Left = 320,
-            Top = 560,
-            Width = 220,
-            Height = 24,
-            Text = "\u25BC Search results:"
-        };
-        AppIcons.Apply(_resultsToggleButton, "Collapse", 14);
-        _searchResults = new ListBox
-        {
-            Left = 320,
-            Top = 585,
-            Width = 1360,
-            Height = 155,
-            DrawMode = DrawMode.OwnerDrawFixed,
-            HorizontalScrollbar = true
-        };
-        _searchResults.DrawItem += SearchResults_DrawItem;
-        _searchResults.DoubleClick += async (_, _) => await JumpToSelectedSearchResultAsync();
-        ListResultHelpers.AttachCitationTooltip(_searchResults,
-            i => i < _currentSearchResults.Count ? _currentSearchResults[i].CitationRef : null);
-
-        // Unlike every dialog above, MainForm stays open across a theme
-        // toggle - so this menu (and its icon) are tracked the same way the
-        // reader panes' menus already are, for ApplyTheme to refresh live.
-        var searchResultsMenu = ListResultHelpers.AttachCopyToClipboardMenu(_searchResults,
-            i => i < _currentSearchResults.Count
-                ? $"{_currentSearchResults[i].AuthorName}, {_currentSearchResults[i].WorkTitle} [{_currentSearchResults[i].CitationRef}]: {_currentSearchResults[i].Text}"
-                : null);
-        _lineContextMenus.Add(searchResultsMenu);
-        _lineContextMenuIcons.Add((searchResultsMenu.Items[0], "CopyToClipboard"));
-
         Controls.Add(tagsButton);
-        Controls.Add(_searchBox);
         Controls.Add(_searchButton);
         Controls.Add(bookmarksButton);
         Controls.Add(mythNetworkButton);
@@ -346,14 +331,6 @@ public class MainForm : Form
             AppIcons.Apply(_treeToggleButton, _libraryTreeCollapsed ? "Expand" : "Collapse", 14);
             RelayoutReaderArea();
         };
-        _resultsToggleButton.Click += (_, _) =>
-        {
-            _searchResultsCollapsed = !_searchResultsCollapsed;
-            _resultsToggleButton.Text = _searchResultsCollapsed ? "\u25B6" : "\u25BC Search results:";
-            AppIcons.Apply(_resultsToggleButton, _searchResultsCollapsed ? "Expand" : "Collapse", 14);
-            RelayoutReaderArea();
-        };
-
         Controls.Add(concordanceButton);
         Controls.Add(compareTranslationsButton);
         Controls.Add(placesMapButton);
@@ -381,8 +358,6 @@ public class MainForm : Form
         Controls.Add(_libraryTree);
         Controls.Add(_treeToggleButton);
         Controls.Add(splitContainer);
-        Controls.Add(_resultsToggleButton);
-        Controls.Add(_searchResults);
 
         Load += async (_, _) => await LoadLibraryTreeAsync();
 
@@ -397,7 +372,6 @@ public class MainForm : Form
         void RelayoutReaderArea()
         {
             const int margin = 20;
-            const int searchResultsHeight = 155;
             const int labelHeight = 24;
             const int gap = 6;
             const int collapsedToggleWidth = 36;
@@ -412,42 +386,23 @@ public class MainForm : Form
             _themeButton.Left = Math.Max(_helpButton.Left - _themeButton.Width - 8, 0);
             setupWizardButton.Left = Math.Max(_themeButton.Left - setupWizardButton.Width - 8, 0);
 
-            // Both toggle strips shrink to just their arrow once collapsed -
-            // there's nothing left underneath either of them to line up
-            // with, so the full descriptive label would only be clutter.
+            // Shrinks to just its arrow once collapsed - there's nothing
+            // left underneath to line up with, so the full descriptive
+            // label would only be clutter.
             _treeToggleButton.Width = _libraryTreeCollapsed ? collapsedToggleWidth : 300;
-            _resultsToggleButton.Width = _searchResultsCollapsed ? collapsedToggleWidth : 220;
 
             // Reader area starts right after the tree - or right at the
             // window's own left margin if the tree is collapsed, reclaiming
             // its width for reading room.
             var readerAreaLeft = _libraryTreeCollapsed ? 10 : 320;
             splitContainer.Left = readerAreaLeft;
-            _resultsToggleButton.Left = readerAreaLeft;
-            _searchResults.Left = readerAreaLeft;
-
-            _searchResults.Visible = !_searchResultsCollapsed;
-            var searchResultsTop = ClientSize.Height - margin - (_searchResultsCollapsed ? 0 : searchResultsHeight);
-            _searchResults.Top = searchResultsTop;
-            _searchResults.Height = searchResultsHeight;
-            _searchResults.Width = Math.Max(ClientSize.Width - _searchResults.Left - margin, 200);
-
-            // The toggle button itself always stays visible, pinned near
-            // the bottom whether the list under it is showing or not.
-            _resultsToggleButton.Top = _searchResultsCollapsed
-                ? ClientSize.Height - margin - labelHeight
-                : searchResultsTop - labelHeight - gap;
 
             splitContainer.Width = Math.Max(ClientSize.Width - splitContainer.Left - margin, 400);
 
-            // Always the toggle button's own row, in both states - not just
-            // when expanded. Using ClientSize.Height directly in the
-            // collapsed case (as this once did) let the reader pane grow
-            // all the way to the bottom margin, overlapping the toggle
-            // button's row and covering it entirely - which is exactly why
-            // it "disappeared and wouldn't come back."
-            var splitBottom = _resultsToggleButton.Top - gap;
-            splitContainer.Height = Math.Max(splitBottom - splitContainer.Top, 100);
+            // The reader now runs to the bottom margin: the search results
+            // strip that used to sit under it has become its own window, so
+            // there's nothing left down there to leave room for.
+            splitContainer.Height = Math.Max(ClientSize.Height - margin - splitContainer.Top, 100);
         }
 
         Resize += (_, _) => RelayoutReaderArea();
@@ -469,7 +424,7 @@ public class MainForm : Form
 
         // Not part of the control tree Apply just walked (see the field
         // comment), so themed explicitly here alongside everything else.
-        foreach (var menu in _lineContextMenus) ReadingTheme.ApplyToContextMenu(menu);
+        foreach (var menu in _themedContextMenus) ReadingTheme.ApplyToContextMenu(menu);
 
         // Same reason: an icon set once at construction time, before this
         // ran for the first time, would otherwise never revisit whichever
@@ -477,9 +432,8 @@ public class MainForm : Form
         // matches its current collapsed/expanded state, not just one fixed
         // name, since - unlike the six above - these two can change icons
         // for a reason other than the theme.
-        foreach (var (item, iconName) in _lineContextMenuIcons) item.Image = AppIcons.Get(iconName, 16);
+        foreach (var (item, iconName) in _themedMenuItemIcons) item.Image = AppIcons.Get(iconName, 16);
         AppIcons.Apply(_treeToggleButton, _libraryTreeCollapsed ? "Expand" : "Collapse", 14);
-        AppIcons.Apply(_resultsToggleButton, _searchResultsCollapsed ? "Expand" : "Collapse", 14);
 
         // Icon shows what clicking will switch *to*, not the current state -
         // no text label needed, the sun/moon glyph already says it plainly.
@@ -604,17 +558,17 @@ public class MainForm : Form
         menu.Opening += (_, _) => prefaceItem.Visible = GetPrefaceMatch(list) != null;
 
         list.ContextMenuStrip = menu;
-        _lineContextMenus.Add(menu);
-        _lineContextMenuIcons.Add((copyItem, "CopyToClipboard"));
-        _lineContextMenuIcons.Add((tagItem, "AutoTag"));
-        _lineContextMenuIcons.Add((bookmarkItem, "Bookmarks"));
-        _lineContextMenuIcons.Add((echoItem, "SimilarWorks"));
-        _lineContextMenuIcons.Add((crossLanguageEchoItem, "SimilarWorks"));
-        _lineContextMenuIcons.Add((receptionItem, "ReceptionTracker"));
-        _lineContextMenuIcons.Add((translateItem, "Translate"));
-        _lineContextMenuIcons.Add((wordStudyItem, "WordStudy"));
-        _lineContextMenuIcons.Add((exportItem, "Export"));
-        _lineContextMenuIcons.Add((prefaceItem, "Preface"));
+        _themedContextMenus.Add(menu);
+        _themedMenuItemIcons.Add((copyItem, "CopyToClipboard"));
+        _themedMenuItemIcons.Add((tagItem, "AutoTag"));
+        _themedMenuItemIcons.Add((bookmarkItem, "Bookmarks"));
+        _themedMenuItemIcons.Add((echoItem, "SimilarWorks"));
+        _themedMenuItemIcons.Add((crossLanguageEchoItem, "SimilarWorks"));
+        _themedMenuItemIcons.Add((receptionItem, "ReceptionTracker"));
+        _themedMenuItemIcons.Add((translateItem, "Translate"));
+        _themedMenuItemIcons.Add((wordStudyItem, "WordStudy"));
+        _themedMenuItemIcons.Add((exportItem, "Export"));
+        _themedMenuItemIcons.Add((prefaceItem, "Preface"));
 
         list.MouseUp += (_, e) =>
         {
@@ -708,6 +662,54 @@ public class MainForm : Form
             MessageBoxButtons.OK, MessageBoxIcon.Information);
     }
 
+    /// <summary>
+    /// Opens the search window, or brings the existing one forward.
+    ///
+    /// Non-modal and kept alive between openings: the filters someone has
+    /// set are worth more than the memory a closed form would save, and a
+    /// modal search would make "look at this result in the reader" require
+    /// closing the thing that found it.
+    /// </summary>
+    private void OpenSearchWindow()
+    {
+        if (_searchForm is { IsDisposed: false })
+        {
+            if (_searchForm.WindowState == FormWindowState.Minimized)
+            {
+                _searchForm.WindowState = FormWindowState.Normal;
+            }
+
+            _searchForm.BringToFront();
+            _searchForm.Activate();
+            return;
+        }
+
+        _searchForm = new SearchForm { OnNavigate = NavigateToPassageAsync };
+        _searchForm.FormClosed += (_, _) => _searchForm = null;
+        _searchForm.Show(this);
+    }
+
+    /// <summary>
+    /// Opens the details view for whichever work is selected in the library
+    /// tree. Guarded even though the menu only offers it on a work node -
+    /// the selection can change between the menu opening and the item being
+    /// clicked.
+    /// </summary>
+    private void ShowDetailsForSelectedWork()
+    {
+        if (_libraryTree.SelectedNode?.Tag is not Work work) return;
+
+        using var detailsForm = new WorkDetailsForm(work);
+        detailsForm.ShowDialog(this);
+    }
+
+    /// <summary>
+    /// Same node/pane-language lookup Translate and Word Study already use.
+    /// The edition currently loaded in whichever pane was clicked is what
+    /// gets excluded from the comparison-work picker inside the form itself
+    /// (comparing a work against its own text isn't the question this tool
+    /// answers).
+    /// </summary>
     private void FindEchoesForSelectedLine(SyncListView list)
     {
         if (list.SelectedIndex < 0 || list.Items[list.SelectedIndex] is not TextNode node)
@@ -724,13 +726,6 @@ public class MainForm : Form
         echoForm.ShowDialog(this);
     }
 
-    /// <summary>
-    /// Same node/pane-language lookup Translate and Word Study already use.
-    /// The edition currently loaded in whichever pane was clicked is what
-    /// gets excluded from the comparison-work picker inside the form itself
-    /// (comparing a work against its own text isn't the question this tool
-    /// answers).
-    /// </summary>
     /// <summary>
     /// Needs the work's Original-kind edition specifically - there has to
     /// be something to translate *from*. A work with only translations
@@ -865,12 +860,6 @@ public class MainForm : Form
     /// richer, structured case (citation, edition, bilingual layout). This
     /// is meant to be the fast, no-dialog version for quickly pasting a
     /// line somewhere else.
-    /// </summary>
-    /// <summary>
-    /// Speaks the selected line with whatever voice is installed on this
-    /// Windows machine. No confirmation dialog, unlike Translate or
-    /// Cross-Language Echo - there's nothing to disclose here, since
-    /// SpeechService never touches the network.
     /// </summary>
     private void CopySelectedLineToClipboard(SyncListView list)
     {
@@ -1033,9 +1022,11 @@ public class MainForm : Form
     }
 
     private static string BuildEditionLabel(
-        Edition edition, string? authorName, string? workTitle, bool disambiguate = false)
+        Edition edition, string? authorName, string? workTitle, bool disambiguate = false,
+        string? coverageNote = null)
     {
         var descriptor = GetEditionDescriptor(edition);
+        if (coverageNote != null) descriptor += $" \u2014 {coverageNote}";
 
         // Only reached when two or more editions of this work produced the
         // identical descriptor above - which never used to happen (each work
@@ -1082,8 +1073,11 @@ public class MainForm : Form
     /// contribute nothing to the ordering.
     /// </summary>
     private static void PopulateEditionCombo(
-        ComboBox combo, List<Edition> editions, string? authorName, string? workTitle)
+        ComboBox combo, List<Edition> editions, string? authorName, string? workTitle,
+        IReadOnlyDictionary<int, string>? coverage = null)
     {
+        var coverageNotes = coverage ?? new Dictionary<int, string>();
+
         combo.Items.Clear();
 
         // Editions of one work that reduce to the same descriptor (two
@@ -1102,10 +1096,13 @@ public class MainForm : Form
                      .OrderBy(GetEditionDescriptor, StringComparer.OrdinalIgnoreCase)
                      .ThenBy(e => e.CtsUrn, StringComparer.OrdinalIgnoreCase))
         {
+            coverageNotes.TryGetValue(edition.EditionId, out var coverageNote);
+
             combo.Items.Add(new EditionOption
             {
                 Edition = edition,
-                Label = BuildEditionLabel(edition, authorName, workTitle, collisions.Contains(edition))
+                Label = BuildEditionLabel(
+                    edition, authorName, workTitle, collisions.Contains(edition), coverageNote)
             });
         }
 
@@ -1302,6 +1299,58 @@ public class MainForm : Form
     }
 
     /// <summary>
+    /// A short "incomplete" note for any AI-generated translation that
+    /// doesn't yet cover its whole source, keyed by edition id.
+    ///
+    /// Restricted to AI translations on purpose. They're the only editions
+    /// where a missing line means unfinished work rather than a different
+    /// editorial choice - see GetTranslationCoverageAsync - and they're also
+    /// the only ones a reader can do something about, by reopening Create
+    /// Translation and letting it continue.
+    ///
+    /// Nothing is added for a complete one: a note on every edition would be
+    /// noise, and the absence of a warning is the ordinary case.
+    /// </summary>
+    private async Task<Dictionary<int, string>> BuildCoverageNotesAsync(
+        List<Edition> translations, int workId)
+    {
+        var notes = new Dictionary<int, string>();
+
+        foreach (var edition in translations.Where(IsAiGenerated))
+        {
+            try
+            {
+                var coverage = await _textNodeRepo.GetTranslationCoverageAsync(edition.EditionId, workId);
+                if (coverage == null) continue;
+
+                var (translated, sourceTotal) = coverage.Value;
+                if (translated >= sourceTotal) continue;
+
+                notes[edition.EditionId] =
+                    $"INCOMPLETE: {translated:N0} of {sourceTotal:N0} lines translated";
+            }
+            catch (Exception)
+            {
+                // A label decoration is never worth failing the load of a
+                // work over - without the note the edition still opens and
+                // reads exactly as before.
+            }
+        }
+
+        return notes;
+    }
+
+    /// <summary>
+    /// Whether an edition came from this app's own AI translation rather
+    /// than from an ingested corpus. Matched on the translator label
+    /// CreateTranslationForm writes, with the CTS URN marker it also mints
+    /// as a fallback.
+    /// </summary>
+    private static bool IsAiGenerated(Edition edition) =>
+        (edition.Translator?.Contains("AI-generated", StringComparison.OrdinalIgnoreCase) ?? false)
+        || edition.CtsUrn.Contains(".ai-", StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>
     /// Loads every edition of a work into the two combos and, via their
     /// SelectedIndexChanged handlers, populates both panes with whichever
     /// edition ends up selected in each (always the first of its kind, for
@@ -1320,7 +1369,8 @@ public class MainForm : Form
         var authorName = workNode?.Parent?.Text;
 
         PopulateEditionCombo(_originalEditionCombo, originals, authorName, workTitle);
-        PopulateEditionCombo(_translationEditionCombo, translations, authorName, workTitle);
+        PopulateEditionCombo(_translationEditionCombo, translations, authorName, workTitle,
+            await BuildCoverageNotesAsync(translations, workId));
 
         // PopulateEditionCombo only triggers a pane load when it actually
         // has something to select - handle the "this work has none of this
@@ -1356,135 +1406,4 @@ public class MainForm : Form
         return false;
     }
 
-    private async Task RunSearchAsync()
-    {
-        var query = _searchBox.Text.Trim();
-        if (query.Length == 0) return;
-
-        _highlightTerms = query
-            .Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries)
-            .Where(w => w.Length > 0)
-            .ToList();
-
-        _searchResults.Items.Clear();
-        _currentSearchResults = await _textNodeRepo.SearchAsync(query);
-
-        // Same reasoning as the library tree: each Add otherwise repaints
-        // the list, and this runs on every single search.
-        _searchResults.BeginUpdate();
-        try
-        {
-            foreach (var r in _currentSearchResults.Take(500))
-            {
-                _searchResults.Items.Add($"{r.AuthorName}, {r.WorkTitle}: {r.Text}");
-            }
-
-            if (_currentSearchResults.Count == 0)
-            {
-                _searchResults.Items.Add("No matches.");
-            }
-        }
-        finally
-        {
-            _searchResults.EndUpdate();
-        }
-    }
-
-    /// <summary>
-    /// Double-clicking a search result jumps to it in full context - same
-    /// navigation the tag browser uses - rather than isolating just that one
-    /// line, so you land on the passage with everything around it and the
-    /// matching row highlighted in place.
-    /// </summary>
-    private async Task JumpToSelectedSearchResultAsync()
-    {
-        var index = _searchResults.SelectedIndex;
-        if (index < 0 || index >= _currentSearchResults.Count) return;
-
-        var result = _currentSearchResults[index];
-        await NavigateToPassageAsync(result.WorkId, result.TextNodeId);
-    }
-
-    /// <summary>
-    /// Paints each result line manually so the words you searched for can be
-    /// highlighted inline. Since search does word-stem matching, this
-    /// highlights by substring rather than exact form - "run" highlights
-    /// inside "running" too since one contains the other, which covers most
-    /// common inflections; irregular forms (e.g. "ran") won't highlight even
-    /// though they matched, since they don't share the typed substring.
-    /// </summary>
-    private void SearchResults_DrawItem(object? sender, DrawItemEventArgs e)
-    {
-        if (e.Index < 0) return;
-
-        // Explicit fill rather than e.DrawBackground(), which paints the
-        // system selection color and so ignores the app's own theme.
-        var selected = (e.State & DrawItemState.Selected) != 0;
-        using (var backBrush = new SolidBrush(selected ? ReadingTheme.SelectionBackground : ReadingTheme.Surface))
-        {
-            e.Graphics.FillRectangle(backBrush, e.Bounds);
-        }
-
-        var text = _searchResults.Items[e.Index]?.ToString() ?? string.Empty;
-        var font = _searchResults.Font;
-        var bounds = e.Bounds;
-        var x = bounds.Left;
-        var foreColor = selected ? ReadingTheme.SelectionText : ReadingTheme.Text;
-
-        void DrawPart(string part, bool highlighted)
-        {
-            if (part.Length == 0) return;
-
-            var size = TextRenderer.MeasureText(e.Graphics, part, font,
-                new Size(int.MaxValue, bounds.Height), TextFormatFlags.NoPadding);
-            var rect = new Rectangle(x, bounds.Top, size.Width, bounds.Height);
-
-            if (highlighted)
-            {
-                // Khaki reads well behind dark text but turns to mud in dark
-                // mode, where the surrounding text is near-white - a deep
-                // amber keeps the "highlighted" signal without fighting it.
-                var highlightColor = ReadingTheme.IsDark
-                    ? Color.FromArgb(120, 92, 20)
-                    : Color.Khaki;
-                using var highlightBrush = new SolidBrush(highlightColor);
-                e.Graphics.FillRectangle(highlightBrush, rect);
-            }
-
-            TextRenderer.DrawText(e.Graphics, part, font, rect, foreColor, TextFormatFlags.NoPadding);
-            x += size.Width;
-        }
-
-        var spans = FindHighlightSpans(text, _highlightTerms);
-        int pos = 0;
-        foreach (var (start, length) in spans)
-        {
-            if (start < pos) continue; // overlapping match, already covered
-            DrawPart(text[pos..start], highlighted: false);
-            DrawPart(text.Substring(start, length), highlighted: true);
-            pos = start + length;
-        }
-        DrawPart(text[pos..], highlighted: false);
-
-        e.DrawFocusRectangle();
-    }
-
-    private static List<(int Start, int Length)> FindHighlightSpans(string text, List<string> terms)
-    {
-        var spans = new List<(int Start, int Length)>();
-        foreach (var term in terms)
-        {
-            if (term.Length == 0) continue;
-
-            var idx = 0;
-            while ((idx = text.IndexOf(term, idx, StringComparison.OrdinalIgnoreCase)) >= 0)
-            {
-                spans.Add((idx, term.Length));
-                idx += term.Length;
-            }
-        }
-
-        spans.Sort((a, b) => a.Start.CompareTo(b.Start));
-        return spans;
-    }
 }

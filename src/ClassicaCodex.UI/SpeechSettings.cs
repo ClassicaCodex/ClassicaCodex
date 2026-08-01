@@ -8,7 +8,7 @@ namespace ClassicaCodex.UI;
 ///
 /// Only a voice *name* is stored, not an index or any other identifier -
 /// SpeechSynthesizer.GetInstalledVoices() is exactly the same list Windows'
-/// own Settings > Time & Language > Speech page manages, so voices can be
+/// own Settings > Time &amp; Language > Speech page manages, so voices can be
 /// added or removed there independently of this app. Storing anything but
 /// the name would risk pointing at the wrong voice, or a voice that no
 /// longer exists, the next time the list changes.

@@ -1,10 +1,9 @@
-using ClassicaCodex.Core;
 using System.Net;
 using System.Net.Http;
 using System.Text;
 using System.Text.Json;
 
-namespace ClassicaCodex.UI;
+namespace ClassicaCodex.Core;
 
 /// <summary>
 /// Sends one passage to Google's Gemini API for translation - into English
@@ -250,11 +249,29 @@ public static class GeminiTranslationService
                 "Both Gemini models have hit today's free-tier usage limit. Try again after the daily reset.");
         }
 
-        return ParseTranslatedBatch(rawResponse);
+        return ParseTranslatedBatch(rawResponse, passages);
     }
 
-    /// <summary>Same defensive JSON handling as ParseEchoCandidates - a stray markdown fence is stripped rather than left to fail parsing outright.</summary>
-    private static List<(string CitationRef, string TranslatedText)> ParseTranslatedBatch(string rawResponse)
+    /// <summary>
+    /// Reconciles what the model sent back against the passages that were
+    /// actually asked about, rather than trusting the citation refs in its
+    /// reply.
+    ///
+    /// The prompt asks it to echo each reference exactly, and it usually
+    /// does - but "usually" is the problem. A returned ref that doesn't match
+    /// any real passage used to be stored under whatever string the model
+    /// produced, which meant it counted as a translated line everywhere that
+    /// measured progress by dictionary size, while matching nothing anywhere
+    /// that looked a line up by its citation. The dialog reported "all lines
+    /// translated and saved" over an empty pane, and saved an edition with no
+    /// text in it. Anything that can't be attributed to a real passage is now
+    /// dropped, so it shows up honestly as a line that didn't come back.
+    ///
+    /// Same defensive JSON handling as ParseEchoCandidates - a stray markdown
+    /// fence is stripped rather than left to fail parsing outright.
+    /// </summary>
+    private static List<(string CitationRef, string TranslatedText)> ParseTranslatedBatch(
+        string rawResponse, List<(string CitationRef, string Text)> passages)
     {
         var cleaned = rawResponse.Trim();
         if (cleaned.StartsWith("```"))
@@ -268,7 +285,7 @@ public static class GeminiTranslationService
         try
         {
             using var doc = JsonDocument.Parse(cleaned);
-            var results = new List<(string, string)>();
+            var returned = new List<(string CitationRef, string TranslatedText)>();
 
             foreach (var item in doc.RootElement.EnumerateArray())
             {
@@ -276,16 +293,90 @@ public static class GeminiTranslationService
                 var translatedText = item.TryGetProperty("translatedText", out var textProp) ? textProp.GetString() : null;
 
                 if (string.IsNullOrWhiteSpace(citationRef) || translatedText == null) continue;
-                results.Add((citationRef, translatedText));
+                returned.Add((citationRef, translatedText));
             }
 
-            return results;
+            return Reconcile(returned, passages);
         }
         catch (JsonException ex)
         {
             throw new InvalidOperationException(
                 $"Gemini's response wasn't in the expected format, so this batch couldn't be read. ({ex.Message})");
         }
+    }
+
+    /// <summary>
+    /// Maps each returned translation onto one of the citation refs that was
+    /// actually sent, keying the result by the app's own ref rather than the
+    /// model's echo of it.
+    ///
+    /// Exact match first, on a lightly normalized form - the model sometimes
+    /// echoes the square brackets the prompt wrapped the ref in. Anything
+    /// still unattributed falls back to position, but only when the reply has
+    /// exactly as many entries as the batch had passages: with the counts
+    /// equal and the prompt asking for the same order, lining them up is
+    /// sound, and without that guarantee a positional guess would attach a
+    /// translation to the wrong passage - which is worse than not having one.
+    /// </summary>
+    public static List<(string CitationRef, string TranslatedText)> Reconcile(
+        List<(string CitationRef, string TranslatedText)> returned,
+        List<(string CitationRef, string Text)> passages)
+    {
+        var canonicalByNormalized = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var p in passages) canonicalByNormalized[NormalizeRef(p.CitationRef)] = p.CitationRef;
+
+        var matched = new List<(string, string)>();
+        var claimed = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var unattributed = new List<string>();
+
+        foreach (var (citationRef, translatedText) in returned)
+        {
+            if (canonicalByNormalized.TryGetValue(NormalizeRef(citationRef), out var canonical)
+                && claimed.Add(canonical))
+            {
+                matched.Add((canonical, translatedText));
+            }
+            else
+            {
+                unattributed.Add(translatedText);
+            }
+        }
+
+        if (unattributed.Count > 0 && returned.Count == passages.Count)
+        {
+            var unclaimed = passages
+                .Where(p => !claimed.Contains(p.CitationRef))
+                .Select(p => p.CitationRef)
+                .ToList();
+
+            if (unclaimed.Count == unattributed.Count)
+            {
+                for (var i = 0; i < unattributed.Count; i++)
+                {
+                    matched.Add((unclaimed[i], unattributed[i]));
+                }
+            }
+        }
+
+        return matched;
+    }
+
+    /// <summary>
+    /// Citation refs as compared, not as stored - trimmed, and with the
+    /// square brackets the prompt tags each passage with stripped off, since
+    /// the model often echoes those back as part of the reference.
+    /// </summary>
+    private static string NormalizeRef(string? citationRef)
+    {
+        if (string.IsNullOrWhiteSpace(citationRef)) return string.Empty;
+
+        var trimmed = citationRef.Trim();
+        if (trimmed.Length >= 2 && trimmed[0] == '[' && trimmed[^1] == ']')
+        {
+            trimmed = trimmed[1..^1].Trim();
+        }
+
+        return trimmed;
     }
 
     private static async Task<string> TranslateWithModelAsync(

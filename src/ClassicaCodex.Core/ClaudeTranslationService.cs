@@ -2,7 +2,7 @@ using System.Net.Http;
 using System.Text;
 using System.Text.Json;
 
-namespace ClassicaCodex.UI;
+namespace ClassicaCodex.Core;
 
 /// <summary>
 /// Sends one passage to the Anthropic API for translation - into English

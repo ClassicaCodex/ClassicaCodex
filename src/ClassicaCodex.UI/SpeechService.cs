@@ -17,7 +17,7 @@ namespace ClassicaCodex.UI;
 /// as-is.
 ///
 /// Voice selection reads from whatever SpeechSynthesizer.GetInstalledVoices()
-/// returns, which is exactly Windows' own Settings > Time & Language >
+/// returns, which is exactly Windows' own Settings > Time &amp; Language >
 /// Speech list - this app has no way to add voices Windows doesn't already
 /// have (an "Irish female" voice, for instance, needs to be installed there
 /// first; see TranslateForm's Listen section for exactly where to send
@@ -68,7 +68,7 @@ public static class SpeechService
     /// <summary>True while a Speak call is still playing - TranslateForm's Listen section uses this to keep its Stop button enabled only when there's something to stop.</summary>
     public static bool IsSpeaking => LazySynthesizer.Value?.State == SynthesizerState.Speaking;
 
-    /// <summary>Every voice Windows currently has installed - the same list Settings > Time & Language > Speech manages.</summary>
+    /// <summary>Every voice Windows currently has installed - the same list Settings > Time &amp; Language > Speech manages.</summary>
     public static IReadOnlyList<InstalledVoiceToken> GetInstalledVoices()
     {
         var synth = LazySynthesizer.Value;

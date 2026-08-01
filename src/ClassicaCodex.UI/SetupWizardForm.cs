@@ -22,7 +22,7 @@ public class SetupWizardForm : Form
         // two more again.
         public SetupDataSource Source = null!;
         public string Title => Source.Title;
-        public Func<string, IProgress<string>, CancellationToken, Task> RunIngest => Source.RunIngest;
+        public Func<string, IProgress<string>, CancellationToken, Task<IngestOutcome>> RunIngest => Source.RunIngest;
         public Func<Task<bool>> CheckComplete => Source.CheckComplete;
         public TextBox DestinationBox = null!;
         public Button ActionButton = null!;
@@ -43,6 +43,7 @@ public class SetupWizardForm : Form
     private readonly LemmaRepository _lemmaRepo = new();
     private readonly DefinitionRepository _definitionRepo = new();
     private readonly ArtifactRepository _artifactRepo = new();
+    private readonly EditionRepository _editionRepo = new();
     private readonly WordIndexRepository _wordIndexRepo = new();
 
     private PictureBox _wordIndexStatusIcon = null!;
@@ -90,7 +91,7 @@ public class SetupWizardForm : Form
 
         var y = 74;
 
-        foreach (var source in SetupDataSourceCatalog.Build(_authorRepo, _lemmaRepo, _definitionRepo, _artifactRepo))
+        foreach (var source in SetupDataSourceCatalog.Build(_authorRepo, _lemmaRepo, _definitionRepo, _artifactRepo, _editionRepo))
         {
             AddRow(ref y, source);
         }
@@ -472,9 +473,13 @@ public class SetupWizardForm : Form
             }
 
             row.StatusLabel.Text = "Ingesting...";
-            await Task.Run(() => row.RunIngest(destination, progress, _cts.Token), _cts.Token);
+            var outcome = await Task.Run(() => row.RunIngest(destination, progress, _cts.Token), _cts.Token);
 
-            row.StatusLabel.Text = $"Done - {row.Title} is ready.";
+            row.StatusLabel.Text = outcome.HasSkippedFiles
+                ? $"Done - {row.Title} is ready, but {outcome.SkippedCount:N0} file(s) were skipped."
+                : $"Done - {row.Title} is ready.";
+
+            SetupSkipReport.ShowIfAny(this, row.Title, outcome);
         }
         catch (OperationCanceledException)
         {

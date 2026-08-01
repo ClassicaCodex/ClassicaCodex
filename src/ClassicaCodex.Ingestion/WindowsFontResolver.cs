@@ -1,6 +1,8 @@
 using Microsoft.Win32;
 using PdfSharp.Fonts;
 
+namespace ClassicaCodex.Ingestion;
+
 /// <summary>
 /// PdfSharp 6.x is built to run on Windows, Linux, and Mac alike, so unlike
 /// the old .NET Framework-only PdfSharp, it deliberately doesn't reach into

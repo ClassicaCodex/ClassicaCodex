@@ -1,6 +1,7 @@
 using ClassicaCodex.Core;
 using ClassicaCodex.Core.Models;
 using ClassicaCodex.Data.Repositories;
+using ClassicaCodex.Ingestion;
 
 namespace ClassicaCodex.UI;
 

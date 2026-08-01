@@ -1,3 +1,5 @@
+using ClassicaCodex.Ingestion;
+
 namespace ClassicaCodex.UI;
 
 /// <summary>
@@ -19,7 +21,7 @@ public enum SetupFetchMode
     /// <summary>
     /// The wizard's fetch step does nothing at all - RunIngest is fully
     /// responsible for its own fetching, however many files or requests
-    /// that takes. For a source like Art & Archaeology data, which needs
+    /// that takes. For a source like Art &amp; Archaeology data, which needs
     /// thirteen separate files rather than one.
     /// </summary>
     SelfManaged
@@ -52,6 +54,13 @@ public class SetupDataSource
     /// </summary>
     public string PlainLanguageDescription = string.Empty;
 
-    public Func<string, IProgress<string>, CancellationToken, Task> RunIngest = null!;
+    /// <summary>
+    /// Runs the step, and reports what it skipped. Returning IngestOutcome
+    /// rather than a bare Task is the whole point: the ingest services
+    /// already recorded which files they couldn't parse, and this delegate
+    /// used to drop that on the floor along with the service instance that
+    /// held it.
+    /// </summary>
+    public Func<string, IProgress<string>, CancellationToken, Task<IngestOutcome>> RunIngest = null!;
     public Func<Task<bool>> CheckComplete = null!;
 }

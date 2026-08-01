@@ -14,10 +14,14 @@ public static class SetupDataSourceCatalog
 {
     public static List<SetupDataSource> Build(
         AuthorRepository authorRepo, LemmaRepository lemmaRepo, DefinitionRepository definitionRepo,
-        ArtifactRepository artifactRepo)
+        ArtifactRepository artifactRepo, EditionRepository editionRepo)
     {
         var dataRoot = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "ClassicaCodexData");
+
+        // Named once, so the step's download location and its "is this
+        // already loaded?" check can't drift apart.
+        var first1kDestination = Path.Combine(dataRoot, "first1k-greek");
 
         return new List<SetupDataSource>
         {
@@ -36,6 +40,7 @@ public static class SetupDataSourceCatalog
                         progress.Report($"{p.CurrentAuthor}: {p.CurrentWork} ({p.WorksProcessed}/{p.TotalWorks})"));
                     await service.IngestAsync(
                         new[] { (Path.Combine(root, "data"), "greekLit") }, wrapped, ct);
+                    return IngestOutcome.From(service.FailedFiles);
                 },
                 // Checked by corpus (Authors.Namespace), not by edition
                 // language - Perseus's Greek corpus legitimately contains
@@ -59,6 +64,7 @@ public static class SetupDataSourceCatalog
                         progress.Report($"{p.CurrentAuthor}: {p.CurrentWork} ({p.WorksProcessed}/{p.TotalWorks})"));
                     await service.IngestAsync(
                         new[] { (Path.Combine(root, "data"), "latinLit") }, wrapped, ct);
+                    return IngestOutcome.From(service.FailedFiles);
                 },
                 // Same reasoning as the Greek row above, inverted - and this
                 // is exactly the direction that actually bites: ingesting
@@ -88,6 +94,7 @@ public static class SetupDataSourceCatalog
 
                     progress.Report("Ingesting Latin (Lewis & Short)...");
                     await service.IngestAsync(Path.Combine(root, "CTS_XML_TEI", "perseus", "pdllex", "lat"), "lat", "Lewis & Short", wrapped, ct);
+                    return IngestOutcome.Clean;
                 },
                 CheckComplete = async () =>
                 {
@@ -113,6 +120,7 @@ public static class SetupDataSourceCatalog
                     var wrapped = new Progress<LemmaIngestProgress>(p =>
                         progress.Report($"{p.CurrentFile} ({p.FilesProcessed}/{p.TotalFiles} files, {p.LemmasLoaded:N0} mappings)"));
                     await service.IngestAsync(root, "grc", wrapped, ct);
+                    return IngestOutcome.Clean;
                 },
                 CheckComplete = async () => await lemmaRepo.CountByLanguageAsync("grc") > 0
             },
@@ -129,6 +137,7 @@ public static class SetupDataSourceCatalog
                     var wrapped = new Progress<LemmaIngestProgress>(p =>
                         progress.Report($"{p.CurrentFile} ({p.FilesProcessed}/{p.TotalFiles} files, {p.LemmasLoaded:N0} mappings)"));
                     await service.IngestAsync(root, "lat", wrapped, ct);
+                    return IngestOutcome.Clean;
                 },
                 CheckComplete = async () => await lemmaRepo.CountByLanguageAsync("lat") > 0
             },
@@ -167,7 +176,7 @@ public static class SetupDataSourceCatalog
                     progress.Report(loaded != null
                         ? $"Map data ready - {loaded.Count} landmasses in range."
                         : "Downloaded, but the file did not parse - the map will use its built-in shapes.");
-                    return Task.CompletedTask;
+                    return Task.FromResult(IngestOutcome.Clean);
                 },
                 CheckComplete = () => Task.FromResult(File.Exists(NaturalEarthCoastline.CanonicalPath))
             },
@@ -189,6 +198,7 @@ public static class SetupDataSourceCatalog
                 {
                     var service = new ArtifactIngestService();
                     await service.IngestAsync(root, progress, ct);
+                    return IngestOutcome.Clean;
                 },
                 CheckComplete = async () => await artifactRepo.HasDataAsync()
             },
@@ -209,6 +219,7 @@ public static class SetupDataSourceCatalog
                 {
                     var service = new WordNetIngestService();
                     await service.IngestAsync(root, progress, ct);
+                    return IngestOutcome.Clean;
                 },
                 CheckComplete = async () => await lemmaRepo.CountByLanguageAsync("eng") > 0
             },
@@ -230,7 +241,8 @@ public static class SetupDataSourceCatalog
                         progress.Report($"{p.CurrentAuthor}: {p.CurrentWork} ({p.WorksProcessed}/{p.TotalWorks})"));
 
                     // CTS layout (english-texts/data) - Sidney, James I.
-                    await new PerseusIngestService().IngestAsync(
+                    var cts = new PerseusIngestService();
+                    await cts.IngestAsync(
                         new[] { (Path.Combine(root, "data"), "engLit") }, wrapped, ct);
 
                     // Pre-CTS layout (english-texts/Renaissance/**/opensource) -
@@ -238,8 +250,14 @@ public static class SetupDataSourceCatalog
                     // Runs second so its name-based de-dup can fold Sidney and
                     // James I into the author rows the CTS pass just created.
                     var renaissance = Path.Combine(root, "Renaissance");
-                    if (Directory.Exists(renaissance))
-                        await new RenaissanceIngestService().IngestAsync(renaissance, wrapped, ct);
+                    if (!Directory.Exists(renaissance)) return IngestOutcome.From(cts.FailedFiles);
+
+                    var preCts = new RenaissanceIngestService();
+                    await preCts.IngestAsync(renaissance, wrapped, ct);
+
+                    return IngestOutcome.Combine(
+                        IngestOutcome.From(cts.FailedFiles),
+                        IngestOutcome.From(preCts.FailedFiles));
                 },
                 CheckComplete = async () => await authorRepo.CountByNamespaceAsync("engLit") > 0
             },
@@ -249,7 +267,7 @@ public static class SetupDataSourceCatalog
                 Title = "Post-Classical Greek Texts (optional)",
                 RepoUrl = "https://github.com/OpenGreekAndLatin/First1KGreek",
                 DisplayNote = "extends the Ancient Greek Texts above into late antiquity - same library, not a separate one",
-                DefaultDestination = Path.Combine(dataRoot, "first1k-greek"),
+                DefaultDestination = first1kDestination,
                 PlainLanguageDescription =
                     "The Open Greek and Latin project's sequel to the Ancient Greek Texts above - Greek " +
                     "(and a little Latin) written after the classical period, into late antiquity. Authors " +
@@ -306,22 +324,37 @@ public static class SetupDataSourceCatalog
                         Name = "Hebrew Bible",
                         Namespace = "hebrewLit"
                     }, ct);
+
+                    return IngestOutcome.From(service.FailedFiles);
                 },
-                // Not DB-backed the way the check above this one is, because
                 // Authors.Namespace="greekLit" is already >0 from the
-                // classical corpus alone and can't tell "loaded" apart from
-                // "First1KGreek specifically hasn't run yet". Falls back to
-                // the same filesystem check the World Map source above uses:
-                // does the destination have a populated data/ folder. Same
-                // caveat as that one - a custom Advanced Setup destination
-                // won't be seen here.
-                CheckComplete = () =>
-                {
-                    var probe = Path.Combine(dataRoot, "first1k-greek", "data");
-                    var complete = Directory.Exists(probe)
-                        && Directory.EnumerateFiles(probe, "*.xml", SearchOption.AllDirectories).Any();
-                    return Task.FromResult(complete);
-                }
+                // classical corpus alone, so the namespace check the Greek and
+                // Latin rows use can't tell "loaded" apart from "First1KGreek
+                // specifically hasn't run yet". This used to fall back to
+                // asking the filesystem whether the repo had been downloaded -
+                // which answers a different question entirely, and answers it
+                // wrongly the moment the two diverge: delete the database,
+                // keep the download, and the step reported "Already loaded"
+                // against a database containing none of it. Anyone starting a
+                // library over would silently finish setup without this corpus.
+                //
+                // Every edition records the file it was built from, and the
+                // two Greek corpora download to different folders - so "are
+                // there editions in this database that came from the
+                // First1KGreek folder" is decisive, and rests on no naming
+                // convention. (A first attempt matched "1st1K" inside the CTS
+                // URN, which is OGL's version identifier for the repo. That's
+                // a convention rather than a guarantee, and not worth betting
+                // a setup step on.)
+                //
+                // Caveat, same as the old filesystem probe had: an Advanced
+                // Setup run pointed at a custom folder won't match this, and
+                // the step will offer to install again. Re-running is
+                // harmless - editions upsert by CTS URN - so this errs toward
+                // offering redundant work rather than skipping needed work,
+                // which is the right direction for a step whose whole failure
+                // mode was silently skipping.
+                CheckComplete = async () => await editionRepo.CountBySourcePathPrefixAsync(first1kDestination) > 0
             }
         };
     }

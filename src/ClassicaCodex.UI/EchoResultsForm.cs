@@ -58,6 +58,10 @@ public class EchoResultsForm : Form
             i => i < _currentResults.Count
                 ? $"{_currentResults[i].AuthorName}, {_currentResults[i].WorkTitle} [{_currentResults[i].CitationRef}]: {_currentResults[i].Text}"
                 : null);
+        ListResultHelpers.AttachExportMenu(_resultsList, () => (
+            "Intertextual echoes",
+            _currentResults.Select(r => new ExportPassage(
+                r.WorkId, r.TextNodeId, r.AuthorName, r.WorkTitle, r.CitationRef, r.Text)).ToList()), this);
 
         Controls.Add(_sourceLabel);
         Controls.Add(explainer);

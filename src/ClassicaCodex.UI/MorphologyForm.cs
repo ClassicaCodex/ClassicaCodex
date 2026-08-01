@@ -134,6 +134,10 @@ public class MorphologyForm : Form
             i => i < _currentResults.Count
                 ? $"{_currentResults[i].AuthorName}, {_currentResults[i].WorkTitle} [{_currentResults[i].CitationRef}]: {_currentResults[i].Text}"
                 : null);
+        ListResultHelpers.AttachExportMenu(_resultsList, () => (
+            "Morphology search results",
+            _currentResults.Select(r => new ExportPassage(
+                r.WorkId, r.TextNodeId, r.AuthorName, r.WorkTitle, r.CitationRef, r.Text)).ToList()), this);
 
         Controls.Add(intro);
         Controls.Add(languageLabel);

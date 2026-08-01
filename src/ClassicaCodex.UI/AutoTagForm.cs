@@ -208,6 +208,10 @@ public class AutoTagForm : Form
             i => i < _currentResults.Count
                 ? $"{_currentResults[i].AuthorName}, {_currentResults[i].WorkTitle} [{_currentResults[i].CitationRef}]: {_currentResults[i].Text}"
                 : null);
+        ListResultHelpers.AttachExportMenu(_resultsList, () => (
+            $"Auto-Tag matches for {_nameBox.Text.Trim()}",
+            _currentResults.Select(r => new ExportPassage(
+                r.WorkId, r.TextNodeId, r.AuthorName, r.WorkTitle, r.CitationRef, r.Text)).ToList()), this);
 
         _checkAllButton = new Button { Text = "Check All", Left = 12, Top = 618, Width = 100, Height = 28, Anchor = AnchorStyles.Bottom | AnchorStyles.Left };
         _checkAllButton.Click += (_, _) => SetAllChecked(true);
@@ -269,7 +273,8 @@ public class AutoTagForm : Form
                 }
             }
 
-            _currentResults = await _textNodeRepo.SearchByFormsAsync(allForms.ToList());
+            var hits = await _textNodeRepo.SearchByFormsAsync(allForms.ToList());
+            _currentResults = hits.Rows;
 
             // Kept so the results list can highlight exactly what matched -
             // including the inflected forms the lemma expansion pulled in,
@@ -286,9 +291,14 @@ public class AutoTagForm : Form
                 _resultsList.SetItemChecked(index, true);
             }
 
+            // Truncation matters more here than in a read-only view: this
+            // form writes tags, so a capped result set means a tagging pass
+            // that looks complete and isn't. Say so before anything is saved.
             _statusLabel.Text = _currentResults.Count == 0
                 ? "No matches. Try alternate spellings, or check whether lemma data is loaded for this language."
-                : $"{_currentResults.Count} match(es) found, all checked by default. Uncheck anything that's wrong before tagging.";
+                : hits.Truncated
+                    ? $"{hits.DisplayCount} match(es) found - stopped at the result limit, so tagging these will NOT tag every occurrence. Narrow the search and repeat to cover the rest."
+                    : $"{_currentResults.Count} match(es) found, all checked by default. Uncheck anything that's wrong before tagging.";
         }
         finally
         {

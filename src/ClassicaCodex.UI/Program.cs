@@ -9,6 +9,12 @@ internal static class Program
     {
         ApplicationConfiguration.Initialize();
 
+        // Before anything that can throw, and before Application.Run: most of
+        // this app's event handlers are async lambdas, and an exception
+        // escaping one of those ends the process silently unless something is
+        // listening. See CrashReporter.
+        CrashReporter.Install();
+
         // Only ask where the database should live when there isn't one to
         // open - a first run, or the file having been moved or deleted.
         // Otherwise go straight in; the location is still changeable any

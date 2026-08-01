@@ -146,6 +146,10 @@ public class WordStudyForm : Form
             i => i < _currentOccurrences.Count
                 ? $"{_currentOccurrences[i].AuthorName}, {_currentOccurrences[i].WorkTitle} [{_currentOccurrences[i].CitationRef}]: {_currentOccurrences[i].Text}"
                 : null);
+        ListResultHelpers.AttachExportMenu(_occurrenceList, () => (
+            $"Occurrences of {SelectedHeadwordOrDefault()}",
+            _currentOccurrences.Select(r => new ExportPassage(
+                r.WorkId, r.TextNodeId, r.AuthorName, r.WorkTitle, r.CitationRef, r.Text)).ToList()), this);
 
         _statusLabel = new Label
         {
@@ -274,6 +278,19 @@ public class WordStudyForm : Form
         if (_headwordList.Items.Count > 0) _headwordList.SelectedIndex = 0;
     }
 
+    /// <summary>
+    /// The headword whose occurrences are currently listed, for labelling an
+    /// export. Falls back to the searched word when no headword row is
+    /// selected - an export should still be named something meaningful.
+    /// </summary>
+    private string SelectedHeadwordOrDefault()
+    {
+        var index = _headwordList.SelectedIndex;
+        return index >= 0 && index < _currentHeadwords.Count
+            ? _currentHeadwords[index].Headword
+            : "this word";
+    }
+
     private async Task LoadDefinitionAndOccurrencesAsync()
     {
         var index = _headwordList.SelectedIndex;
@@ -299,7 +316,8 @@ public class WordStudyForm : Form
             .Where(f => f.Length > 0)
             .ToHashSet(StringComparer.Ordinal);
 
-        _currentOccurrences = await _textNodeRepo.SearchByFormsAsync(forms);
+        var hits = await _textNodeRepo.SearchByFormsAsync(forms);
+        _currentOccurrences = hits.Rows;
 
         _occurrenceList.Items.Clear();
         foreach (var o in _currentOccurrences.Take(500))
@@ -312,7 +330,9 @@ public class WordStudyForm : Form
             _occurrenceList.Items.Add("(no occurrences found)");
         }
 
-        _statusLabel.Text = $"{_currentOccurrences.Count} occurrence(s) of {headword} across the corpus.";
+        _statusLabel.Text = hits.Truncated
+            ? $"{hits.DisplayCount} occurrence(s) of {headword} across the corpus - stopped at the result limit, so this is a sample rather than the full count."
+            : $"{_currentOccurrences.Count} occurrence(s) of {headword} across the corpus.";
     }
 
     private async Task LoadDefinitionAsync(string headword)

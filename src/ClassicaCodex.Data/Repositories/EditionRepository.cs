@@ -62,7 +62,19 @@ public class EditionRepository
         return results;
     }
 
-    /// <summary>Deletes all TextNodes for an edition, ahead of a re-ingest.</summary>
+    /// <summary>
+    /// Deletes all TextNodes for an edition, ahead of a re-ingest.
+    ///
+    /// This used to fail on any edition the reader had tagged or bookmarked:
+    /// both annotation tables carried a plain foreign key to
+    /// TextNodes(TextNodeId), so the delete tripped a constraint, the
+    /// ingest service caught it per-file and recorded the edition as failed,
+    /// and the texts someone had actually worked with were the ones that
+    /// silently stopped receiving updates. Annotations are now keyed to
+    /// (EditionId, CitationRef) with no foreign key here, so this deletes
+    /// cleanly and the tags and bookmarks reattach to the re-inserted
+    /// passages by citation.
+    /// </summary>
     public async Task ClearTextNodesAsync(int editionId, CancellationToken cancellationToken = default)
     {
         await using var conn = await DbConnectionFactory.OpenConnectionAsync(cancellationToken);
@@ -140,6 +152,44 @@ public class EditionRepository
         }
 
         return results;
+    }
+
+    /// <summary>
+    /// How many editions were ingested from files under a given folder.
+    ///
+    /// Exists to tell two corpora apart when they share a namespace.
+    /// First1KGreek and canonical-greekLit are both ingested as "greekLit"
+    /// deliberately - they're the same umbrella collection - so an author or
+    /// namespace count can't say whether First1KGreek specifically has been
+    /// loaded into this database.
+    ///
+    /// This asks the one question that is actually decisive and involves no
+    /// guesswork about naming: every edition records the path of the file it
+    /// was built from, and the two corpora are downloaded to different
+    /// folders. An earlier attempt at this matched "1st1K" inside the CTS URN
+    /// instead, on the theory that OGL's version identifier for that repo is
+    /// unique to it - a convention, not a guarantee, and not something worth
+    /// betting a setup step on.
+    /// </summary>
+    public async Task<int> CountBySourcePathPrefixAsync(
+        string folder, CancellationToken cancellationToken = default)
+    {
+        await using var conn = await DbConnectionFactory.OpenConnectionAsync(cancellationToken);
+        await using var cmd = conn.CreateCommand();
+
+        // Windows paths are full of backslashes, which is also LIKE's escape
+        // character here - so the prefix has to be escaped before it becomes
+        // a pattern, or "C:\data" would silently mean something else.
+        var escaped = folder
+            .Replace("\\", "\\\\")
+            .Replace("%", "\\%")
+            .Replace("_", "\\_");
+
+        cmd.CommandText = "SELECT COUNT(*) FROM Editions WHERE SourcePath LIKE @Prefix ESCAPE '\\';";
+        cmd.Parameters.AddWithValue("@Prefix", $"{escaped}%");
+        cmd.CommandTimeout = 60;
+
+        return Convert.ToInt32(await cmd.ExecuteScalarAsync(cancellationToken));
     }
 
     /// <summary>

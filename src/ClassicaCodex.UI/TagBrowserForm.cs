@@ -62,6 +62,12 @@ public class TagBrowserForm : Form
             i => i < _currentResults.Count
                 ? $"{_currentResults[i].AuthorName}, {_currentResults[i].WorkTitle} [{_currentResults[i].CitationRef}]: {_currentResults[i].Text}"
                 : null);
+        ListResultHelpers.AttachExportMenu(_resultsList, () => (
+            _tagList.SelectedItem is Tag selected
+                ? $"Passages tagged \u201c{selected.Name}\u201d"
+                : "Tagged passages",
+            _currentResults.Select(r => new ExportPassage(
+                r.WorkId, r.TextNodeId, r.AuthorName, r.WorkTitle, r.CitationRef, r.Text)).ToList()), this);
 
         var compareButton = new Button
         {

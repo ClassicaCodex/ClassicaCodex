@@ -62,6 +62,12 @@ public class CrossLanguageEchoForm : Form
     private List<(TextNode Node, EchoCandidate Candidate)> _verifiedResults = new();
     private int _comparisonWorkId;
 
+    // Captured alongside the work id when a comparison target is chosen -
+    // the results themselves are bare TextNodes, which carry no attribution,
+    // and an exported passage with no author or work on it is unusable.
+    private string _comparisonAuthorName = string.Empty;
+    private string _comparisonWorkTitle = string.Empty;
+
     /// <summary>Set by MainForm, same pattern every other results form here already uses.</summary>
     public Func<int, long, Task>? OnNavigate { get; set; }
 
@@ -181,6 +187,24 @@ public class CrossLanguageEchoForm : Form
         };
         _resultsListBox.DoubleClick += async (_, _) => await OnResultActivatedAsync();
 
+        // The rationale is the whole point of this view - it's why a
+        // candidate is being suggested at all, and unlike the passage text
+        // it exists nowhere else in the library. Exporting the passages
+        // without it would throw away the only part that isn't already
+        // reachable from the reader.
+        ListResultHelpers.AttachExportMenu(_resultsListBox, () => (
+            $"Cross-language echoes of [{_sourceNode.CitationRef}]",
+            _verifiedResults.Select(r => new ExportPassage(
+                _comparisonWorkId,
+                r.Node.TextNodeId,
+                _comparisonAuthorName,
+                _comparisonWorkTitle,
+                r.Node.CitationRef,
+                r.Node.Text,
+                $"[{r.Candidate.Confidence}] {r.Candidate.Rationale}")).ToList()),
+            this,
+            "why each was suggested");
+
         var closeButton = new Button
         {
             Text = "Close",
@@ -281,6 +305,8 @@ public class CrossLanguageEchoForm : Form
         _resultsListBox.Items.Clear();
         _verifiedResults = new List<(TextNode, EchoCandidate)>();
         _comparisonWorkId = selected.Edition.WorkId;
+        _comparisonAuthorName = selected.Edition.AuthorName;
+        _comparisonWorkTitle = selected.Edition.WorkTitle;
 
         try
         {

@@ -1,3 +1,4 @@
+using ClassicaCodex.Core;
 using ClassicaCodex.Core.Models;
 using ClassicaCodex.Data.Repositories;
 using ClassicaCodex.Ingestion;
@@ -55,6 +56,24 @@ public class CreateTranslationForm : Form
 
     private List<TextNode> _sourceNodes = new();
     private readonly Dictionary<string, string> _translatedByRef = new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// Source lines that actually have a translation attached - not the size
+    /// of _translatedByRef.
+    ///
+    /// Those two used to be assumed identical, and every progress figure in
+    /// this dialog was computed from the dictionary count. They come apart
+    /// the moment a key lands in the dictionary that doesn't correspond to a
+    /// real line, which is what happened whenever the model echoed a citation
+    /// ref back in a form that didn't match: "all lines translated", an empty
+    /// preview, and an edition saved with nothing in it. GeminiTranslationService
+    /// now reconciles refs before they get here, so this should always agree
+    /// with the dictionary - but it's measured from the source lines anyway,
+    /// so if it ever doesn't, the dialog under-reports rather than claiming a
+    /// success that isn't there.
+    /// </summary>
+    private int TranslatedLineCount =>
+        _sourceNodes.Count(n => _translatedByRef.ContainsKey(n.CitationRef));
     private CancellationTokenSource? _cancellation;
 
     // Null until the first successful batch persists something - created
@@ -257,7 +276,7 @@ public class CreateTranslationForm : Form
             _workingEditionId = priorAttempt.EditionId;
             _resumeLabel.Visible = true;
             _startFreshButton.Visible = true;
-            _resumeLabel.Text = $"Resuming a previous attempt - {_translatedByRef.Count:N0} of " +
+            _resumeLabel.Text = $"Resuming a previous attempt - {TranslatedLineCount:N0} of " +
                                  $"{_sourceNodes.Count:N0} lines already translated.";
         }
 
@@ -278,13 +297,14 @@ public class CreateTranslationForm : Form
 
     private void UpdateButtonsForCurrentProgress()
     {
-        var remaining = _sourceNodes.Count - _translatedByRef.Count;
+        var translated = TranslatedLineCount;
+        var remaining = _sourceNodes.Count - translated;
         _translateButton.Enabled = remaining > 0;
         _translateButton.Text = remaining == _sourceNodes.Count
             ? "Translate with Gemini (free)"
             : $"Translate Remaining {remaining:N0} Line(s)";
-        _saveNowButton.Enabled = _translatedByRef.Count > 0;
-        _translatedHeader.Text = $"Translation ({_translatedByRef.Count:N0} of {_sourceNodes.Count:N0} lines)";
+        _saveNowButton.Enabled = translated > 0;
+        _translatedHeader.Text = $"Translation ({translated:N0} of {_sourceNodes.Count:N0} lines)";
     }
 
     private async Task OnTranslateClickedAsync()
@@ -327,7 +347,7 @@ public class CreateTranslationForm : Form
 
             _statusLabel.ForeColor = Color.DimGray;
             _statusLabel.Text = $"Translating batch {b + 1} of {batches.Count} " +
-                                 $"({_translatedByRef.Count:N0} of {_sourceNodes.Count:N0} lines so far)...";
+                                 $"({TranslatedLineCount:N0} of {_sourceNodes.Count:N0} lines so far)...";
 
             var missing = await TranslateOneBatchAsync(batches[b], apiKey, _cancellation.Token);
             if (missing == null) { stoppedEarly = true; break; }
@@ -355,7 +375,7 @@ public class CreateTranslationForm : Form
             await PersistProgressAsync();
         }
 
-        var translatedCount = _translatedByRef.Count;
+        var translatedCount = TranslatedLineCount;
         _statusLabel.ForeColor = translatedCount == _sourceNodes.Count ? Color.DimGray : Color.DarkRed;
         _statusLabel.Text = stoppedEarly
             ? $"Stopped - {translatedCount:N0} of {_sourceNodes.Count:N0} lines translated, already saved. " +
@@ -415,7 +435,7 @@ public class CreateTranslationForm : Form
         {
             await PersistProgressAsync();
             MessageBox.Show(this,
-                $"Saved - {_translatedByRef.Count:N0} of {_sourceNodes.Count:N0} lines. Reopen this work " +
+                $"Saved - {TranslatedLineCount:N0} of {_sourceNodes.Count:N0} lines. Reopen this work " +
                 "(or switch editions) to see it listed as \"trans. Gemini (AI-generated)\".",
                 "Saved", MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
@@ -426,7 +446,7 @@ public class CreateTranslationForm : Form
         }
         finally
         {
-            _saveNowButton.Enabled = _translatedByRef.Count > 0;
+            _saveNowButton.Enabled = TranslatedLineCount > 0;
         }
     }
 
@@ -443,7 +463,11 @@ public class CreateTranslationForm : Form
     /// </summary>
     private async Task PersistProgressAsync()
     {
-        if (_translatedByRef.Count == 0) return;
+        // Counted against the source lines, not the dictionary: a dictionary
+        // holding only unattributable keys would otherwise create an edition
+        // here and then write no text into it, which is exactly the empty
+        // "trans. Gemini (AI-generated)" edition this used to leave behind.
+        if (TranslatedLineCount == 0) return;
 
         if (_workingEditionId == null)
         {

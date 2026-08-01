@@ -19,7 +19,14 @@ public static class DbConnectionFactory
 
     public static string? DatabasePath => _databasePath;
 
-    public static void Configure(string databasePath)
+    /// <param name="remember">
+    /// Whether to write this path to the preference file, so the next launch
+    /// reopens it. True for anything the user chose. False for a database
+    /// opened programmatically and thrown away - a test's temp file, say -
+    /// where persisting it would leave the app pointing at somewhere that no
+    /// longer exists the next time it started.
+    /// </param>
+    public static void Configure(string databasePath, bool remember = true)
     {
         if (string.IsNullOrWhiteSpace(databasePath))
             throw new ArgumentException("Database path cannot be empty.", nameof(databasePath));
@@ -28,7 +35,7 @@ public static class DbConnectionFactory
         if (!string.IsNullOrEmpty(directory)) Directory.CreateDirectory(directory);
 
         _databasePath = databasePath;
-        SavePathPreference(databasePath);
+        if (remember) SavePathPreference(databasePath);
     }
 
     /// <summary>Where a database lands if the user never picks anywhere else.</summary>
@@ -120,16 +127,6 @@ public static class DbConnectionFactory
         return new SqliteConnection(builder.ConnectionString);
     }
 
-    /// <summary>
-    /// Opens a connection and hands it back ready to use. Caller owns disposal.
-    ///
-    /// Two PRAGMAs are set on every connection because SQLite defaults them
-    /// off/unset per-connection rather than persisting them with the file:
-    /// foreign_keys (off by default - without this, every FK constraint in
-    /// the schema is silently decorative) and journal_mode=WAL (better
-    /// concurrent read/write behavior; cheap to re-assert even though it
-    /// only truly needs setting once per database file).
-    /// </summary>
     /// <summary>
     /// Forces SQLite to fold the WAL file back into the main database file.
     /// SQLite checkpoints automatically under normal conditions, but a

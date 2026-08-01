@@ -18,6 +18,23 @@ public class WordIndexRepository
     public async Task<bool> HasDataAsync(CancellationToken cancellationToken = default)
     {
         await using var conn = await DbConnectionFactory.OpenConnectionAsync(cancellationToken);
+        return await HasDataAsync(conn, cancellationToken);
+    }
+
+    /// <summary>
+    /// Same check, against a connection the caller already has open.
+    ///
+    /// Every search path that uses the word index calls HasDataAsync first
+    /// to decide fast-path-vs-fallback, then immediately opens a connection
+    /// of its own to run the real query. That used to mean two full
+    /// connection opens per search - and DbConnectionFactory reasserts five
+    /// PRAGMAs on every open, so the "just checking whether the index has
+    /// any rows" call cost the same setup as the query that follows it. A
+    /// caller that's about to query anyway should open once and hand the
+    /// connection to both calls.
+    /// </summary>
+    public static async Task<bool> HasDataAsync(SqliteConnection conn, CancellationToken cancellationToken = default)
+    {
         await using var cmd = conn.CreateCommand();
         cmd.CommandText = "SELECT 1 FROM WordIndex LIMIT 1;";
         cmd.CommandTimeout = 30;
@@ -54,7 +71,9 @@ public class WordIndexRepository
 
         await using (var createCmd = conn.CreateCommand())
         {
-            createCmd.CommandText = "CREATE TABLE WordIndex (NormalizedWord TEXT NOT NULL, TextNodeId INTEGER NOT NULL);";
+            // The one definition, from SchemaInitializer - not a second copy
+            // that quietly drifts from it the first time a column is added.
+            createCmd.CommandText = SchemaInitializer.WordIndexTableDdl;
             await createCmd.ExecuteNonQueryAsync(cancellationToken);
         }
 
@@ -78,7 +97,7 @@ public class WordIndexRepository
     {
         await using var conn = await DbConnectionFactory.OpenConnectionAsync(cancellationToken);
         await using var indexCmd = conn.CreateCommand();
-        indexCmd.CommandText = "CREATE INDEX IF NOT EXISTS IX_WordIndex_Word ON WordIndex (NormalizedWord, TextNodeId);";
+        indexCmd.CommandText = SchemaInitializer.WordIndexIndexDdl;
 
         // The index build over a full corpus is a single large sort - it can
         // legitimately take minutes, and the default timeout would abort it.
@@ -86,17 +105,6 @@ public class WordIndexRepository
         await indexCmd.ExecuteNonQueryAsync(cancellationToken);
     }
 
-    /// <summary>
-    /// Inserts word-index entries. This is the single largest bulk insert in
-    /// the app (potentially tens of millions of rows for a full corpus), so
-    /// unlike the other repositories' one-row-per-statement transaction
-    /// loop, this batches many rows into each INSERT statement (a single
-    /// multi-row VALUES list) - at this scale, per-statement overhead
-    /// (prepare/step/reset) dominates, and cutting the statement count by
-    /// ~400x is what actually matters, more than the transaction wrapping
-    /// alone. 400 rows/statement keeps parameter count (800) comfortably
-    /// under SQLite's limit even on an older bundled version.
-    /// </summary>
     /// <summary>
     /// Removes just one edition's entries, ahead of re-indexing it - not the
     /// whole-table ClearAsync a full rebuild uses. Needed because
@@ -117,6 +125,17 @@ public class WordIndexRepository
         await cmd.ExecuteNonQueryAsync(cancellationToken);
     }
 
+    /// <summary>
+    /// Inserts word-index entries. This is the single largest bulk insert in
+    /// the app (potentially tens of millions of rows for a full corpus), so
+    /// unlike the other repositories' one-row-per-statement transaction
+    /// loop, this batches many rows into each INSERT statement (a single
+    /// multi-row VALUES list) - at this scale, per-statement overhead
+    /// (prepare/step/reset) dominates, and cutting the statement count by
+    /// ~400x is what actually matters, more than the transaction wrapping
+    /// alone. 400 rows/statement keeps parameter count (800) comfortably
+    /// under SQLite's limit even on an older bundled version.
+    /// </summary>
     public async Task BulkInsertAsync(
         IReadOnlyCollection<(string Word, long TextNodeId)> entries,
         CancellationToken cancellationToken = default)
@@ -127,23 +146,29 @@ public class WordIndexRepository
         var entriesList = entries as IReadOnlyList<(string Word, long TextNodeId)> ?? entries.ToList();
 
         await using var conn = await DbConnectionFactory.OpenConnectionAsync(cancellationToken);
-        await using var transaction = conn.BeginTransaction();
+        await using var transaction = await conn.BeginTransactionAsync(cancellationToken);
 
         for (var offset = 0; offset < entriesList.Count; offset += rowsPerStatement)
         {
             cancellationToken.ThrowIfCancellationRequested();
 
-            var batch = entriesList.Skip(offset).Take(rowsPerStatement).ToList();
+            // Index into the list directly. Skip() on an IReadOnlyList still
+            // walks from element zero every single time, so batching this way
+            // was quadratic in the row count - and this is the one method in
+            // the app that genuinely sees tens of millions of rows, where
+            // that goes from academic to being most of the build time.
+            var batchSize = Math.Min(rowsPerStatement, entriesList.Count - offset);
 
             await using var cmd = conn.CreateCommand();
-            cmd.Transaction = transaction;
+            cmd.Transaction = (SqliteTransaction)transaction;
 
-            var valueRows = new List<string>(batch.Count);
-            for (var i = 0; i < batch.Count; i++)
+            var valueRows = new List<string>(batchSize);
+            for (var i = 0; i < batchSize; i++)
             {
+                var entry = entriesList[offset + i];
                 valueRows.Add($"(@w{i},@n{i})");
-                cmd.Parameters.AddWithValue($"@w{i}", batch[i].Word);
-                cmd.Parameters.AddWithValue($"@n{i}", batch[i].TextNodeId);
+                cmd.Parameters.AddWithValue($"@w{i}", entry.Word);
+                cmd.Parameters.AddWithValue($"@n{i}", entry.TextNodeId);
             }
 
             cmd.CommandText = $"INSERT INTO WordIndex (NormalizedWord, TextNodeId) VALUES {string.Join(",", valueRows)};";
@@ -175,6 +200,14 @@ public class WordIndexRepository
     /// unindexed. SetupWizardForm compares this against GetTextNodeCountAsync
     /// to say so, rather than leaving that gap to be discovered obliquely
     /// through a search that should have found something and didn't.
+    ///
+    /// A small, fixed gap even immediately after a full rebuild is expected
+    /// and does not mean staleness: WordIndexService.BuildAsync records a
+    /// placeholder for any line with no indexable words at all (see
+    /// NoIndexableWordsMarker there), specifically so this count still
+    /// includes it. If that placeholder is ever removed, this count would
+    /// permanently undercount by however many such lines the corpus has,
+    /// and every fresh build would look stale forever.
     /// </summary>
     public async Task<long> GetIndexedTextNodeCountAsync(CancellationToken cancellationToken = default)
     {
@@ -185,11 +218,6 @@ public class WordIndexRepository
         return Convert.ToInt64(await cmd.ExecuteScalarAsync(cancellationToken));
     }
 
-    /// <summary>
-    /// Reads a batch of text nodes by ascending id, for indexing. Paging by
-    /// id rather than OFFSET keeps each batch an index seek instead of
-    /// re-scanning everything before it.
-    /// </summary>
     /// <summary>Every current TextNode for one edition, id + text - what ReindexEditionAsync tokenizes.</summary>
     public async Task<List<(long TextNodeId, string Text)>> GetTextNodesByEditionAsync(
         int editionId, CancellationToken cancellationToken = default)
@@ -212,6 +240,11 @@ public class WordIndexRepository
         return results;
     }
 
+    /// <summary>
+    /// Reads a batch of text nodes by ascending id, for indexing. Paging by
+    /// id rather than OFFSET keeps each batch an index seek instead of
+    /// re-scanning everything before it.
+    /// </summary>
     public async Task<List<(long TextNodeId, string Text)>> GetTextNodeBatchAsync(
         long afterTextNodeId, int batchSize, CancellationToken cancellationToken = default)
     {
@@ -235,52 +268,6 @@ public class WordIndexRepository
         while (await reader.ReadAsync(cancellationToken))
         {
             results.Add((reader.GetInt64(0), reader.GetString(1)));
-        }
-
-        return results;
-    }
-
-    /// <summary>
-    /// The lines containing any of the given forms. Forms are normalized
-    /// here so callers can pass raw inflected forms straight from the lemma
-    /// data.
-    /// </summary>
-    public async Task<List<long>> FindTextNodeIdsAsync(
-        IReadOnlyList<string> forms, int maxResults = 5000, CancellationToken cancellationToken = default)
-    {
-        var results = new List<long>();
-
-        var normalized = forms
-            .Select(WordNormalizer.Normalize)
-            .Where(f => f.Length > 0)
-            .Distinct(StringComparer.Ordinal)
-            .Take(200)
-            .ToList();
-
-        if (normalized.Count == 0) return results;
-
-        await using var conn = await DbConnectionFactory.OpenConnectionAsync(cancellationToken);
-        await using var cmd = conn.CreateCommand();
-        cmd.CommandTimeout = 120;
-
-        var paramNames = new List<string>();
-        for (var i = 0; i < normalized.Count; i++)
-        {
-            paramNames.Add($"@w{i}");
-            cmd.Parameters.AddWithValue($"@w{i}", normalized[i]);
-        }
-
-        cmd.CommandText = $@"
-            SELECT DISTINCT TextNodeId
-            FROM WordIndex
-            WHERE NormalizedWord IN ({string.Join(",", paramNames)})
-            LIMIT @MaxResults;";
-        cmd.Parameters.AddWithValue("@MaxResults", maxResults);
-
-        await using var reader = await cmd.ExecuteReaderAsync(cancellationToken);
-        while (await reader.ReadAsync(cancellationToken))
-        {
-            results.Add(reader.GetInt64(0));
         }
 
         return results;

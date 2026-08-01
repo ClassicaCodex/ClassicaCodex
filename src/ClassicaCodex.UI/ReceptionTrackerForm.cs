@@ -65,6 +65,10 @@ public class ReceptionTrackerForm : Form
             i => i < _later.Count
                 ? $"{_later[i].AuthorName}, {_later[i].WorkTitle} [{_later[i].CitationRef}]: {_later[i].Text}"
                 : null);
+        ListResultHelpers.AttachExportMenu(_laterList, () => (
+            $"Reception of [{_sourceNode.CitationRef}] - later authors",
+            _later.Select(r => new ExportPassage(
+                r.WorkId, r.TextNodeId, r.AuthorName, r.WorkTitle, r.CitationRef, r.Text)).ToList()), this);
 
         var earlierLabel = new Label { Text = "Earlier authors (this may echo them):", Left = 434, Top = 56, Width = 410 };
         _earlierList = new ListBox
@@ -80,6 +84,10 @@ public class ReceptionTrackerForm : Form
             i => i < _earlier.Count
                 ? $"{_earlier[i].AuthorName}, {_earlier[i].WorkTitle} [{_earlier[i].CitationRef}]: {_earlier[i].Text}"
                 : null);
+        ListResultHelpers.AttachExportMenu(_earlierList, () => (
+            $"Reception of [{_sourceNode.CitationRef}] - earlier authors",
+            _earlier.Select(r => new ExportPassage(
+                r.WorkId, r.TextNodeId, r.AuthorName, r.WorkTitle, r.CitationRef, r.Text)).ToList()), this);
 
         var unknownLabel = new Label { Text = "Unknown era (can't place chronologically):", Left = 856, Top = 56, Width = 410 };
         _unknownList = new ListBox
@@ -95,6 +103,10 @@ public class ReceptionTrackerForm : Form
             i => i < _unknown.Count
                 ? $"{_unknown[i].AuthorName}, {_unknown[i].WorkTitle} [{_unknown[i].CitationRef}]: {_unknown[i].Text}"
                 : null);
+        ListResultHelpers.AttachExportMenu(_unknownList, () => (
+            $"Reception of [{_sourceNode.CitationRef}] - undated authors",
+            _unknown.Select(r => new ExportPassage(
+                r.WorkId, r.TextNodeId, r.AuthorName, r.WorkTitle, r.CitationRef, r.Text)).ToList()), this);
 
         Controls.Add(_sourceLabel);
         Controls.Add(laterLabel);

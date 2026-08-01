@@ -23,6 +23,7 @@ public class PerseusIngestService
     private readonly AuthorRepository _authorRepo = new();
     private readonly WorkRepository _workRepo = new();
     private readonly EditionRepository _editionRepo = new();
+    private readonly EditionHeaderRepository _editionHeaderRepo = new();
     private readonly TextNodeRepository _textNodeRepo = new();
 
     /// <summary>
@@ -113,7 +114,7 @@ public class PerseusIngestService
             try
             {
                 var editionUrn = DeriveEditionUrn(editionFile);
-                var (kind, language, translator) = InspectEdition(editionFile, corpusNamespace);
+                var (kind, language, translator, header) = InspectEdition(editionFile, corpusNamespace);
 
                 var editionId = await _editionRepo.UpsertAsync(new Edition
                 {
@@ -128,6 +129,11 @@ public class PerseusIngestService
                 // Clear and re-insert so re-running ingestion after a repo
                 // update doesn't leave stale/duplicate text nodes behind.
                 await _editionRepo.ClearTextNodesAsync(editionId, cancellationToken);
+
+                if (header != null)
+                {
+                    await _editionHeaderRepo.SaveAsync(editionId, header, cancellationToken);
+                }
 
                 var parsed = _teiParser.Parse(editionFile);
                 var nodes = _teiParser.ToTextNodes(editionId, parsed);
@@ -172,7 +178,7 @@ public class PerseusIngestService
     /// as a Greek original - which put the translation in the original pane
     /// and left the translation pane empty.
     /// </summary>
-    private static (EditionKind Kind, string? Language, string? Translator) InspectEdition(
+    private static (EditionKind Kind, string? Language, string? Translator, EditionHeader? Header) InspectEdition(
         string filePath, string corpusNamespace)
     {
         var versionLanguage = ExtractVersionLanguage(Path.GetFileNameWithoutExtension(filePath));
@@ -199,11 +205,18 @@ public class PerseusIngestService
         }
 
         string? translator = null;
+        EditionHeader? header = null;
 
         try
         {
             var doc = XDocument.Load(filePath);
             XNamespace tei = "http://www.tei-c.org/ns/1.0";
+
+            // Taken from the document this method already loaded rather than
+            // re-reading the file: an ingest run opens each file twice as it
+            // is, and a third pass purely for the header would be waste
+            // measured in hours across a full corpus.
+            header = TeiHeaderReader.Read(doc);
 
             // Translator, when present, usually lives in the titleStmt.
             translator = doc.Descendants(tei + "titleStmt")
@@ -238,7 +251,7 @@ public class PerseusIngestService
             // translator name is not worth failing over.
         }
 
-        return (kind, versionLanguage, translator);
+        return (kind, versionLanguage, translator, header);
     }
 
     /// <summary>

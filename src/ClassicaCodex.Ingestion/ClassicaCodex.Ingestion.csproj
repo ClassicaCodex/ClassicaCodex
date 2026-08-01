@@ -5,6 +5,18 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <RootNamespace>ClassicaCodex.Ingestion</RootNamespace>
+    <!-- Enables the compiler's structural checks on /// doc comments -
+         specifically CS1587 ("XML comment is not placed on a valid language
+         element"), which is exactly what would have caught the nine
+         orphaned/misattached doc-comment blocks found in the first review
+         pass of this codebase, automatically, on every future build.
+         CS1591 ("missing XML comment for publicly visible member") is
+         suppressed: this project documents public members selectively, not
+         universally, so demanding one on every public method would flood
+         the build with thousands of warnings unrelated to the actual
+         problem this is here to catch. -->
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);CS1591</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>

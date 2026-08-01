@@ -25,6 +25,31 @@ public class WordIndexService
     private const int ReadBatchSize = 20000;
     private const int WriteBatchSize = 200000;
 
+    /// <summary>
+    /// Recorded for a TextNode when TokenizeLine finds nothing indexable in
+    /// it - a lacuna marker, a bare citation number, a line of pure
+    /// punctuation. Without some row for that TextNodeId, it never appears
+    /// in WordIndex at all, so GetIndexedTextNodeCountAsync's count of
+    /// distinct indexed lines falls permanently short of the true line
+    /// count by however many lines are like this - not because the index is
+    /// stale, but because those lines were never going to contribute a word
+    /// no matter how many times the build runs.
+    ///
+    /// That standing gap used to be indistinguishable from real staleness:
+    /// SetupWizardForm compares indexed count against total count and calls
+    /// any shortfall "out of date," so a handful of wordless lines meant the
+    /// warning could never be resolved - it told the reader to rebuild
+    /// something that rebuilding could never fix.
+    ///
+    /// The empty string is safe as a marker because it can never collide
+    /// with a real search: WordNormalizer.Normalize returns "" for exactly
+    /// this kind of content, and every caller that queries WordIndex already
+    /// filters normalized forms to Length > 0 before building its query -
+    /// this marker is what those filters were already guarding against
+    /// receiving.
+    /// </summary>
+    private const string NoIndexableWordsMarker = "";
+
     public async Task BuildAsync(
         IProgress<WordIndexProgress>? progress = null,
         CancellationToken cancellationToken = default)
@@ -63,10 +88,17 @@ public class WordIndexService
                 afterId = textNodeId;
                 nodesProcessed++;
 
+                var wordsInLine = 0;
                 foreach (var word in TokenizeLine(text))
                 {
                     pending.Add((word, textNodeId));
+                    wordsInLine++;
                 }
+
+                // See NoIndexableWordsMarker: without this, a line with no
+                // real words is invisible to WordIndex forever, and the
+                // staleness check reads that as unfinished work.
+                if (wordsInLine == 0) pending.Add((NoIndexableWordsMarker, textNodeId));
             }
 
             if (pending.Count >= WriteBatchSize)
@@ -121,10 +153,18 @@ public class WordIndexService
 
         foreach (var (textNodeId, text) in nodes)
         {
+            var wordsInLine = 0;
             foreach (var word in TokenizeLine(text))
             {
                 pending.Add((word, textNodeId));
+                wordsInLine++;
             }
+
+            // Same reasoning as BuildAsync: a wordless line still needs a
+            // row, or a translation that happens to be e.g. a single em dash
+            // would silently uncount itself from every future staleness
+            // check for this edition.
+            if (wordsInLine == 0) pending.Add((NoIndexableWordsMarker, textNodeId));
         }
 
         await _wordIndexRepo.BulkInsertAsync(pending, cancellationToken);

@@ -1,7 +1,7 @@
 namespace ClassicaCodex.Core.Models;
 
 /// <summary>
-/// One object from the Perseus Art & Archaeology collection - a vase,
+/// One object from the Perseus Art &amp; Archaeology collection - a vase,
 /// coin, gem, sculpture, site, or building. Perseus's copyright terms
 /// don't allow bundling their images or redistributing full catalog text
 /// outside their own environment, so only what's needed to describe an

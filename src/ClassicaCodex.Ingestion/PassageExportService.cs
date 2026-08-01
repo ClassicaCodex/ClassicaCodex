@@ -4,7 +4,7 @@ using DocumentFormat.OpenXml.Wordprocessing;
 using PdfSharp.Drawing;
 using PdfSharp.Pdf;
 
-namespace ClassicaCodex.UI;
+namespace ClassicaCodex.Ingestion;
 
 /// <summary>
 /// Writes an exported passage - a title, plus one or more chunks of text -

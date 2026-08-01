@@ -36,6 +36,7 @@ public class RenaissanceIngestService
     private readonly WorkRepository _workRepo = new();
     private readonly EditionRepository _editionRepo = new();
     private readonly TextNodeRepository _textNodeRepo = new();
+    private readonly EditionHeaderRepository _editionHeaderRepo = new();
 
     /// <summary>
     /// Files that failed to ingest (bad XML, unrecognized structure) and were
@@ -166,7 +167,21 @@ public class RenaissanceIngestService
 
                     await _editionRepo.ClearTextNodesAsync(editionId, cancellationToken);
 
-                    var parsed = _teiParser.ParseXml(StripDoctype(File.ReadAllText(file)));
+                    // Parsed once and used twice: the body becomes text
+                    // nodes, the header becomes the edition's publication
+                    // metadata. These are P4 files, so the DOCTYPE has to
+                    // come off before either.
+                    var raw = File.ReadAllText(file);
+
+                    var header = TeiHeaderReader.Read(
+                        XDocument.Parse(XmlEntitySanitizer.Sanitize(StripDoctype(raw))));
+
+                    if (header != null)
+                    {
+                        await _editionHeaderRepo.SaveAsync(editionId, header, cancellationToken);
+                    }
+
+                    var parsed = _teiParser.ParseXml(StripDoctype(raw));
                     var nodes = _teiParser.ToTextNodes(editionId, parsed);
                     await _textNodeRepo.BulkInsertAsync(nodes, cancellationToken);
                 }

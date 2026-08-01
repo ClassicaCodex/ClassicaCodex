@@ -18,21 +18,24 @@ public class DefinitionRepository
         const int rowsPerStatement = 300;
 
         await using var conn = await DbConnectionFactory.OpenConnectionAsync(cancellationToken);
-        await using var transaction = conn.BeginTransaction();
+        await using var transaction = await conn.BeginTransactionAsync(cancellationToken);
 
         for (var offset = 0; offset < definitions.Count; offset += rowsPerStatement)
         {
             cancellationToken.ThrowIfCancellationRequested();
 
-            var batch = definitions.Skip(offset).Take(rowsPerStatement).ToList();
+            // Indexed rather than Skip().Take(): Skip() on an IReadOnlyList
+            // restarts from element zero on every batch, making the loop
+            // quadratic in the row count.
+            var batchSize = Math.Min(rowsPerStatement, definitions.Count - offset);
 
             await using var cmd = conn.CreateCommand();
-            cmd.Transaction = transaction;
+            cmd.Transaction = (SqliteTransaction)transaction;
 
-            var valueRows = new List<string>(batch.Count);
-            for (var i = 0; i < batch.Count; i++)
+            var valueRows = new List<string>(batchSize);
+            for (var i = 0; i < batchSize; i++)
             {
-                var d = batch[i];
+                var d = definitions[offset + i];
                 valueRows.Add($"(@h{i},@nh{i},@l{i},@e{i},@s{i})");
                 cmd.Parameters.AddWithValue($"@h{i}", d.Headword);
                 cmd.Parameters.AddWithValue($"@nh{i}", d.NormalizedHeadword);

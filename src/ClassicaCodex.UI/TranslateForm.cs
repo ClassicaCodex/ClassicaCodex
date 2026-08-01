@@ -72,6 +72,12 @@ public class TranslateForm : Form
     private readonly Button _geminiButton;
     private readonly Label _aiStatusLabel;
     private readonly TextBox _aiResultBox;
+    private readonly Button _copyButton;
+
+    // One-shot, purely so the Copy button can say "Copied" for a moment and
+    // then go back to normal. A clipboard write that succeeds silently is
+    // indistinguishable from one that did nothing.
+    private readonly System.Windows.Forms.Timer _copyFeedbackTimer;
 
     public TranslateForm(
         TextNode node, string? sourceLanguage, string? targetLanguage, string authorName, string workTitle,
@@ -89,6 +95,11 @@ public class TranslateForm : Form
         AppIcons.ApplyWindowIcon(this, "Translate");
         Width = 640;
         Height = 712;
+
+        // The layout below is absolute, so this is the size everything was
+        // positioned against - shrinking past it makes controls overlap
+        // rather than reflow. Growing past it is handled by the anchors.
+        MinimumSize = new Size(640, 712);
         StartPosition = FormStartPosition.CenterParent;
 
         var citationLabel = new Label
@@ -96,6 +107,7 @@ public class TranslateForm : Form
             Left = 16,
             Top = 12,
             Width = 590,
+            Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right,
             Text = $"{authorName}, {workTitle} \u2014 [{node.CitationRef}]"
         };
 
@@ -106,6 +118,7 @@ public class TranslateForm : Form
             Top = 58,
             Width = 590,
             Height = 70,
+            Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right,
             Multiline = true,
             ReadOnly = true,
             ScrollBars = ScrollBars.Vertical,
@@ -117,6 +130,7 @@ public class TranslateForm : Form
             Left = 16,
             Top = 138,
             Width = 590,
+            Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right,
             Font = new Font(Font, FontStyle.Bold),
             Text = "Listen"
         };
@@ -130,7 +144,14 @@ public class TranslateForm : Form
         };
         _voiceComboBox.SelectedIndexChanged += (_, _) => OnVoiceSelectionChanged();
 
-        var moreVoicesLink = new LinkLabel { Left = 418, Top = 162, Width = 188, Text = "Get more voices..." };
+        var moreVoicesLink = new LinkLabel
+        {
+            Left = 418,
+            Top = 162,
+            Width = 188,
+            Anchor = AnchorStyles.Top | AnchorStyles.Right,
+            Text = "Get more voices..."
+        };
         moreVoicesLink.LinkClicked += (_, _) => OpenWindowsSpeechSettings();
 
         _readAloudButton = new Button { Left = 16, Top = 190, Width = 180, Height = 28, Text = "\u25B6 Read Aloud" };
@@ -142,7 +163,14 @@ public class TranslateForm : Form
         };
         _stopReadingButton.Click += (_, _) => SpeechService.Stop();
 
-        _listenStatusLabel = new Label { Left = 312, Top = 195, Width = 294, ForeColor = Color.DimGray };
+        _listenStatusLabel = new Label
+        {
+            Left = 312,
+            Top = 195,
+            Width = 294,
+            Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right,
+            ForeColor = Color.DimGray
+        };
 
         // Polls rather than subscribing to SpeechSynthesizer's own
         // SpeakCompleted event - that event fires on a background thread,
@@ -158,6 +186,7 @@ public class TranslateForm : Form
             Left = 16,
             Top = 230,
             Width = 590,
+            Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right,
             Font = new Font(Font, FontStyle.Bold),
             Text = _counterpartIsTranslation ? "Ingested Translation" : "Ingested Original"
         };
@@ -167,6 +196,7 @@ public class TranslateForm : Form
             Top = 252,
             Width = 590,
             Height = 48,
+            Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right,
             ForeColor = Color.DimGray,
             Text = "Checking..."
         };
@@ -176,6 +206,7 @@ public class TranslateForm : Form
             Top = 304,
             Width = 590,
             Height = 62,
+            Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right,
             Multiline = true,
             ReadOnly = true,
             ScrollBars = ScrollBars.Vertical
@@ -186,6 +217,7 @@ public class TranslateForm : Form
             Left = 16,
             Top = 380,
             Width = 590,
+            Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right,
             Font = new Font(Font, FontStyle.Bold),
             Text = "AI Translation"
         };
@@ -195,6 +227,7 @@ public class TranslateForm : Form
             Top = 402,
             Width = 590,
             Height = 34,
+            Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right,
             ForeColor = Color.DarkRed,
             Text = "Sends this passage over the internet - the only part of Classica Codex that isn't " +
                    "offline. Nothing is sent unless you click one of the two buttons below."
@@ -214,22 +247,66 @@ public class TranslateForm : Form
             (key, ct) => GeminiTranslationService.TranslateAsync(
                 _node.Text, _sourceLanguage, _targetLanguage, _authorName, _workTitle, _node.CitationRef, key, ct));
 
-        _aiStatusLabel = new Label { Left = 16, Top = 472, Width = 590, ForeColor = Color.DimGray };
+        _aiStatusLabel = new Label
+        {
+            Left = 16,
+            Top = 472,
+            Width = 590,
+            Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right,
+            ForeColor = Color.DimGray
+        };
 
+        // The one control that takes the extra height. Anchoring a second
+        // box vertically as well would just make the two overlap - this
+        // layout is absolute, so nothing below a growing control moves out
+        // of its way. This is the box worth growing: it holds generated
+        // prose, which runs long, and it's the only text here that exists
+        // nowhere else.
         _aiResultBox = new TextBox
         {
             Left = 16,
             Top = 496,
             Width = 590,
             Height = 110,
+            Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right,
             Multiline = true,
             ReadOnly = true,
             ScrollBars = ScrollBars.Vertical
         };
 
+        _copyButton = new Button
+        {
+            Text = "Copy to Clipboard",
+            Left = 16,
+            Top = 620,
+            Width = 160,
+            Height = 23,
+            Anchor = AnchorStyles.Bottom | AnchorStyles.Left,
+            Enabled = false
+        };
+        _copyButton.Click += (_, _) => CopyTranslationToClipboard();
+
+        _copyFeedbackTimer = new System.Windows.Forms.Timer { Interval = 1500 };
+        _copyFeedbackTimer.Tick += (_, _) =>
+        {
+            _copyFeedbackTimer.Stop();
+            _copyButton.Text = "Copy to Clipboard";
+        };
+
+        // Driven by the boxes themselves rather than by each place that
+        // writes to them - LoadIngestedMatchAsync alone has four separate
+        // exit paths, and a fifth added later would silently miss this.
+        _ingestedTranslationBox.TextChanged += (_, _) => RefreshCopyButtonState();
+        _aiResultBox.TextChanged += (_, _) => RefreshCopyButtonState();
+
         var closeButton = new Button
         {
-            Text = "Close", Left = 526, Top = 620, Width = 80, DialogResult = DialogResult.Cancel
+            Text = "Close",
+            Left = 526,
+            Top = 620,
+            Width = 80,
+            Anchor = AnchorStyles.Bottom | AnchorStyles.Right,
+            DialogResult = DialogResult.Cancel
         };
         CancelButton = closeButton;
 
@@ -252,6 +329,7 @@ public class TranslateForm : Form
         Controls.Add(_geminiButton);
         Controls.Add(_aiStatusLabel);
         Controls.Add(_aiResultBox);
+        Controls.Add(_copyButton);
         Controls.Add(closeButton);
 
         RefreshAiButtonStates();
@@ -265,6 +343,8 @@ public class TranslateForm : Form
         {
             _listenPollTimer.Stop();
             _listenPollTimer.Dispose();
+            _copyFeedbackTimer.Stop();
+            _copyFeedbackTimer.Dispose();
             SpeechService.Stop();
         };
 
@@ -394,6 +474,45 @@ public class TranslateForm : Form
               "sign the two editions number citations differently here. Compare the refs before trusting this."
             : $"Found at [{matchedRef}]:";
         _ingestedTranslationBox.Text = matchedText;
+    }
+
+    private void RefreshCopyButtonState() =>
+        _copyButton.Enabled = !string.IsNullOrWhiteSpace(_aiResultBox.Text)
+                              || !string.IsNullOrWhiteSpace(_ingestedTranslationBox.Text);
+
+    /// <summary>
+    /// Copies whichever translation is on screen. The AI result wins when
+    /// both are present: it's what was just generated and what the reader is
+    /// looking at, and unlike the ingested passage it exists nowhere else -
+    /// that one is already sitting in the reader pane behind this dialog,
+    /// with its own copy option on the right-click menu.
+    /// </summary>
+    private void CopyTranslationToClipboard()
+    {
+        var text = !string.IsNullOrWhiteSpace(_aiResultBox.Text)
+            ? _aiResultBox.Text
+            : _ingestedTranslationBox.Text;
+
+        if (string.IsNullOrWhiteSpace(text)) return;
+
+        try
+        {
+            Clipboard.SetText(text);
+
+            _copyButton.Text = "Copied";
+            _copyFeedbackTimer.Stop();
+            _copyFeedbackTimer.Start();
+        }
+        catch (System.Runtime.InteropServices.ExternalException)
+        {
+            // The Windows clipboard is a shared, singly-locked resource -
+            // another process holding it open makes this fail for a moment
+            // through no fault of anything here. Say so rather than letting
+            // a silent no-op look like a successful copy.
+            _copyButton.Text = "Clipboard busy";
+            _copyFeedbackTimer.Stop();
+            _copyFeedbackTimer.Start();
+        }
     }
 
     /// <summary>Each button's text and enabled state depend on whether that provider's key is configured yet.</summary>

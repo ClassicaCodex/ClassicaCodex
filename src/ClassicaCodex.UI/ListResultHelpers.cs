@@ -116,4 +116,87 @@ public static class ListResultHelpers
 
         listBox.ContextMenuStrip = menu;
     }
+
+    /// <summary>
+    /// Adds an "Export All Passages..." right-click item to a result list.
+    ///
+    /// The whole gathered set is exported, not just the row under the
+    /// cursor - which is why the item says "All". A set of passages pulled
+    /// from across the library is the thing worth writing to a document;
+    /// a single passage already has its own export on the reader's own
+    /// right-click menu, reached from the line itself.
+    ///
+    /// Exporting the backing list rather than the visible rows also means
+    /// non-passage rows a list may carry - "(nothing tagged with this yet)",
+    /// a truncation notice, the dormant-bookmark line - are structurally
+    /// incapable of ending up in the output.
+    ///
+    /// <paramref name="collect"/> runs at click time rather than at attach
+    /// time, so it always sees whatever the list currently holds; these
+    /// forms rebuild their results as the user changes a selection.
+    /// Returning an empty set is fine and says so rather than opening an
+    /// empty dialog.
+    /// </summary>
+    public static void AttachExportMenu(
+        ListBox listBox,
+        Func<(string Title, IReadOnlyList<ExportPassage> Passages)> collect,
+        Form owner,
+        string? detailLabel = null)
+    {
+        // Same merge-and-reuse as AttachArtifactSearchMenu: several of these
+        // lists already carry a Copy to Clipboard item, and replacing the
+        // strip outright would silently drop it.
+        var menu = listBox.ContextMenuStrip ?? new ContextMenuStrip();
+        var exportItem = menu.Items.Add("Export All Passages...");
+        exportItem.Image = AppIcons.Get("Export", 16);
+        ReadingTheme.ApplyToContextMenu(menu);
+
+        listBox.MouseDown += (_, e) =>
+        {
+            if (e.Button != MouseButtons.Right) return;
+            var index = listBox.IndexFromPoint(e.Location);
+            if (index >= 0) listBox.SelectedIndex = index;
+        };
+
+        exportItem.Click += (_, _) => ShowExportDialog(collect, owner, detailLabel);
+
+        listBox.ContextMenuStrip = menu;
+    }
+
+    /// <summary>
+    /// Same as the ListBox overload, for a ListView - the Concordance's
+    /// results are columnar (left context, keyword, right context), so it
+    /// uses a ListView where the other result lists use a ListBox.
+    /// </summary>
+    public static void AttachExportMenu(
+        ListView listView,
+        Func<(string Title, IReadOnlyList<ExportPassage> Passages)> collect,
+        Form owner,
+        string? detailLabel = null)
+    {
+        var menu = listView.ContextMenuStrip ?? new ContextMenuStrip();
+        var exportItem = menu.Items.Add("Export All Passages...");
+        exportItem.Image = AppIcons.Get("Export", 16);
+        ReadingTheme.ApplyToContextMenu(menu);
+
+        exportItem.Click += (_, _) => ShowExportDialog(collect, owner, detailLabel);
+
+        listView.ContextMenuStrip = menu;
+    }
+
+    private static void ShowExportDialog(
+        Func<(string Title, IReadOnlyList<ExportPassage> Passages)> collect, Form owner, string? detailLabel)
+    {
+        var (title, passages) = collect();
+
+        if (passages.Count == 0)
+        {
+            MessageBox.Show(owner, "There are no passages here to export yet.", "Nothing to export",
+                MessageBoxButtons.OK, MessageBoxIcon.Information);
+            return;
+        }
+
+        using var exportForm = new PassageSetExportForm(title, passages, detailLabel);
+        exportForm.ShowDialog(owner);
+    }
 }

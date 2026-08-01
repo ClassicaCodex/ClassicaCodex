@@ -5,6 +5,11 @@ namespace ClassicaCodex.UI;
 public class BookmarksForm : Form
 {
     private readonly ListBox _bookmarkList;
+
+    // Created once, not per paint. DrawItem runs for every visible row on
+    // every repaint - scrolling a list of bookmarks was allocating two GDI
+    // font handles per row per frame and disposing none of them.
+    private readonly Font _italicFont;
     private readonly Button _deleteButton;
     private readonly BookmarkRepository _bookmarkRepo = new();
 
@@ -44,6 +49,8 @@ public class BookmarksForm : Form
             HorizontalScrollbar = true,
             DrawMode = DrawMode.OwnerDrawVariable
         };
+        _italicFont = new Font(_bookmarkList.Font, FontStyle.Italic);
+
         _bookmarkList.DoubleClick += async (_, _) => await JumpToSelectedAsync();
         _bookmarkList.DrawItem += BookmarkList_DrawItem;
         _bookmarkList.MeasureItem += BookmarkList_MeasureItem;
@@ -56,6 +63,11 @@ public class BookmarksForm : Form
             var full = $"{b.AuthorName}, {b.WorkTitle} [{b.CitationRef}]: {b.Text}";
             return string.IsNullOrEmpty(b.Note) ? full : $"{full}\nNote: {b.Note}";
         });
+
+        ListResultHelpers.AttachExportMenu(_bookmarkList, () => (
+            "Bookmarks",
+            _currentBookmarks.Select(b => new ExportPassage(
+                b.WorkId, b.TextNodeId, b.AuthorName, b.WorkTitle, b.CitationRef, b.Text)).ToList()), this);
 
         _deleteButton = new Button
         {
@@ -82,7 +94,13 @@ public class BookmarksForm : Form
         _bookmarkList.Items.Clear();
         _currentBookmarks = await _bookmarkRepo.GetAllAsync();
 
-        if (_currentBookmarks.Count == 0)
+        // Bookmarks whose passage isn't currently ingested don't appear in the
+        // list above - they're dormant, not deleted. Saying so matters:
+        // otherwise a corpus re-ingest that changed citation refs looks
+        // exactly like the app having quietly lost someone's notes.
+        var dormant = await _bookmarkRepo.CountDormantAsync();
+
+        if (_currentBookmarks.Count == 0 && dormant == 0)
         {
             _bookmarkList.Items.Add("(no bookmarks yet - right-click a line in the reader to add one)");
             return;
@@ -92,6 +110,20 @@ public class BookmarksForm : Form
         {
             _bookmarkList.Items.Add(b);
         }
+
+        if (dormant > 0)
+        {
+            _bookmarkList.Items.Add(dormant == 1
+                ? "(1 more bookmark is waiting on a text that isn't ingested right now)"
+                : $"({dormant} more bookmarks are waiting on texts that aren't ingested right now)");
+        }
+    }
+
+    protected override void Dispose(bool disposing)
+    {
+        if (disposing) _italicFont.Dispose();
+
+        base.Dispose(disposing);
     }
 
     private void BookmarkList_MeasureItem(object? sender, MeasureItemEventArgs e)
@@ -116,22 +148,34 @@ public class BookmarksForm : Form
             e.Graphics.FillRectangle(backBrush, e.Bounds);
         }
 
-        if (e.Index < 0 || e.Index >= _currentBookmarks.Count) return;
+        if (e.Index < 0) return;
 
-        var b = _currentBookmarks[e.Index];
-        var boldFont = new Font(_bookmarkList.Font, FontStyle.Regular);
-        var noteFont = new Font(_bookmarkList.Font, FontStyle.Italic);
         var foreColor = selected ? ReadingTheme.SelectionText : ReadingTheme.Text;
 
+        // Rows past the bookmarks themselves are the list's own messages - the
+        // empty-state line, or the dormant-bookmark notice. This used to
+        // return here having painted only the background, so those messages
+        // were added to the list and then never drawn: the empty state showed
+        // as a blank box rather than the sentence explaining how to add one.
+        if (e.Index >= _currentBookmarks.Count)
+        {
+            TextRenderer.DrawText(e.Graphics, _bookmarkList.Items[e.Index]?.ToString() ?? string.Empty,
+                _italicFont, new Point(e.Bounds.Left, e.Bounds.Top), ReadingTheme.MutedText);
+            return;
+        }
+
+        var b = _currentBookmarks[e.Index];
+
         var line1 = $"{b.AuthorName}, {b.WorkTitle}: {b.Text}";
-        TextRenderer.DrawText(e.Graphics, line1, boldFont, new Point(e.Bounds.Left, e.Bounds.Top), foreColor);
+        TextRenderer.DrawText(e.Graphics, line1, _bookmarkList.Font,
+            new Point(e.Bounds.Left, e.Bounds.Top), foreColor);
 
         if (!string.IsNullOrEmpty(b.Note))
         {
             // The note is secondary text, so it stays muted - but muted
             // relative to whichever surface it's actually sitting on.
             var noteColor = selected ? ReadingTheme.SelectionText : ReadingTheme.MutedText;
-            TextRenderer.DrawText(e.Graphics, $"Note: {b.Note}", noteFont,
+            TextRenderer.DrawText(e.Graphics, $"Note: {b.Note}", _italicFont,
                 new Point(e.Bounds.Left + 16, e.Bounds.Top + 18), noteColor);
         }
 

@@ -22,21 +22,24 @@ public class LemmaRepository
         const int rowsPerStatement = 300;
 
         await using var conn = await DbConnectionFactory.OpenConnectionAsync(cancellationToken);
-        await using var transaction = conn.BeginTransaction();
+        await using var transaction = await conn.BeginTransactionAsync(cancellationToken);
 
         for (var offset = 0; offset < lemmas.Count; offset += rowsPerStatement)
         {
             cancellationToken.ThrowIfCancellationRequested();
 
-            var batch = lemmas.Skip(offset).Take(rowsPerStatement).ToList();
+            // Indexed rather than Skip().Take(): Skip() on an IReadOnlyList
+            // restarts from element zero on every batch, making the loop
+            // quadratic in the row count.
+            var batchSize = Math.Min(rowsPerStatement, lemmas.Count - offset);
 
             await using var cmd = conn.CreateCommand();
-            cmd.Transaction = transaction;
+            cmd.Transaction = (SqliteTransaction)transaction;
 
-            var valueRows = new List<string>(batch.Count);
-            for (var i = 0; i < batch.Count; i++)
+            var valueRows = new List<string>(batchSize);
+            for (var i = 0; i < batchSize; i++)
             {
-                var l = batch[i];
+                var l = lemmas[offset + i];
                 valueRows.Add($"(@f{i},@nf{i},@h{i},@l{i},@p{i})");
                 cmd.Parameters.AddWithValue($"@f{i}", l.Form);
                 cmd.Parameters.AddWithValue($"@nf{i}", l.NormalizedForm);
@@ -86,11 +89,6 @@ public class LemmaRepository
     }
 
     /// <summary>
-    /// All headwords a given inflected form could derive from. Usually one;
-    /// sometimes several, which is genuine ambiguity worth showing the user
-    /// rather than silently picking a winner.
-    /// </summary>
-    /// <summary>
     /// Falls back to guessing the corpus from the word's script when the
     /// caller doesn't know it. Reliable only for Greek, which has its own
     /// alphabet - English and Latin share one, so callers that can tell
@@ -111,6 +109,11 @@ public class LemmaRepository
         return "lat";
     }
 
+    /// <summary>
+    /// All headwords a given inflected form could derive from. Usually one;
+    /// sometimes several, which is genuine ambiguity worth showing the user
+    /// rather than silently picking a winner.
+    /// </summary>
     public async Task<List<(string Headword, string? PartOfSpeech)>> GetHeadwordsForFormAsync(
         string form, string? language = null, CancellationToken cancellationToken = default)
     {

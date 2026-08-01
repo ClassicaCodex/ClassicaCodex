@@ -107,6 +107,49 @@ public class AboutForm : Form
 
         AddSourceSection(
             scrollHost, ref y,
+            "World Map Data",
+            "Real coastline shapes for the Places Map. Entirely optional - without it, the map still " +
+            "works, using simpler built-in landmasses instead.",
+            "Natural Earth, via the nvkelso/natural-earth-vector mirror on GitHub",
+            "Public Domain",
+            "https://github.com/nvkelso/natural-earth-vector",
+            "Public domain by the original project's own terms - no attribution is legally required, " +
+            "included here anyway for completeness. Natural Earth's home project is at " +
+            "naturalearthdata.com; only the single small land-outline file the Places Map actually uses " +
+            "is downloaded, not the full dataset.");
+
+        AddSourceSection(
+            scrollHost, ref y,
+            "Art & Archaeology Data",
+            "Real objects from the ancient world - vases, coins, gems, sculptures, sites, and buildings, " +
+            "with descriptions and photos - shown on the Places Map and Myth Network.",
+            "Perseus Digital Library (perseus-aa/json)",
+            "Perseus Digital Library terms; images not redistributed",
+            "https://github.com/perseus-aa/json",
+            "Only the catalog descriptions download and stay in your library, the same as everything " +
+            "else here. The photographs do not: Perseus's own terms for this collection don't permit " +
+            "redistributing the images outside its own site, so this app always fetches them live from " +
+            "Perseus's server when you view one, and never saves a copy. That's a deliberate design " +
+            "choice matching the license, not a missing feature.",
+            highlightNotice: true);
+
+        AddSourceSection(
+            scrollHost, ref y,
+            "English Lemma Data & Dictionary",
+            "Maps English word forms back to their dictionary headword and supplies definitions - the " +
+            "same job the Greek and Latin lemma data does above, applied to the English translations " +
+            "already in your library. Makes search find \"spoke\" when you type \"speak\", and brings " +
+            "Word Study to the translation side as well as the original.",
+            "Princeton University (WordNet lexical database)",
+            "WordNet License - permissive, free for any use",
+            "https://wordnet.princeton.edu",
+            "Unlike the Greek lemma data above, this one carries no NonCommercial restriction. " +
+            "Princeton's own license permits any use, including commercial, provided its copyright " +
+            "notice is retained - it doesn't loosen the constraint the Greek lemma data sets for the " +
+            "app as a whole, but using it doesn't add a second one either.");
+
+        AddSourceSection(
+            scrollHost, ref y,
             "Renaissance & Early Modern English Texts",
             "Shakespeare, Marlowe, Holinshed, Hakluyt, Sidney, James I, Wilson, and Peacham - Perseus's " +
             "collection of the writers who reworked and responded to classical material in English.",

@@ -165,7 +165,15 @@ public class StylometryForm : Form
         _analyzeButton.Enabled = false;
         _statusLabel.Text = $"Analyzing {sameLanguage.Count} works in {target.Language}... this reads full text for each, so it can take a bit.";
         _resultsList.Items.Clear();
-        Application.DoEvents();
+
+        // Was Application.DoEvents() here, to get the status label painted
+        // before the analysis starts. DoEvents pumps the whole message queue
+        // mid-handler, which means a second Analyze click gets dispatched
+        // while the first pass is still running - the button is disabled
+        // above, but anything else on the form is still live. Task.Yield
+        // gives the same repaint by returning to the message loop normally
+        // and resuming here, without running queued input.
+        await Task.Yield();
 
         try
         {
