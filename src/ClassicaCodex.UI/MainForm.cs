@@ -75,6 +75,16 @@ public class MainForm : Form
     // database file.
     private Work? _openWork;
 
+    // What the tree was last built from. Filtering rebuilds the nodes from
+    // these rather than going back to the database on every keystroke - a
+    // full corpus is a couple of thousand authors and one query for all
+    // their works, which is not something to repeat per character typed.
+    private readonly TextBox _treeFilterBox;
+    private readonly PictureBox _treeFilterIcon;
+
+    private List<Author> _allAuthors = new();
+    private Dictionary<int, List<Work>> _worksByAuthor = new();
+
     // These menu items get their icon once, at construction - which happens
     // before ReadingTheme.Load() ever runs (that's in Shown, this is in the
     // constructor). So on a saved dark-mode preference, they'd otherwise be
@@ -198,19 +208,48 @@ public class MainForm : Form
         _treeToggleButton = new Button
         {
             Left = 10,
-            Top = 58,
-            Width = 300,
+            Top = 54,
+            Width = 132,
             Height = 24,
-            Text = "\u25C0 Collapse Library"
+            Text = "\u25C0 Library"
         };
         AppIcons.Apply(_treeToggleButton, "Collapse", 14);
+
+        // Sits on the toggle's own row rather than taking a row of its own,
+        // which is why that button lost its wordier label - the tree is
+        // long enough that jumping to an author by name beats scrolling to
+        // them, and the header area was already the tallest thing above the
+        // reader.
+        _treeFilterIcon = new PictureBox
+        {
+            Left = 148,
+            Top = 57,
+            Width = 16,
+            Height = 16,
+            SizeMode = PictureBoxSizeMode.Zoom,
+            Image = AppIcons.Get("Filter", 16)
+        };
+
+        _treeFilterBox = new TextBox
+        {
+            Left = 168,
+            Top = 54,
+            Width = 142,
+            PlaceholderText = "Filter authors"
+        };
+
+        // Rebuilt straight from the cached lists on each keystroke rather
+        // than debounced - there is no query behind it, so the work is a
+        // string comparison per author and a tree rebuild, which a full
+        // corpus absorbs without a pause.
+        _treeFilterBox.TextChanged += (_, _) => PopulateLibraryTree();
 
         _libraryTree = new TreeView
         {
             Left = 10,
-            Top = 86,
+            Top = 82,
             Width = 300,
-            Height = 654,
+            Height = 658,
             Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left
         };
         _libraryTree.AfterSelect += async (_, e) => await LibraryTree_AfterSelectAsync(e);
@@ -254,9 +293,9 @@ public class MainForm : Form
         var splitContainer = new SplitContainer
         {
             Left = 320,
-            Top = 86,
+            Top = 82,
             Width = 1360,
-            Height = 464,
+            Height = 468,
             Orientation = Orientation.Vertical
         };
 
@@ -346,7 +385,13 @@ public class MainForm : Form
         {
             _libraryTreeCollapsed = !_libraryTreeCollapsed;
             _libraryTree.Visible = !_libraryTreeCollapsed;
-            _treeToggleButton.Text = _libraryTreeCollapsed ? "\u25B6" : "\u25C0 Collapse Library";
+
+            // Filtering a hidden tree isn't a thing, and leaving the box
+            // sitting there over the reader would look like part of it.
+            _treeFilterIcon.Visible = !_libraryTreeCollapsed;
+            _treeFilterBox.Visible = !_libraryTreeCollapsed;
+
+            _treeToggleButton.Text = _libraryTreeCollapsed ? "\u25B6" : "\u25C0 Library";
             AppIcons.Apply(_treeToggleButton, _libraryTreeCollapsed ? "Expand" : "Collapse", 14);
             RelayoutReaderArea();
         };
@@ -446,6 +491,8 @@ public class MainForm : Form
         _themedButtonIcons.Add((_helpButton, "Help"));
         Controls.Add(_libraryTree);
         Controls.Add(_treeToggleButton);
+        Controls.Add(_treeFilterIcon);
+        Controls.Add(_treeFilterBox);
         Controls.Add(splitContainer);
 
         Load += async (_, _) =>
@@ -482,7 +529,7 @@ public class MainForm : Form
             // Shrinks to just its arrow once collapsed - there's nothing
             // left underneath to line up with, so the full descriptive
             // label would only be clutter.
-            _treeToggleButton.Width = _libraryTreeCollapsed ? collapsedToggleWidth : 300;
+            _treeToggleButton.Width = _libraryTreeCollapsed ? collapsedToggleWidth : 132;
 
             // Reader area starts right after the tree - or right at the
             // window's own left margin if the tree is collapsed, reclaiming
@@ -571,8 +618,6 @@ public class MainForm : Form
 
     private async Task LoadLibraryTreeAsync()
     {
-        _libraryTree.Nodes.Clear();
-
         List<Author> authors;
         Dictionary<int, List<Work>> worksByAuthor;
         try
@@ -590,6 +635,30 @@ public class MainForm : Form
                 MessageBoxButtons.OK, MessageBoxIcon.Error);
             return;
         }
+
+        _allAuthors = authors;
+        _worksByAuthor = worksByAuthor;
+        PopulateLibraryTree();
+    }
+
+    /// <summary>
+    /// Builds the tree from what was last loaded, keeping only authors whose
+    /// name matches the filter box.
+    ///
+    /// Matched on the author's own name rather than the displayed label, so
+    /// typing "eng" finds an author called English and not every Renaissance
+    /// author whose row happens to be tagged "(English)".
+    /// </summary>
+    private void PopulateLibraryTree()
+    {
+        var filter = _treeFilterBox.Text.Trim();
+        var authors = filter.Length == 0
+            ? _allAuthors
+            : _allAuthors
+                .Where(a => a.Name.Contains(filter, StringComparison.CurrentCultureIgnoreCase))
+                .ToList();
+
+        _libraryTree.Nodes.Clear();
 
         // Without this, every Nodes.Add triggers the tree to re-measure and
         // repaint - thousands of times over a full corpus. The reader pane
@@ -617,7 +686,7 @@ public class MainForm : Form
 
                 var authorNode = new TreeNode(label) { Tag = author };
 
-                if (worksByAuthor.TryGetValue(author.AuthorId, out var works))
+                if (_worksByAuthor.TryGetValue(author.AuthorId, out var works))
                 {
                     foreach (var work in works)
                     {
@@ -631,6 +700,14 @@ public class MainForm : Form
         finally
         {
             _libraryTree.EndUpdate();
+        }
+
+        // Says so rather than showing an empty panel, which reads as a
+        // library that failed to load rather than a filter that matched
+        // nothing.
+        if (authors.Count == 0 && filter.Length > 0)
+        {
+            _libraryTree.Nodes.Add(new TreeNode($"No author matching \u201c{filter}\u201d"));
         }
     }
 

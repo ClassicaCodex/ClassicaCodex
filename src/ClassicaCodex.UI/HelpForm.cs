@@ -54,6 +54,8 @@ Right-click a line for:
    Word Study - look the words up properly
    Export - write the passage out to a file
 
+The library tree lists every author alphabetically. The box beside the Library button filters it by author name as you type - with a few thousand authors loaded, typing three letters beats scrolling. Clearing the box brings them all back.
+
 Right-click a work in the library tree on the left for:
    View Details - everything known about the work and its editions
    Create Translation - renders a whole work at once rather than a single line, see Translate
