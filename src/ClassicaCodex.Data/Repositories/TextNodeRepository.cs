@@ -428,18 +428,49 @@ public class TextNodeRepository
     /// accentuation or precomposed-vs-combining Unicode. That normalization
     /// happens in memory here rather than in SQL, so this pulls candidate
     /// rows with a LIKE prefilter and then filters them properly in C#.
+    ///
+    /// Optionally restricted to a chosen set of works. The corpus-wide
+    /// answer is often too big to be an answer: a common word returns
+    /// thousands of lines, stops at the result limit, and tells you only
+    /// that the word is common. Narrowed it becomes the useful question -
+    /// how does this author use it, in this text, or across this trilogy.
+    ///
+    /// An empty or null set means no restriction, so "everything" costs
+    /// nothing rather than being expressed as a list of every id.
     /// </summary>
     public async Task<SearchHits> SearchByFormsAsync(
-        IReadOnlyList<string> forms, int maxResults = DefaultMaxResults, CancellationToken cancellationToken = default)
+        IReadOnlyList<string> forms, int maxResults = DefaultMaxResults,
+        IReadOnlyCollection<int>? workIds = null, CancellationToken cancellationToken = default)
     {
         if (forms.Count == 0) return SearchHits.Empty;
 
+        var scope = workIds == null || workIds.Count == 0 ? null : workIds.Distinct().ToList();
+
         // Fast path: if the inverted word index has been built, resolve
         // everything in one joined query.
-        var indexed = await TrySearchViaWordIndexAsync(forms, maxResults, cancellationToken);
+        var indexed = await TrySearchViaWordIndexAsync(forms, maxResults, scope, cancellationToken);
         if (indexed != null) return indexed;
 
-        return await SearchByFormsWithLikeAsync(forms, maxResults, cancellationToken);
+        return await SearchByFormsWithLikeAsync(forms, maxResults, scope, cancellationToken);
+    }
+
+    /// <summary>
+    /// The WHERE fragment restricting a search to chosen works, with its
+    /// parameters registered on the command. Empty when unrestricted.
+    /// </summary>
+    private static string WorkScopeClause(
+        SqliteCommand cmd, List<int>? workIds, string keyword)
+    {
+        if (workIds == null || workIds.Count == 0) return string.Empty;
+
+        var names = new List<string>();
+        for (var i = 0; i < workIds.Count; i++)
+        {
+            names.Add($"@k{i}");
+            cmd.Parameters.AddWithValue($"@k{i}", workIds[i]);
+        }
+
+        return $"{keyword} w.WorkId IN ({string.Join(",", names)})";
     }
 
     /// <summary>
@@ -448,7 +479,7 @@ public class TextNodeRepository
     /// "no index" apart from "index found nothing" and fall back.
     /// </summary>
     private async Task<SearchHits?> TrySearchViaWordIndexAsync(
-        IReadOnlyList<string> forms, int maxResults, CancellationToken cancellationToken)
+        IReadOnlyList<string> forms, int maxResults, List<int>? workIds, CancellationToken cancellationToken)
     {
         // Opened once and reused for the has-data check below and the real
         // query that follows it - see WordIndexRepository.HasDataAsync's
@@ -498,6 +529,7 @@ public class TextNodeRepository
             JOIN Editions e ON tn.EditionId = e.EditionId
             JOIN Works w ON e.WorkId = w.WorkId
             JOIN Authors a ON w.AuthorId = a.AuthorId
+            {WorkScopeClause(cmd, workIds, "WHERE")}
             ORDER BY a.Name, w.Title, tn.SortOrder
             LIMIT @Limit;";
 
@@ -516,7 +548,7 @@ public class TextNodeRepository
     }
 
     private async Task<SearchHits> SearchByFormsWithLikeAsync(
-        IReadOnlyList<string> forms, int maxResults, CancellationToken cancellationToken)
+        IReadOnlyList<string> forms, int maxResults, List<int>? workIds, CancellationToken cancellationToken)
     {
         var results = new List<(int, long, string, string, string, string)>();
 
@@ -545,7 +577,8 @@ public class TextNodeRepository
             JOIN Editions e ON tn.EditionId = e.EditionId
             JOIN Works w ON e.WorkId = w.WorkId
             JOIN Authors a ON w.AuthorId = a.AuthorId
-            WHERE {string.Join(" OR ", clauses)}
+            WHERE ({string.Join(" OR ", clauses)})
+                  {WorkScopeClause(cmd, workIds, "AND")}
             ORDER BY a.Name, w.Title, tn.SortOrder
             LIMIT @Limit;";
 

@@ -45,6 +45,32 @@ public static class MorphologyDecoder
         /// <summary>Just the part of speech ("verb", "noun"...), when known - useful for grouping even if nothing else decoded.</summary>
         public string? PartOfSpeech { get; init; }
 
+        /// <summary>
+        /// The agreement features on their own, null where the tag doesn't
+        /// carry them.
+        ///
+        /// Description already contains these, but only as prose. Agreement
+        /// is the one thing that resolves a form the surrounding words can
+        /// settle and nothing else can - "ton Dia" is Zeus rather than the
+        /// preposition dia because a masculine accusative article cannot
+        /// govern a preposition - and comparing prose descriptions to work
+        /// that out would be parsing English to recover what the tag already
+        /// said.
+        /// </summary>
+        public string? Gender { get; init; }
+
+        public string? Number { get; init; }
+
+        public string? Case { get; init; }
+
+        public string? Tense { get; init; }
+
+        public string? Mood { get; init; }
+
+        public string? Voice { get; init; }
+
+        public string? Person { get; init; }
+
         public override string ToString() => IsDecoded ? Description : RawTag;
     }
 
@@ -362,7 +388,14 @@ public static class MorphologyDecoder
             RawTag = tag,
             IsDecoded = description.Length > 0,
             Description = description,
-            PartOfSpeech = pos
+            PartOfSpeech = pos,
+            Gender = gender,
+            Number = number,
+            Case = grammaticalCase,
+            Tense = tense,
+            Mood = mood,
+            Voice = voice,
+            Person = person
         };
     }
 

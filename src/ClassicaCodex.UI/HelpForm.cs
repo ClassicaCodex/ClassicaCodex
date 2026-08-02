@@ -105,7 +105,19 @@ Read Aloud
 Translate This Myself (right-click a work in the library tree)
    A workbench for translating a text yourself, one passage at a time. It shows the passage, a list of its words, and your own translation box side by side.
 
+   Whole Passage lays out every word of the passage in order with its dictionary headword and its grammatical form, so you can see how the sentence is put together and write a first attempt of your own rather than jumping straight to the AI button. Where a form could be more than one word - common in Greek - it uses the words around it to decide. A masculine accusative article in front of a form rules out a preposition; an adjective takes its gender and number from the noun beside it. That settles most of what a word cannot settle alone. Where nothing agrees, the alternatives are listed rather than one being chosen for you.
+
+   The neighbours narrow the possibilities rather than choosing among them, and what is shown is what all the surviving readings agree on. So context adds detail where it genuinely settles something, and stays quiet where it doesn't.
+
+   It also claims only what a form actually determines. The genitive plural article is the same word in all three genders, and every neuter nominative is also an accusative, so those forms are shown as "article: genitive plural" and "adjective: neuter plural" rather than picking a gender or case the word itself cannot tell you.
+
+   It shows no dictionary meanings, on purpose. LSJ and Lewis & Short mix definitions with manuscript notes and grammatical cross-references, and no reliable way was found to tell them apart automatically - a wrong meaning presented to someone still learning is worse than none. Click a word on the left for its full entry, where an apparatus note is at least visible as one.
+
+   Word Study opens the passage in the full word study window with whichever word you had selected already chosen, and its occurrences narrowed to the work you are translating - how this author uses the word here, rather than a corpus-wide count that stops at the result limit. Choose Texts widens or narrows that to any set of works you like.
+
    Alphabet opens the letters of whatever language you are translating from, with the breathings, accents and iota subscript that sit on them. It is not a translation aid - it is for the step before, when you cannot yet read the script well enough to look a word up at all.
+
+   Your own translations of the passage before and after are shown greyed above and below the box you type in, read-only so they can't be edited by accident. They are there for consistency as much as context: what goes wrong in a translation built over weeks is usually rendering the same word one way here and another way later, and this is the only place you would notice.
 
    The passage before and after the current one are shown dimmed around it. Citation references cut across sentences all the time in verse - a relative pronoun at the end of one passage often resolves in the next - so translating a clause with half of it off screen is how you end up confidently wrong.
 
@@ -203,6 +215,8 @@ Compare Sources
 
         ("Word Study and dictionaries", """
 Right-click a line and choose Word Study, then click any word in it.
+
+Occurrences start scoped to the work you are reading, because the corpus-wide count for a common word runs to thousands of lines, stops at the result limit, and tells you only that the word is common. Choose Texts picks any set of works instead - one text, a trilogy, an author's whole output, or everything. The list is filterable, since a full corpus runs to thousands of works. Right-click it to select or unselect everything the filter is currently showing, which is the quick way to take an author's whole output: type their name, right-click, select all shown.
 
 You'll get the dictionary headwords that form could come from (sometimes more than one - that ambiguity is real and worth seeing rather than having it guessed away), the full paradigm of attested forms, the dictionary entry itself, and every occurrence across the corpus.
 

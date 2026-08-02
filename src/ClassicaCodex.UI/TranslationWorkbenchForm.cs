@@ -27,6 +27,7 @@ public class TranslationWorkbenchForm : Form
     private readonly Work _work;
     private readonly string _authorName;
     private readonly int _translationEditionId;
+    private readonly int _workId;
     private readonly string? _sourceLanguage;
 
     private readonly List<TextNode> _sourcePassages;
@@ -49,7 +50,9 @@ public class TranslationWorkbenchForm : Form
     // store a full CTS URN per line, so 45 identical characters precede the
     // part that differs and every entry in the picker reads the same.
     private readonly string _citationPrefix;
+    private readonly TextBox _previousTranslationBox;
     private readonly TextBox _myTranslationBox;
+    private readonly TextBox _nextTranslationBox;
     private readonly TextBox _wordPanel;
     private readonly Button _previousButton;
     private readonly Button _nextButton;
@@ -81,6 +84,7 @@ public class TranslationWorkbenchForm : Form
         _loadAligner = loadAligner;
         _citationPrefix = CommonCitationPrefix(sourcePassages);
         _work = work;
+        _workId = work.WorkId;
         _authorName = authorName;
         _translationEditionId = translationEditionId;
         _sourceLanguage = sourceLanguage;
@@ -91,7 +95,7 @@ public class TranslationWorkbenchForm : Form
         Text = $"Translate - {authorName}, {work.Title}";
         AppIcons.ApplyWindowIcon(this, "Translate");
         ClientSize = new Size(1164, 740);
-        MinimumSize = new Size(980, 680);
+        MinimumSize = new Size(1000, 700);
         StartPosition = FormStartPosition.CenterParent;
 
         _headerLabel = new Label
@@ -163,7 +167,7 @@ public class TranslationWorkbenchForm : Form
 
         var panelLabel = new Label
         {
-            Text = "Headword, grammar, and dictionary:", Left = 226, Top = 254, Width = 320
+            Text = "Headword, grammar, and dictionary:", Left = 226, Top = 254, Width = 84
         };
 
         // Sits by the word list rather than with the AI buttons because it
@@ -172,7 +176,7 @@ public class TranslationWorkbenchForm : Form
         var alphabetButton = new Button
         {
             Text = "Alphabet", Left = 588, Top = 248, Width = 126, Height = 26,
-            Anchor = AnchorStyles.Top | AnchorStyles.Left
+            Anchor = AnchorStyles.Top | AnchorStyles.Right
         };
         alphabetButton.Click += (_, _) =>
         {
@@ -180,6 +184,45 @@ public class TranslationWorkbenchForm : Form
             form.ShowDialog(this);
         };
         AppIcons.Apply(alphabetButton, "WordStudy", 16);
+
+        // The same lookups as clicking a word, for every word at once and in
+        // the order they appear.
+        //
+        // Clicking word by word tells you about a word. This tells you about
+        // a sentence: seeing accusative, then a third-person verb, then a
+        // preposition governing a dative, laid out in sequence, is what lets
+        // someone assemble a first attempt at all. Without it the only route
+        // from "stuck" to "written" is the AI button, and then you are
+        // transcribing rather than translating.
+        var cribButton = new Button
+        {
+            Text = "Whole Passage", Left = 452, Top = 248, Width = 130, Height = 26,
+            Anchor = AnchorStyles.Top | AnchorStyles.Right
+        };
+        cribButton.Click += async (_, _) => await BuildCribAsync();
+        AppIcons.Apply(cribButton, "Morphology", 16);
+
+        // Opens the existing Word Study on this passage, with whichever word
+        // is selected already chosen. Occurrences start narrowed to this
+        // work: "how does this author use it here" is answerable, where the
+        // corpus-wide count for a common word stops at the result limit and
+        // says only that the word is common.
+        var wordStudyButton = new Button
+        {
+            Text = "Word Study", Left = 316, Top = 248, Width = 130, Height = 26,
+            Anchor = AnchorStyles.Top | AnchorStyles.Right
+        };
+        wordStudyButton.Click += (_, _) =>
+        {
+            if (_sourcePassages.Count == 0) return;
+
+            using var form = new WordStudyForm(
+                _sourcePassages[_index], _sourceLanguage, _workId,
+                _sourceWords.SelectedItem as string);
+
+            form.ShowDialog(this);
+        };
+        AppIcons.Apply(wordStudyButton, "WordStudy", 16);
         _wordPanel = new TextBox
         {
             Left = 226, Top = 276, Width = 488, Height = 366,
@@ -190,7 +233,7 @@ public class TranslationWorkbenchForm : Form
 
         var myLabel = new Label
         {
-            Text = "Your translation of this passage:", Left = 730, Top = 40, Width = 400,
+            Text = "Your translation - before and after shown greyed:", Left = 730, Top = 40, Width = 400,
             Anchor = AnchorStyles.Top | AnchorStyles.Right
         };
 
@@ -213,12 +256,42 @@ public class TranslationWorkbenchForm : Form
         foreach (var (_, label) in comparisons) _comparisonBox.Items.Add(label);
         _comparisonBox.SelectedIndex = comparisons.Count > 0 ? 1 : 0;
         _comparisonBox.SelectedIndexChanged += async (_, _) => await ChangeComparisonAsync();
+        // Your own rendering of the passage either side, laid out to mirror
+        // the original on the left so the eye can travel straight across.
+        //
+        // Read-only and in separate boxes rather than dimmed text in one:
+        // the point is that they cannot be edited by accident, and a single
+        // box would leave the boundary between what you are writing and what
+        // you already wrote as a matter of noticing a colour.
+        //
+        // Worth more than the symmetry suggests. What goes wrong in a
+        // translation made over weeks is rarely a mistranslated word - it is
+        // rendering the same word "good things" here and "the good" three
+        // passages later. Nothing else in the workbench would show you that.
+        _previousTranslationBox = new TextBox
+        {
+            Left = 730, Top = 62, Width = 420, Height = 92,
+            Anchor = AnchorStyles.Top | AnchorStyles.Right,
+            Multiline = true, ReadOnly = true, ScrollBars = ScrollBars.Vertical,
+            Font = new Font("Georgia", 9.5F),
+            TabStop = false
+        };
+
         _myTranslationBox = new TextBox
         {
-            Left = 730, Top = 62, Width = 420, Height = 580,
+            Left = 730, Top = 162, Width = 420, Height = 388,
             Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Right,
             Multiline = true, ScrollBars = ScrollBars.Vertical,
             Font = new Font("Georgia", 11F)
+        };
+
+        _nextTranslationBox = new TextBox
+        {
+            Left = 730, Top = 558, Width = 420, Height = 84,
+            Anchor = AnchorStyles.Bottom | AnchorStyles.Right,
+            Multiline = true, ReadOnly = true, ScrollBars = ScrollBars.Vertical,
+            Font = new Font("Georgia", 9.5F),
+            TabStop = false
         };
         _myTranslationBox.TextChanged += (_, _) => RefreshRevealButton();
 
@@ -291,7 +364,8 @@ public class TranslationWorkbenchForm : Form
         Controls.AddRange(new Control[]
         {
             _headerLabel, gotoLabel, _gotoBox, _progressLabel, sourceLabel, _sourceBox, wordsLabel, _sourceWords,
-            panelLabel, alphabetButton, _wordPanel, myLabel, _myTranslationBox,
+            panelLabel, wordStudyButton, cribButton, alphabetButton, _wordPanel, myLabel, _myTranslationBox,
+            _previousTranslationBox, _nextTranslationBox,
             comparisonLabel, _comparisonBox, _glossWordButton, _suggestButton, _revealButton,
             _previousButton, _nextButton, closeButton, _statusLabel
         });
@@ -300,11 +374,15 @@ public class TranslationWorkbenchForm : Form
         // anyone returning to a long work is where they stopped rather than
         // where they started.
         _index = FirstUntranslatedIndex();
-        ShowPassage();
 
         Load += async (_, _) => await ChangeComparisonAsync();
 
         ReadingTheme.AttachTo(this);
+
+        // After the theme, not before: ShowPassage sets colours the theme
+        // would otherwise overwrite, and rendering twice would be the only
+        // other way to get the order right.
+        ShowPassage();
     }
 
     private async Task ChangeComparisonAsync()
@@ -355,6 +433,13 @@ public class TranslationWorkbenchForm : Form
         }
 
         _myTranslationBox.Text = _myTranslations.TryGetValue(passage.CitationRef, out var mine) ? mine : string.Empty;
+
+        _previousTranslationBox.Text = NeighbouringTranslation(_index - 1);
+        _nextTranslationBox.Text = NeighbouringTranslation(_index + 1);
+
+        var dimmed = ReadingTheme.IsDark ? Color.FromArgb(150, 150, 158) : Color.FromArgb(128, 122, 112);
+        _previousTranslationBox.ForeColor = dimmed;
+        _nextTranslationBox.ForeColor = dimmed;
         _wordPanel.Text = "Click a word on the left.";
         _glossWordButton.Enabled = false;
 
@@ -377,6 +462,24 @@ public class TranslationWorkbenchForm : Form
 
         _previousButton.Enabled = _index > 0;
         _nextButton.Text = _index < _sourcePassages.Count - 1 ? "Save and Next \u25B6" : "Save";
+    }
+
+    /// <summary>
+    /// What you wrote for the passage at this position, or a note that you
+    /// haven't yet.
+    ///
+    /// The empty case says so rather than showing a blank box, which would
+    /// read as something having failed to load.
+    /// </summary>
+    private string NeighbouringTranslation(int index)
+    {
+        if (index < 0 || index >= _sourcePassages.Count) return string.Empty;
+
+        var citation = _sourcePassages[index].CitationRef;
+
+        return _myTranslations.TryGetValue(citation, out var text) && text.Length > 0
+            ? text
+            : $"[{ShortCitation(citation)} - not translated yet]";
     }
 
     /// <summary>
@@ -511,6 +614,336 @@ public class TranslationWorkbenchForm : Form
         }
     }
 
+    /// <summary>
+    /// Every word of the passage with its headword, parse and a short gloss,
+    /// in the order they appear.
+    ///
+    /// Repeated words are looked up once - a passage of forty words with the
+    /// article in it several times shouldn't mean several identical queries.
+    /// </summary>
+    private async Task BuildCribAsync()
+    {
+        if (_sourcePassages.Count == 0) return;
+
+        _wordPanel.Text = "Reading the passage...";
+
+        try
+        {
+            var words = SplitWords(_sourcePassages[_index].Text).ToList();
+
+            // Every reading of every word first, because choosing between
+            // them needs the neighbours - and the neighbours are ambiguous
+            // too. Looked up once per distinct word.
+            var lookups = new Dictionary<string, List<(string Headword, string? PartOfSpeech)>>();
+            foreach (var word in words)
+            {
+                if (lookups.ContainsKey(word)) continue;
+                lookups[word] = Rank(
+                    await _lemmaRepo.GetHeadwordsForFormAsync(word, _sourceLanguage), word);
+            }
+
+            var report = new System.Text.StringBuilder();
+
+            for (var i = 0; i < words.Count; i++)
+            {
+                var permitted = PermittedByContext(words, lookups, i);
+                report.AppendLine(Describe(words[i], permitted, lookups[words[i]]));
+            }
+
+            report.AppendLine();
+            report.AppendLine("Click any word on the left for its full dictionary entry.");
+
+            _wordPanel.Text = report.ToString();
+            _wordPanel.SelectionStart = 0;
+            _wordPanel.SelectionLength = 0;
+        }
+        catch (Exception ex)
+        {
+            _wordPanel.Text = $"Couldn't read the passage: {ex.Message}";
+        }
+    }
+
+    /// <summary>
+    /// Narrows each word to the readings its neighbours permit.
+    ///
+    /// Not a choice between readings - a filter. Picking one and printing it
+    /// was the mistake behind every version of this: agreement is symmetric,
+    /// so two words can each justify the other's wrong reading and no amount
+    /// of re-checking separates them. "ton kakon" sat at feminine because
+    /// the article and kake agree with each other perfectly well.
+    ///
+    /// Keeping every permitted reading and reporting only what they share
+    /// makes that impossible. Where the context genuinely narrows things,
+    /// one reading survives and full detail is shown; where it doesn't, the
+    /// undetermined feature simply isn't claimed. The article comes out as
+    /// "genitive plural" with no gender, which is exactly what the form
+    /// tells you and no more.
+    ///
+    /// A reading with no agreement features at all - a preposition, a
+    /// particle - is never filtered out, having nothing to disagree with.
+    /// </summary>
+    private static List<(string Headword, string? PartOfSpeech)> PermittedByContext(
+        List<string> words,
+        Dictionary<string, List<(string Headword, string? PartOfSpeech)>> lookups,
+        int index)
+    {
+        var candidates = lookups[words[index]];
+        if (candidates.Count < 2) return candidates;
+
+        var neighbourFeatures = new List<MorphologyDecoder.Parse>();
+        foreach (var offset in new[] { -1, 1 })
+        {
+            var at = index + offset;
+            if (at < 0 || at >= words.Count) continue;
+
+            neighbourFeatures.AddRange(lookups[words[at]]
+                .Select(r => MorphologyDecoder.Decode(r.PartOfSpeech))
+                .Where(HasAgreementFeatures));
+        }
+
+        if (neighbourFeatures.Count == 0) return candidates;
+
+        var permitted = candidates
+            .Where(c =>
+            {
+                var parse = MorphologyDecoder.Decode(c.PartOfSpeech);
+                if (!HasAgreementFeatures(parse)) return true;
+                return neighbourFeatures.Any(neighbour => Agrees(parse, neighbour));
+            })
+            .ToList();
+
+        // Filtering must never promote an index artifact. A reading with no
+        // agreement features is always permitted, having nothing to
+        // disagree with - right for a preposition, but it also lets through
+        // a row that is just the surface form filed under itself with no
+        // part of speech at all. If context has ruled out every reading that
+        // actually parses, the context was misleading rather than the
+        // artifact right.
+        //
+        // Tested on the parse rather than the headword: an artifact can look
+        // like a perfectly good Greek word - "ta" for the article is
+        // lower-case, accented and unpunctuated - and the thing that gives
+        // it away is having no grammar behind it.
+        if (!permitted.Any(HasRealParse) && candidates.Any(HasRealParse))
+        {
+            return candidates;
+        }
+
+        if (permitted.Count == 0) return candidates;
+
+        // Positively agreeing readings lead. Filtering alone isn't enough:
+        // a reading with no agreement features is never excluded, so for
+        // "ton Dia" the preposition dia survives beside Zeus and then wins
+        // on resembling the form. Zeus is the one the article actually
+        // agrees with, and that is stronger evidence than spelling.
+        //
+        // A stable ordering, so everything already decided about ranking
+        // still applies within each group.
+        return permitted
+            .OrderBy(c =>
+            {
+                var parse = MorphologyDecoder.Decode(c.PartOfSpeech);
+                if (!HasAgreementFeatures(parse)) return 1;
+                return neighbourFeatures.Any(neighbour => Agrees(parse, neighbour)) ? 0 : 1;
+            })
+            .ToList();
+    }
+
+    private static string Describe(
+        string word,
+        List<(string Headword, string? PartOfSpeech)> permitted,
+        List<(string Headword, string? PartOfSpeech)> allReadings)
+    {
+        var reading = permitted.FirstOrDefault();
+        if (string.IsNullOrEmpty(reading.Headword)) return $"{word,-16} \u2014";
+
+        var grammar = DescribeSharedFeatures(reading, permitted);
+
+        var line = $"{word,-16} {reading.Headword}";
+        if (grammar.Length > 0) line += $"  ({grammar})";
+
+        // Alternatives come from everything the lemma data offered, not just
+        // what context allowed - a reading the neighbours ruled out is still
+        // worth seeing, because the ruling out is a guess too.
+        var alternatives = allReadings
+            .Select(r => r.Headword)
+            .Distinct(StringComparer.CurrentCultureIgnoreCase)
+            .Where(h => !string.Equals(h, reading.Headword, StringComparison.CurrentCultureIgnoreCase))
+            .Take(2)
+            .ToList();
+
+        if (alternatives.Count > 0)
+        {
+            line += $"{Environment.NewLine}                 or: {string.Join(", ", alternatives)}";
+        }
+
+        return line;
+    }
+
+    /// <summary>
+    /// What every permitted reading of this headword agrees on.
+    ///
+    /// Includes tense, mood and voice as well as the nominal features: a
+    /// participle whose readings differ only in case is still definitely a
+    /// present active participle, and reporting merely "verb" would throw
+    /// away the part that was never in doubt.
+    /// </summary>
+    private static string DescribeSharedFeatures(
+        (string Headword, string? PartOfSpeech) reading,
+        List<(string Headword, string? PartOfSpeech)> permitted)
+    {
+        var parse = MorphologyDecoder.Decode(reading.PartOfSpeech);
+        if (!parse.IsDecoded || parse.Description.Length == 0) return string.Empty;
+        if (!IsRealPartOfSpeech(parse)) return string.Empty;
+
+        var sameHeadword = permitted
+            .Where(r => string.Equals(r.Headword, reading.Headword, StringComparison.CurrentCultureIgnoreCase))
+            .Select(r => MorphologyDecoder.Decode(r.PartOfSpeech))
+            .Where(candidate => candidate.IsDecoded)
+            .ToList();
+
+        if (sameHeadword.Select(candidate => candidate.Description).Distinct().Count() <= 1)
+        {
+            return parse.Description;
+        }
+
+        var features = new[]
+            {
+                Unanimous(sameHeadword, c => c.Tense),
+                Unanimous(sameHeadword, c => c.Voice),
+                Unanimous(sameHeadword, c => c.Mood),
+                Unanimous(sameHeadword, c => c.Person),
+                Unanimous(sameHeadword, c => c.Gender),
+                Unanimous(sameHeadword, c => c.Case),
+                Unanimous(sameHeadword, c => c.Number)
+            }
+            .Where(feature => !string.IsNullOrEmpty(feature))
+            .ToList();
+
+        var pos = parse.PartOfSpeech ?? string.Empty;
+
+        if (features.Count == 0) return pos;
+
+        return pos.Length > 0 ? $"{pos}: {string.Join(" ", features)}" : string.Join(" ", features);
+    }
+
+    /// <summary>The value every reading agrees on, or null where they differ.</summary>
+    private static string? Unanimous(
+        List<MorphologyDecoder.Parse> readings, Func<MorphologyDecoder.Parse, string?> feature)
+    {
+        var values = readings.Select(feature).Distinct().ToList();
+        return values.Count == 1 ? values[0] : null;
+    }
+
+    private static bool HasAgreementFeatures(MorphologyDecoder.Parse parse) =>
+        parse.Gender != null && parse.Number != null && parse.Case != null;
+
+    private static bool Agrees(MorphologyDecoder.Parse a, MorphologyDecoder.Parse b) =>
+        HasAgreementFeatures(a) && HasAgreementFeatures(b)
+        && a.Gender == b.Gender && a.Number == b.Number && a.Case == b.Case;
+
+    /// <summary>
+    /// Puts the candidate readings of a form in a sensible order.
+    ///
+    /// The lemma data returns every row matching a surface form, and the
+    /// order it returns them in means nothing. Three signals decide, in
+    /// order:
+    ///
+    /// Artifacts last. A headword carrying no accent or breathing at all, or
+    /// written in capitals, is an index entry rather than a lexicon one -
+    /// "των" and "KAI" alongside the real ὁ and καί.
+    ///
+    /// Then a headword that matches the form itself, ignoring accents. A
+    /// word that is its own dictionary form usually is: εἰς beside εἰμί for
+    /// the form εἰς, καί beside εἰ for Καὶ.
+    ///
+    /// Then the longest shared opening. ἀσθενής shares six letters with
+    /// ἀσθενῆ where ἀσθενέω shares five, which is the difference between
+    /// "being weak" and "he was weak".
+    ///
+    /// None of this understands the sentence, so a form whose reading truly
+    /// depends on agreement - πάντα as πᾶς or πάντη - is still a coin toss.
+    /// That is what the alternatives line is for.
+    /// </summary>
+    private static List<(string Headword, string? PartOfSpeech)> Rank(
+        List<(string Headword, string? PartOfSpeech)> candidates,
+        string surfaceForm)
+    {
+        var form = WordNormalizer.Normalize(surfaceForm);
+
+        return candidates
+            .OrderBy(c =>
+            {
+                var parse = MorphologyDecoder.Decode(c.PartOfSpeech);
+                if (!parse.IsDecoded) return 1;
+                return IsRealPartOfSpeech(parse) ? 0 : 2;
+            })
+            .ThenBy(c => LooksLikeALexiconHeadword(c.Headword, surfaceForm) ? 0 : 1)
+            .ThenBy(c => WordNormalizer.Normalize(c.Headword) == form ? 0 : 1)
+            .ThenByDescending(c => SharedOpening(form, WordNormalizer.Normalize(c.Headword)))
+            .ThenBy(c => c.Headword.Length)
+            .ToList();
+    }
+
+    /// <summary>Whether a reading carries a decodable, genuine part of speech.</summary>
+    private static bool HasRealParse((string Headword, string? PartOfSpeech) reading)
+    {
+        var parse = MorphologyDecoder.Decode(reading.PartOfSpeech);
+        return parse.IsDecoded && IsRealPartOfSpeech(parse);
+    }
+
+    /// <summary>
+    /// Whether a headword looks like a lexicon entry rather than an index
+    /// artifact - shouted in capitals, carrying stray punctuation, echoing
+    /// the surface form with a capital, or wholly unaccented.
+    /// </summary>
+    private static bool LooksLikeALexiconHeadword(string headword, string surfaceForm)
+    {
+        if (headword.Length == 0) return false;
+
+        // Shouted in capitals - an index key, not an entry.
+        if (headword.ToUpperInvariant() == headword && headword.Any(char.IsLetter)) return false;
+
+        var decomposed = headword.Normalize(System.Text.NormalizationForm.FormD);
+
+        // Stray punctuation or spacing. A lexicon headword is letters and
+        // the marks on them; "touto '" is an elided form filed under itself.
+        if (decomposed.Any(c => !char.IsLetter(c) && c != '-'
+                                && System.Globalization.CharUnicodeInfo.GetUnicodeCategory(c)
+                                   != System.Globalization.UnicodeCategory.NonSpacingMark))
+        {
+            return false;
+        }
+
+        // The surface form echoed back with a capital, because the text
+        // happened to have it at the start of a sentence. A genuine headword
+        // is lower-case unless it is a name - and a name would not match the
+        // inflected form letter for letter, which is why Zeus beside the
+        // accusative Dia is unaffected.
+        if (char.IsUpper(headword[0])
+            && WordNormalizer.Normalize(headword) == WordNormalizer.Normalize(surfaceForm))
+        {
+            return false;
+        }
+
+        // Polytonic Greek marks every word, so no diacritic at all means the
+        // row came from somewhere other than the dictionary.
+        return decomposed.Any(c => System.Globalization.CharUnicodeInfo.GetUnicodeCategory(c)
+                                   == System.Globalization.UnicodeCategory.NonSpacingMark);
+    }
+
+    private static int SharedOpening(string a, string b)
+    {
+        var length = Math.Min(a.Length, b.Length);
+        var shared = 0;
+        while (shared < length && a[shared] == b[shared]) shared++;
+        return shared;
+    }
+
+    private static bool IsRealPartOfSpeech(MorphologyDecoder.Parse parse) =>
+        !parse.Description.StartsWith("punctuation", StringComparison.OrdinalIgnoreCase)
+        && !parse.Description.StartsWith("unclassified", StringComparison.OrdinalIgnoreCase);
+
     private async Task ShowWordAsync()
     {
         if (_sourceWords.SelectedItem is not string word)
@@ -524,7 +957,7 @@ public class TranslationWorkbenchForm : Form
 
         try
         {
-            var headwords = await _lemmaRepo.GetHeadwordsForFormAsync(word, _sourceLanguage);
+            var headwords = Rank(await _lemmaRepo.GetHeadwordsForFormAsync(word, _sourceLanguage), word);
 
             if (headwords.Count == 0)
             {

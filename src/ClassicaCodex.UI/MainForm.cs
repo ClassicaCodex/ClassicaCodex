@@ -1293,7 +1293,11 @@ public class MainForm : Form
             ? (_originalEditionCombo.SelectedItem as EditionOption)?.Edition
             : (_translationEditionCombo.SelectedItem as EditionOption)?.Edition;
 
-        using var wordStudyForm = new WordStudyForm(node, edition?.Language)
+        // Scoped to the work being read, same as from the translation
+        // workbench - the corpus-wide count for a common word stops at the
+        // result limit and says only that the word is common. Choose Texts
+        // widens it.
+        using var wordStudyForm = new WordStudyForm(node, edition?.Language, _openWork?.WorkId)
         {
             OnNavigate = NavigateToPassageAsync
         };

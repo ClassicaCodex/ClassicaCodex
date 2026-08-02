@@ -43,9 +43,21 @@ public class WordStudyForm : Form
     /// </summary>
     private readonly string? _language;
 
-    public WordStudyForm(TextNode sourceNode, string? language = null)
+    // Which works occurrences are drawn from. Starts as the work the line
+    // came from, because a common word across the whole corpus returns
+    // thousands of lines, stops at the result limit, and tells you only that
+    // the word is common. Empty means everything.
+    private readonly HashSet<int> _scopeWorkIds = new();
+
+    private readonly Label _scopeLabel;
+    private readonly AuthorRepository _authorRepo = new();
+    private readonly WorkRepository _workRepo = new();
+
+    public WordStudyForm(
+        TextNode sourceNode, string? language = null, int? workId = null, string? selectedWord = null)
     {
         _language = language;
+        if (workId != null) _scopeWorkIds.Add(workId.Value);
 
         Text = "Word Study";
         AppIcons.ApplyWindowIcon(this, "WordStudy");
@@ -122,12 +134,33 @@ public class WordStudyForm : Form
 
         var occurrenceLabel = new Label
         {
-            Text = "Occurrences across the corpus (double-click to jump):",
+            Text = "Occurrences (double-click to jump):",
             Left = 616,
             Top = 52,
-            Width = 756,
-            Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right
+            Width = 300,
+            Anchor = AnchorStyles.Top | AnchorStyles.Left
         };
+
+        // "This text" and "everything" are the ends of a range, and the
+        // useful answers are often between them - the plays of one trilogy,
+        // or everything by one author. A checkbox could only offer the ends.
+        _scopeLabel = new Label
+        {
+            Left = 920,
+            Top = 54,
+            Width = 320,
+            Anchor = AnchorStyles.Top | AnchorStyles.Right,
+            TextAlign = ContentAlignment.TopRight,
+            ForeColor = Color.DimGray
+        };
+
+        var scopeButton = new Button
+        {
+            Text = "Choose Texts...", Left = 1248, Top = 48, Width = 124, Height = 26,
+            Anchor = AnchorStyles.Top | AnchorStyles.Right
+        };
+        scopeButton.Click += async (_, _) => await ChooseScopeAsync();
+        AppIcons.Apply(scopeButton, "Filter", 16);
         _occurrenceList = new ListBox
         {
             Left = 616,
@@ -169,11 +202,28 @@ public class WordStudyForm : Form
         Controls.Add(_definitionBox);
         Controls.Add(_formsBox);
         Controls.Add(occurrenceLabel);
+        Controls.Add(_scopeLabel);
+        Controls.Add(scopeButton);
         Controls.Add(_occurrenceList);
+
+        // Opened on a particular word rather than at the top of the line,
+        // when the caller had one in mind.
+        if (!string.IsNullOrWhiteSpace(selectedWord))
+        {
+            var target = WordNormalizer.Normalize(selectedWord);
+            for (var i = 0; i < _wordList.Items.Count; i++)
+            {
+                if (WordNormalizer.Normalize(_wordList.Items[i]?.ToString() ?? string.Empty) != target) continue;
+
+                _wordList.SelectedIndex = i;
+                break;
+            }
+        }
         Controls.Add(_statusLabel);
 
         PopulateWords(sourceNode.Text);
         Load += async (_, _) => await CheckLemmaDataAsync();
+        RefreshScopeLabel();
         ReadingTheme.AttachTo(this);
     }
 
@@ -291,6 +341,44 @@ public class WordStudyForm : Form
             : "this word";
     }
 
+    /// <summary>
+    /// Opens the work picker and re-runs the lookup against whatever comes
+    /// back.
+    ///
+    /// The full author and work lists are fetched here rather than held from
+    /// construction, so opening Word Study on a word costs nothing extra
+    /// unless the scope is actually changed.
+    /// </summary>
+    private async Task ChooseScopeAsync()
+    {
+        try
+        {
+            var authors = await _authorRepo.GetAllAsync();
+            var worksByAuthor = await _workRepo.GetAllGroupedByAuthorAsync();
+
+            using var picker = new WorkPickerForm(authors, worksByAuthor, _scopeWorkIds.ToList());
+            if (picker.ShowDialog(this) != DialogResult.OK) return;
+
+            _scopeWorkIds.Clear();
+            foreach (var id in picker.SelectedWorkIds) _scopeWorkIds.Add(id);
+
+            RefreshScopeLabel();
+            await LoadDefinitionAndOccurrencesAsync();
+        }
+        catch (Exception ex)
+        {
+            _scopeLabel.Text = $"Couldn't load the text list: {ex.Message}";
+        }
+    }
+
+    private void RefreshScopeLabel() =>
+        _scopeLabel.Text = _scopeWorkIds.Count switch
+        {
+            0 => "Searching every text",
+            1 => "Searching 1 text",
+            _ => $"Searching {_scopeWorkIds.Count:N0} texts"
+        };
+
     private async Task LoadDefinitionAndOccurrencesAsync()
     {
         var index = _headwordList.SelectedIndex;
@@ -316,7 +404,7 @@ public class WordStudyForm : Form
             .Where(f => f.Length > 0)
             .ToHashSet(StringComparer.Ordinal);
 
-        var hits = await _textNodeRepo.SearchByFormsAsync(forms);
+        var hits = await _textNodeRepo.SearchByFormsAsync(forms, workIds: _scopeWorkIds);
         _currentOccurrences = hits.Rows;
 
         _occurrenceList.Items.Clear();
