@@ -45,6 +45,17 @@ public class AboutForm : Form
         var y = 16;
 
         AddHeading(scrollHost, "Classica Codex", ref y, 20, FontStyle.Bold);
+
+        // Read from the assembly rather than written here, so it can't drift
+        // from what actually shipped - the version in the csproj is the one
+        // thing that definitely matches the binary someone is running.
+        var version = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version;
+        if (version != null)
+        {
+            AddParagraph(scrollHost, $"Version {version.Major}.{version.Minor}.{version.Build}",
+                ref y, 672, Color.DimGray);
+        }
+
         AddParagraph(scrollHost,
             "A personal reading and research tool for the Perseus Digital Library corpus of ancient Greek " +
             "and Latin texts - built to make close reading, cross-referencing, and word study easier across " +

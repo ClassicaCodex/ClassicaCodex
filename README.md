@@ -39,9 +39,12 @@ Download the latest Windows release from the
 - **Echo Finder** and **Reception Tracker** — find intertextual echoes, and track how a passage gets reused by later authors
 - **Cross-Language Echo** — the same idea across languages, for finding where a Latin (or English) passage is reworking a Greek original, or vice versa
 - **Compare** two passages, or two translations of the same work, side by side
+- **Translate it yourself** — a workbench for working through a text one passage at a time, with the passage before and after shown for context, every word clickable for its dictionary headword, grammatical parse and LSJ or Lewis & Short entry, and an alphabet reference for a script you don't read yet. Your translation becomes an edition like any other. AI help is available per word or per passage, but always appears beside your work rather than in it, and the published translation stays out of reach until you've written something
 - **AI-assisted translation** — translate a single passage on demand, or an entire work at once, using Claude or Gemini. Off by default and opt-in per use — nothing is sent anywhere unless you ask for it, and the app works completely offline without it
 - **Read Aloud** — text-to-speech for Greek, Latin, or English, using whatever voices are already installed on Windows; fully offline, no network involved
 - **Export** passages to plain text, Word, or PDF, citations intact
+- **Recent searches** — the last ten searches you ran, with every filter, recorded automatically; nothing to save and nothing to tidy up
+- **Picks up where you left off** — reopens the passage you were last reading, and can be turned off if you'd rather it didn't
 - Dark mode
 
 ## Getting started
@@ -89,4 +92,14 @@ The code in this repository is [MIT licensed](LICENSE). That covers the applicat
 
 ## Status
 
-This is an actively developed personal project, not a polished commercial release. Expect rough edges, and expect them to keep changing. Issues and pull requests are welcome; there's no roadmap or support commitment beyond what a hobby project can reasonably offer.
+Version 2.0.
+
+Version 1 was a first draft. This is a substantially different application: a
+searchable, taggable, cross-referenced library rather than a reader, plus the
+translation workbench, and a schema that has moved through six migrations
+since. Existing databases upgrade in place on first launch — annotations,
+bookmarks and tags are carried forward.
+
+Built for my own reading, and shared in case it's useful to someone else doing
+the same thing.
+
