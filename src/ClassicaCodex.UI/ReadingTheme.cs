@@ -271,7 +271,10 @@ public static class ReadingTheme
                 ApplyNativeScrollbarTheme(listBox);
                 break;
 
-            case TextBox textBox:
+            // Both TextBox and RichTextBox, matched on their shared base -
+            // a RichTextBox is not a TextBox, so the case below would have
+            // missed it entirely and left a white panel in dark mode.
+            case TextBoxBase textBox:
                 textBox.BackColor = Surface;
                 textBox.ForeColor = Text;
                 textBox.BorderStyle = BorderStyle.FixedSingle;

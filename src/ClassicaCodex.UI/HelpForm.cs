@@ -102,6 +102,29 @@ Read Aloud
 
    The voice list is Windows' own, from Settings > Time & Language > Speech. This app can't add voices Windows doesn't already have - install one there and it will appear here.
 
+Translate This Myself (right-click a work in the library tree)
+   A workbench for translating a text yourself, one passage at a time. It shows the passage, a list of its words, and your own translation box side by side.
+
+   Alphabet opens the letters of whatever language you are translating from, with the breathings, accents and iota subscript that sit on them. It is not a translation aid - it is for the step before, when you cannot yet read the script well enough to look a word up at all.
+
+   The passage before and after the current one are shown dimmed around it. Citation references cut across sentences all the time in verse - a relative pronoun at the end of one passage often resolves in the next - so translating a clause with half of it off screen is how you end up confidently wrong.
+
+   Go to jumps straight to any passage, and doubles as the progress view: every passage is listed with its citation reference, a tick once you have translated it, and enough text to recognise it by.
+
+   The word list is every word of the passage in the order it appears, repeats included - it is meant to be walked alongside the sentence, so it has to match the sentence.
+
+   Click any word to see its dictionary headword, its grammatical parse - case, tense, mood, voice - and the LSJ or Lewis and Short entry. All of it is looked up from the lemma and lexicon data you have loaded, not generated, so it is the same information a printed commentary would give.
+
+   AI Translate Passage asks Gemini for a rendering of the whole passage. AI Translate Word asks what the selected word means in this particular line - which sense is in play and what it is doing in the sentence, the part a lexicon entry can't tell you. Both appear in the reference panel, never in your box: an answer that arrives already typed stops being something to weigh and becomes the answer. Both send text over the internet and are labelled as AI-generated where they appear.
+
+   Check against picks which existing translation to measure yourself against, when the work has more than one. Nothing in the data records which original a translation was made from, so the app infers it from shared citation references and marks its best guess as "lines up with this text" - a default to change, not a decision made for you.
+
+   If the work has two or more original-language editions, you are asked once which you are translating from. That choice decides the citation references every passage is filed under, so it can't be changed later without orphaning work already done.
+
+   Compare published shows the chosen translation of the same passage, and stays disabled until you have written something - the button says which of the two reasons applies. Reading someone else's rendering first is the one thing that quietly removes the point of doing this at all.
+
+   Each passage saves as you move on, so a work can be picked at over months. Reopening starts at the first passage you haven't done. Your translation is named when you begin and appears as its own edition everywhere - the reader, Compare Translations, search, and export.
+
 Create Translation (right-click a work in the library tree)
    Translates an entire work, not one passage, into a new translation edition saved permanently to your library. This is the answer to how much of the Renaissance and Post-Classical Greek collections have no English translation at all.
 

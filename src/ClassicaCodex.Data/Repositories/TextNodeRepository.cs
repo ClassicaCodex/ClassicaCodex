@@ -713,6 +713,51 @@ public class TextNodeRepository
     }
 
     /// <summary>
+    /// Which other edition of a work shares the most citation references
+    /// with this one - the closest thing available to "which original was
+    /// this translated from".
+    ///
+    /// Nothing records that link. An edition knows its work, its language
+    /// and its translator, but not which text somebody sat down with. When a
+    /// work has two originals and three translations, pairing them is
+    /// therefore inference rather than lookup, and citation references are
+    /// the only evidence: a translation made against one edition carries
+    /// that edition's reference scheme, so overlap is high with its own
+    /// source and low with a differently-lineated sibling.
+    ///
+    /// Good evidence, not proof - two editions lineated identically are
+    /// indistinguishable this way, which is why the caller offers the answer
+    /// as a default to change rather than a decision already made.
+    /// </summary>
+    public async Task<int?> FindClosestEditionAsync(
+        int editionId, int workId, EditionKind kind, CancellationToken cancellationToken = default)
+    {
+        await using var conn = await DbConnectionFactory.OpenConnectionAsync(cancellationToken);
+        await using var cmd = conn.CreateCommand();
+        cmd.CommandTimeout = 60;
+
+        cmd.CommandText = @"
+            SELECT other.EditionId, COUNT(*) AS Shared
+            FROM TextNodes mine
+            JOIN TextNodes theirs ON theirs.CitationRef = mine.CitationRef
+            JOIN Editions other ON theirs.EditionId = other.EditionId
+            WHERE mine.EditionId = @EditionId
+              AND other.EditionId <> @EditionId
+              AND other.WorkId = @WorkId
+              AND other.Kind = @Kind
+            GROUP BY other.EditionId
+            ORDER BY Shared DESC
+            LIMIT 1;";
+
+        cmd.Parameters.AddWithValue("@EditionId", editionId);
+        cmd.Parameters.AddWithValue("@WorkId", workId);
+        cmd.Parameters.AddWithValue("@Kind", kind.ToString());
+
+        await using var reader = await cmd.ExecuteReaderAsync(cancellationToken);
+        return await reader.ReadAsync(cancellationToken) ? reader.GetInt32(0) : null;
+    }
+
+    /// <summary>
     /// How much of a work an AI-generated translation edition actually
     /// covers, as (lines translated, lines in the source edition).
     ///
@@ -808,6 +853,50 @@ public class TextNodeRepository
         if (!await reader.ReadAsync(cancellationToken)) return null;
 
         return (reader.GetInt32(0), reader.GetInt64(1));
+    }
+
+    /// <summary>
+    /// Saves one translated line, replacing whatever was there for that
+    /// citation reference.
+    ///
+    /// One line at a time rather than rewriting the edition, because this
+    /// backs someone working through a text over weeks: closing the window
+    /// mid-passage should cost the passage being typed and nothing before
+    /// it. Keyed on the citation reference so returning to an earlier
+    /// passage revises it rather than appending a second copy.
+    ///
+    /// An empty translation deletes the line instead of storing a blank -
+    /// that keeps "how much is done" an honest count of real work, which is
+    /// what the progress figure and the resume point both read.
+    /// </summary>
+    public async Task SaveTranslatedLineAsync(
+        int editionId, string citationRef, int sortOrder, string? text,
+        CancellationToken cancellationToken = default)
+    {
+        await using var conn = await DbConnectionFactory.OpenConnectionAsync(cancellationToken);
+        await using var cmd = conn.CreateCommand();
+
+        if (string.IsNullOrWhiteSpace(text))
+        {
+            cmd.CommandText =
+                "DELETE FROM TextNodes WHERE EditionId = @EditionId AND CitationRef = @CitationRef;";
+            cmd.Parameters.AddWithValue("@EditionId", editionId);
+            cmd.Parameters.AddWithValue("@CitationRef", citationRef);
+            await cmd.ExecuteNonQueryAsync(cancellationToken);
+            return;
+        }
+
+        cmd.CommandText = @"
+            DELETE FROM TextNodes WHERE EditionId = @EditionId AND CitationRef = @CitationRef;
+            INSERT INTO TextNodes (EditionId, CitationRef, SortOrder, Text)
+            VALUES (@EditionId, @CitationRef, @SortOrder, @Text);";
+
+        cmd.Parameters.AddWithValue("@EditionId", editionId);
+        cmd.Parameters.AddWithValue("@CitationRef", citationRef);
+        cmd.Parameters.AddWithValue("@SortOrder", sortOrder);
+        cmd.Parameters.AddWithValue("@Text", text.Trim());
+
+        await cmd.ExecuteNonQueryAsync(cancellationToken);
     }
 
     /// <summary>Author/work/citation context for a single text node - used by the reception tracker.</summary>

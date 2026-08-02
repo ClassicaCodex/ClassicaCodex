@@ -267,6 +267,11 @@ public class MainForm : Form
         viewDetailsItem.Click += (_, _) => ShowDetailsForSelectedWork();
         _themedMenuItemIcons.Add((viewDetailsItem, "Help"));
 
+        var translateMyselfItem = libraryTreeMenu.Items.Add("Translate This Myself...");
+        translateMyselfItem.Image = AppIcons.Get("WordStudy", 16);
+        translateMyselfItem.Click += async (_, _) => await OpenTranslationWorkbenchAsync();
+        _themedMenuItemIcons.Add((translateMyselfItem, "WordStudy"));
+
         var createTranslationItem = libraryTreeMenu.Items.Add("Create Translation...");
         createTranslationItem.Image = AppIcons.Get("Translate", 16);
         createTranslationItem.Click += async (_, _) => await CreateTranslationForSelectedWorkAsync();
@@ -293,9 +298,15 @@ public class MainForm : Form
         var splitContainer = new SplitContainer
         {
             Left = 320,
-            Top = 82,
+
+            // Starts level with the library's toggle row rather than below
+            // it. That row belongs to the tree - a Collapse button and an
+            // author filter - and the reader side has nothing to put there,
+            // so matching the tree's top left a band of empty window across
+            // the whole reader for no reason.
+            Top = 54,
             Width = 1360,
-            Height = 468,
+            Height = 496,
             Orientation = Orientation.Vertical
         };
 
@@ -910,6 +921,163 @@ public class MainForm : Form
         _searchForm = new SearchForm { OnNavigate = NavigateToPassageAsync };
         _searchForm.FormClosed += (_, _) => _searchForm = null;
         _searchForm.Show(this);
+    }
+
+    /// <summary>
+    /// Opens the translation workbench for the selected work, creating or
+    /// resuming a hand-written translation edition for it.
+    ///
+    /// A hand-written translation gets a name, unlike the AI ones - those
+    /// are the same process run twice and a timestamp tells them apart
+    /// perfectly well, whereas "my literal draft" is a thing someone chose
+    /// to make and should be able to call something.
+    /// </summary>
+    private Edition? ChooseEdition(
+        List<Edition> editions, IReadOnlyDictionary<int, int> lineCounts, string prompt)
+    {
+        using var chooser = new EditionChoiceForm("Choose an Edition", prompt, editions, lineCounts);
+        return chooser.ShowDialog(this) == DialogResult.OK ? chooser.Chosen : null;
+    }
+
+    /// <summary>
+    /// How a candidate comparison translation is labelled in the workbench's
+    /// picker - translator, length, and whether its citation references
+    /// actually line up with the text being translated.
+    /// </summary>
+    private static string DescribeComparison(
+        Edition edition, IReadOnlyDictionary<int, int> lineCounts, bool isClosest)
+    {
+        var who = string.IsNullOrWhiteSpace(edition.Translator)
+            ? edition.CtsUrn.Split(new[] { '.', ':' }, StringSplitOptions.RemoveEmptyEntries).LastOrDefault() ?? "translation"
+            : edition.Translator;
+
+        var lines = lineCounts.TryGetValue(edition.EditionId, out var n) ? $"{n:N0} lines" : "unknown length";
+
+        return isClosest ? $"{who} - {lines} - lines up with this text" : $"{who} - {lines}";
+    }
+
+    private async Task OpenTranslationWorkbenchAsync()
+    {
+        if (_libraryTree.SelectedNode?.Tag is not Work work) return;
+
+        try
+        {
+            var editions = await _editionRepo.GetByWorkAsync(work.WorkId);
+            var originals = editions.Where(e => e.Kind == EditionKind.Original).ToList();
+
+            if (originals.Count == 0)
+            {
+                MessageBox.Show(this, "This work has no original-language text to translate from.",
+                    "Translate", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                return;
+            }
+
+            // Resume an existing hand-written edition rather than starting a
+            // second one - the workbench is for working through a text over
+            // time, and silently beginning again would be the opposite.
+            var mine = editions.FirstOrDefault(e => e.CtsUrn.Contains(".mine-", StringComparison.Ordinal));
+
+            var lineCounts = new Dictionary<int, int>();
+            foreach (var edition in editions)
+            {
+                lineCounts[edition.EditionId] = await _textNodeRepo.CountByEditionAsync(edition.EditionId);
+            }
+
+            Edition source;
+
+            if (mine != null)
+            {
+                // Which original this translation was built against isn't
+                // recorded anywhere, so it's inferred from shared citation
+                // references. Getting this wrong on resume would be worse
+                // than asking - the passages already written would stop
+                // lining up - so a failed inference falls back to asking.
+                var inferred = await _textNodeRepo.FindClosestEditionAsync(
+                    mine.EditionId, work.WorkId, EditionKind.Original);
+
+                source = originals.FirstOrDefault(e => e.EditionId == inferred)
+                         ?? (originals.Count == 1
+                             ? originals[0]
+                             : ChooseEdition(originals, lineCounts,
+                                 "Which text is this translation being made from?"))!;
+
+                if (source == null) return;
+            }
+            else if (originals.Count == 1)
+            {
+                source = originals[0];
+            }
+            else
+            {
+                var chosen = ChooseEdition(originals, lineCounts,
+                    "This work has more than one original-language edition. Which one are you " +
+                    "translating from? Every passage you write is filed under that edition's " +
+                    "citation references, so this can't be changed later.");
+
+                if (chosen == null) return;
+                source = chosen;
+            }
+
+            if (mine == null)
+            {
+                var name = TextPromptForm.Ask(this, "Translate This Work",
+                    "What should this translation be called?", "My translation");
+                if (string.IsNullOrWhiteSpace(name)) return;
+
+                var editionId = await _editionRepo.UpsertAsync(new Edition
+                {
+                    WorkId = work.WorkId,
+                    CtsUrn = $"{work.CtsUrn}.mine-{DateTime.UtcNow:yyyyMMddHHmmss}",
+                    Kind = EditionKind.Translation,
+                    Language = "eng",
+                    Translator = name.Trim(),
+                    SourcePath = null
+                });
+
+                mine = (await _editionRepo.GetByWorkAsync(work.WorkId)).First(e => e.EditionId == editionId);
+            }
+
+            var sourcePassages = await _textNodeRepo.GetByEditionAsync(source.EditionId);
+            var existing = (await _textNodeRepo.GetByEditionAsync(mine.EditionId))
+                .GroupBy(n => n.CitationRef)
+                .ToDictionary(g => g.Key, g => g.First().Text);
+
+            // Anything else that translates this work, yours excluded -
+            // checking your work against itself would tell you nothing.
+            var others = editions
+                .Where(e => e.Kind == EditionKind.Translation && e.EditionId != mine.EditionId)
+                .ToList();
+
+            // The one whose citation references overlap the chosen source
+            // most is the likeliest match, so it leads the list.
+            var closest = await _textNodeRepo.FindClosestEditionAsync(
+                source.EditionId, work.WorkId, EditionKind.Translation);
+
+            others = others
+                .OrderBy(e => e.EditionId == closest ? 0 : 1)
+                .ThenBy(e => e.Translator, StringComparer.CurrentCultureIgnoreCase)
+                .ToList();
+
+            var comparisons = others
+                .Select(e => (Edition: e, Label: DescribeComparison(e, lineCounts, e.EditionId == closest)))
+                .ToList();
+
+            var authorName = FindWorkNode(work.WorkId)?.Parent?.Text ?? string.Empty;
+
+            using var workbench = new TranslationWorkbenchForm(
+                work, authorName, mine.EditionId, source.Language,
+                sourcePassages, existing, comparisons,
+                async editionId => new PassageAligner(await _textNodeRepo.GetByEditionAsync(editionId)));
+
+            workbench.ShowDialog(this);
+
+            await LoadEditionSelectorsAsync(work.WorkId);
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show(this, $"Couldn't open the translation workbench: {ex.Message}",
+                "Translate", MessageBoxButtons.OK, MessageBoxIcon.Error);
+        }
     }
 
     /// <summary>

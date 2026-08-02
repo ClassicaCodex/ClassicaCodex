@@ -93,6 +93,53 @@ public static class GeminiTranslationService
     }
 
     /// <summary>
+    /// What one word means in the line it actually appears in.
+    ///
+    /// Separate from TranslateAsync because that prompt asks for a passage
+    /// rendered as prose, and handing it a single word gets a dictionary
+    /// gloss - which the workbench already shows from LSJ or Lewis and
+    /// Short, looked up rather than guessed, and better sourced than
+    /// anything a model would say about it.
+    ///
+    /// What a model can add is the part a lexicon can't: which of a word's
+    /// senses is in play here, and what job it is doing in this sentence. So
+    /// the surrounding line goes in the prompt and the answer is asked for
+    /// in those terms.
+    /// </summary>
+    public static async Task<string> GlossWordAsync(
+        string word,
+        string passageText,
+        string? sourceLanguage,
+        string? targetLanguage,
+        string authorName,
+        string workTitle,
+        string citationRef,
+        string apiKey,
+        CancellationToken cancellationToken = default)
+    {
+        var sourceLanguageName = TranslationLanguageNames.DisplayName(sourceLanguage);
+        var targetLanguageName = TranslationLanguageNames.DisplayName(targetLanguage);
+
+        var prompt =
+            $"In this {sourceLanguageName} line from {authorName}, {workTitle} at {citationRef}:\n\n" +
+            $"{passageText}\n\n" +
+            $"Explain the word \"{word}\" as it is used here, in {targetLanguageName}. " +
+            "Give its dictionary form, what it means in this particular line, and its grammatical " +
+            "role in the sentence. Two or three sentences at most. No preamble.";
+
+        try
+        {
+            return await TranslateWithModelAsync(PrimaryModel, allowFallback: true, prompt, apiKey, cancellationToken);
+        }
+        catch (QuotaExceededException)
+        {
+            throw new InvalidOperationException(
+                "Both Gemini models have hit today's free-tier usage limit. Try again after the daily " +
+                "reset, or use Claude for now.");
+        }
+    }
+
+    /// <summary>
     /// Reads a whole comparison work (pre-formatted, citation-tagged text -
     /// see CrossLanguageEchoForm for how that's built and truncated) looking
     /// for passages that echo the same theme or image as a source passage in
@@ -318,7 +365,7 @@ public static class GeminiTranslationService
     /// sound, and without that guarantee a positional guess would attach a
     /// translation to the wrong passage - which is worse than not having one.
     /// </summary>
-    public static List<(string CitationRef, string TranslatedText)> Reconcile(
+    internal static List<(string CitationRef, string TranslatedText)> Reconcile(
         List<(string CitationRef, string TranslatedText)> returned,
         List<(string CitationRef, string Text)> passages)
     {

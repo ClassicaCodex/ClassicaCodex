@@ -215,16 +215,21 @@ public static class MorphologyDecoder
 
         var tag = rawTag.Trim();
 
-        if (tag.Length == AgdtTagLength) return DecodePositional(tag, posFieldWidth: 1);
-        if (tag.Length == ExtendedTagLength) return DecodePositional(tag, posFieldWidth: 2);
-
-        // English tags are already the plain word, since WordNet classifies
-        // only by word class and English inflection is too thin to warrant
-        // the positional scheme the classical corpora use. Checked before
-        // the Latin prefixes below because "verb" happens to start with the
-        // Latin code "VER" - it would decode by coincidence, while "noun"
-        // matched nothing and displayed raw. Same data, inconsistent
-        // presentation; naming them here makes it deliberate.
+        // English word classes first - before the length check, not just
+        // before the Latin prefixes.
+        //
+        // WordNet classifies English by word class alone, so its tag is
+        // already the plain word. Two of those words collide with the
+        // schemes below. "verb" starts with the Latin code VER, which is
+        // why this check used to sit above the Latin prefixes. And
+        // "adjective" is nine characters, exactly the width of an AGDT tag,
+        // where its first letter reads as adjective and its eighth as
+        // vocative - so it decoded as "adjective: vocative", correct-looking
+        // and wrong. Checking here settles both collisions in one place.
+        //
+        // Safe ahead of the positional decoders because no real tag spells
+        // one of these words: "adjective" as an AGDT tag would need 'j' as a
+        // number code and 'e' as a tense, and neither exists.
         if (EnglishPartsOfSpeech.Contains(tag))
         {
             return new Parse
@@ -235,6 +240,9 @@ public static class MorphologyDecoder
                 PartOfSpeech = tag
             };
         }
+
+        if (tag.Length == AgdtTagLength) return DecodePositional(tag, posFieldWidth: 1);
+        if (tag.Length == ExtendedTagLength) return DecodePositional(tag, posFieldWidth: 2);
 
         // Not positional - try the Latin part-of-speech labels. Longest
         // prefix first, so "NOMcom" isn't shadowed by a shorter "NOM" if

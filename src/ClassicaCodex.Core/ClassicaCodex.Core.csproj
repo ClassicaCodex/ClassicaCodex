@@ -23,8 +23,14 @@
     <!-- Reconcile() is the fix for Create Translation silently saving an
          empty edition. It's an internal detail of how a model's reply is
          matched back to real passages, not public API - but it's exactly the
-         kind of logic that fails quietly, so the tests can see it. -->
-    <InternalsVisibleTo Include="ClassicaCodex.Core.Tests" />
+         kind of logic that fails quietly, so the tests can see it.
+
+         Named for the single test project this solution actually has. There
+         was briefly a second one for Core, which is why these tests still
+         declare a ClassicaCodex.Core.Tests namespace - harmless, since a
+         namespace need not match its assembly, and the grouping it gives in
+         Test Explorer is worth keeping. -->
+    <InternalsVisibleTo Include="ClassicaCodex.Data.Tests" />
   </ItemGroup>
 
 </Project>
