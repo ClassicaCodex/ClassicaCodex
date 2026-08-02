@@ -196,6 +196,10 @@ Auto-Tag (inside Myth Network)
 The Myth Network
    Tags become nodes; two tags are linked when they occur together. Circle size is how often you've used a tag, line thickness how strongly two co-occur.
 
+   A tag naming an Olympian, a king, a hero, a place or an object gets a portrait inside its node - sixty are included. The match is on the tag's own text, so a tag called Zeus finds Zeus; anything else keeps the plain coloured node. Portraits appear only on nodes big enough to show one, which means tags you've used half a dozen times or more - below that a face is a smudge, and those are the tags you least need to pick out anyway. The category shape stays as a ring around the portrait, so it still tells you gods from kings.
+
+   To add your own or replace one, put a PNG in a "Figures" folder beside your database file, named for the tag. Those take precedence over the ones shipped with the app.
+
    Co-occurrence has two settings. "Same work" links tags appearing anywhere in the same text - a weak signal once encyclopedic sources are loaded, since those mention nearly everyone. "Same passage" requires them to actually appear near each other, which is usually what you want. The window sets how near.
 
    Click a node for its passages; click a line between two nodes to see exactly which passages connect them.

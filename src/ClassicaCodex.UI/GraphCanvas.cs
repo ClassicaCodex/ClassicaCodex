@@ -205,6 +205,11 @@ public class GraphCanvas : Panel
         base.OnPaint(e);
         e.Graphics.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
 
+        // Portraits are drawn well below their stored size, and the default
+        // resampler makes that look gritty.
+        e.Graphics.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.HighQualityBicubic;
+        e.Graphics.PixelOffsetMode = System.Drawing.Drawing2D.PixelOffsetMode.HighQuality;
+
         if (_nodes.Count == 0)
         {
             using var emptyFont = new Font(Font, FontStyle.Italic);
@@ -238,8 +243,14 @@ public class GraphCanvas : Panel
             using var brush = new SolidBrush(fillColor);
             using var pen = new Pen(Color.DimGray, isHovered ? 2 : 1);
 
-            DrawNodeShape(e.Graphics, brush, pen,
-                CategoryShapes.For(node.Category), node.Position, node.Radius);
+            var shape = CategoryShapes.For(node.Category);
+            DrawNodeShape(e.Graphics, brush, pen, shape, node.Position, node.Radius);
+
+            // A portrait inside the shape rather than instead of it. The
+            // shape carries the category and the size carries how often the
+            // tag is used; replacing the node with a picture would throw
+            // both away to say something the label already says.
+            DrawFigure(e.Graphics, node, pen);
 
             var labelFont = isHovered ? new Font(Font, FontStyle.Bold) : Font;
             var labelSize = e.Graphics.MeasureString(node.Name, labelFont);
@@ -247,6 +258,41 @@ public class GraphCanvas : Panel
             e.Graphics.DrawString(node.Name, labelFont, labelBrush,
                 node.Position.X - labelSize.Width / 2, node.Position.Y + node.Radius + 2);
         }
+    }
+
+    /// <summary>
+    /// Below this radius a portrait is a smudge rather than a face.
+    ///
+    /// Node radius runs from about 7 to 30, so this shows portraits on tags
+    /// used a handful of times or more - which are the ones worth
+    /// recognising at a glance, the rest being one-offs whose label is the
+    /// only thing that identifies them anyway.
+    /// </summary>
+    private const float MinimumRadiusForFigure = 13f;
+
+    private static void DrawFigure(Graphics graphics, VisualNode node, Pen pen)
+    {
+        if (node.Radius < MinimumRadiusForFigure) return;
+
+        var figure = FigureImages.For(node.Name);
+        if (figure == null) return;
+
+        // Inset so the category shape stays visible as a ring around the
+        // portrait - at the same radius a circular image would cover a
+        // circle node entirely and clip the points off a star.
+        var inset = node.Radius * 0.78f;
+        var box = new RectangleF(
+            node.Position.X - inset, node.Position.Y - inset, inset * 2, inset * 2);
+
+        var clipped = graphics.Clip;
+        using var circle = new System.Drawing.Drawing2D.GraphicsPath();
+        circle.AddEllipse(box);
+
+        graphics.SetClip(circle);
+        graphics.DrawImage(figure, box);
+        graphics.Clip = clipped;
+
+        graphics.DrawEllipse(pen, box);
     }
 
     /// <summary>
