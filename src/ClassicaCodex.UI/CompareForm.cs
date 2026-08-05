@@ -71,6 +71,7 @@ public class CompareForm : Form
 
         Load += async (_, _) => await LoadSourcesAsync();
         ReadingTheme.AttachTo(this);
+        WindowShortcuts.CloseOnEscape(this);
     }
 
     private async Task LoadSourcesAsync()

@@ -458,6 +458,49 @@ public class TranslationWorkbenchForm : Form
     }
 
     /// <summary>
+    /// Shortcuts for the loop this window exists for: write, save, move on.
+    ///
+    /// ProcessCmdKey rather than KeyPreview because the translation box is
+    /// where the hands already are, and a multiline TextBox consumes plain
+    /// keys before a form-level handler ever sees them. That is also why
+    /// none of these are unmodified keys - Enter has to keep making a new
+    /// line, and Escape has to stay available for the text box rather than
+    /// discarding a half-written translation.
+    ///
+    /// Ctrl+Enter saves and advances, which is the same gesture for "done,
+    /// send" that most applications use. Alt+Left and Alt+Right match the
+    /// reader's own back and forward.
+    /// </summary>
+    protected override bool ProcessCmdKey(ref Message msg, Keys keyData)
+    {
+        switch (keyData)
+        {
+            case Keys.Control | Keys.Enter:
+                _ = MoveAsync(1);
+                return true;
+
+            case Keys.Alt | Keys.Right:
+                _ = MoveAsync(1);
+                return true;
+
+            case Keys.Alt | Keys.Left:
+                _ = MoveAsync(-1);
+                return true;
+
+            case Keys.Control | Keys.S:
+                _ = SaveCurrentAsync();
+                return true;
+
+            case Keys.Control | Keys.G:
+                _gotoBox.Focus();
+                _gotoBox.DroppedDown = true;
+                return true;
+        }
+
+        return base.ProcessCmdKey(ref msg, keyData);
+    }
+
+    /// <summary>
     /// Restores every colour in this form that is deliberately dimmer than
     /// the theme's text colour: the neighbouring source passages, and the
     /// translations either side of the current one.

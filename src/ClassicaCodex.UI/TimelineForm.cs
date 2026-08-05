@@ -93,6 +93,8 @@ public class TimelineForm : Form
             await LoadTimelineAsync();
         };
 
+        WindowShortcuts.CloseOnEscape(this);
+
         // Kept in sync if the mode is toggled while this is open; the handler
         // is removed on close so it doesn't outlive the form.
         void OnThemeChanged() => ApplyThemeHere();

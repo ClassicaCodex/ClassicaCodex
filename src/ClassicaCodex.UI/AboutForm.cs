@@ -208,6 +208,8 @@ public class AboutForm : Form
         AcceptButton = closeButton;
 
         ReadingTheme.AttachTo(this);
+
+        WindowShortcuts.CloseOnEscape(this);
     }
 
     private static void AddHeading(Control parent, string text, ref int y, float size, FontStyle style)

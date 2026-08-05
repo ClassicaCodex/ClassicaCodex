@@ -117,6 +117,7 @@ public class ConcordanceForm : Form
         // ListView's colours, so it needs owner-drawing to follow the theme.
         ReadingTheme.EnableThemedHeader(_resultsList);
         ReadingTheme.AttachTo(this);
+        WindowShortcuts.CloseOnEscape(this);
     }
 
     private async Task RunConcordanceAsync()

@@ -118,6 +118,7 @@ public class ReceptionTrackerForm : Form
 
         Load += async (_, _) => await LoadAsync();
         ReadingTheme.AttachTo(this);
+        WindowShortcuts.CloseOnEscape(this);
     }
 
     private async Task LoadAsync()

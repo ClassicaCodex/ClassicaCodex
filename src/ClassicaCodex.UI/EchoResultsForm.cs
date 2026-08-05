@@ -69,6 +69,7 @@ public class EchoResultsForm : Form
 
         Load += async (_, _) => await LoadEchoesAsync(sourceNode.TextNodeId);
         ReadingTheme.AttachTo(this);
+        WindowShortcuts.CloseOnEscape(this);
     }
 
     private async Task LoadEchoesAsync(long sourceTextNodeId)

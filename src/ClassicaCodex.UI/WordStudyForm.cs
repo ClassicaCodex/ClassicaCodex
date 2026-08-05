@@ -225,6 +225,7 @@ public class WordStudyForm : Form
         Load += async (_, _) => await CheckLemmaDataAsync();
         RefreshScopeLabel();
         ReadingTheme.AttachTo(this);
+        WindowShortcuts.CloseOnEscape(this);
     }
 
     private void PopulateWords(string text)

@@ -200,6 +200,7 @@ public class PassageExportForm : Form
 
         Load += async (_, _) => await RefreshPreviewAsync();
         ReadingTheme.AttachTo(this);
+        WindowShortcuts.CloseOnEscape(this);
     }
 
     /// <summary>

@@ -140,6 +140,7 @@ public class PlacesMapForm : Form
 
         Load += async (_, _) => await LoadPlacesAsync();
         ReadingTheme.AttachTo(this);
+        WindowShortcuts.CloseOnEscape(this);
     }
 
     private async Task LoadPlacesAsync()

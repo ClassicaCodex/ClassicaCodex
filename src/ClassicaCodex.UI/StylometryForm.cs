@@ -116,6 +116,7 @@ public class StylometryForm : Form
 
         Load += async (_, _) => await LoadWorksAsync();
         ReadingTheme.AttachTo(this);
+        WindowShortcuts.CloseOnEscape(this);
     }
 
     private async Task LoadWorksAsync()

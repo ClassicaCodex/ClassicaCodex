@@ -125,6 +125,7 @@ public class TagBrowserForm : Form
 
         Load += async (_, _) => await LoadTagsAsync();
         ReadingTheme.AttachTo(this);
+        WindowShortcuts.CloseOnEscape(this);
     }
 
     private async Task DeleteSelectedTagAsync()

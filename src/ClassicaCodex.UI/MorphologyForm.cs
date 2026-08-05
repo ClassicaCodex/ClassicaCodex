@@ -187,6 +187,7 @@ public class MorphologyForm : Form
 
         Load += async (_, _) => await RefreshAvailabilityAsync();
         ReadingTheme.AttachTo(this);
+        WindowShortcuts.CloseOnEscape(this);
     }
 
     /// <summary>One entry in a category dropdown - null Code means "(any)", i.e. don't constrain this position.</summary>

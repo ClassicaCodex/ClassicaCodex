@@ -56,9 +56,17 @@ Right-click a line for:
 
 The library tree lists every author alphabetically. The box beside the Library button filters it by author name as you type - with a few thousand authors loaded, typing three letters beats scrolling. Clearing the box brings them all back.
 
+Favourites
+   Right-click a work and choose Add to Favourites to mark it with a star. The star checkbox on the filter row then narrows the tree to favourites only, and authors with nothing favourited drop out rather than showing empty.
+
+   A shortlist of the dozen texts you actually return to, out of a corpus of several thousand. Favourites are stored against the work's CTS URN rather than an internal number, so they survive a corpus being re-ingested - the same way tags, bookmarks and your reading position do.
+
 Right-click a work in the library tree on the left for:
    View Details - everything known about the work and its editions
+   Translate This Myself - the workbench, one passage at a time
    Create Translation - renders a whole work at once rather than a single line, see Translate
+   Core Vocabulary - which words the work is made of, ranked by how much of it they account for
+   Add to Favourites - mark it with a star, and filter the tree to favourites
 
 View Details
    The catalogue entry for the work and each edition of it you have loaded - CTS URNs, language, translator, line counts - and, read straight from each edition's source file, the publication details its TEI header carries: who edited it, which printed edition it was digitised from, the publisher and year, and the licence.
@@ -66,6 +74,18 @@ View Details
    That printed source line is usually the one worth having. "Homer, Homeri Opera, David B. Monro, Thomas W. Allen, Oxford, Clarendon Press, 1920" tells you exactly which text you're reading, which matters before quoting it anywhere.
 
    This is read from the file each time you ask rather than stored in the library, so it needs the corpus files still to be where setup put them. If you've since deleted them the reader carries on working perfectly and this view simply says the header isn't available for that edition.
+
+Back and Forward
+   The two arrow buttons at the left of the toolbar retrace where you have been. Ten things in this app end in "jump to it" - a search result, a concordance line, an echo, a place on the map, a figure in the myth network - and following one used to cost you the passage you were reading. Alt+Left and Alt+Right do the same, as in a browser.
+
+   This is a record of the current session only, and is not kept when the app closes. Where you left off, which is remembered, is a separate thing.
+
+Keyboard shortcuts
+   Escape closes any window you are looking at - a results list, a map, a comparison. It deliberately does nothing in the setup wizards or while a corpus is being ingested, where it would abandon work halfway rather than dismiss a view.
+
+   In the reader: Ctrl+F opens Search, Ctrl+L jumps to the author filter (opening the library panel first if it is collapsed), F1 opens this help, and Alt+Left and Alt+Right walk back and forward through the passages you have jumped to - the same keys a browser uses, for the same reason.
+
+   In the translation workbench: Ctrl+Enter saves the passage and moves to the next one, Ctrl+S saves without moving, Ctrl+G opens the Go to list, and Alt+Left and Alt+Right move a passage at a time. None of these are unmodified keys, because Enter has to keep making a new line in your translation and Escape has to stay available to the text box rather than discarding what you have half written.
 
 Where you left off
    The app reopens the last passage you were reading. It is remembered as the work's CTS URN and the citation reference rather than as an internal identifier, so it still points at the same passage after a corpus is re-ingested - and if that work or line is no longer there, the app simply opens as it always did rather than complaining.
@@ -101,6 +121,20 @@ Read Aloud
    In the same window, above AI Translation. Speaks the selected passage using whatever voices Windows already has installed - completely offline, nothing sent anywhere, no key needed. Greek is transliterated phonetically first, since no standard Windows voice can pronounce Greek script at all; Latin and English are read as-is.
 
    The voice list is Windows' own, from Settings > Time & Language > Speech. This app can't add voices Windows doesn't already have - install one there and it will appear here.
+
+Core Vocabulary (right-click a work)
+   Every headword in the work, ranked by how many of its running words that headword accounts for, with a running total beside it. The line at the top is the useful one: learn the top so-many headwords and you can read half the work, so-many more and you reach four fifths.
+
+   This is the standard apparatus of learning a classical language, and it is the thing to look at before starting a text rather than after. A work is rarely hard because its grammar is exotic; it is hard because every third word is unknown, and a few hundred headwords carry most of any Greek or Latin author.
+
+   Counted from the text itself rather than from the word index. The index records each word once per line - it answers which lines contain a word, not how many times - so a frequency list built on it would be reporting line counts as word counts. That also means this is unaffected by the word index being out of date.
+
+   Where a form could belong to more than one headword, its occurrences count towards every candidate rather than being split or assigned to a guess, and those rows say so. The running total still counts each word of the text once, so it stays a true share and cannot climb past everything. Forms with no lemma data at all are counted in the total but can never be covered by the list, and the figure at the bottom says what share of the work those are - on a work with thin lemma data the running total stops well short of everything, which is the honest answer rather than a flattering one.
+
+Where should I start? (toolbar)
+   The scroll-and-quill button on the right of the toolbar. A short list of works worth translating first, ordered roughly as they are taught, with a sentence on why each one. Only works actually in your library are shown. Picking one and clicking Translate This opens it straight in the workbench.
+
+   It also names the ones to save for later - Aeschylus, Pindar, Sophocles and Thucydides in Greek, Tacitus, Persius and Lucretius in Latin. Greek choral lyric and Latin satire are genuinely difficult for professional scholars and the text itself is often uncertain. Starting there tells you nothing about whether you can learn the language, and nothing else in the app gives any sign that one text is ten times harder than another.
 
 Translate This Myself (right-click a work in the library tree)
    A workbench for translating a text yourself, one passage at a time. It shows the passage, a list of its words, and your own translation box side by side.
@@ -185,6 +219,10 @@ Morphology (toolbar)
    Searches by grammatical form instead of by word - every aorist optative, every genitive absolute, every superlative adjective. Where Word Study answers "what is this word doing?", this answers "where else does the language do this?". Pick the categories you care about and leave the rest as Any.
 
    This is a Greek feature in practice. Greek lemma data carries positional grammatical tags that this search is built around; the Latin data uses a coarser, differently-shaped vocabulary, so most combinations will find nothing on the Latin side. The form says so on screen rather than just returning an empty list.
+
+   Choose Texts narrows the search to any set of works, the same picker Word Study uses. It matters more here: a pattern like every aorist optative matches tens of thousands of lines, the search stops at its result limit in author order, and what comes back is therefore the start of the alphabet rather than a sample of the corpus. Narrowing the scope is the only way to ask the question about a text you actually care about.
+
+   In that picker, the Show box switches between all texts, the ones you have chosen, and the ones you have not. Picking through a couple of thousand works takes several rounds of filtering, and by the end there is no other way to see what you have accumulated - every choice you made is off screen the moment the filter moves on.
 """),
 
         ("Tags and the Myth Network", """
@@ -270,6 +308,8 @@ Options
 
 Formats: plain text, Word (.docx), or PDF.
 
+Every exported translation carries the edition it came from - "trans. Samuel Butler", "trans. Gemini (AI-generated)", or your own name if it is your workbench translation. Exported text outlives the application that produced it, and whether a rendering is a published translation, your own, or a machine's has to travel with it: that is the point at which text stops being something you are reading and becomes something you are pasting into an essay.
+
 About bilingual export: the two editions are matched by citation reference, which is the only thing they genuinely share. Where a translation is divided more coarsely than the original - an English chapter covering a dozen Latin sections - it's matched to the section it covers and shown once. Introductions and cast lists that exist only in the translation are still included. The status line tells you how many lines actually paired.
 
 A set of passages gathered from across the library
@@ -287,6 +327,11 @@ These documents always use a font that covers both Greek and Latin script, becau
 """),
 
         ("Appearance and settings", """
+Text size
+   The toolbar's Aa button sets how large Greek, Latin and English are drawn, in the reader and the translation workbench alike. Polytonic Greek is the reason it exists: breathings, accents and iota subscript are what you need to see in order to look a word up at all, and at a small size on a high-resolution display they are a few pixels each.
+
+   The two sizes are linked by default, because text at two different sizes in adjacent panes reads as a mistake rather than a setting. Unlink them if you want the Greek larger while keeping more English on screen. The sample text in the dialog updates as you drag, and Cancel puts back what you started with.
+
 Dark Mode / Light Mode
    Toggles from the toolbar. Dark mode avoids pure black on pure white deliberately - maximum contrast is harder to read for long stretches, which rather defeats the point. Your choice is remembered.
 
@@ -381,6 +426,8 @@ A translation pane that says the edition has no text
         };
 
         ReadingTheme.AttachTo(this);
+
+        WindowShortcuts.CloseOnEscape(this);
     }
 
     private void ShowSelectedTopic()

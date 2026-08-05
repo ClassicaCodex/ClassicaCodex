@@ -185,6 +185,8 @@ public class MythNetworkForm : Form
             Invalidate(true);
         }
 
+        WindowShortcuts.CloseOnEscape(this);
+
         ReadingTheme.Changed += OnThemeChanged;
         FormClosed += (_, _) => ReadingTheme.Changed -= OnThemeChanged;
     }

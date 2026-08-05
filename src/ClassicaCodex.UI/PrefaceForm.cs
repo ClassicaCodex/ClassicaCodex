@@ -54,5 +54,7 @@ public class PrefaceForm : Form
         Controls.Add(closeButton);
 
         ReadingTheme.AttachTo(this);
+
+        WindowShortcuts.CloseOnEscape(this);
     }
 }

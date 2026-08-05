@@ -87,6 +87,7 @@ public class BookmarksForm : Form
 
         Load += async (_, _) => await LoadBookmarksAsync();
         ReadingTheme.AttachTo(this);
+        WindowShortcuts.CloseOnEscape(this);
     }
 
     private async Task LoadBookmarksAsync()

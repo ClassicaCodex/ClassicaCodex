@@ -82,6 +82,8 @@ public class SettingsForm : Form
         Controls.Add(browseButton);
         Controls.Add(_statusLabel);
         Controls.Add(_connectButton);
+
+        WindowShortcuts.CloseOnEscape(this);
     }
 
     private async void ConnectButton_Click(object? sender, EventArgs e)

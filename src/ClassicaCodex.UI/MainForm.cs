@@ -559,9 +559,9 @@ public class MainForm : Form
 
         var toolbarButtons = new (Button Button, string Label, string Icon)[]
         {
-            (_backButton, "Back", "Back"),
-            (_forwardButton, "Forward", "Forward"),
-            (_searchButton, "Search", "Search"),
+            (_backButton, "Back  (Alt+Left)", "Back"),
+            (_forwardButton, "Forward  (Alt+Right)", "Forward"),
+            (_searchButton, "Search  (Ctrl+F)", "Search"),
             (bookmarksButton, "Bookmarks", "Bookmarks"),
             (tagsButton, "Tags", "AutoTag"),
             (mythNetworkButton, "Myth Network", "MythNetwork"),
@@ -616,7 +616,7 @@ public class MainForm : Form
         _toolbarTips.SetToolTip(_themeButton, "Light / dark mode");
         _toolbarTips.SetToolTip(_gettingStartedButton, "Getting started");
         _toolbarTips.SetToolTip(_fontSizeButton, "Text size");
-        _toolbarTips.SetToolTip(_helpButton, "Help");
+        _toolbarTips.SetToolTip(_helpButton, "Help  (F1)");
         _toolbarTips.SetToolTip(aboutButton, "About");
         setupWizardButton.AccessibleName = "Setup";
         _themeButton.AccessibleName = "Light / dark mode";
@@ -1972,6 +1972,25 @@ public class MainForm : Form
 
             case Keys.Alt | Keys.Right:
                 _ = GoHistoryAsync(1);
+                return true;
+
+            case Keys.Control | Keys.F:
+                OpenSearchWindow();
+                return true;
+
+            // Ctrl+L for the author filter, the same key every browser uses
+            // to jump to the thing you type into to get somewhere.
+            case Keys.Control | Keys.L:
+                if (_libraryTreeCollapsed) _treeToggleButton.PerformClick();
+                _treeFilterBox.Focus();
+                _treeFilterBox.SelectAll();
+                return true;
+
+            case Keys.F1:
+                using (var helpForm = new HelpForm())
+                {
+                    helpForm.ShowDialog(this);
+                }
                 return true;
         }
 

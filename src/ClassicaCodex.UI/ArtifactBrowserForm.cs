@@ -48,5 +48,7 @@ public class ArtifactBrowserForm : Form
         };
 
         ReadingTheme.AttachTo(this);
+
+        WindowShortcuts.CloseOnEscape(this);
     }
 }

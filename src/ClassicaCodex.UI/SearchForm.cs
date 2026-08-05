@@ -249,6 +249,7 @@ public class SearchForm : Form
             await LoadRecentAsync();
         };
         ReadingTheme.AttachTo(this);
+        WindowShortcuts.CloseOnEscape(this);
     }
 
     /// <summary>

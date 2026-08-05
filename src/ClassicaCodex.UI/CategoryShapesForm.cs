@@ -70,6 +70,7 @@ public class CategoryShapesForm : Form
 
         Load += async (_, _) => await LoadCategoriesAsync();
         ReadingTheme.AttachTo(this);
+        WindowShortcuts.CloseOnEscape(this);
     }
 
     private async Task LoadCategoriesAsync()

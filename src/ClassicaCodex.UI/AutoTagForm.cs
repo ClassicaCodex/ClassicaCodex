@@ -239,6 +239,8 @@ public class AutoTagForm : Form
         Controls.Add(_statusLabel);
 
         ReadingTheme.AttachTo(this);
+
+        WindowShortcuts.CloseOnEscape(this);
     }
 
     private async Task RunSearchAsync()
