@@ -257,6 +257,71 @@ public class LemmaRepository
     }
 
     /// <summary>
+    /// Headwords for many forms at once, as form -> candidate headwords.
+    ///
+    /// The per-form method above is a query each, which is fine for a word
+    /// someone clicked and hopeless for the several thousand distinct forms
+    /// in a single work. Chunked because SQLite has a parameter ceiling and
+    /// a work can carry more distinct forms than one IN clause will hold.
+    ///
+    /// Forms with no lemma data are absent from the result rather than
+    /// present with an empty list - the caller has to distinguish "no
+    /// headword known" from "headword known to be nothing", and an absent
+    /// key says the first without inventing the second.
+    /// </summary>
+    public async Task<Dictionary<string, List<string>>> GetHeadwordsForFormsAsync(
+        IReadOnlyCollection<string> normalizedForms, string language,
+        CancellationToken cancellationToken = default)
+    {
+        var result = new Dictionary<string, List<string>>(StringComparer.Ordinal);
+        if (normalizedForms.Count == 0) return result;
+
+        await using var conn = await DbConnectionFactory.OpenConnectionAsync(cancellationToken);
+
+        const int chunkSize = 400;
+        var forms = normalizedForms.Distinct(StringComparer.Ordinal).ToList();
+
+        for (var offset = 0; offset < forms.Count; offset += chunkSize)
+        {
+            var chunk = forms.Skip(offset).Take(chunkSize).ToList();
+
+            await using var cmd = conn.CreateCommand();
+            cmd.CommandTimeout = 120;
+
+            var names = new List<string>(chunk.Count);
+            for (var i = 0; i < chunk.Count; i++)
+            {
+                names.Add($"@f{i}");
+                cmd.Parameters.AddWithValue($"@f{i}", chunk[i]);
+            }
+
+            cmd.Parameters.AddWithValue("@Language", language);
+            cmd.CommandText =
+                $@"SELECT DISTINCT NormalizedForm, Headword
+                   FROM Lemmas
+                   WHERE Language = @Language
+                     AND NormalizedForm IN ({string.Join(",", names)});";
+
+            await using var reader = await cmd.ExecuteReaderAsync(cancellationToken);
+            while (await reader.ReadAsync(cancellationToken))
+            {
+                var form = reader.GetString(0);
+                var headword = reader.GetString(1);
+
+                if (!result.TryGetValue(form, out var headwords))
+                {
+                    headwords = new List<string>();
+                    result[form] = headwords;
+                }
+
+                headwords.Add(headword);
+            }
+        }
+
+        return result;
+    }
+
+    /// <summary>
     /// Finds passages containing word forms whose morphological tag matches
     /// a positional pattern - "every aorist optative", "every genitive
     /// plural". Goes Lemmas -> WordIndex -> TextNodes, the same route the
@@ -268,7 +333,7 @@ public class LemmaRepository
     /// the same length. See MorphologyDecoder.BuildGlobPattern.
     /// </summary>
     public async Task<List<(int WorkId, long TextNodeId, string AuthorName, string WorkTitle, string CitationRef, string Text, string MatchedForm, string Headword, string Tag)>>
-        SearchByMorphologyAsync(string globPattern9, string globPattern10, string language, int maxResults = 2000, CancellationToken cancellationToken = default)
+        SearchByMorphologyAsync(string globPattern9, string globPattern10, string language, int maxResults = 2000, IReadOnlyCollection<int>? workIds = null, CancellationToken cancellationToken = default)
     {
         var results = new List<(int, long, string, string, string, string, string, string, string)>();
 
@@ -276,12 +341,21 @@ public class LemmaRepository
         await using var cmd = conn.CreateCommand();
         cmd.CommandTimeout = 120;
 
+        var scope = workIds == null || workIds.Count == 0 ? null : workIds.Distinct().ToList();
+
         // Matching both patterns because the corpus carries both tag
         // layouts in bulk - see MorphologyDecoder.BuildGlobPatterns.
         // DISTINCT on the inner select: a line containing several forms that
         // all match would otherwise repeat, and the join to Lemmas can also
         // multiply rows when one form has several lemma candidates.
-        cmd.CommandText = @"
+        //
+        // The work scope goes in the WHERE rather than being filtered after
+        // the fact, because LIMIT applies before the caller ever sees a row.
+        // A corpus-wide search truncates at maxResults in author order, so
+        // filtering afterwards would leave a search scoped to one late-
+        // alphabet author returning nothing at all while reporting a full
+        // result set.
+        cmd.CommandText = $@"
             SELECT w.WorkId, tn.TextNodeId, a.Name, w.Title, tn.CitationRef, tn.Text,
                    m.Form, m.Headword, m.PartOfSpeech
             FROM (
@@ -296,6 +370,7 @@ public class LemmaRepository
             JOIN Editions e ON tn.EditionId = e.EditionId
             JOIN Works w ON e.WorkId = w.WorkId
             JOIN Authors a ON w.AuthorId = a.AuthorId
+            {WorkScope.Clause(cmd, scope, "WHERE")}
             ORDER BY a.Name, w.Title, tn.SortOrder
             LIMIT @MaxResults;";
 

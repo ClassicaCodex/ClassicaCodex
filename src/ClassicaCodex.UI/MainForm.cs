@@ -23,6 +23,43 @@ public class MainForm : Form
     private readonly ComboBox _translationEditionCombo;
     private readonly Button _themeButton;
     private readonly Button _helpButton;
+    private readonly Button _gettingStartedButton;
+    private readonly Button _backButton;
+    private readonly Button _forwardButton;
+
+    /// <summary>
+    /// Where the reader has been, in order, so Back returns there.
+    ///
+    /// Ten features in this application end in "jump to it" - search
+    /// results, concordance, echoes, the places map, the myth network - and
+    /// every one of them throws away where you were. Following a reference
+    /// out of a passage you were reading meant finding your way back to it
+    /// by hand.
+    ///
+    /// Session-only and keyed on ids rather than CTS URNs, which is the
+    /// opposite of what tags, bookmarks and reading position do. Those have
+    /// to survive a re-ingest that renumbers every id; this list does not
+    /// outlive the window it belongs to, so the durable key would buy
+    /// nothing and cost a lookup per entry.
+    /// </summary>
+    private readonly List<(int WorkId, long? TextNodeId)> _history = new();
+
+    private int _historyIndex = -1;
+
+    /// <summary>
+    /// Set while Back or Forward is doing the navigating, so the jump they
+    /// perform isn't recorded as a new destination - which would make Back
+    /// append to the list it is walking and leave Forward permanently
+    /// unreachable.
+    /// </summary>
+    private bool _navigatingHistory;
+
+    /// <summary>
+    /// Long enough that Back is always there when wanted, short enough that
+    /// it stays a list rather than a session log.
+    /// </summary>
+    private const int MaxHistoryEntries = 100;
+    private readonly Button _fontSizeButton;
     private readonly Button _searchButton;
 
     // Non-modal and reused: reopening Search shouldn't lose the filters you
@@ -81,6 +118,16 @@ public class MainForm : Form
     // their works, which is not something to repeat per character typed.
     private readonly TextBox _treeFilterBox;
     private readonly PictureBox _treeFilterIcon;
+    private readonly CheckBox _favoritesOnlyCheck;
+
+    private readonly FavoriteWorkRepository _favoriteRepo = new();
+
+    /// <summary>
+    /// CTS URNs of the favourited works, read once per tree load. The tree
+    /// draws a few thousand nodes and each needs to know whether it carries a
+    /// star while it is being built, so this is held rather than queried.
+    /// </summary>
+    private HashSet<string> _favoriteUrns = new(StringComparer.Ordinal);
 
     private List<Author> _allAuthors = new();
     private Dictionary<int, List<Work>> _worksByAuthor = new();
@@ -205,14 +252,19 @@ public class MainForm : Form
         // widening the reader area to reclaim that space (handled in
         // RelayoutReaderArea below), for when someone just wants to read
         // without the sidebar taking up room.
+        // Icon only. The word "Library" was the widest thing on this row and
+        // the row now has to carry a favourites filter as well; the icon
+        // already says collapse, and the tooltip says the rest.
         _treeToggleButton = new Button
         {
             Left = 10,
             Top = 54,
-            Width = 132,
+            Width = 36,
             Height = 24,
-            Text = "\u25C0 Library"
+            Text = string.Empty
         };
+        _toolbarTips.SetToolTip(_treeToggleButton, "Show or hide the library");
+        _treeToggleButton.AccessibleName = "Show or hide the library";
         AppIcons.Apply(_treeToggleButton, "Collapse", 14);
 
         // Sits on the toggle's own row rather than taking a row of its own,
@@ -222,7 +274,7 @@ public class MainForm : Form
         // reader.
         _treeFilterIcon = new PictureBox
         {
-            Left = 148,
+            Left = 52,
             Top = 57,
             Width = 16,
             Height = 16,
@@ -232,11 +284,28 @@ public class MainForm : Form
 
         _treeFilterBox = new TextBox
         {
-            Left = 168,
+            Left = 72,
             Top = 54,
-            Width = 142,
+            Width = 190,
             PlaceholderText = "Filter authors"
         };
+
+        // The star alone, with the word in a tooltip. It is the same glyph
+        // that marks a favourited work in the tree, so the row does not need
+        // to spell out what it filters - and the space it gives back goes to
+        // the author filter, which is the control on this row that benefits
+        // from being wider.
+        _favoritesOnlyCheck = new CheckBox
+        {
+            Left = 268,
+            Top = 54,
+            Width = 42,
+            Height = 24,
+            Text = "\u2605"
+        };
+        _favoritesOnlyCheck.CheckedChanged += (_, _) => PopulateLibraryTree();
+        _toolbarTips.SetToolTip(_favoritesOnlyCheck, "Show favourites only");
+        _favoritesOnlyCheck.AccessibleName = "Show favourites only";
 
         // Rebuilt straight from the cached lists on each keystroke rather
         // than debounced - there is no query behind it, so the work is a
@@ -277,6 +346,16 @@ public class MainForm : Form
         createTranslationItem.Click += async (_, _) => await CreateTranslationForSelectedWorkAsync();
         _themedMenuItemIcons.Add((createTranslationItem, "Translate"));
 
+        var vocabularyItem = libraryTreeMenu.Items.Add("Core Vocabulary...");
+        vocabularyItem.Image = AppIcons.Get("CoreVocabulary", 16);
+        vocabularyItem.Click += async (_, _) => await ShowVocabularyForSelectedWorkAsync();
+        _themedMenuItemIcons.Add((vocabularyItem, "CoreVocabulary"));
+
+        var favoriteItem = libraryTreeMenu.Items.Add("Add to Favourites");
+        favoriteItem.Image = AppIcons.Get("Bookmarks", 16);
+        favoriteItem.Click += async (_, _) => await ToggleFavoriteForSelectedWorkAsync();
+        _themedMenuItemIcons.Add((favoriteItem, "Bookmarks"));
+
         // Both items act on a work, and only work nodes carry one in their
         // Tag. Cancelling outright rather than hiding both: with every item
         // invisible the menu still opens, as an empty grey sliver next to
@@ -284,7 +363,17 @@ public class MainForm : Form
         // here".
         libraryTreeMenu.Opening += (_, e) =>
         {
-            if (_libraryTree.SelectedNode?.Tag is not Work) e.Cancel = true;
+            if (_libraryTree.SelectedNode?.Tag is not Work work)
+            {
+                e.Cancel = true;
+                return;
+            }
+
+            // One item that reads as what it will do, rather than two with
+            // one of them permanently greyed out.
+            favoriteItem.Text = _favoriteUrns.Contains(work.CtsUrn)
+                ? "Remove from Favourites"
+                : "Add to Favourites";
         };
         _libraryTree.MouseUp += (_, e) =>
         {
@@ -310,8 +399,12 @@ public class MainForm : Form
             Orientation = Orientation.Vertical
         };
 
-        _originalPane = CreateReaderList(new Font("Palatino Linotype", 11F));
-        _translationPane = CreateReaderList(new Font("Georgia", 11F));
+        // Each pane takes its own size. They are linked by default and so
+        // will usually be equal, but the two panes sit side by side and text
+        // at two different sizes in adjacent panes has to be something the
+        // reader asked for rather than something the app did.
+        _originalPane = CreateReaderList(new Font("Palatino Linotype", ReadingFontSettings.SourceSize));
+        _translationPane = CreateReaderList(new Font("Georgia", ReadingFontSettings.TranslationSize));
 
         _originalPane.TopItemChanged += (_, _) => SyncScroll(_originalPane, _translationPane);
         _translationPane.TopItemChanged += (_, _) => SyncScroll(_translationPane, _originalPane);
@@ -376,6 +469,32 @@ public class MainForm : Form
             ApplyTheme();
         };
 
+        // Arrow glyphs as text, not icons. AppIcons leaves a button alone
+        // when the file is missing, so dropping Back.png and Forward.png in
+        // later will light them up without touching this - and until then
+        // the arrows read perfectly well, which beats two blank squares.
+        _backButton = new IconButton { Text = "\u25C0", Enabled = false };
+        _backButton.Click += async (_, _) => await GoHistoryAsync(-1);
+
+        _forwardButton = new IconButton { Text = "\u25B6", Enabled = false };
+        _forwardButton.Click += async (_, _) => await GoHistoryAsync(1);
+
+        _gettingStartedButton = new IconButton { Top = 10, Width = 36, Height = 30 };
+        _gettingStartedButton.Click += async (_, _) => await ShowStartingPointsAsync();
+
+        _fontSizeButton = new IconButton { Top = 10, Width = 36, Height = 30 };
+        _fontSizeButton.Click += (_, _) =>
+        {
+            using var sizeForm = new ReadingFontSizeForm();
+            sizeForm.ShowDialog(this);
+        };
+
+        // Subscribed rather than applied at the point of change, because the
+        // workbench listens to the same event - the size has to reach a
+        // window this one did not open.
+        ReadingFontSettings.Changed += ApplyReadingFontSize;
+        FormClosed += (_, _) => ReadingFontSettings.Changed -= ApplyReadingFontSize;
+
         _helpButton = new IconButton { Top = 10, Width = 36, Height = 30 };
         _helpButton.Click += (_, _) =>
         {
@@ -401,8 +520,9 @@ public class MainForm : Form
             // sitting there over the reader would look like part of it.
             _treeFilterIcon.Visible = !_libraryTreeCollapsed;
             _treeFilterBox.Visible = !_libraryTreeCollapsed;
+            _favoritesOnlyCheck.Visible = !_libraryTreeCollapsed;
 
-            _treeToggleButton.Text = _libraryTreeCollapsed ? "\u25B6" : "\u25C0 Library";
+            _favoritesOnlyCheck.Visible = !_libraryTreeCollapsed;
             AppIcons.Apply(_treeToggleButton, _libraryTreeCollapsed ? "Expand" : "Collapse", 14);
             RelayoutReaderArea();
         };
@@ -413,6 +533,10 @@ public class MainForm : Form
         Controls.Add(aboutButton);
         Controls.Add(setupWizardButton);
         Controls.Add(_themeButton);
+        Controls.Add(_backButton);
+        Controls.Add(_forwardButton);
+        Controls.Add(_gettingStartedButton);
+        Controls.Add(_fontSizeButton);
         Controls.Add(_helpButton);
 
         // Icons are optional - AppIcons leaves a button alone when its file
@@ -435,6 +559,8 @@ public class MainForm : Form
 
         var toolbarButtons = new (Button Button, string Label, string Icon)[]
         {
+            (_backButton, "Back", "Back"),
+            (_forwardButton, "Forward", "Forward"),
             (_searchButton, "Search", "Search"),
             (bookmarksButton, "Bookmarks", "Bookmarks"),
             (tagsButton, "Tags", "AutoTag"),
@@ -457,7 +583,8 @@ public class MainForm : Form
 
         foreach (var (button, label, icon) in toolbarButtons)
         {
-            button.Text = string.Empty;
+            var isHistoryButton = ReferenceEquals(button, _backButton) || ReferenceEquals(button, _forwardButton);
+            if (!isHistoryButton) button.Text = string.Empty;
             button.Width = toolbarSize;
             button.Height = toolbarSize;
             button.Top = 4;
@@ -467,7 +594,14 @@ public class MainForm : Form
             AppIcons.Apply(button, icon, toolbarIcon);
             _themedButtonIcons.Add((button, icon));
 
+            // Once artwork exists the arrow would sit on top of it.
+            if (isHistoryButton && button.Image != null) button.Text = string.Empty;
+
             toolbarLeft += toolbarSize + toolbarGap;
+
+            // Back and Forward are a pair and belong to the reader, not to
+            // the analysis tools - the gap says so.
+            if (ReferenceEquals(button, _forwardButton)) toolbarLeft += 14;
 
             // A wider gap after Search: it opens the window someone reaches
             // for most, and grouping the analysis tools apart from it keeps
@@ -480,19 +614,32 @@ public class MainForm : Form
         // all - not even a tooltip - so a new icon there was a guess.
         _toolbarTips.SetToolTip(setupWizardButton, "Setup");
         _toolbarTips.SetToolTip(_themeButton, "Light / dark mode");
+        _toolbarTips.SetToolTip(_gettingStartedButton, "Getting started");
+        _toolbarTips.SetToolTip(_fontSizeButton, "Text size");
         _toolbarTips.SetToolTip(_helpButton, "Help");
         _toolbarTips.SetToolTip(aboutButton, "About");
         setupWizardButton.AccessibleName = "Setup";
         _themeButton.AccessibleName = "Light / dark mode";
+        _gettingStartedButton.AccessibleName = "Getting started";
+        _fontSizeButton.AccessibleName = "Text size";
         _helpButton.AccessibleName = "Help";
         aboutButton.AccessibleName = "About";
 
-        foreach (var button in new[] { setupWizardButton, _themeButton, _helpButton, aboutButton })
+        foreach (var button in new[]
+                 {
+                     setupWizardButton, _themeButton, _gettingStartedButton,
+                     _fontSizeButton, _helpButton, aboutButton
+                 })
         {
             button.Width = toolbarSize;
             button.Height = toolbarSize;
             button.Top = 4;
         }
+
+        AppIcons.Apply(_gettingStartedButton, "GettingStarted", toolbarIcon);
+        AppIcons.Apply(_fontSizeButton, "FontSize", toolbarIcon);
+        _themedButtonIcons.Add((_gettingStartedButton, "GettingStarted"));
+        _themedButtonIcons.Add((_fontSizeButton, "FontSize"));
 
         AppIcons.Apply(setupWizardButton, "Settings", toolbarIcon);
         AppIcons.Apply(aboutButton, "About", toolbarIcon);
@@ -504,6 +651,7 @@ public class MainForm : Form
         Controls.Add(_treeToggleButton);
         Controls.Add(_treeFilterIcon);
         Controls.Add(_treeFilterBox);
+        Controls.Add(_favoritesOnlyCheck);
         Controls.Add(splitContainer);
 
         Load += async (_, _) =>
@@ -529,18 +677,21 @@ public class MainForm : Form
 
             // Same reasoning applies to the top-right buttons - pinned here
             // rather than via Anchor, for the identical reason. Left to
-            // right: Setup Wizard, theme toggle, Help, About - built from
-            // the right edge inward, so About anchors the chain and each
-            // one before it is positioned off the one already placed.
+            // right: Setup Wizard, theme toggle, Getting Started, text size,
+            // Help, About - built from the right edge inward, so About
+            // anchors the chain and each one before it is positioned off the
+            // one already placed.
             aboutButton.Left = Math.Max(ClientSize.Width - aboutButton.Width - margin, 0);
             _helpButton.Left = Math.Max(aboutButton.Left - _helpButton.Width - 8, 0);
-            _themeButton.Left = Math.Max(_helpButton.Left - _themeButton.Width - 8, 0);
+            _fontSizeButton.Left = Math.Max(_helpButton.Left - _fontSizeButton.Width - 8, 0);
+            _gettingStartedButton.Left = Math.Max(_fontSizeButton.Left - _gettingStartedButton.Width - 8, 0);
+            _themeButton.Left = Math.Max(_gettingStartedButton.Left - _themeButton.Width - 8, 0);
             setupWizardButton.Left = Math.Max(_themeButton.Left - setupWizardButton.Width - 8, 0);
 
             // Shrinks to just its arrow once collapsed - there's nothing
             // left underneath to line up with, so the full descriptive
             // label would only be clutter.
-            _treeToggleButton.Width = _libraryTreeCollapsed ? collapsedToggleWidth : 132;
+            _treeToggleButton.Width = collapsedToggleWidth;
 
             // Reader area starts right after the tree - or right at the
             // window's own left margin if the tree is collapsed, reclaiming
@@ -639,6 +790,7 @@ public class MainForm : Form
             // author inside the loop below - with a full corpus that was
             // hundreds of round trips before the tree could render at all.
             worksByAuthor = await _workRepo.GetAllGroupedByAuthorAsync();
+            _favoriteUrns = await _favoriteRepo.GetAllAsync();
         }
         catch (Exception ex)
         {
@@ -663,6 +815,8 @@ public class MainForm : Form
     private void PopulateLibraryTree()
     {
         var filter = _treeFilterBox.Text.Trim();
+        var favoritesOnly = _favoritesOnlyCheck.Checked;
+
         var authors = filter.Length == 0
             ? _allAuthors
             : _allAuthors
@@ -701,9 +855,22 @@ public class MainForm : Form
                 {
                     foreach (var work in works)
                     {
-                        authorNode.Nodes.Add(new TreeNode(work.Title) { Tag = work });
+                        var isFavorite = _favoriteUrns.Contains(work.CtsUrn);
+                        if (favoritesOnly && !isFavorite) continue;
+
+                        // A star in the label rather than a node image. The
+                        // tree has no ImageList and giving it one would put
+                        // an icon slot on every author row too, indenting
+                        // the whole library to mark a few dozen works.
+                        authorNode.Nodes.Add(
+                            new TreeNode(isFavorite ? $"\u2605 {work.Title}" : work.Title) { Tag = work });
                     }
                 }
+
+                // Under the favourites filter an author with nothing
+                // favourited is not an author with an empty expander - they
+                // are simply not part of the answer.
+                if (favoritesOnly && authorNode.Nodes.Count == 0) continue;
 
                 _libraryTree.Nodes.Add(authorNode);
             }
@@ -716,9 +883,106 @@ public class MainForm : Form
         // Says so rather than showing an empty panel, which reads as a
         // library that failed to load rather than a filter that matched
         // nothing.
-        if (authors.Count == 0 && filter.Length > 0)
+        if (_libraryTree.Nodes.Count == 0)
         {
-            _libraryTree.Nodes.Add(new TreeNode($"No author matching \u201c{filter}\u201d"));
+            // Distinguishes an empty result from a library that failed to
+            // load. The favourites case gets its own wording because "no
+            // author matching" would be wrong when the filter box is empty.
+            if (favoritesOnly)
+            {
+                _libraryTree.Nodes.Add(new TreeNode(filter.Length > 0
+                    ? $"No favourites matching \u201c{filter}\u201d"
+                    : "No favourites yet - right-click a work to add one"));
+            }
+            else if (filter.Length > 0)
+            {
+                _libraryTree.Nodes.Add(new TreeNode($"No author matching \u201c{filter}\u201d"));
+            }
+        }
+    }
+
+    /// <summary>
+    /// Opens the vocabulary profile for the selected work.
+    ///
+    /// Counted from an original-language edition, never a translation: the
+    /// point is which Greek or Latin words you need, and the English one
+    /// would produce a perfectly accurate frequency list for the wrong
+    /// language. Where a work has several originals the first is taken -
+    /// they are the same text in different editions, and the vocabulary of
+    /// one is the vocabulary of the others bar textual variants.
+    /// </summary>
+    private async Task ShowVocabularyForSelectedWorkAsync()
+    {
+        if (_libraryTree.SelectedNode?.Tag is not Work work) return;
+
+        try
+        {
+            var editions = await _editionRepo.GetByWorkAsync(work.WorkId);
+            var original = editions.FirstOrDefault(e => e.Kind == EditionKind.Original);
+
+            if (original == null)
+            {
+                MessageBox.Show(this,
+                    "This work has no original-language text loaded, so there is no Greek or Latin "
+                    + "vocabulary to count.",
+                    "Core Vocabulary", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                return;
+            }
+
+            var authorName = FindWorkNode(work.WorkId)?.Parent?.Text ?? string.Empty;
+
+            using var form = new VocabularyForm(work, authorName, original.EditionId, original.Language);
+            form.ShowDialog(this);
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show(this, $"Couldn't open the vocabulary list: {ex.Message}",
+                "Core Vocabulary", MessageBoxButtons.OK, MessageBoxIcon.Error);
+        }
+    }
+
+    /// <summary>
+    /// Adds or removes the selected work from favourites, then rebuilds the
+    /// tree so the star appears or disappears.
+    ///
+    /// Rebuilt from the cached lists rather than reloaded from the database -
+    /// only the favourites set changed, and a full reload of a corpus-sized
+    /// library to add one star would be felt.
+    /// </summary>
+    private async Task ToggleFavoriteForSelectedWorkAsync()
+    {
+        if (_libraryTree.SelectedNode?.Tag is not Work work) return;
+
+        try
+        {
+            if (_favoriteUrns.Contains(work.CtsUrn))
+            {
+                await _favoriteRepo.RemoveAsync(work.CtsUrn);
+                _favoriteUrns.Remove(work.CtsUrn);
+            }
+            else
+            {
+                await _favoriteRepo.AddAsync(work.CtsUrn);
+                _favoriteUrns.Add(work.CtsUrn);
+            }
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show(this, $"Couldn't update favourites: {ex.Message}", "Favourites",
+                MessageBoxButtons.OK, MessageBoxIcon.Error);
+            return;
+        }
+
+        var workId = work.WorkId;
+        PopulateLibraryTree();
+
+        // The tree was rebuilt, so the old node object is gone - reselect by
+        // id rather than holding on to a stale reference.
+        var node = FindWorkNode(workId);
+        if (node != null)
+        {
+            _libraryTree.SelectedNode = node;
+            node.EnsureVisible();
         }
     }
 
@@ -954,6 +1218,53 @@ public class MainForm : Form
         var lines = lineCounts.TryGetValue(edition.EditionId, out var n) ? $"{n:N0} lines" : "unknown length";
 
         return isClosest ? $"{who} - {lines} - lines up with this text" : $"{who} - {lines}";
+    }
+
+    /// <summary>
+    /// Redraws both reader panes at the current configured sizes.
+    ///
+    /// Replaces the Font rather than mutating it - a Font is immutable, and
+    /// SyncListView recomputes its row heights in OnFontChanged, which only
+    /// fires on assignment.
+    /// </summary>
+    private void ApplyReadingFontSize()
+    {
+        _originalPane.Font = new Font(_originalPane.Font.FontFamily, ReadingFontSettings.SourceSize);
+        _translationPane.Font = new Font(_translationPane.Font.FontFamily, ReadingFontSettings.TranslationSize);
+        _originalPane.Invalidate();
+        _translationPane.Invalidate();
+    }
+
+    /// <summary>
+    /// Offers a short list of works worth translating first, and opens the
+    /// workbench on whichever the reader picks.
+    ///
+    /// Selects the work in the tree and then defers to
+    /// OpenTranslationWorkbenchAsync rather than launching the workbench
+    /// directly. That method reads the tree selection and carries a good deal
+    /// besides - resuming an existing hand-written edition, ranking the
+    /// comparison translations, the no-original guard - and a second launch
+    /// path would have to keep pace with all of it.
+    /// </summary>
+    private async Task ShowStartingPointsAsync()
+    {
+        using var form = new StartingPointsForm();
+
+        if (form.ShowDialog(this) != DialogResult.OK || form.ChosenWork == null) return;
+
+        var node = FindWorkNode(form.ChosenWork.WorkId);
+        if (node == null)
+        {
+            MessageBox.Show(this, "That work is in the library but not in the tree as currently filtered. "
+                                + "Clear the author filter and try again.",
+                "Where to start", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            return;
+        }
+
+        _libraryTree.SelectedNode = node;
+        node.EnsureVisible();
+
+        await OpenTranslationWorkbenchAsync();
     }
 
     private async Task OpenTranslationWorkbenchAsync()
@@ -1326,7 +1637,8 @@ public class MainForm : Form
         // ingested (original-only or translation-only), in which case the
         // dialog just disables that option.
         var counterpartPane = list == _originalPane ? _translationPane : _originalPane;
-        var counterpartEditionId = GetSelectedEditionId(counterpartPane);
+        var counterpartEdition = GetSelectedEdition(counterpartPane);
+        var counterpartEditionId = counterpartEdition?.EditionId;
         var counterpartIsOriginal = counterpartPane == _originalPane;
 
         var sourceInfo = await _textNodeRepo.GetTextNodeSourceInfoAsync(node.TextNodeId);
@@ -1335,19 +1647,23 @@ public class MainForm : Form
 
         using var exportForm = new PassageExportForm(
             node, editionId.Value, authorName, workTitle, fontName,
-            counterpartEditionId, counterpartIsOriginal, _originalPane.Font.Name);
+            counterpartEditionId, counterpartIsOriginal, _originalPane.Font.Name,
+            counterpartEdition == null ? null : EditionLabels.Descriptor(counterpartEdition));
         exportForm.ShowDialog(this);
     }
 
     /// <summary>Which edition is currently loaded in a given pane, based on that pane's combo selection.</summary>
-    private int? GetSelectedEditionId(SyncListView pane)
+    private Edition? GetSelectedEdition(SyncListView pane)
     {
         var combo = pane == _originalPane ? _originalEditionCombo
             : pane == _translationPane ? _translationEditionCombo
             : null;
 
-        return (combo?.SelectedItem as EditionOption)?.Edition.EditionId;
+        return (combo?.SelectedItem as EditionOption)?.Edition;
     }
+
+    /// <summary>Which edition is currently loaded in a given pane, based on that pane's combo selection.</summary>
+    private int? GetSelectedEditionId(SyncListView pane) => GetSelectedEdition(pane)?.EditionId;
 
     private async Task LibraryTree_AfterSelectAsync(TreeViewEventArgs e)
     {
@@ -1360,6 +1676,8 @@ public class MainForm : Form
 
         _openWork = work;
         await LoadEditionSelectorsAsync(work.WorkId);
+
+        RecordHistory(work.WorkId, null);
     }
 
     /// <summary>
@@ -1376,26 +1694,11 @@ public class MainForm : Form
 
     /// <summary>
     /// The edition-specific part of a dropdown label - what distinguishes
-    /// one edition of a work from another.
+    /// one edition of a work from another. Delegates to EditionLabels so the
+    /// dropdown and Export cannot drift apart; see the remarks there for why
+    /// that mattered.
     /// </summary>
-    private static string GetEditionDescriptor(Edition edition)
-    {
-        if (edition.Kind == EditionKind.Translation)
-        {
-            if (!string.IsNullOrWhiteSpace(edition.Translator)) return $"trans. {edition.Translator}";
-
-            var suffix = edition.CtsUrn.Split(new[] { '.', ':' }, StringSplitOptions.RemoveEmptyEntries).LastOrDefault();
-            return string.IsNullOrEmpty(suffix) ? "Translation" : $"Translation ({suffix})";
-        }
-
-        return edition.Language?.ToUpperInvariant() switch
-        {
-            "GRC" => "Greek (original)",
-            "LAT" => "Latin (original)",
-            not null => $"{edition.Language} (original)",
-            null => "Original"
-        };
-    }
+    private static string GetEditionDescriptor(Edition edition) => EditionLabels.Descriptor(edition);
 
     /// <summary>
     /// An author's dates as a single span - "384-322 BCE", "23-79 CE", or
@@ -1615,8 +1918,18 @@ public class MainForm : Form
     /// </summary>
     private async Task NavigateToPassageAsync(int workId, long textNodeId)
     {
+        if (await NavigateToPassageAsyncCore(workId, textNodeId)) RecordHistory(workId, textNodeId);
+    }
+
+    /// <summary>
+    /// The jump itself, without recording it. Split out so Back and Forward
+    /// can reuse the whole edition-resolving path without their own
+    /// navigation being appended to the list they are walking.
+    /// </summary>
+    private async Task<bool> NavigateToPassageAsyncCore(int workId, long textNodeId)
+    {
         var opened = await OpenWorkAsync(workId);
-        if (!opened) return;
+        if (!opened) return false;
 
         if (!SelectItemByTextNodeId(_originalPane, textNodeId) &&
             !SelectItemByTextNodeId(_translationPane, textNodeId))
@@ -1637,6 +1950,160 @@ public class MainForm : Form
             SelectItemByTextNodeId(_originalPane, textNodeId);
             SelectItemByTextNodeId(_translationPane, textNodeId);
         }
+
+        return true;
+    }
+
+    /// <summary>
+    /// Alt+Left and Alt+Right, wherever focus happens to be.
+    ///
+    /// ProcessCmdKey rather than a KeyDown handler with KeyPreview: the
+    /// reader spends its time inside list controls, and a key handler on the
+    /// form would only see these once the list had declined them. The same
+    /// pair of keys every browser uses for the same action.
+    /// </summary>
+    protected override bool ProcessCmdKey(ref Message msg, Keys keyData)
+    {
+        switch (keyData)
+        {
+            case Keys.Alt | Keys.Left:
+                _ = GoHistoryAsync(-1);
+                return true;
+
+            case Keys.Alt | Keys.Right:
+                _ = GoHistoryAsync(1);
+                return true;
+        }
+
+        return base.ProcessCmdKey(ref msg, keyData);
+    }
+
+    /// <summary>
+    /// Where the reader is now - the selected work, and the selected line
+    /// within it if there is one.
+    ///
+    /// Reads the original pane first and falls back to the translation,
+    /// matching how the panes are used: a line is normally selected in one
+    /// or the other, not both.
+    /// </summary>
+    private (int WorkId, long? TextNodeId)? CurrentPosition()
+    {
+        if (_libraryTree.SelectedNode?.Tag is not Work work) return null;
+
+        foreach (var pane in new[] { _originalPane, _translationPane })
+        {
+            if (pane.SelectedIndex >= 0
+                && pane.SelectedIndex < pane.Items.Count
+                && pane.Items[pane.SelectedIndex] is TextNode node)
+            {
+                return (work.WorkId, node.TextNodeId);
+            }
+        }
+
+        return (work.WorkId, null);
+    }
+
+    /// <summary>
+    /// Records a destination, discarding any forward entries - the same
+    /// thing a browser does when you follow a link after going back.
+    ///
+    /// The first record also captures where the reader already was, so that
+    /// Back after a single jump returns to the passage being read rather
+    /// than finding an empty list.
+    /// </summary>
+    private void RecordHistory(int workId, long? textNodeId)
+    {
+        if (_navigatingHistory) return;
+
+        if (_history.Count == 0)
+        {
+            var start = CurrentPosition();
+            if (start != null && start.Value.WorkId != workId)
+            {
+                _history.Add(start.Value);
+                _historyIndex = 0;
+            }
+        }
+
+        var entry = (workId, textNodeId);
+
+        if (_historyIndex >= 0)
+        {
+            var current = _history[_historyIndex];
+            if (current.Equals(entry)) return;
+
+            // Opening the work already open is not a destination. Without
+            // this, jumping twice to the same passage recorded the work a
+            // second time - the refine below only fires when the current
+            // entry has no line yet - and Back then took two presses to
+            // leave a place you had only arrived at once.
+            if (textNodeId == null && current.WorkId == workId) return;
+
+            // NavigateToPassageAsync opens the work before selecting the
+            // line, so a single jump arrives here twice - once with no line
+            // and again with one. The second refines the first rather than
+            // being a place of its own, or every jump would cost two presses
+            // of Back to undo.
+            if (current.WorkId == workId && current.TextNodeId == null && textNodeId != null)
+            {
+                _history[_historyIndex] = entry;
+                RefreshHistoryButtons();
+                return;
+            }
+        }
+
+        if (_historyIndex < _history.Count - 1)
+        {
+            _history.RemoveRange(_historyIndex + 1, _history.Count - _historyIndex - 1);
+        }
+
+        _history.Add(entry);
+        _historyIndex = _history.Count - 1;
+
+        if (_history.Count > MaxHistoryEntries)
+        {
+            _history.RemoveAt(0);
+            _historyIndex--;
+        }
+
+        RefreshHistoryButtons();
+    }
+
+    /// <summary>
+    /// Steps back or forward through the history. Delta is -1 or 1.
+    /// </summary>
+    private async Task GoHistoryAsync(int delta)
+    {
+        var target = _historyIndex + delta;
+        if (target < 0 || target >= _history.Count) return;
+
+        var (workId, textNodeId) = _history[target];
+
+        _navigatingHistory = true;
+        try
+        {
+            var reached = textNodeId != null
+                ? await NavigateToPassageAsyncCore(workId, textNodeId.Value)
+                : await OpenWorkAsync(workId);
+
+            // A work that has since been removed - by a re-ingest, say -
+            // leaves the index where it was rather than moving to a place
+            // that no longer exists.
+            if (!reached) return;
+        }
+        finally
+        {
+            _navigatingHistory = false;
+        }
+
+        _historyIndex = target;
+        RefreshHistoryButtons();
+    }
+
+    private void RefreshHistoryButtons()
+    {
+        _backButton.Enabled = _historyIndex > 0;
+        _forwardButton.Enabled = _historyIndex >= 0 && _historyIndex < _history.Count - 1;
     }
 
     /// <summary>Selects the combo entry for a given EditionId, if present. Doesn't repopulate the pane itself.</summary>
@@ -1699,6 +2166,8 @@ public class MainForm : Form
         }
 
         await LoadEditionSelectorsAsync(workId);
+
+        RecordHistory(workId, null);
         return true;
     }
 

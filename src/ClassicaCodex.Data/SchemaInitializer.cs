@@ -50,7 +50,7 @@ public static class SchemaInitializer
     /// doing anything - and without "delete your database and re-ingest"
     /// ever being the release note.
     /// </summary>
-    private const int TargetSchemaVersion = 6;
+    private const int TargetSchemaVersion = 7;
 
     public static async Task EnsureSchemaAsync(CancellationToken cancellationToken = default)
     {
@@ -373,6 +373,25 @@ public static class SchemaInitializer
 
             "DROP TABLE RecentSearches;",
             "ALTER TABLE RecentSearches_v6 RENAME TO RecentSearches;"
+        },
+
+        // v7: favourite works.
+        //
+        // Keyed on the work's CTS URN rather than its WorkId. Ids are
+        // assigned locally and renumber when a corpus is re-ingested into a
+        // fresh file, so a favourites list keyed on them would silently come
+        // back pointing at different works - which is worse than losing it,
+        // because nothing about it would look wrong.
+        //
+        // A plain CREATE with no backfill: nothing existed to carry forward,
+        // and a new table is the one migration shape that cannot half-apply
+        // to an existing library.
+        [7] = new[]
+        {
+            @"CREATE TABLE IF NOT EXISTS FavoriteWorks (
+                CtsUrn    TEXT NOT NULL PRIMARY KEY,
+                CreatedAt TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+            );"
         }
     };
 
@@ -572,6 +591,18 @@ public static class SchemaInitializer
         );",
 
         @"CREATE INDEX IF NOT EXISTS IX_Bookmarks_Passage ON Bookmarks (EditionId, CitationRef);",
+
+        // Favourite works - a shortlist of the texts you actually return to,
+        // out of a corpus of several thousand. Keyed on the work's CTS URN
+        // rather than its WorkId, because ids renumber on a re-ingest and a
+        // favourites list that quietly repoints at other works would be
+        // worse than one that was lost. Mirrored in migration 7; a new
+        // database gets this DDL and never runs migrations, so the two have
+        // to agree.
+        @"CREATE TABLE IF NOT EXISTS FavoriteWorks (
+            CtsUrn    TEXT NOT NULL PRIMARY KEY,
+            CreatedAt TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+        );",
 
         // Lemmas - inflected form to dictionary headword mapping. This is
         // what makes Greek/Latin search and concordance actually work:

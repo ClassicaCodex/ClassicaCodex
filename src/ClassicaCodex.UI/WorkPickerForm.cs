@@ -18,6 +18,7 @@ namespace ClassicaCodex.UI;
 public class WorkPickerForm : Form
 {
     private readonly TextBox _filterBox;
+    private readonly ComboBox _showCombo;
     private readonly CheckedListBox _list;
     private readonly CheckBox _allWorksCheck;
     private readonly Label _countLabel;
@@ -30,6 +31,25 @@ public class WorkPickerForm : Form
     // before the form has a window handle - and again on every keystroke in
     // the filter box, re-recording choices it already holds.
     private bool _populating;
+
+    /// <summary>
+    /// Which works the list shows, independent of the text filter.
+    ///
+    /// Picking through a couple of thousand works happens across several
+    /// filter terms - type an author, tick two plays, type another author,
+    /// tick three more - and by the end there is no way to see what has been
+    /// accumulated, because every choice made is off screen the moment the
+    /// filter moves on. Chosen answers that, and Not chosen is what makes
+    /// "select all shown" usable for the remainder.
+    /// </summary>
+    private enum ShowMode
+    {
+        All = 0,
+        Chosen = 1,
+        NotChosen = 2
+    }
+
+    private ShowMode CurrentShowMode => (ShowMode)Math.Max(_showCombo.SelectedIndex, 0);
 
     /// <summary>
     /// The chosen work ids, or empty for "everything" - which the caller
@@ -75,10 +95,27 @@ public class WorkPickerForm : Form
         {
             Left = 58,
             Top = 40,
-            Width = 570,
+            Width = 366,
             Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right,
             PlaceholderText = "author or title"
         };
+
+        var showLabel = new Label
+        {
+            Text = "Show:", Left = 432, Top = 44, Width = 42,
+            Anchor = AnchorStyles.Top | AnchorStyles.Right
+        };
+        _showCombo = new ComboBox
+        {
+            Left = 476,
+            Top = 40,
+            Width = 152,
+            Anchor = AnchorStyles.Top | AnchorStyles.Right,
+            DropDownStyle = ComboBoxStyle.DropDownList
+        };
+        _showCombo.Items.AddRange(new object[] { "All texts", "Chosen only", "Not chosen" });
+        _showCombo.SelectedIndex = 0;
+        _showCombo.SelectedIndexChanged += (_, _) => RefreshList();
 
         _list = new CheckedListBox
         {
@@ -176,17 +213,20 @@ public class WorkPickerForm : Form
         _allWorksCheck.CheckedChanged += (_, _) =>
         {
             _filterBox.Enabled = !_allWorksCheck.Checked;
+            _showCombo.Enabled = !_allWorksCheck.Checked;
             _list.Enabled = !_allWorksCheck.Checked;
             UpdateCount();
         };
 
         Controls.AddRange(new Control[]
         {
-            _allWorksCheck, filterLabel, _filterBox, _list, _countLabel, okButton, cancelButton
+            _allWorksCheck, filterLabel, _filterBox, showLabel, _showCombo, _list, _countLabel,
+            okButton, cancelButton
         });
 
         RefreshList();
         _filterBox.Enabled = !_allWorksCheck.Checked;
+        _showCombo.Enabled = !_allWorksCheck.Checked;
         _list.Enabled = !_allWorksCheck.Checked;
 
         ReadingTheme.AttachTo(this);
@@ -198,18 +238,32 @@ public class WorkPickerForm : Form
     }
 
     /// <summary>
-    /// Rebuilds the visible list for the current filter, restoring ticks
-    /// from what has been chosen rather than from what the list held before.
+    /// Rebuilds the visible list for the current filter and show mode,
+    /// restoring ticks from what has been chosen rather than from what the
+    /// list held before.
+    ///
+    /// The two narrowings compose: "Chosen only" with an author typed shows
+    /// what has been picked from that author, not everything picked.
     /// </summary>
     private void RefreshList()
     {
         var filter = _filterBox.Text.Trim();
 
-        var matching = filter.Length == 0
-            ? _allWorks
-            : _allWorks
-                .Where(w => w.Label.Contains(filter, StringComparison.CurrentCultureIgnoreCase))
-                .ToList();
+        IEnumerable<(int WorkId, string Label)> matching = _allWorks;
+
+        if (filter.Length > 0)
+        {
+            matching = matching.Where(w => w.Label.Contains(filter, StringComparison.CurrentCultureIgnoreCase));
+        }
+
+        matching = CurrentShowMode switch
+        {
+            ShowMode.Chosen => matching.Where(w => _selected.Contains(w.WorkId)),
+            ShowMode.NotChosen => matching.Where(w => !_selected.Contains(w.WorkId)),
+            _ => matching
+        };
+
+        var matched = matching.ToList();
 
         _populating = true;
         _list.BeginUpdate();
@@ -221,7 +275,7 @@ public class WorkPickerForm : Form
             // CheckedListBox holding all of them is slow to build on every
             // keystroke. Typing narrows it; the count says when that is
             // needed.
-            foreach (var (workId, label) in matching.Take(500))
+            foreach (var (workId, label) in matched.Take(500))
             {
                 _list.Items.Add(new WorkEntry(workId, label), _selected.Contains(workId));
             }
@@ -232,7 +286,7 @@ public class WorkPickerForm : Form
             _populating = false;
         }
 
-        UpdateCount(matching.Count);
+        UpdateCount(matched.Count);
     }
 
     /// <summary>
@@ -262,6 +316,17 @@ public class WorkPickerForm : Form
         {
             _list.EndUpdate();
             _populating = false;
+        }
+
+        // A bulk change makes the list wrong under the filtered modes -
+        // everything just unticked is still listed under "Chosen only" - so
+        // it is rebuilt. Deliberately not done for a single tick: an item
+        // vanishing from under the pointer as it is clicked makes the next
+        // click land on something else.
+        if (CurrentShowMode != ShowMode.All)
+        {
+            RefreshList();
+            return;
         }
 
         UpdateCount();

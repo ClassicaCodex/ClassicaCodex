@@ -20,6 +20,14 @@ public class PassageExportForm : Form
     private readonly string _fontName;
     private readonly int? _counterpartEditionId;
     private readonly bool _counterpartIsOriginal;
+
+    /// <summary>
+    /// How the counterpart edition is named in the reader - "trans. Gemini
+    /// (AI-generated)", "trans. Samuel Butler", "Greek (original)". Null only
+    /// when the caller could not resolve the edition, in which case export
+    /// falls back to the old bare label rather than inventing attribution.
+    /// </summary>
+    private readonly string? _counterpartDescriptor;
     private readonly string _originalFontName;
 
     private readonly RadioButton _lineCountModeRadio;
@@ -48,7 +56,8 @@ public class PassageExportForm : Form
 
     public PassageExportForm(
         TextNode startNode, int editionId, string authorName, string workTitle, string fontName,
-        int? counterpartEditionId = null, bool counterpartIsOriginal = false, string? originalFontName = null)
+        int? counterpartEditionId = null, bool counterpartIsOriginal = false, string? originalFontName = null,
+        string? counterpartDescriptor = null)
     {
         _startNode = startNode;
         _editionId = editionId;
@@ -57,6 +66,7 @@ public class PassageExportForm : Form
         _fontName = fontName;
         _counterpartEditionId = counterpartEditionId;
         _counterpartIsOriginal = counterpartIsOriginal;
+        _counterpartDescriptor = counterpartDescriptor;
         _originalFontName = originalFontName ?? fontName;
 
         Text = "Export Passage";
@@ -282,7 +292,12 @@ public class PassageExportForm : Form
         if (_currentLines.Count == 0) return new();
 
         var bilingual = _bilingualCheckbox.Checked && _aligner != null;
-        var counterpartLabel = _counterpartIsOriginal ? "original" : "trans.";
+        // The counterpart is labelled with its actual edition - translator
+        // included - rather than a bare "trans.". Exported text outlives the
+        // application that produced it, so whether a rendering is Butler's,
+        // the reader's own, or a machine's has to travel with it.
+        var counterpartLabel = _counterpartDescriptor
+            ?? (_counterpartIsOriginal ? "original" : "trans.");
 
         if (_combineCheckbox.Checked)
         {

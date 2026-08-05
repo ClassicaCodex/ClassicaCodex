@@ -63,39 +63,57 @@ public static class ReadingTheme
     ///
     /// Rows are left to the default renderer (DrawDefault), which already
     /// honours the ListView's themed BackColor and ForeColor - only the
-    /// header actually needs drawing by hand. Call this once at construction;
-    /// the handlers read the current theme each time they paint, so they
-    /// don't need re-wiring when the mode changes.
+    /// header actually needs drawing by hand.
+    ///
+    /// Safe to call repeatedly. It used to say "call this once at
+    /// construction", which meant every new ListView had to remember to ask
+    /// for it and one promptly didn't - the Where to start dialog shipped
+    /// with a white header strip across an otherwise dark window. The
+    /// handlers are named rather than lambdas so they can be detached before
+    /// being reattached, which is what makes a second call harmless, and
+    /// Apply now calls this for every ListView it walks.
     /// </summary>
     public static void EnableThemedHeader(ListView listView)
     {
         listView.OwnerDraw = true;
 
-        listView.DrawColumnHeader += (_, e) =>
+        listView.DrawColumnHeader -= DrawThemedColumnHeader;
+        listView.DrawColumnHeader += DrawThemedColumnHeader;
+
+        listView.DrawItem -= DrawItemDefault;
+        listView.DrawItem += DrawItemDefault;
+
+        listView.DrawSubItem -= DrawSubItemDefault;
+        listView.DrawSubItem += DrawSubItemDefault;
+    }
+
+    private static void DrawItemDefault(object? sender, DrawListViewItemEventArgs e) => e.DrawDefault = true;
+
+    private static void DrawSubItemDefault(object? sender, DrawListViewSubItemEventArgs e) => e.DrawDefault = true;
+
+    private static void DrawThemedColumnHeader(object? sender, DrawListViewColumnHeaderEventArgs e)
+    {
+        var font = e.Font ?? (sender as ListView)?.Font ?? SystemFonts.DefaultFont;
+
+        using (var backBrush = new SolidBrush(HeaderBackground))
         {
-            using (var backBrush = new SolidBrush(HeaderBackground))
-            {
-                e.Graphics.FillRectangle(backBrush, e.Bounds);
-            }
+            e.Graphics.FillRectangle(backBrush, e.Bounds);
+        }
 
-            using (var borderPen = new Pen(Border))
-            {
-                // Right edge only - column separators, without boxing in
-                // every cell.
-                e.Graphics.DrawLine(borderPen, e.Bounds.Right - 1, e.Bounds.Top + 3,
-                    e.Bounds.Right - 1, e.Bounds.Bottom - 3);
-                e.Graphics.DrawLine(borderPen, e.Bounds.Left, e.Bounds.Bottom - 1,
-                    e.Bounds.Right, e.Bounds.Bottom - 1);
-            }
+        using (var borderPen = new Pen(Border))
+        {
+            // Right edge only - column separators, without boxing in
+            // every cell.
+            e.Graphics.DrawLine(borderPen, e.Bounds.Right - 1, e.Bounds.Top + 3,
+                e.Bounds.Right - 1, e.Bounds.Bottom - 3);
+            e.Graphics.DrawLine(borderPen, e.Bounds.Left, e.Bounds.Bottom - 1,
+                e.Bounds.Right, e.Bounds.Bottom - 1);
+        }
 
-            var textBounds = new Rectangle(e.Bounds.X + 6, e.Bounds.Y, e.Bounds.Width - 10, e.Bounds.Height);
-            TextRenderer.DrawText(e.Graphics, e.Header?.Text ?? string.Empty,
-                e.Font ?? listView.Font, textBounds, Text,
-                TextFormatFlags.VerticalCenter | TextFormatFlags.Left | TextFormatFlags.EndEllipsis);
-        };
-
-        listView.DrawItem += (_, e) => e.DrawDefault = true;
-        listView.DrawSubItem += (_, e) => e.DrawDefault = true;
+        var textBounds = new Rectangle(e.Bounds.X + 6, e.Bounds.Y, e.Bounds.Width - 10, e.Bounds.Height);
+        TextRenderer.DrawText(e.Graphics, e.Header?.Text ?? string.Empty,
+            font, textBounds, Text,
+            TextFormatFlags.VerticalCenter | TextFormatFlags.Left | TextFormatFlags.EndEllipsis);
     }
 
     /// <summary>
@@ -199,6 +217,22 @@ public static class ReadingTheme
         }
 
         form.Load += (_, _) => ApplyNow();
+
+        // The title bar again, after the window is actually on screen.
+        //
+        // DWM accepts the immersive-dark attribute at Load and reports
+        // success, but the caption is not repainted from it until the frame
+        // is next drawn - so a dialog kept whatever the window was created
+        // with, which is the Windows accent colour, while its whole client
+        // area was correctly dark. MainForm never showed this because it
+        // re-applies the theme in its own Shown handler; every other window
+        // did.
+        //
+        // Only the title bar is redone here, not the whole tree walk: the
+        // walk overwrites per-selection colours, which is the problem
+        // ReapplyDimmedText exists to undo.
+        form.Shown += (_, _) => ApplyNativeTitleBar(form);
+
         Changed += ApplyNow;
         form.FormClosed += (_, _) => Changed -= ApplyNow;
     }
@@ -263,6 +297,13 @@ public static class ReadingTheme
                 listView.BackColor = Surface;
                 listView.ForeColor = Text;
                 ApplyNativeScrollbarTheme(listView);
+
+                // The header is a separate native control that ignores the
+                // BackColor set just above, so it is owner-drawn. Done here
+                // rather than left to each form to ask for, because a form
+                // that forgets gets a white strip across a dark window and
+                // nothing about the code looks wrong.
+                EnableThemedHeader(listView);
                 break;
 
             case ListBox listBox:
@@ -425,6 +466,18 @@ public static class ReadingTheme
     private const int DwmwaUseImmersiveDarkMode = 20;
     private const int DwmwaUseImmersiveDarkModeLegacy = 19;
 
+    // Windows 11 22000+. Setting the caption and its text explicitly is the
+    // only thing that beats the "Show accent colour on title bars and window
+    // borders" personalisation setting - with that on, Windows paints the
+    // active window's caption in the accent colour and ignores immersive
+    // dark mode entirely, which is why the focused window was the one that
+    // looked wrong while every window behind it looked right.
+    private const int DwmwaCaptionColor = 35;
+    private const int DwmwaTextColor = 36;
+
+    // Hands the caption back to Windows rather than pinning it to a colour.
+    private const int DwmwaColorDefault = unchecked((int)0xFFFFFFFF);
+
     /// <summary>
     /// Switches a control's native scrollbars between the dark and light
     /// Explorer themes. "DarkMode_Explorer" is the theme name the Windows
@@ -461,12 +514,40 @@ public static class ReadingTheme
             {
                 DwmSetWindowAttribute(form.Handle, DwmwaUseImmersiveDarkModeLegacy, ref useDark, sizeof(int));
             }
+
+            // Immersive dark mode alone is not enough when the accent colour
+            // is set to paint title bars: Windows uses the accent for the
+            // active window regardless, so the window being looked at was
+            // the one that stayed light. An explicit caption colour takes
+            // precedence over both.
+            //
+            // Light mode hands the caption back to Windows rather than
+            // pinning it to the parchment background - someone running the
+            // accent on title bars chose that, and there is no reason to
+            // override it in the theme that already matches the system.
+            var caption = IsDark ? ToColorRef(Background) : DwmwaColorDefault;
+            var captionText = IsDark ? ToColorRef(Text) : DwmwaColorDefault;
+
+            // Both fail harmlessly on Windows 10, where these attributes do
+            // not exist - the immersive flag above is all that platform has,
+            // and it is enough there because the accent setting behaves
+            // differently.
+            DwmSetWindowAttribute(form.Handle, DwmwaCaptionColor, ref caption, sizeof(int));
+            DwmSetWindowAttribute(form.Handle, DwmwaTextColor, ref captionText, sizeof(int));
         }
         catch
         {
             // Pre-dark-mode Windows - title bar simply stays light.
         }
     }
+
+    /// <summary>
+    /// A Color as a Win32 COLORREF, which orders its bytes 0x00BBGGRR -
+    /// backwards from the 0xRRGGBB most colour literals are written in, and a
+    /// silent source of blue-for-red if assumed either way round.
+    /// </summary>
+    private static int ToColorRef(Color color) =>
+        color.R | (color.G << 8) | (color.B << 16);
 
     /// <summary>
     /// Draws one combo box item. A ComboBox's dropdown list is a native

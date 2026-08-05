@@ -74,6 +74,44 @@ public class TranslationWorkbenchForm : Form
     private readonly ComboBox _comparisonBox;
     private readonly Func<int, Task<PassageAligner>> _loadAligner;
 
+    /// <summary>
+    /// The passage being worked on, drawn two points above the configured
+    /// reading size. The neighbours sit at the configured size itself, so the
+    /// one you are translating is distinguished by weight as well as colour -
+    /// which matters because the colour distinction is lost entirely to
+    /// anyone reading in greyscale or with colour vision deficiency.
+    ///
+    /// Offsets rather than fixed sizes: these were 13pt and 11pt when the
+    /// reading size was not configurable, and keeping the gap rather than the
+    /// numbers preserves that relationship at every size.
+    /// </summary>
+    private static float WorkingSize => ReadingFontSettings.SourceSize + 2F;
+
+    /// <summary>
+    /// The word list, one point above the reading size. It is a column of
+    /// single words with no surrounding text to disambiguate them, so a
+    /// diacritic missed here cannot be recovered from context the way one in
+    /// the passage can.
+    /// </summary>
+    private static float WordListSize => ReadingFontSettings.SourceSize + 1F;
+
+    /// <summary>
+    /// The translation being written, at the configured English size.
+    /// </summary>
+    private static float MyTranslationSize => ReadingFontSettings.TranslationSize;
+
+    /// <summary>
+    /// The translations either side, a point and a half below - the gap they
+    /// shipped with, when these were 11pt and 9.5pt. Kept as an offset rather
+    /// than a fixed size so the relationship holds at every setting.
+    ///
+    /// Clamped so the neighbours cannot fall under the minimum at the
+    /// smallest setting, where the offset would otherwise take them below the
+    /// size anything is legible at.
+    /// </summary>
+    private static float NeighbourTranslationSize =>
+        Math.Max(ReadingFontSettings.TranslationSize - 1.5F, ReadingFontSettings.MinimumSize);
+
     public TranslationWorkbenchForm(
         Work work, string authorName, int translationEditionId, string? sourceLanguage,
         List<TextNode> sourcePassages, Dictionary<string, string> existingTranslations,
@@ -150,7 +188,7 @@ public class TranslationWorkbenchForm : Form
             Left = 14, Top = 62, Width = 700, Height = 184,
             Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right,
             ReadOnly = true, BorderStyle = BorderStyle.Fixed3D,
-            Font = new Font("Palatino Linotype", 13F)
+            Font = new Font("Palatino Linotype", WorkingSize)
         };
 
         var wordsLabel = new Label
@@ -161,7 +199,7 @@ public class TranslationWorkbenchForm : Form
         {
             Left = 14, Top = 276, Width = 200, Height = 366,
             Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left,
-            Font = new Font("Palatino Linotype", 12F)
+            Font = new Font("Palatino Linotype", WordListSize)
         };
         _sourceWords.SelectedIndexChanged += async (_, _) => await ShowWordAsync();
 
@@ -273,7 +311,7 @@ public class TranslationWorkbenchForm : Form
             Left = 730, Top = 62, Width = 420, Height = 92,
             Anchor = AnchorStyles.Top | AnchorStyles.Right,
             Multiline = true, ReadOnly = true, ScrollBars = ScrollBars.Vertical,
-            Font = new Font("Georgia", 9.5F),
+            Font = new Font("Georgia", NeighbourTranslationSize),
             TabStop = false
         };
 
@@ -282,7 +320,7 @@ public class TranslationWorkbenchForm : Form
             Left = 730, Top = 162, Width = 420, Height = 388,
             Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Right,
             Multiline = true, ScrollBars = ScrollBars.Vertical,
-            Font = new Font("Georgia", 11F)
+            Font = new Font("Georgia", MyTranslationSize)
         };
 
         _nextTranslationBox = new TextBox
@@ -290,7 +328,7 @@ public class TranslationWorkbenchForm : Form
             Left = 730, Top = 558, Width = 420, Height = 84,
             Anchor = AnchorStyles.Bottom | AnchorStyles.Right,
             Multiline = true, ReadOnly = true, ScrollBars = ScrollBars.Vertical,
-            Font = new Font("Georgia", 9.5F),
+            Font = new Font("Georgia", NeighbourTranslationSize),
             TabStop = false
         };
         _myTranslationBox.TextChanged += (_, _) => RefreshRevealButton();
@@ -377,12 +415,72 @@ public class TranslationWorkbenchForm : Form
 
         Load += async (_, _) => await ChangeComparisonAsync();
 
-        ReadingTheme.AttachTo(this);
+        // The dim colours have to be re-applied after every theme pass, not
+        // just once here. ReadingTheme.Apply sets ForeColor on every
+        // TextBoxBase it walks, and on a RichTextBox that repaints the whole
+        // control uniformly - so the per-selection greying of the
+        // neighbouring passages is destroyed by it.
+        //
+        // AttachTo subscribes rather than applying now: the theme lands on
+        // Load, after this constructor has finished. Rendering here and
+        // trusting the order left the first passage opened in a session
+        // undimmed while every later one was fine, because only the first
+        // was followed by a theme pass. Passing the re-render as AttachTo's
+        // callback covers the Load pass and live theme toggles alike.
+        ReadingTheme.AttachTo(this, ReapplyDimmedText);
 
-        // After the theme, not before: ShowPassage sets colours the theme
-        // would otherwise overwrite, and rendering twice would be the only
-        // other way to get the order right.
+        // The size can be changed from the main window while this one is
+        // open, so it is subscribed rather than read once at construction.
+        ReadingFontSettings.Changed += ApplyReadingFontSize;
+        FormClosed += (_, _) => ReadingFontSettings.Changed -= ApplyReadingFontSize;
+
         ShowPassage();
+    }
+
+    /// <summary>
+    /// Redraws the source text at the current configured size.
+    ///
+    /// The word list needs its Font replaced; the passage box needs a full
+    /// re-render, because its sizes are applied per selection rather than to
+    /// the control - the same reason the dimming has to be re-applied after a
+    /// theme pass.
+    /// </summary>
+    private void ApplyReadingFontSize()
+    {
+        _sourceWords.Font = new Font("Palatino Linotype", WordListSize);
+        _sourceBox.Font = new Font("Palatino Linotype", WorkingSize);
+
+        _myTranslationBox.Font = new Font("Georgia", MyTranslationSize);
+        _previousTranslationBox.Font = new Font("Georgia", NeighbourTranslationSize);
+        _nextTranslationBox.Font = new Font("Georgia", NeighbourTranslationSize);
+
+        if (_sourcePassages.Count > 0) RenderPassageWithContext();
+    }
+
+    /// <summary>
+    /// Restores every colour in this form that is deliberately dimmer than
+    /// the theme's text colour: the neighbouring source passages, and the
+    /// translations either side of the current one.
+    ///
+    /// Runs after each theme pass. See the constructor for why.
+    /// </summary>
+    private void ReapplyDimmedText()
+    {
+        if (_sourcePassages.Count == 0) return;
+
+        RenderPassageWithContext();
+        DimNeighbouringTranslationBoxes();
+    }
+
+    /// <summary>
+    /// The translations before and after the current one, greyed so they read
+    /// as context rather than as part of what you are writing.
+    /// </summary>
+    private void DimNeighbouringTranslationBoxes()
+    {
+        var dimmed = ReadingTheme.IsDark ? Color.FromArgb(150, 150, 158) : Color.FromArgb(128, 122, 112);
+        _previousTranslationBox.ForeColor = dimmed;
+        _nextTranslationBox.ForeColor = dimmed;
     }
 
     private async Task ChangeComparisonAsync()
@@ -437,9 +535,7 @@ public class TranslationWorkbenchForm : Form
         _previousTranslationBox.Text = NeighbouringTranslation(_index - 1);
         _nextTranslationBox.Text = NeighbouringTranslation(_index + 1);
 
-        var dimmed = ReadingTheme.IsDark ? Color.FromArgb(150, 150, 158) : Color.FromArgb(128, 122, 112);
-        _previousTranslationBox.ForeColor = dimmed;
-        _nextTranslationBox.ForeColor = dimmed;
+        DimNeighbouringTranslationBoxes();
         _wordPanel.Text = "Click a word on the left.";
         _glossWordButton.Enabled = false;
 
@@ -496,11 +592,11 @@ public class TranslationWorkbenchForm : Form
         var dim = ReadingTheme.IsDark ? Color.FromArgb(120, 120, 128) : Color.FromArgb(150, 145, 135);
         var normal = ReadingTheme.Text;
 
-        if (_index > 0) AppendPassage(_sourcePassages[_index - 1], dim, 11F);
+        if (_index > 0) AppendPassage(_sourcePassages[_index - 1], dim, ReadingFontSettings.SourceSize);
 
-        AppendPassage(_sourcePassages[_index], normal, 13F);
+        AppendPassage(_sourcePassages[_index], normal, WorkingSize);
 
-        if (_index < _sourcePassages.Count - 1) AppendPassage(_sourcePassages[_index + 1], dim, 11F);
+        if (_index < _sourcePassages.Count - 1) AppendPassage(_sourcePassages[_index + 1], dim, ReadingFontSettings.SourceSize);
 
         // Scrolled so the passage being worked on is what you see, not
         // whatever preceded it.

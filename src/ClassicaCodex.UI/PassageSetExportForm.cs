@@ -69,14 +69,22 @@ public class PassageSetExportForm : Form
     private readonly EditionRepository _editionRepo = new();
 
     /// <summary>
-    /// Counterpart text per passage, keyed by TextNodeId. Populated only when
-    /// translations are switched on, and deliberately partial: a passage
-    /// whose work has no second edition, or whose citation ref has no
-    /// counterpart in it, simply isn't in here. Those export alone rather
-    /// than being dropped or guessed at - the same rule PassageExportForm's
-    /// bilingual mode follows.
+    /// Counterpart text per passage, keyed by TextNodeId, with the label of
+    /// the edition it came from. Populated only when translations are
+    /// switched on, and deliberately partial: a passage whose work has no
+    /// second edition, or whose citation ref has no counterpart in it, simply
+    /// isn't in here. Those export alone rather than being dropped or guessed
+    /// at - the same rule PassageExportForm's bilingual mode follows.
+    ///
+    /// The label is carried per passage rather than once for the dialog
+    /// because a gathered set spans many works, and each one resolves its own
+    /// counterpart edition. It matters here more than anywhere: the
+    /// counterpart is chosen automatically, preferring any Translation
+    /// sibling, and an AI-generated translation is stored as an edition like
+    /// any other - so the edition picked can be a machine rendering that the
+    /// reader never explicitly asked to export.
     /// </summary>
-    private readonly Dictionary<long, string> _counterpartByTextNodeId = new();
+    private readonly Dictionary<long, (string Text, string Label)> _counterpartByTextNodeId = new();
 
     /// <summary>
     /// Mixed scripts are the norm here, not the exception - one tag can pull
@@ -280,13 +288,14 @@ public class PassageSetExportForm : Form
                 if (counterpart == null) continue;
 
                 var aligner = new PassageAligner(await _textNodeRepo.GetByEditionAsync(counterpart.EditionId));
+                var label = EditionLabels.Descriptor(counterpart);
 
                 foreach (var passage in group)
                 {
                     var text = aligner.ResolveText(passage.CitationRef);
                     if (!string.IsNullOrWhiteSpace(text))
                     {
-                        _counterpartByTextNodeId[passage.TextNodeId] = text;
+                        _counterpartByTextNodeId[passage.TextNodeId] = (text, label);
                     }
                 }
             }
@@ -370,7 +379,7 @@ public class PassageSetExportForm : Form
 
             if (_counterpartByTextNodeId.TryGetValue(passage.TextNodeId, out var counterpart))
             {
-                chunks.Add(("(trans.)", counterpart));
+                chunks.Add(($"({counterpart.Label})", counterpart.Text));
             }
 
             if (_includeDetailCheckbox.Checked && !string.IsNullOrWhiteSpace(passage.Detail))

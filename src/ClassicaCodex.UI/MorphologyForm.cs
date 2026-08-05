@@ -26,6 +26,25 @@ public class MorphologyForm : Form
     private readonly Label _statusLabel;
     private readonly ListBox _resultsList;
     private readonly LemmaRepository _lemmaRepo = new();
+    private readonly AuthorRepository _authorRepo = new();
+    private readonly WorkRepository _workRepo = new();
+
+    private readonly Button _scopeButton;
+    private readonly Label _scopeLabel;
+
+    /// <summary>
+    /// Which works the search covers. Empty means every text, which is what
+    /// the picker returns for "everything" and what the repository takes as
+    /// no filter at all.
+    ///
+    /// This matters more here than in Word Study. A morphology pattern like
+    /// "every aorist optative" matches tens of thousands of lines, the query
+    /// stops at its result limit in author order, and what comes back is
+    /// therefore the start of the alphabet rather than a sample of the
+    /// corpus. Narrowing the scope is the only way to ask the question about
+    /// a text you actually care about.
+    /// </summary>
+    private readonly HashSet<int> _scopeWorkIds = new();
 
     private List<(int WorkId, long TextNodeId, string AuthorName, string WorkTitle, string CitationRef, string Text, string MatchedForm, string Headword, string Tag)> _currentResults = new();
 
@@ -95,6 +114,19 @@ public class MorphologyForm : Form
         _searchButton = new Button { Text = "Search", Left = 12, Top = 140, Width = 110, Height = 28 };
         _searchButton.Click += async (_, _) => await RunSearchAsync();
 
+        _scopeButton = new Button
+        {
+            Text = "Choose Texts...", Left = 232, Top = 140, Width = 140, Height = 28
+        };
+        _scopeButton.Click += async (_, _) => await ChooseScopeAsync();
+        AppIcons.Apply(_scopeButton, "Filter", 16);
+
+        _scopeLabel = new Label
+        {
+            Left = 382, Top = 146, Width = 220, Height = 20,
+            ForeColor = Color.DimGray
+        };
+
         _clearButton = new Button { Text = "Clear", Left = 132, Top = 140, Width = 90, Height = 28 };
         _clearButton.Click += (_, _) =>
         {
@@ -104,7 +136,7 @@ public class MorphologyForm : Form
 
         _patternLabel = new Label
         {
-            Left = 236,
+            Left = 616,
             Top = 146,
             Width = 400,
             ForeColor = Color.DimGray
@@ -144,11 +176,14 @@ public class MorphologyForm : Form
         Controls.Add(_languageComboBox);
         Controls.Add(_searchButton);
         Controls.Add(_clearButton);
+        Controls.Add(_scopeButton);
+        Controls.Add(_scopeLabel);
         Controls.Add(_patternLabel);
         Controls.Add(_statusLabel);
         Controls.Add(_resultsList);
 
         UpdatePatternLabel();
+        RefreshScopeLabel();
 
         Load += async (_, _) => await RefreshAvailabilityAsync();
         ReadingTheme.AttachTo(this);
@@ -232,6 +267,42 @@ public class MorphologyForm : Form
         }
     }
 
+    /// <summary>
+    /// Chooses which texts the search covers, then reruns it if a search has
+    /// already been made - changing the scope with stale results on screen
+    /// would leave the label and the list disagreeing.
+    /// </summary>
+    private async Task ChooseScopeAsync()
+    {
+        try
+        {
+            var authors = await _authorRepo.GetAllAsync();
+            var worksByAuthor = await _workRepo.GetAllGroupedByAuthorAsync();
+
+            using var picker = new WorkPickerForm(authors, worksByAuthor, _scopeWorkIds.ToList());
+            if (picker.ShowDialog(this) != DialogResult.OK) return;
+
+            _scopeWorkIds.Clear();
+            foreach (var id in picker.SelectedWorkIds) _scopeWorkIds.Add(id);
+
+            RefreshScopeLabel();
+
+            if (_currentResults.Count > 0) await RunSearchAsync();
+        }
+        catch (Exception ex)
+        {
+            _statusLabel.Text = $"Couldn't load the text list: {ex.Message}";
+        }
+    }
+
+    private void RefreshScopeLabel() =>
+        _scopeLabel.Text = _scopeWorkIds.Count switch
+        {
+            0 => "Searching every text",
+            1 => "Searching 1 text",
+            _ => $"Searching {_scopeWorkIds.Count:N0} texts"
+        };
+
     private async Task RunSearchAsync()
     {
         var selections = CurrentSelections();
@@ -252,11 +323,20 @@ public class MorphologyForm : Form
         try
         {
             var (pattern9, pattern10) = MorphologyDecoder.BuildGlobPatterns(selections);
-            _currentResults = await _lemmaRepo.SearchByMorphologyAsync(pattern9, pattern10, SelectedLanguageCode);
+            _currentResults = await _lemmaRepo.SearchByMorphologyAsync(
+                pattern9, pattern10, SelectedLanguageCode, workIds: _scopeWorkIds.ToList());
 
             foreach (var r in _currentResults)
             {
-                _resultsList.Items.Add($"{r.AuthorName}, {r.WorkTitle} [{r.CitationRef}]  ({r.MatchedForm} < {r.Headword}): {r.Text}");
+                // No citation reference on the line. It is the least useful
+                // thing here and the widest - a morphology search is read by
+                // scanning the matched form and the text either side of it,
+                // and "[12.4.1]" between the title and the form breaks that
+                // scan on every row. Still on the hover tooltip, in the
+                // right-click copy, and in the export, which is where it is
+                // wanted: at the point of citing one, not while reading two
+                // thousand.
+                _resultsList.Items.Add($"{r.AuthorName}, {r.WorkTitle}  ({r.MatchedForm} < {r.Headword}): {r.Text}");
             }
 
             if (_currentResults.Count == 0)

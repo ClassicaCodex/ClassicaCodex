@@ -457,21 +457,13 @@ public class TextNodeRepository
     /// <summary>
     /// The WHERE fragment restricting a search to chosen works, with its
     /// parameters registered on the command. Empty when unrestricted.
+    ///
+    /// Delegates to WorkScope so morphology search, which needs the same
+    /// fragment, cannot drift from what the keyword searches do.
     /// </summary>
     private static string WorkScopeClause(
-        SqliteCommand cmd, List<int>? workIds, string keyword)
-    {
-        if (workIds == null || workIds.Count == 0) return string.Empty;
-
-        var names = new List<string>();
-        for (var i = 0; i < workIds.Count; i++)
-        {
-            names.Add($"@k{i}");
-            cmd.Parameters.AddWithValue($"@k{i}", workIds[i]);
-        }
-
-        return $"{keyword} w.WorkId IN ({string.Join(",", names)})";
-    }
+        SqliteCommand cmd, List<int>? workIds, string keyword) =>
+        WorkScope.Clause(cmd, workIds, keyword);
 
     /// <summary>
     /// Single-query search against the inverted index. Returns null (not an

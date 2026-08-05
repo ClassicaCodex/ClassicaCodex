@@ -60,6 +60,14 @@ Clone the repo, open `ClassicaCodex.sln`, build, and run. On first launch, a set
 - **Guided Setup** (default on first run) — one step at a time, plain language, no file paths or repository URLs on screen
 - **Advanced Setup** — every data source on one screen, for pointing at files you've already downloaded or wanting more control over where things go
 
+### What to expect the first time
+
+**Setup takes about an hour**, most of it unattended. The wizard downloads several corpora, parses them, ingests them into SQLite, and then builds the word index that makes search fast. On a clean Windows machine with a decent connection that came to roughly an hour end to end; a slower link will take longer.
+
+It is not stuck. Progress is reported at each stage, but individual stages — ingestion especially — can sit on one line for several minutes at a time. Leave it running.
+
+You can also skip any step and come back to it later from the same wizard, so there's no need to do it all in one sitting.
+
 Either way, the first real step is the database — where your library, tags, and bookmarks will live. Everything after that (the texts, dictionaries, lemma data, map data, and the word index that makes search fast) can be done in whatever order suits, and it's safe to skip anything and come back to it later from the same wizard.
 
 ## Data sources & licensing
