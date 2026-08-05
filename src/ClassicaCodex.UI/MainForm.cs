@@ -1252,11 +1252,10 @@ public class MainForm : Form
 
         if (form.ShowDialog(this) != DialogResult.OK || form.ChosenWork == null) return;
 
-        var node = FindWorkNode(form.ChosenWork.WorkId);
+        var node = FindWorkNodeRevealingIfFiltered(form.ChosenWork.WorkId);
         if (node == null)
         {
-            MessageBox.Show(this, "That work is in the library but not in the tree as currently filtered. "
-                                + "Clear the author filter and try again.",
+            MessageBox.Show(this, "That work is no longer in the library.",
                 "Where to start", MessageBoxButtons.OK, MessageBoxIcon.Information);
             return;
         }
@@ -2125,6 +2124,49 @@ public class MainForm : Form
         _forwardButton.Enabled = _historyIndex >= 0 && _historyIndex < _history.Count - 1;
     }
 
+    /// <summary>
+    /// Finds a work's node, clearing whichever tree filters are hiding it.
+    ///
+    /// The tree is a filtered view, but every jump in the application - a
+    /// search result, an echo, Back, the starting-points picker - looks the
+    /// work up in it. With the favourites filter on, jumping to a work that
+    /// isn't favourited found nothing and the jump silently did nothing at
+    /// all. The author filter box did the same for anyone outside the letters
+    /// typed in it.
+    ///
+    /// A filter is a statement about what you want to look through, not about
+    /// where you are willing to go. So the filter gives way, rather than the
+    /// destination.
+    ///
+    /// Filters are dropped one at a time, favourites first, so as little of
+    /// what was set up is discarded as possible - and none of it is touched
+    /// when the work is genuinely absent, where clearing them would throw
+    /// away the filter and still not arrive anywhere.
+    /// </summary>
+    private TreeNode? FindWorkNodeRevealingIfFiltered(int workId)
+    {
+        var node = FindWorkNode(workId);
+        if (node != null) return node;
+
+        var known = _worksByAuthor.Values.Any(works => works.Any(w => w.WorkId == workId));
+        if (!known) return null;
+
+        if (_favoritesOnlyCheck.Checked)
+        {
+            _favoritesOnlyCheck.Checked = false;   // rebuilds the tree
+            node = FindWorkNode(workId);
+            if (node != null) return node;
+        }
+
+        if (_treeFilterBox.Text.Length > 0)
+        {
+            _treeFilterBox.Text = string.Empty;    // rebuilds the tree
+            node = FindWorkNode(workId);
+        }
+
+        return node;
+    }
+
     /// <summary>Selects the combo entry for a given EditionId, if present. Doesn't repopulate the pane itself.</summary>
     private static bool TrySelectEditionInCombo(ComboBox combo, int editionId)
     {
@@ -2147,7 +2189,7 @@ public class MainForm : Form
     /// </summary>
     private async Task<bool> OpenWorkAsync(int workId)
     {
-        var workNode = FindWorkNode(workId);
+        var workNode = FindWorkNodeRevealingIfFiltered(workId);
         if (workNode == null) return false;
 
         // Also set here, not only in the tree's own handler: every open that
