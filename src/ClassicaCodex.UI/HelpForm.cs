@@ -39,7 +39,7 @@ Pick an author in the library tree on the left, then a work beneath it. The orig
 Two editions of the same thing
    The dropdown above each pane lists every edition of that work you have. Where a work has several translations, you can switch between translators freely - the other pane stays where it is. The original-language side can carry more than one edition too, when a later collection added an alternate older edition of a work Perseus already had (a couple of Sophocles' plays, among others) - each entry in the dropdown names which.
 
-Scrolling and selection are synced between the panes. That works best on verse, where a translation keeps roughly the same line structure as the original. Prose translations often carry far fewer citation points than the original does, so the two sides drift apart; that's how the texts were digitized, not a fault in the alignment.
+Scrolling and selection are synced between the panes. That works best on verse, where a translation keeps roughly the same line structure as the original. Prose translations often carry far fewer citation points than the original does, so the two sides drift apart; that's how the texts were digitized, not a fault in the alignment. The ⇅ button on the toolbar turns that off: linked panes suit verse, where a translation keeps roughly the original's line structure, but on prose one Greek sentence can become three English ones and the two sides drift apart until the mirroring is dragging you away from the line you were reading. Your choice is remembered.
 
 Hover any line to see its citation reference.
 

@@ -50,6 +50,7 @@ Download the latest Windows release from the
 - **Back and Forward** — retrace where you've been. Ten features here end in "jump to it"; following a reference no longer costs you your place
 - **Keyboard shortcuts** — Escape closes any window you're looking at, Ctrl+F searches, Alt+Left and Alt+Right navigate; the workbench saves and advances on Ctrl+Enter
 - **Adjustable text size** — Greek, Latin and English, linked by default. Polytonic diacritics are what you need to see to look a word up, and they're a few pixels each at a small size
+- **Linked panes, or not** — original and translation scroll together by default, which suits verse; switch it off for prose, where line counts diverge and the mirroring starts fighting you
 - **Picks up where you left off** — reopens the passage you were last reading, and can be turned off if you'd rather it didn't
 - Dark mode, with a parchment light theme, and separate artwork for each
 

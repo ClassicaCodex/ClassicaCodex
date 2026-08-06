@@ -60,6 +60,21 @@ public class MainForm : Form
     /// </summary>
     private const int MaxHistoryEntries = 100;
     private readonly Button _fontSizeButton;
+
+    /// <summary>
+    /// Whether the panes scroll and select together.
+    ///
+    /// An IconButton holding a plain bool, not a CheckBox. A checkbox drawn
+    /// in button appearance seemed right while there was no artwork - it
+    /// draws itself pressed when checked, which was free state - but it
+    /// paints the system button face to do it, which is a white slab in dark
+    /// mode and a highlighted box in light, either way a rectangle of chrome
+    /// among six flat icons. Now that there are two pieces of artwork the
+    /// icon is the state, and the chrome has nothing left to say.
+    /// </summary>
+    private readonly IconButton _syncPanesButton;
+
+    private bool _panesLinked;
     private readonly Button _searchButton;
 
     // Non-modal and reused: reopening Search shouldn't lose the filters you
@@ -495,6 +510,17 @@ public class MainForm : Form
         ReadingFontSettings.Changed += ApplyReadingFontSize;
         FormClosed += (_, _) => ReadingFontSettings.Changed -= ApplyReadingFontSize;
 
+        _panesLinked = PaneSyncSettings.Enabled;
+
+        _syncPanesButton = new IconButton { Top = 10, Width = 36, Height = 30 };
+        _syncPanesButton.Click += (_, _) =>
+        {
+            _panesLinked = !_panesLinked;
+            PaneSyncSettings.Enabled = _panesLinked;
+            RefreshSyncPanesIcon();
+            RefreshSyncPanesTooltip();
+        };
+
         _helpButton = new IconButton { Top = 10, Width = 36, Height = 30 };
         _helpButton.Click += (_, _) =>
         {
@@ -524,6 +550,7 @@ public class MainForm : Form
 
             _favoritesOnlyCheck.Visible = !_libraryTreeCollapsed;
             AppIcons.Apply(_treeToggleButton, _libraryTreeCollapsed ? "Expand" : "Collapse", 14);
+        RefreshSyncPanesIcon();
             RelayoutReaderArea();
         };
         Controls.Add(concordanceButton);
@@ -537,6 +564,7 @@ public class MainForm : Form
         Controls.Add(_forwardButton);
         Controls.Add(_gettingStartedButton);
         Controls.Add(_fontSizeButton);
+        Controls.Add(_syncPanesButton);
         Controls.Add(_helpButton);
 
         // Icons are optional - AppIcons leaves a button alone when its file
@@ -616,19 +644,21 @@ public class MainForm : Form
         _toolbarTips.SetToolTip(_themeButton, "Light / dark mode");
         _toolbarTips.SetToolTip(_gettingStartedButton, "Getting started");
         _toolbarTips.SetToolTip(_fontSizeButton, "Text size");
+        RefreshSyncPanesTooltip();
         _toolbarTips.SetToolTip(_helpButton, "Help  (F1)");
         _toolbarTips.SetToolTip(aboutButton, "About");
         setupWizardButton.AccessibleName = "Setup";
         _themeButton.AccessibleName = "Light / dark mode";
         _gettingStartedButton.AccessibleName = "Getting started";
         _fontSizeButton.AccessibleName = "Text size";
+        _syncPanesButton.AccessibleName = "Link the two panes";
         _helpButton.AccessibleName = "Help";
         aboutButton.AccessibleName = "About";
 
         foreach (var button in new[]
                  {
                      setupWizardButton, _themeButton, _gettingStartedButton,
-                     _fontSizeButton, _helpButton, aboutButton
+                     _fontSizeButton, _syncPanesButton, _helpButton, aboutButton
                  })
         {
             button.Width = toolbarSize;
@@ -678,12 +708,13 @@ public class MainForm : Form
             // Same reasoning applies to the top-right buttons - pinned here
             // rather than via Anchor, for the identical reason. Left to
             // right: Setup Wizard, theme toggle, Getting Started, text size,
-            // Help, About - built from the right edge inward, so About
+            // link panes, Help, About - built from the right edge inward, so About
             // anchors the chain and each one before it is positioned off the
             // one already placed.
             aboutButton.Left = Math.Max(ClientSize.Width - aboutButton.Width - margin, 0);
             _helpButton.Left = Math.Max(aboutButton.Left - _helpButton.Width - 8, 0);
-            _fontSizeButton.Left = Math.Max(_helpButton.Left - _fontSizeButton.Width - 8, 0);
+            _syncPanesButton.Left = Math.Max(_helpButton.Left - _syncPanesButton.Width - 8, 0);
+            _fontSizeButton.Left = Math.Max(_syncPanesButton.Left - _fontSizeButton.Width - 8, 0);
             _gettingStartedButton.Left = Math.Max(_fontSizeButton.Left - _gettingStartedButton.Width - 8, 0);
             _themeButton.Left = Math.Max(_gettingStartedButton.Left - _themeButton.Width - 8, 0);
             setupWizardButton.Left = Math.Max(_themeButton.Left - setupWizardButton.Width - 8, 0);
@@ -738,6 +769,7 @@ public class MainForm : Form
         foreach (var (item, iconName) in _themedMenuItemIcons) item.Image = AppIcons.Get(iconName, 16);
         foreach (var (button, iconName) in _themedButtonIcons) AppIcons.Apply(button, iconName, 40);
         AppIcons.Apply(_treeToggleButton, _libraryTreeCollapsed ? "Expand" : "Collapse", 14);
+        RefreshSyncPanesIcon();
 
         // Icon shows what clicking will switch *to*, not the current state -
         // no text label needed, the sun/moon glyph already says it plainly.
@@ -1060,13 +1092,40 @@ public class MainForm : Form
     }
 
     /// <summary>
+    /// Shows whichever of the two icons matches the current state - joined
+    /// panes with an arrow between them, or a broken chain.
+    ///
+    /// Re-run on every theme pass as well as on every toggle, because this
+    /// button can change icon for either reason - which is why it is not in
+    /// the themed-icon list, the same exception the tree collapse button
+    /// makes.
+    /// </summary>
+    private void RefreshSyncPanesIcon() =>
+        AppIcons.Apply(_syncPanesButton, _panesLinked ? "PanesLinked" : "PanesUnlinked", 40);
+
+    /// <summary>
+    /// The tooltip names the state and what clicking will do, since the icon
+    /// alone asks the reader to notice a broken chain.
+    /// </summary>
+    private void RefreshSyncPanesTooltip()
+    {
+        var text = _panesLinked
+            ? "Panes are linked - they scroll and select together. Click to unlink."
+            : "Panes are independent. Click to link them again.";
+
+        _toolbarTips.SetToolTip(_syncPanesButton, text);
+    }
+
+    /// <summary>
     /// Mirrors scroll position between the two panes by line index. Works
     /// well for verse texts where a translation keeps the same line count as
     /// the original; for prose works where line counts diverge it'll drift,
-    /// but that's an inherent limit of index-based sync, not a bug to chase.
+    /// but that's an inherent limit of index-based sync, not a bug to chase -
+    /// which is why the link can be switched off from the toolbar.
     /// </summary>
     private void SyncScroll(SyncListView source, SyncListView target)
     {
+        if (!_panesLinked) return;
         if (_syncingScroll) return;
         if (target.Items.Count == 0) return;
 
@@ -1098,12 +1157,20 @@ public class MainForm : Form
     private void SyncSelectionFromClick(SyncListView source, SyncListView target, MouseEventArgs e)
     {
         var index = source.IndexFromPoint(e.Location);
-        if (index < 0 || index >= target.Items.Count) return;
+        if (index < 0) return;
+
+        // Where you are is recorded whether or not the panes are linked -
+        // unlinking them is a statement about the other pane, not about
+        // giving up your place in this one. Recorded before the bounds check
+        // below, too: a line past the end of the other pane is still a line
+        // you clicked.
+        RememberReadingPosition(source, index);
+
+        if (!_panesLinked) return;
+        if (index >= target.Items.Count) return;
 
         target.SelectOnly(index);
         target.EnsureVisible(index);
-
-        RememberReadingPosition(source, index);
     }
 
     /// <summary>
