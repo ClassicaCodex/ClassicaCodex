@@ -113,10 +113,11 @@ of that is in [docs/stylometry-notes.md](docs/stylometry-notes.md).
 
 The short version, because it matters for anyone using the feature:
 
-- It surfaced three genuine corpus bugs, now fixed. The largest: First1KGreek
-  encodes its critical apparatus inline, and the TEI parser was ingesting
-  editors' surnames and manuscript sigla as Greek vocabulary. About 17,000
-  characters of *Agamemnon* were apparatus.
+- It surfaced four genuine corpus bugs, now fixed. The largest: the TEI parser
+  was ingesting critical apparatus as running text, so editors' surnames and
+  manuscript sigla were being counted as Greek vocabulary. About 17,000
+  characters of First1KGreek's *Agamemnon* were apparatus — and Perseus files
+  carry the same material as inline notes.
 - **Depth to first outsider does not work as an attribution measure.** It varied
   by up to 20 ranks for a single work on a 500-token change in sample size. It
   is a rank position, and rank positions track text length however you correct

@@ -72,14 +72,39 @@ public class TeiParser
         "listBibl",
         "figDesc",    // figure description
         "desc",
-        "gap",        // lacuna marker with editorial description
-        "del",        // text marked deleted
+        "gap",        // lacuna marker; carries an editorial description, never text
         "certainty",
         "respStmt",
         "teiHeader",  // body extraction should exclude it already; belt and braces
         "milestone",
         "fw"          // forme work: running headers, catchwords, signatures
     };
+
+    // <del> WAS IN THIS LIST AND SHOULD NOT HAVE BEEN.
+    //
+    // In a manuscript transcription <del> marks something the scribe struck
+    // out, which is reasonably editorial. In a printed critical edition of a
+    // classical text it marks an ATHETIZED line - text that is transmitted in
+    // the manuscripts, that editors suspect is interpolated, and that is
+    // printed in square brackets rather than removed. It is part of the text a
+    // reader expects to see.
+    //
+    // Agamemnon 7 is encoded:
+    //     <l n="7"><del>ἀστέρας, ὅταν φθίνωσιν, ἀντολάς τε τῶν</del>.</l>
+    //
+    // With <del> skipped the line came through as a bare full stop: the entire
+    // Greek sits inside the element and only the trailing punctuation is
+    // outside it. Fourteen lines of that one play were affected, 157 characters
+    // of Greek, and the same encoding appears in the translations.
+    //
+    // The distinction that matters for this corpus: apparatus is commentary
+    // ABOUT the text and belongs out; an athetized line IS the text, disputed.
+    //
+    // Not yet done: athetized lines arrive indistinguishable from accepted
+    // ones. Printed editions bracket them, and the reader should see that
+    // difference. Doing it properly means carrying a flag through TextNodes
+    // rather than injecting brackets into the text, which would then be
+    // tokenised and searched.
 
     /// <summary>
     /// Inside &lt;choice&gt;, the readings to prefer, in order. TEI pairs an
@@ -240,6 +265,45 @@ public class TeiParser
                 if (!string.IsNullOrEmpty(n)) nextTrail.Add(n);
 
                 WalkDiv(child, nextTrail, nodes, ref sortCounter, leafCounters);
+            }
+            else if (string.Equals(child.Name.LocalName, "head", StringComparison.OrdinalIgnoreCase))
+            {
+                // A <head> is not a citable leaf, but its text is real content
+                // and was previously lost outright: head is neither a div nor a
+                // leaf, so the fallback branch below descended into it, found no
+                // child elements, and emitted nothing.
+                //
+                // Often the head merely repeats the work's title. Sometimes it
+                // does not. In Adrianus of Tyre's Declamatio the head carries
+                // the entire declamation theme - the premise the speech argues
+                // against - and dropping it removes the only statement of what
+                // the text is about.
+                //
+                // The reference gets a "head" segment rather than a number from
+                // the leaf counter. Consuming a counter slot would renumber
+                // every sibling leaf after it, and annotations resolve through
+                // (EditionId, CitationRef) - existing bookmarks and tags on
+                // those works would silently point at the wrong line. A named
+                // segment is unambiguous and leaves the numbering alone.
+                var headText = FlattenText(child);
+                if (string.IsNullOrWhiteSpace(headText)) continue;
+
+                var headTrail = new List<string>(citationTrail);
+                var headKey = string.Join(".", citationTrail) + ":head";
+                leafCounters.TryGetValue(headKey, out var headsSeen);
+                leafCounters[headKey] = headsSeen + 1;
+
+                // Second and subsequent heads under one trail are numbered;
+                // the first is plain "head", which is the overwhelmingly
+                // common case and reads better in a citation.
+                headTrail.Add(headsSeen == 0 ? "head" : $"head{headsSeen + 1}");
+
+                nodes.Add(new ParsedNode
+                {
+                    CitationRef = CapCitationRef(string.Join(".", headTrail)),
+                    SortOrder = sortCounter++,
+                    Text = headText
+                });
             }
             else if (LeafElements.Contains(child.Name.LocalName))
             {

@@ -18,19 +18,36 @@ against.
 
 ## What was found
 
-### 1. Three corpus bugs, each of which moved the result
+### 1. Four corpus bugs, each of which moved the result
 
 These were not stylometric findings. They were defects that made every earlier
 number wrong, and they were only visible because the analysis kept producing
-results that dissolved on inspection.
+results that dissolved on inspection. The last was found while chasing something
+else entirely — a set of works suspected of ingesting badly, which turned out to
+be ingesting correctly.
 
-**Critical apparatus ingested as running text.** First1KGreek encodes its
-apparatus inline. The TEI parser collected every descendant text node, so
-manuscript sigla and nineteenth-century editors' surnames were being counted as
-Greek vocabulary — "seclusit Pauw", "fort. δεσποτουμένου Dübner", "F1 V Fa:
-δ' ἦν M". First1KGreek *Agamemnon* came to 69,302 characters against Perseus's
-52,078 on the same line count. About 17,000 characters of one play were
-apparatus. After the fix: 53,524 against 51,913, a 3% difference.
+**Critical apparatus ingested as running text.** The TEI parser collected every
+descendant text node, so manuscript sigla and nineteenth-century editors'
+surnames were being counted as Greek vocabulary — "seclusit Pauw", "fort.
+δεσποτουμένου Dübner", "F1 V Fa: δ' ἦν M".
+
+The effect is largest in First1KGreek, where the apparatus is encoded as whole
+`<app>` blocks sitting alongside the lines. First1KGreek *Agamemnon* came to
+69,302 characters against Perseus's 52,078 on the same line count — about 17,000
+characters of one play were apparatus. After the fix: 53,524 against 51,913, a
+3% difference.
+
+**It is not only a First1KGreek problem, and an earlier version of this note
+said it was.** Perseus files carry the same material as inline `<note>`
+elements: Plutarch *An virtus doceri possit* (`tlg0007.tlg093.perseus-grc2`) has
+editorial notes threaded through the running text of every section — "Stobaeus:",
+"del. W", "Bywater p. 42", "Emperius:", each wrapped around a `<foreign>` with
+the variant reading. Because these sit inside the `<p>` rather than beside it,
+they do not inflate the character count the way a separate `<app>` block does,
+which is why the corpus-wide length comparison did not catch them. They were
+being counted as words all the same.
+
+The fix covers both: `<note>` and `<app>` are skipped on both parse paths.
 
 **Duplicate editions inflating the pool.** Works with several editions appeared
 several times in the comparison pool, and each appearance contributed to the
@@ -38,6 +55,13 @@ mean and standard deviation of every feature. The multi-edition works cluster in
 Aeschylus and Sophocles while most Euripides plays carry one, so the
 normalisation was weighted toward exactly the authors Euripides was being
 measured against.
+
+**Heading text dropped entirely.** `<head>` is neither a structural div nor a
+citable leaf, so the parser's fallback branch descended into it, found no child
+elements, and emitted nothing. Usually a head merely repeats the work's title.
+Sometimes it does not: in Adrianus of Tyre's *Declamatio* the head carries the
+entire declamation theme — the premise the speech exists to argue against — and
+it was vanishing on ingest.
 
 **Elision marks tracking editors rather than authors.** Tokenisation matched
 `\p{L}+`. U+02BC MODIFIER LETTER APOSTROPHE is Unicode category Lm, which
