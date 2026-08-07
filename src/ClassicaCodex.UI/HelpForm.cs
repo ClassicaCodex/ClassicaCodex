@@ -272,6 +272,32 @@ Concordance
 Stylometry
    Compares writing style using Burrows's Delta, a standard authorship-attribution measure based on how often each author reaches for common function words. Runs on original-language texts, since it's comparing the actual words an author wrote.
 
+   Delta measures how similar two texts are in their word-frequency profile. That is not the same as measuring who wrote them, and on a corpus where everything is the same genre the two come apart more than you might expect. The controls are there to let you find out whether a result is about the text or about the settings.
+
+   How text is counted
+      Fold accents merges differently-accented forms of the same letters. It removes inconsistent accentuation between editions, at the cost of merging genuinely distinct words. Most frequent words sets how many features Delta compares on; Burrows used 150, and anything much below 100 gets unstable.
+
+   Which works to compare against
+      Skip fragment collections and indices keeps out things that are not single compositions - a Fragmenta is an anthology assembled by a modern editor out of quotations spanning centuries, and an index is a word list. Neither has an authorial style, and both distort what normal looks like for everything else.
+
+      Minimum length drops works too short to measure reliably. Below roughly 2,500 tokens, word frequencies are noisy enough that a text's Delta says more about its length than its author.
+
+      Sample size splits every work into equal-size random word samples, so nothing is compared against a text much longer or shorter than itself. Without it, longer texts systematically look more like everything - this is the single largest confound in the method. Remainder words are discarded, which is reported after a run.
+
+   Save run and Run whole author
+      A single Delta figure is close to meaningless alone; the useful question is always comparative. Run whole author computes and saves every work by one author at the current settings, which gives you a reference distribution to read an individual result against. Compare Runs then shows where each work sits in it.
+
+   Reading the results honestly
+      Vary a setting and re-run. If a work's position moves, the position was about the setting.
+
+      Check the Length confound tab before believing a ranking. If depth correlates with token count, the ranking is measuring how much text there is.
+
+      Depth to first outsider - how far down a work's neighbour list you get before another author appears - is shown because watching it move is instructive, but it is not reliable for attribution. In testing it varied by up to 20 ranks for a single work on a 500-token change in sample size. Delta floor, the distance to the nearest neighbour, is more stable.
+
+      Replicate at more than one sample size before believing anything. In the work this feature was built for, the single most promising result turned out to be an artifact of which words happened to fall into one sample.
+
+   docs/stylometry-notes.md in the repository is the longer write-up: what the tool found, what it got wrong, and why the authorship question it was built for came back unanswered.
+
 Find Echoes
    Looks for passages sharing unusually rare words with the one you started from. Rare-word overlap is a much stronger signal of allusion than shared common words - two authors both using "and" means nothing. These are candidates worth a human look, not proof of borrowing.
 

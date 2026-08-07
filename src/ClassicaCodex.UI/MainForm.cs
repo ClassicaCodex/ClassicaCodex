@@ -225,6 +225,22 @@ public class MainForm : Form
             stylometryForm.ShowDialog(this);
         };
 
+        // Compare Saved Runs. A separate window rather than a tab on
+        // StylometryForm: that form produces one run, this one compares many,
+        // and they're used at different moments - the compare view would sit
+        // idle behind a tab during the batch that fills it.
+        //
+        // No Left/Top/Width/Height here on purpose. The toolbar loop further
+        // down assigns all four from toolbarLeft, so anything set at
+        // construction is overwritten. Passing them anyway is misleading: it
+        // reads as though the position matters when it doesn't.
+        var stylometryCompareButton = new IconButton();
+        stylometryCompareButton.Click += (_, _) =>
+        {
+            using var analysisForm = new StylometryAnalysisForm();
+            analysisForm.ShowDialog(this);
+        };
+
         var concordanceButton = new IconButton { Text = "Concordance...", Left = 1000, Top = 10, Width = 130, Height = 30 };
         concordanceButton.Click += (_, _) =>
         {
@@ -447,6 +463,7 @@ public class MainForm : Form
         Controls.Add(mythNetworkButton);
         Controls.Add(timelineButton);
         Controls.Add(stylometryButton);
+        Controls.Add(stylometryCompareButton);
         var aboutButton = new IconButton { Top = 10, Width = 36, Height = 30 };
         aboutButton.Click += (_, _) =>
         {
@@ -595,6 +612,7 @@ public class MainForm : Form
             (mythNetworkButton, "Myth Network", "MythNetwork"),
             (timelineButton, "Timeline", "Timeline"),
             (stylometryButton, "Stylometry", "Stylometry"),
+            (stylometryCompareButton, "Compare Saved Runs", "StylometryCompare"),
             (concordanceButton, "Concordance", "Concordance"),
             (compareTranslationsButton, "Compare Translations", "CompareTexts"),
             (placesMapButton, "Places Map", "PlaceMap"),

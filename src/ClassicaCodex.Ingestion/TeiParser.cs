@@ -30,6 +30,70 @@ public class TeiParser
     // namespace, because Perseus carries both TEI P5 (namespaced) and TEI P4
     // (a <TEI.2> root with no namespace) files, and both need to parse.
     private static readonly HashSet<string> LeafElements = new() { "l", "p", "said", "lg" };
+
+    /// <summary>
+    /// Elements whose content is editorial commentary about the text rather
+    /// than the text itself, and which must never reach a TextNode.
+    ///
+    /// This is not a tidiness measure. First1KGreek encodes the critical
+    /// apparatus inline, so without this filter an Aeschylus line arrives
+    /// carrying manuscript sigla and nineteenth-century editors' surnames:
+    /// "seclusit Pauw", "fort. δεσποτουμένου Dübner", "ἀντίνους Wecklein",
+    /// "F1 V Fa: δ' ἦν M". Those then get tokenised and counted as words. A
+    /// First1KGreek Agamemnon came out roughly a third longer in characters
+    /// than the Perseus text of the same play on the same number of lines,
+    /// entirely from apparatus, which is enough to move any frequency-based
+    /// measure computed over the corpus.
+    ///
+    /// Both parse paths need it. WalkDiv's fallback branch descends into any
+    /// element it does not recognise, so an unfiltered &lt;app&gt; has its
+    /// inner &lt;l&gt; promoted to a citable leaf of its own; and FlattenText
+    /// collects every descendant text node, so an &lt;app&gt; sitting inline
+    /// within a real line contributes its variants to that line.
+    ///
+    /// Deliberately excluded from this list:
+    ///   lem   - the reading the editor adopted, i.e. the text (see below)
+    ///   add   - a scribal addition present in the witness
+    ///   speaker, head, label - editorially supplied in places, but part of
+    ///           the received text as printed, and removing them would change
+    ///           what the reader sees rather than only what is counted
+    /// </summary>
+    private static readonly HashSet<string> EditorialElements = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "app",        // apparatus entry (handled specially - see FlattenElement)
+        "rdg",        // variant reading
+        "rdgGrp",     // group of variant readings
+        "note",       // editorial note
+        "witness",    // witness description
+        "witDetail",
+        "listWit",
+        "bibl",       // bibliographic reference
+        "biblStruct",
+        "listBibl",
+        "figDesc",    // figure description
+        "desc",
+        "gap",        // lacuna marker with editorial description
+        "del",        // text marked deleted
+        "certainty",
+        "respStmt",
+        "teiHeader",  // body extraction should exclude it already; belt and braces
+        "milestone",
+        "fw"          // forme work: running headers, catchwords, signatures
+    };
+
+    /// <summary>
+    /// Inside &lt;choice&gt;, the readings to prefer, in order. TEI pairs an
+    /// original with a normalised alternative and expects the consumer to
+    /// choose one; taking both concatenates a word with its own correction.
+    /// </summary>
+    private static readonly string[] PreferredChoiceReadings = { "reg", "expan", "corr" };
+
+    /// <summary>
+    /// The counterparts to <see cref="PreferredChoiceReadings"/> - kept only
+    /// when no preferred sibling exists.
+    /// </summary>
+    private static readonly string[] FallbackChoiceReadings = { "orig", "abbr", "sic" };
+
     public class ParsedNode
     {
         public string CitationRef { get; set; } = string.Empty;
@@ -154,6 +218,21 @@ public class TeiParser
     {
         foreach (var child in element.Elements())
         {
+            // Before anything else: an editorial element is not part of the
+            // text and must not become a node. The fallback branch at the
+            // bottom of this loop descends into whatever it does not
+            // recognise, so an unfiltered <app> or <note> containing an <l>
+            // would have that line promoted to a citable leaf - which is how
+            // "seclusit Pauw" ended up occupying its own line of Agamemnon.
+            //
+            // <app> is skipped wholesale here rather than mined for its <lem>,
+            // unlike in FlattenElement. At this level an <app> is a sibling of
+            // the lines rather than inline within one, which in practice means
+            // a block of apparatus rather than a reading belonging to a
+            // specific line. Taking its <lem> would insert text at a position
+            // in the work where it does not belong.
+            if (EditorialElements.Contains(child.Name.LocalName)) continue;
+
             if (IsDivElement(child))
             {
                 var n = child.Attribute("n")?.Value;
@@ -201,11 +280,70 @@ public class TeiParser
     private static string FlattenText(XElement element)
     {
         var sb = new StringBuilder();
-        foreach (var node in element.DescendantNodes())
-        {
-            if (node is XText text) sb.Append(text.Value).Append(' ');
-        }
+        FlattenElement(element, sb);
         return CollapseWhitespace(sb.ToString());
+    }
+
+    /// <summary>
+    /// Walks an element's content, appending text but stepping around
+    /// editorial apparatus.
+    ///
+    /// Recursive rather than the flat DescendantNodes() pass this replaces,
+    /// because skipping a subtree requires knowing which subtree a text node
+    /// sits in - and DescendantNodes() has already thrown that away.
+    ///
+    /// &lt;app&gt; gets special handling instead of a plain skip. An apparatus
+    /// entry usually contains a &lt;lem&gt;, the reading the editor actually
+    /// adopted, which IS the text at that point; the &lt;rdg&gt; siblings are
+    /// the rejected alternatives. Dropping the whole element would silently
+    /// delete words from the line. Where there is no &lt;lem&gt; - the entry
+    /// records only variants - nothing is taken.
+    /// </summary>
+    private static void FlattenElement(XElement element, StringBuilder sb)
+    {
+        foreach (var node in element.Nodes())
+        {
+            if (node is XText text)
+            {
+                sb.Append(text.Value).Append(' ');
+                continue;
+            }
+
+            if (node is not XElement child) continue;
+
+            var name = child.Name.LocalName;
+
+            if (string.Equals(name, "app", StringComparison.OrdinalIgnoreCase))
+            {
+                // Take only the adopted reading, if the entry names one.
+                foreach (var lem in child.Elements().Where(e =>
+                             string.Equals(e.Name.LocalName, "lem", StringComparison.OrdinalIgnoreCase)))
+                {
+                    FlattenElement(lem, sb);
+                }
+                continue;
+            }
+
+            if (string.Equals(name, "choice", StringComparison.OrdinalIgnoreCase))
+            {
+                var chosen =
+                    PreferredChoiceReadings
+                        .Select(pref => child.Elements().FirstOrDefault(e =>
+                            string.Equals(e.Name.LocalName, pref, StringComparison.OrdinalIgnoreCase)))
+                        .FirstOrDefault(e => e != null)
+                    ?? FallbackChoiceReadings
+                        .Select(fb => child.Elements().FirstOrDefault(e =>
+                            string.Equals(e.Name.LocalName, fb, StringComparison.OrdinalIgnoreCase)))
+                        .FirstOrDefault(e => e != null);
+
+                if (chosen != null) FlattenElement(chosen, sb);
+                continue;
+            }
+
+            if (EditorialElements.Contains(name)) continue;
+
+            FlattenElement(child, sb);
+        }
     }
 
     private static string CollapseWhitespace(string input)

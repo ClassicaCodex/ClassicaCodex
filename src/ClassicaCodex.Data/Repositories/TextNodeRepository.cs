@@ -738,6 +738,28 @@ public class TextNodeRepository
     }
 
     /// <summary>
+    /// Total character length of an edition's text.
+    ///
+    /// Used by the stylometry pool filter as a cheap proxy for token count.
+    /// Tokenising the whole corpus just to decide which works are long enough
+    /// to tokenise would defeat the purpose; SUM(LENGTH(Text)) reads straight
+    /// off the table.
+    ///
+    /// Returns 0 for an edition with no nodes rather than null, so callers can
+    /// treat "no text" and "very little text" the same way - which for a
+    /// length threshold is the right behaviour.
+    /// </summary>
+    public async Task<int> GetCharacterCountAsync(int editionId, CancellationToken cancellationToken = default)
+    {
+        await using var conn = await DbConnectionFactory.OpenConnectionAsync(cancellationToken);
+        await using var cmd = conn.CreateCommand();
+        cmd.CommandText = "SELECT COALESCE(SUM(LENGTH(Text)), 0) FROM TextNodes WHERE EditionId = @EditionId;";
+        cmd.Parameters.AddWithValue("@EditionId", editionId);
+        cmd.CommandTimeout = 60;
+        return Convert.ToInt32(await cmd.ExecuteScalarAsync(cancellationToken));
+    }
+
+    /// <summary>
     /// Which other edition of a work shares the most citation references
     /// with this one - the closest thing available to "which original was
     /// this translated from".

@@ -36,7 +36,7 @@ Download the latest Windows release from the
 - **Core Vocabulary** — every headword in a work ranked by how much of the text it accounts for, with a running total: learn the top N and you can read half of it. Counted from the text itself, and honest about the share it can't cover
 - **Where should I start?** — a short curated list of works that are reasonable to translate first, filtered to what's in your library, and a plain warning about the ones that aren't
 - **Timeline** of authors and works across time
-- **Stylometry** — authorial "fingerprints" for comparing writing style
+- **Stylometry** — authorial "fingerprints" using Burrows's Delta, with saved runs, batch comparison across an author's whole output, and built-in tests for the confounds that make the method misleading. See [Notes on Burrows's Delta](docs/stylometry-notes.md) for what it can and cannot tell you
 - **Concordance** (KWIC) search across the whole library
 - **Echo Finder** and **Reception Tracker** — find intertextual echoes, and track how a passage gets reused by later authors
 - **Cross-Language Echo** — the same idea across languages, for finding where a Latin (or English) passage is reworking a Greek original, or vice versa
@@ -105,13 +105,38 @@ Windows only, for now — it's built on WinForms, which doesn't run elsewhere. N
 
 The code in this repository is [MIT licensed](LICENSE). That covers the application itself, not the data it downloads at setup — see [Data sources & licensing](#data-sources--licensing) above for those.
 
+## Notes on the stylometry tool
+
+The stylometry feature was built to work on a real disputed-authorship question
+— the *Rhesus* transmitted under Euripides' name — and the write-up of what came
+of that is in [docs/stylometry-notes.md](docs/stylometry-notes.md).
+
+The short version, because it matters for anyone using the feature:
+
+- It surfaced three genuine corpus bugs, now fixed. The largest: First1KGreek
+  encodes its critical apparatus inline, and the TEI parser was ingesting
+  editors' surnames and manuscript sigla as Greek vocabulary. About 17,000
+  characters of *Agamemnon* were apparatus.
+- **Depth to first outsider does not work as an attribution measure.** It varied
+  by up to 20 ranks for a single work on a 500-token change in sample size. It
+  is a rank position, and rank positions track text length however you correct
+  for them.
+- **Delta floor is more robust** and shows no length effect, but the one
+  promising result it produced failed to replicate at a different sample size.
+- It did not answer the authorship question, and the write-up says so.
+
+Delta measures similarity of word-frequency profile. On a same-genre corpus that
+comes apart from authorship more than is comfortable. The tool includes a
+stability comparison and a length-confound test because both are needed before
+any ranking should be believed.
+
 ## Status
 
 Version 2.0.
 
 Version 1 was a first draft. This is a substantially different application: a
 searchable, taggable, cross-referenced library rather than a reader, plus the
-translation workbench, and a schema that has moved through six migrations
+translation workbench, and a schema that has moved through ten migrations
 since. Existing databases upgrade in place on first launch — annotations,
 bookmarks and tags are carried forward.
 

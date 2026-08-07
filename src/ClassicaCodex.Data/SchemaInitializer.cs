@@ -50,7 +50,7 @@ public static class SchemaInitializer
     /// doing anything - and without "delete your database and re-ingest"
     /// ever being the release note.
     /// </summary>
-    private const int TargetSchemaVersion = 7;
+    private const int TargetSchemaVersion = 10;
 
     public static async Task EnsureSchemaAsync(CancellationToken cancellationToken = default)
     {
@@ -392,6 +392,134 @@ public static class SchemaInitializer
                 CtsUrn    TEXT NOT NULL PRIMARY KEY,
                 CreatedAt TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
             );"
+        },
+
+        // v8: saved stylometric runs.
+        //
+        // A single Delta run is close to uninterpretable alone - every useful
+        // reading comes from comparing runs, either across works or across
+        // preprocessing settings for the same work. Doing that by holding
+        // screenshots side by side is how a run gets compared against itself
+        // without anyone noticing.
+        //
+        // Three tables: the run and its settings, the full neighbour list, and
+        // the word-frequency fingerprint.
+        //
+        // Author and title are DENORMALISED into the results rather than
+        // joined at read time. WorkIds are assigned locally and renumber on a
+        // re-ingest, so a run joined live would come back describing different
+        // works while still looking valid. A saved run is a historical record
+        // of what the analysis said on a particular day, not a live view - it
+        // should stay readable even if the corpus underneath it is replaced.
+        //
+        // The full neighbour list is stored, not just the top 20 the UI shows.
+        // A few thousand rows per run is nothing, and truncating would rule out
+        // the reference-distribution work (where in a work's own ranking does
+        // the first other author appear?) which is the entire reason for this.
+        //
+        // AlgorithmVersion exists because ComputeDelta will change again. It
+        // already changed once mid-analysis - de-duplicating the pool moved
+        // every figure - and runs from either side of that change are not
+        // comparable. Without a recorded version they would look comparable,
+        // which is the failure mode worth spending a column to avoid.
+        //
+        // PoolSize serves the same purpose for corpus growth: Delta z-scores
+        // are relative to the pool, so runs against pools of different sizes
+        // need at minimum a warning before being charted together.
+        [8] = new[]
+        {
+            @"CREATE TABLE IF NOT EXISTS StylometryRuns (
+                RunId             INTEGER PRIMARY KEY AUTOINCREMENT,
+                CreatedUtc        TEXT    NOT NULL,
+                TargetWorkId      INTEGER NOT NULL,
+                TargetEditionId   INTEGER NOT NULL,
+                TargetAuthorName  TEXT    NOT NULL,
+                TargetWorkTitle   TEXT    NOT NULL,
+                Language          TEXT    NOT NULL,
+                FeatureWordCount  INTEGER NOT NULL,
+                FoldAccents       INTEGER NOT NULL,
+                StripElisionMarks INTEGER NOT NULL,
+                PoolSize          INTEGER NOT NULL,
+                AlgorithmVersion  INTEGER NOT NULL,
+                Label             TEXT    NULL,
+                Notes             TEXT    NULL
+            );",
+
+            @"CREATE INDEX IF NOT EXISTS IX_StylometryRuns_Target
+                ON StylometryRuns (TargetWorkId, AlgorithmVersion, FeatureWordCount, FoldAccents);",
+
+            @"CREATE INDEX IF NOT EXISTS IX_StylometryRuns_Settings
+                ON StylometryRuns (Language, AlgorithmVersion, FeatureWordCount, FoldAccents, StripElisionMarks);",
+
+            @"CREATE TABLE IF NOT EXISTS StylometryRunResults (
+                RunId       INTEGER NOT NULL,
+                Rank        INTEGER NOT NULL,
+                WorkId      INTEGER NOT NULL,
+                AuthorName  TEXT    NOT NULL,
+                WorkTitle   TEXT    NOT NULL,
+                Delta       REAL    NOT NULL,
+                CONSTRAINT PK_StylometryRunResults PRIMARY KEY (RunId, Rank),
+                CONSTRAINT FK_StylometryRunResults_Runs
+                    FOREIGN KEY (RunId) REFERENCES StylometryRuns(RunId) ON DELETE CASCADE
+            );",
+
+            @"CREATE INDEX IF NOT EXISTS IX_StylometryRunResults_Author
+                ON StylometryRunResults (RunId, AuthorName, Rank);",
+
+            @"CREATE TABLE IF NOT EXISTS StylometryRunFeatures (
+                RunId             INTEGER NOT NULL,
+                Rank              INTEGER NOT NULL,
+                Word              TEXT    NOT NULL,
+                RelativeFrequency REAL    NOT NULL,
+                CONSTRAINT PK_StylometryRunFeatures PRIMARY KEY (RunId, Rank),
+                CONSTRAINT FK_StylometryRunFeatures_Runs
+                    FOREIGN KEY (RunId) REFERENCES StylometryRuns(RunId) ON DELETE CASCADE
+            );"
+        },
+
+        // v9: token count of the target text.
+        //
+        // Added to test a confound in the depth-to-first-outsider measure.
+        // Across the Euripides corpus the works with the shallowest depth are
+        // also, with one exception, the shortest surviving plays. Shorter texts
+        // give noisier relative-frequency estimates, which inflates Delta
+        // against everything and lets works by other authors rise in the
+        // ranking earlier - producing exactly the pattern that would otherwise
+        // be read as weak authorial signal.
+        //
+        // Until depth is regressed against length, a shallow depth cannot be
+        // attributed to authorship at all. Nullable because runs saved before
+        // this migration have no count and must be excluded from the
+        // regression rather than silently treated as zero.
+        [9] = new[]
+        {
+            @"ALTER TABLE StylometryRuns ADD COLUMN TargetTokenCount INTEGER NULL;"
+        },
+
+        // v10: sample size.
+        //
+        // Chunking splits each work into fixed-size token samples so that every
+        // comparison unit is the same length - the only way to ask an
+        // authorship question on a corpus where depth to first outsider tracks
+        // length instead.
+        //
+        // The column exists because sample size was initially left out of the
+        // settings record, and runs at different sample sizes therefore shared
+        // a settings profile. The analysis form pooled a chunked batch with an
+        // unchunked one and presented the mixture as a single reference
+        // distribution: same works appearing twice at slightly different
+        // depths, with nothing on screen to indicate why.
+        //
+        // Two runs are only comparable if every preprocessing decision behind
+        // them matches. Any such decision that is not recorded here will
+        // eventually be silently mixed, and the failure looks like noise rather
+        // than like a bug.
+        //
+        // 0 means whole works. Existing rows predate chunking and are
+        // backfilled to 0, which is what they were.
+        [10] = new[]
+        {
+            @"ALTER TABLE StylometryRuns ADD COLUMN ChunkSize INTEGER NOT NULL DEFAULT 0;"
         }
     };
 
@@ -602,6 +730,63 @@ public static class SchemaInitializer
         @"CREATE TABLE IF NOT EXISTS FavoriteWorks (
             CtsUrn    TEXT NOT NULL PRIMARY KEY,
             CreatedAt TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+        );",
+
+        // Saved stylometric runs. Mirrored in migration 8 - same reason as
+        // FavoriteWorks above: a new database gets this DDL and never runs
+        // migrations, so the two definitions have to stay in step.
+        //
+        // Author and title are denormalised into the results on purpose. See
+        // the migration 8 comment for why a saved run must not be joined live
+        // against Works.
+        @"CREATE TABLE IF NOT EXISTS StylometryRuns (
+            RunId             INTEGER PRIMARY KEY AUTOINCREMENT,
+            CreatedUtc        TEXT    NOT NULL,
+            TargetWorkId      INTEGER NOT NULL,
+            TargetEditionId   INTEGER NOT NULL,
+            TargetAuthorName  TEXT    NOT NULL,
+            TargetWorkTitle   TEXT    NOT NULL,
+            Language          TEXT    NOT NULL,
+            FeatureWordCount  INTEGER NOT NULL,
+            FoldAccents       INTEGER NOT NULL,
+            StripElisionMarks INTEGER NOT NULL,
+            PoolSize          INTEGER NOT NULL,
+            AlgorithmVersion  INTEGER NOT NULL,
+            Label             TEXT    NULL,
+            Notes             TEXT    NULL,
+            TargetTokenCount  INTEGER NULL,
+            ChunkSize         INTEGER NOT NULL DEFAULT 0
+        );",
+
+        @"CREATE INDEX IF NOT EXISTS IX_StylometryRuns_Target
+            ON StylometryRuns (TargetWorkId, AlgorithmVersion, FeatureWordCount, FoldAccents);",
+
+        @"CREATE INDEX IF NOT EXISTS IX_StylometryRuns_Settings
+            ON StylometryRuns (Language, AlgorithmVersion, FeatureWordCount, FoldAccents, StripElisionMarks);",
+
+        @"CREATE TABLE IF NOT EXISTS StylometryRunResults (
+            RunId       INTEGER NOT NULL,
+            Rank        INTEGER NOT NULL,
+            WorkId      INTEGER NOT NULL,
+            AuthorName  TEXT    NOT NULL,
+            WorkTitle   TEXT    NOT NULL,
+            Delta       REAL    NOT NULL,
+            CONSTRAINT PK_StylometryRunResults PRIMARY KEY (RunId, Rank),
+            CONSTRAINT FK_StylometryRunResults_Runs
+                FOREIGN KEY (RunId) REFERENCES StylometryRuns(RunId) ON DELETE CASCADE
+        );",
+
+        @"CREATE INDEX IF NOT EXISTS IX_StylometryRunResults_Author
+            ON StylometryRunResults (RunId, AuthorName, Rank);",
+
+        @"CREATE TABLE IF NOT EXISTS StylometryRunFeatures (
+            RunId             INTEGER NOT NULL,
+            Rank              INTEGER NOT NULL,
+            Word              TEXT    NOT NULL,
+            RelativeFrequency REAL    NOT NULL,
+            CONSTRAINT PK_StylometryRunFeatures PRIMARY KEY (RunId, Rank),
+            CONSTRAINT FK_StylometryRunFeatures_Runs
+                FOREIGN KEY (RunId) REFERENCES StylometryRuns(RunId) ON DELETE CASCADE
         );",
 
         // Lemmas - inflected form to dictionary headword mapping. This is
