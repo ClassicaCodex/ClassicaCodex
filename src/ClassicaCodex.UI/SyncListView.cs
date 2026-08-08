@@ -54,6 +54,7 @@ public class SyncListView : ListBox
             _resizeDebounceTimer.Stop();
             _resizeDebounceTimer.Dispose();
             _toolTip.Dispose();
+            _athetizedFont?.Dispose();
         }
 
         base.Dispose(disposing);
@@ -347,13 +348,53 @@ public class SyncListView : ListBox
         var text = GetItemText(e.Index);
         if (text.Length > 0)
         {
-            var foreColor = selected ? ReadingTheme.SelectionText : ForeColor;
+            // An athetized line is one the editor bracketed as suspected
+            // interpolation: transmitted by the manuscripts, printed, but
+            // doubted. Every printed edition marks the doubt somehow, usually
+            // with square brackets. Rendering it identically to an accepted
+            // line silently presents a contested line as settled.
+            //
+            // Shown by style rather than by inserting brackets into the string,
+            // because the string is what gets copied, exported, searched and
+            // tokenised - brackets added for display would travel into all of
+            // those. Italic carries it where colour cannot: the muted colour
+            // alone would be invisible against a selection highlight, and
+            // unusable for anyone who cannot distinguish it.
+            var athetized = e.Index >= 0 && e.Index < Items.Count
+                            && Items[e.Index] is TextNode { IsAthetized: true };
+
+            var foreColor = selected
+                ? ReadingTheme.SelectionText
+                : (athetized ? ReadingTheme.MutedText : ForeColor);
+
+            var font = athetized ? GetAthetizedFont() : Font;
+
             var rect = new Rectangle(e.Bounds.X + 3, e.Bounds.Y + 2, e.Bounds.Width - 6, e.Bounds.Height - 4);
-            TextRenderer.DrawText(e.Graphics, text, Font, rect, foreColor,
+            TextRenderer.DrawText(e.Graphics, text, font, rect, foreColor,
                 TextFormatFlags.WordBreak | TextFormatFlags.NoPadding);
         }
 
         e.DrawFocusRectangle();
+    }
+
+    private Font? _athetizedFont;
+
+    /// <summary>
+    /// Italic variant of the current font, created once and rebuilt when the
+    /// font changes. DrawItem runs for every visible row on every repaint, and
+    /// a font allocated there would be thousands of objects a second during a
+    /// scroll.
+    /// </summary>
+    private Font GetAthetizedFont()
+    {
+        if (_athetizedFont == null || _athetizedFont.FontFamily != Font.FontFamily
+            || Math.Abs(_athetizedFont.Size - Font.Size) > 0.01f)
+        {
+            _athetizedFont?.Dispose();
+            _athetizedFont = new Font(Font, Font.Style | FontStyle.Italic);
+        }
+
+        return _athetizedFont;
     }
 
     private string GetItemText(int index)
@@ -371,7 +412,12 @@ public class SyncListView : ListBox
 
         if (index >= 0 && index < Items.Count && Items[index] is TextNode node)
         {
-            _toolTip.SetToolTip(this, $"[{node.CitationRef}]");
+            // The citation is the point of this tooltip; the athetesis note is
+            // appended because the italic styling shows that something is
+            // different without saying what.
+            _toolTip.SetToolTip(this, node.IsAthetized
+                ? $"[{node.CitationRef}] - bracketed by the editor as probably not authentic"
+                : $"[{node.CitationRef}]");
         }
         else
         {

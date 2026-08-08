@@ -25,6 +25,7 @@ public class PerseusIngestService
     private readonly EditionRepository _editionRepo = new();
     private readonly EditionHeaderRepository _editionHeaderRepo = new();
     private readonly TextNodeRepository _textNodeRepo = new();
+    private readonly ApparatusRepository _apparatusRepo = new();
 
     /// <summary>
     /// Files that failed to ingest (bad XML, unrecognized structure, etc.)
@@ -138,6 +139,12 @@ public class PerseusIngestService
                 var parsed = _teiParser.Parse(editionFile);
                 var nodes = _teiParser.ToTextNodes(editionId, parsed);
                 await _textNodeRepo.BulkInsertAsync(nodes, cancellationToken);
+
+                // Apparatus comes from the same parse - LastApparatus describes
+                // the file just read - and is replaced wholesale for the same
+                // reason the text nodes are cleared above.
+                await _apparatusRepo.ReplaceForEditionAsync(
+                    editionId, _teiParser.ToApparatusEntries(editionId), cancellationToken);
             }
             catch (Exception ex) when (ex is not OperationCanceledException)
             {

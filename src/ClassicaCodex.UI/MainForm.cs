@@ -1071,6 +1071,10 @@ public class MainForm : Form
         var wordStudyItem = menu.Items.Add("Word Study...");
         wordStudyItem.Image = AppIcons.Get("WordStudy", 16);
         wordStudyItem.Click += (_, _) => ShowWordStudyForSelectedLine(list);
+        var apparatusItem = menu.Items.Add("Editor's Notes...");
+        apparatusItem.Image = AppIcons.Get("Concordance", 16);
+        apparatusItem.Click += (_, _) => ShowApparatusForSelectedLine(list);
+
         var exportItem = menu.Items.Add("Export...");
         exportItem.Image = AppIcons.Get("Export", 16);
         exportItem.Click += async (_, _) => await ExportSelectedLineAsync(list, font.Name);
@@ -1096,6 +1100,7 @@ public class MainForm : Form
         _themedMenuItemIcons.Add((receptionItem, "ReceptionTracker"));
         _themedMenuItemIcons.Add((translateItem, "Translate"));
         _themedMenuItemIcons.Add((wordStudyItem, "WordStudy"));
+        _themedMenuItemIcons.Add((apparatusItem, "Concordance"));
         _themedMenuItemIcons.Add((exportItem, "Export"));
         _themedMenuItemIcons.Add((prefaceItem, "Preface"));
 
@@ -1132,6 +1137,35 @@ public class MainForm : Form
             : "Panes are independent. Click to link them again.";
 
         _toolbarTips.SetToolTip(_syncPanesButton, text);
+    }
+
+    /// <summary>
+    /// Opens the editor's notes for the selected line.
+    ///
+    /// The edition comes from whichever pane was clicked rather than from the
+    /// original pane always: a translation carries its own notes, and Smyth's on
+    /// Agamemnon are not Dindorf's.
+    /// </summary>
+    private void ShowApparatusForSelectedLine(ListBox list)
+    {
+        if (list.SelectedIndex < 0 || list.Items[list.SelectedIndex] is not TextNode node)
+        {
+            MessageBox.Show(this, "Select a line first.", "No line selected",
+                MessageBoxButtons.OK, MessageBoxIcon.Information);
+            return;
+        }
+
+        var editionLabel = ReferenceEquals(list, _originalPane)
+            ? _originalEditionCombo.Text
+            : _translationEditionCombo.Text;
+
+        using var form = new ApparatusForm(
+            node.EditionId,
+            node.CitationRef,
+            node.Text,
+            string.IsNullOrWhiteSpace(editionLabel) ? "this edition" : editionLabel);
+
+        form.ShowDialog(this);
     }
 
     /// <summary>

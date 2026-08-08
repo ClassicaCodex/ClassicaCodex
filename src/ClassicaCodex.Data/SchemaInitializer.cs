@@ -50,7 +50,7 @@ public static class SchemaInitializer
     /// doing anything - and without "delete your database and re-ingest"
     /// ever being the release note.
     /// </summary>
-    private const int TargetSchemaVersion = 10;
+    private const int TargetSchemaVersion = 12;
 
     public static async Task EnsureSchemaAsync(CancellationToken cancellationToken = default)
     {
@@ -428,7 +428,23 @@ public static class SchemaInitializer
         // need at minimum a warning before being charted together.
         [8] = new[]
         {
-            @"CREATE TABLE IF NOT EXISTS StylometryRuns (
+            @"CREATE TABLE IF NOT EXISTS ApparatusEntries (
+            ApparatusId INTEGER PRIMARY KEY AUTOINCREMENT,
+            EditionId   INTEGER NOT NULL,
+            CitationRef TEXT    NOT NULL,
+            SortOrder   INTEGER NOT NULL,
+            Kind        TEXT    NOT NULL,
+            Lemma       TEXT    NULL,
+            Witness     TEXT    NULL,
+            Content     TEXT    NOT NULL,
+            CONSTRAINT FK_ApparatusEntries_Editions
+                FOREIGN KEY (EditionId) REFERENCES Editions(EditionId)
+        );",
+
+        @"CREATE INDEX IF NOT EXISTS IX_ApparatusEntries_Line
+            ON ApparatusEntries (EditionId, CitationRef, SortOrder);",
+
+        @"CREATE TABLE IF NOT EXISTS StylometryRuns (
                 RunId             INTEGER PRIMARY KEY AUTOINCREMENT,
                 CreatedUtc        TEXT    NOT NULL,
                 TargetWorkId      INTEGER NOT NULL,
@@ -520,6 +536,75 @@ public static class SchemaInitializer
         [10] = new[]
         {
             @"ALTER TABLE StylometryRuns ADD COLUMN ChunkSize INTEGER NOT NULL DEFAULT 0;"
+        },
+
+        // v11: athetized lines.
+        //
+        // TEI <del> in a printed critical edition marks a line the editor
+        // believes is interpolated - transmitted in the manuscripts, printed
+        // in square brackets, but doubted. Fourteen lines of Agamemnon alone
+        // are encoded this way.
+        //
+        // The parser previously discarded <del> content entirely, on the
+        // reading that <del> means "deleted". In a manuscript transcription it
+        // does; in a printed edition it means "athetized", and the text is
+        // still the text. Agamemnon 7 came through as a bare full stop.
+        //
+        // With the content restored, the remaining problem is that an
+        // athetized line now looks identical to an accepted one, which no
+        // printed edition would do. This column carries the distinction so the
+        // reader can show it.
+        //
+        // A flag rather than brackets in the text itself: Text is tokenised,
+        // searched, exported and fed to the stylometry, and punctuation
+        // injected for display would end up in all four.
+        //
+        // Existing rows default to 0. They were ingested before the flag
+        // existed and a re-ingest is needed to populate it - which the <del>
+        // fix required anyway.
+        [11] = new[]
+        {
+            @"ALTER TABLE TextNodes ADD COLUMN IsAthetized INTEGER NOT NULL DEFAULT 0;"
+        },
+
+        // v12: the critical apparatus.
+        //
+        // The parser excludes <app>, <rdg> and <note> from the reading text,
+        // and must: they are commentary about the text, and counting an
+        // editor's surname as a Greek word skews everything downstream.
+        //
+        // But that material IS the scholarship. It records which manuscripts
+        // read what, who conjectured what, and why a line is doubted. A
+        // printed edition puts it in small type at the foot of the page. Until
+        // now this application threw it away entirely, so a reader could see
+        // that line 7 of Agamemnon was bracketed but had no way to learn that
+        // Pauw bracketed it.
+        //
+        // Stored separately rather than inline for the same reason it is
+        // excluded from Text: anything in TextNodes.Text is tokenised,
+        // searched, exported and fed to the stylometry.
+        //
+        // Keyed by (EditionId, CitationRef) rather than TextNodeId because
+        // apparatus is attached during parsing, before the text nodes have
+        // been assigned ids, and because a re-ingest renumbers those ids while
+        // citation references are stable.
+        [12] = new[]
+        {
+            @"CREATE TABLE IF NOT EXISTS ApparatusEntries (
+                ApparatusId INTEGER PRIMARY KEY AUTOINCREMENT,
+                EditionId   INTEGER NOT NULL,
+                CitationRef TEXT    NOT NULL,
+                SortOrder   INTEGER NOT NULL,
+                Kind        TEXT    NOT NULL,
+                Lemma       TEXT    NULL,
+                Witness     TEXT    NULL,
+                Content     TEXT    NOT NULL,
+                CONSTRAINT FK_ApparatusEntries_Editions
+                    FOREIGN KEY (EditionId) REFERENCES Editions(EditionId)
+            );",
+
+            @"CREATE INDEX IF NOT EXISTS IX_ApparatusEntries_Line
+                ON ApparatusEntries (EditionId, CitationRef, SortOrder);"
         }
     };
 
@@ -580,6 +665,7 @@ public static class SchemaInitializer
             CitationRef TEXT NOT NULL,
             SortOrder   INTEGER NOT NULL,
             Text        TEXT NOT NULL,
+            IsAthetized INTEGER NOT NULL DEFAULT 0,
             CONSTRAINT FK_TextNodes_Editions FOREIGN KEY (EditionId) REFERENCES Editions(EditionId)
         );",
 
@@ -739,6 +825,22 @@ public static class SchemaInitializer
         // Author and title are denormalised into the results on purpose. See
         // the migration 8 comment for why a saved run must not be joined live
         // against Works.
+        @"CREATE TABLE IF NOT EXISTS ApparatusEntries (
+            ApparatusId INTEGER PRIMARY KEY AUTOINCREMENT,
+            EditionId   INTEGER NOT NULL,
+            CitationRef TEXT    NOT NULL,
+            SortOrder   INTEGER NOT NULL,
+            Kind        TEXT    NOT NULL,
+            Lemma       TEXT    NULL,
+            Witness     TEXT    NULL,
+            Content     TEXT    NOT NULL,
+            CONSTRAINT FK_ApparatusEntries_Editions
+                FOREIGN KEY (EditionId) REFERENCES Editions(EditionId)
+        );",
+
+        @"CREATE INDEX IF NOT EXISTS IX_ApparatusEntries_Line
+            ON ApparatusEntries (EditionId, CitationRef, SortOrder);",
+
         @"CREATE TABLE IF NOT EXISTS StylometryRuns (
             RunId             INTEGER PRIMARY KEY AUTOINCREMENT,
             CreatedUtc        TEXT    NOT NULL,

@@ -80,11 +80,118 @@ public static class ReadingTheme
         listView.DrawColumnHeader -= DrawThemedColumnHeader;
         listView.DrawColumnHeader += DrawThemedColumnHeader;
 
+        // Rows are drawn here too, not left to DrawDefault. Default drawing
+        // paints the row using the system's own colours for grid lines and
+        // selection, neither of which follows the app's theme - see
+        // DrawThemedListItem.
         listView.DrawItem -= DrawItemDefault;
-        listView.DrawItem += DrawItemDefault;
+        listView.DrawItem -= DrawThemedListItem;
+        listView.DrawItem += DrawThemedListItem;
 
         listView.DrawSubItem -= DrawSubItemDefault;
-        listView.DrawSubItem += DrawSubItemDefault;
+        listView.DrawSubItem -= DrawThemedListSubItem;
+        listView.DrawSubItem += DrawThemedListSubItem;
+
+        listView.Resize -= StretchLastColumn;
+        listView.Resize += StretchLastColumn;
+        StretchLastColumn(listView, EventArgs.Empty);
+    }
+
+    /// <summary>
+    /// Widens the last column to take up whatever width the columns leave
+    /// spare.
+    ///
+    /// This is a theming fix, not a layout preference. The strip of header to
+    /// the right of the last column is painted by the native header control,
+    /// which raises no draw event and ignores BackColor - so in dark mode a
+    /// grid whose columns did not reach the right edge showed a bright white
+    /// band beside a themed header, with nothing in managed code able to paint
+    /// over it. Leaving no spare width is the only way to remove it.
+    ///
+    /// The designed width is remembered on the column's Tag so repeated
+    /// resizes measure from the original rather than compounding, and so
+    /// shrinking the window returns the column to the width the form asked
+    /// for rather than to whatever the last resize left.
+    /// </summary>
+    private static void StretchLastColumn(object? sender, EventArgs e)
+    {
+        if (sender is not ListView list || list.Columns.Count == 0) return;
+        if (list.View != View.Details) return;
+
+        var last = list.Columns[^1];
+        if (last.Tag is not int designed)
+        {
+            designed = last.Width;
+            last.Tag = designed;
+        }
+
+        var others = 0;
+        for (var i = 0; i < list.Columns.Count - 1; i++) others += list.Columns[i].Width;
+
+        // ClientSize already excludes a visible vertical scrollbar, so no
+        // allowance is needed for one; the -4 is the border inset, without
+        // which the stretch overshoots by a couple of pixels and produces a
+        // horizontal scrollbar on a grid that fits.
+        var available = list.ClientSize.Width - others - 4;
+        last.Width = Math.Max(designed, available);
+    }
+
+    /// <summary>
+    /// ListViews whose form asked for grid lines before the native ones were
+    /// switched off.
+    ///
+    /// A side table rather than the control's Tag: Tag belongs to whoever
+    /// built the control, and a theme quietly taking it is the kind of thing
+    /// that breaks a form months later for no visible reason. The table holds
+    /// weak references, so a closed form's controls are still collectable.
+    /// </summary>
+    private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<ListView, object>
+        GridLineRequests = new();
+
+    private static bool WantsGridLines(ListView list) =>
+        GridLineRequests.TryGetValue(list, out _);
+
+    private static readonly object GridLinesMarker = new();
+
+
+    /// <summary>
+    /// Draws a row's background and grid lines in theme colours.
+    ///
+
+    private static void DrawThemedListItem(object? sender, DrawListViewItemEventArgs e)
+    {
+        if (sender is not ListView list) return;
+
+        var selected = e.Item != null && e.Item.Selected && list.Focused;
+        using (var back = new SolidBrush(selected ? SelectionBackground : list.BackColor))
+        {
+            e.Graphics.FillRectangle(back, e.Bounds);
+        }
+
+        if (!WantsGridLines(list)) return;
+
+        using var gridPen = new Pen(Border);
+        e.Graphics.DrawLine(gridPen, e.Bounds.Left, e.Bounds.Bottom - 1, e.Bounds.Right, e.Bounds.Bottom - 1);
+    }
+
+    private static void DrawThemedListSubItem(object? sender, DrawListViewSubItemEventArgs e)
+    {
+        if (sender is not ListView list || e.SubItem == null) return;
+
+        var selected = e.Item != null && e.Item.Selected && list.Focused;
+
+        TextRenderer.DrawText(
+            e.Graphics,
+            e.SubItem.Text,
+            e.SubItem.Font ?? list.Font,
+            new Rectangle(e.Bounds.X + 4, e.Bounds.Y, e.Bounds.Width - 8, e.Bounds.Height),
+            selected ? SelectionText : (e.SubItem.ForeColor.IsEmpty ? list.ForeColor : e.SubItem.ForeColor),
+            TextFormatFlags.VerticalCenter | TextFormatFlags.EndEllipsis);
+
+        if (!WantsGridLines(list)) return;
+
+        using var gridPen = new Pen(Border);
+        e.Graphics.DrawLine(gridPen, e.Bounds.Right - 1, e.Bounds.Top, e.Bounds.Right - 1, e.Bounds.Bottom);
     }
 
     private static void DrawItemDefault(object? sender, DrawListViewItemEventArgs e) => e.DrawDefault = true;
@@ -298,6 +405,22 @@ public static class ReadingTheme
                 listView.ForeColor = Text;
                 ApplyNativeScrollbarTheme(listView);
 
+                // GridLines must be switched off, not merely drawn over. The
+                // native control paints its lines beneath owner-drawn content
+                // and across the whole client area including the empty space
+                // below the last row - so an empty grid came out as a full
+                // page of white rules with nothing in it, and a populated one
+                // kept white lines under the themed ones.
+                //
+                // The form's intent is remembered on Tag so the themed
+                // painters know whether to draw lines at all.
+                if (listView.GridLines)
+                {
+                    GridLineRequests.Remove(listView);
+                    GridLineRequests.Add(listView, GridLinesMarker);
+                    listView.GridLines = false;
+                }
+
                 // The header is a separate native control that ignores the
                 // BackColor set just above, so it is owner-drawn. Done here
                 // rather than left to each form to ask for, because a form
@@ -406,6 +529,24 @@ public static class ReadingTheme
                 // the list controls above - without this they stay light
                 // against a dark surface.
                 ApplyNativeScrollbarTheme(panel);
+                break;
+
+            // ThemedTabControl draws its own strip and needs nothing here
+            // beyond a repaint, because the native strip can only be covered
+            // after base.WndProc has painted it - see that class.
+            case ThemedTabControl themedTabs:
+                themedTabs.BackColor = Background;
+                themedTabs.ForeColor = Text;
+                themedTabs.Invalidate();
+                break;
+
+            // A plain TabControl cannot be themed from out here: its strip is
+            // painted by the native control after every managed hook has run.
+            // The colours below at least keep the pages right; the strip stays
+            // light. Use ThemedTabControl instead.
+            case TabControl tabs:
+                tabs.BackColor = Background;
+                tabs.ForeColor = Text;
                 break;
 
             case SplitContainer or SplitterPanel or TabPage:

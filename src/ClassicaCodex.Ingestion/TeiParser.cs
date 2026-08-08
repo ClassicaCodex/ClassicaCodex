@@ -124,7 +124,142 @@ public class TeiParser
         public string CitationRef { get; set; } = string.Empty;
         public int SortOrder { get; set; }
         public string Text { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Set when the source line contains a &lt;del&gt;, i.e. text the
+        /// editor bracketed as suspected interpolation. See TextNode for why
+        /// this is a flag rather than brackets in Text.
+        /// </summary>
+        public bool IsAthetized { get; set; }
     }
+
+    /// <summary>
+    /// One entry from the critical apparatus, attached to the line it
+    /// discusses. See the migration 12 comment for why this is stored apart
+    /// from the reading text.
+    /// </summary>
+    public class ParsedApparatus
+    {
+        public string CitationRef { get; set; } = string.Empty;
+        public int SortOrder { get; set; }
+
+        /// <summary>"variant" for a rejected manuscript reading, "note" for editorial comment.</summary>
+        public string Kind { get; set; } = string.Empty;
+
+        /// <summary>The adopted reading this entry is about, where the source names one.</summary>
+        public string? Lemma { get; set; }
+
+        /// <summary>Manuscript siglum or responsible editor, from @wit or @resp.</summary>
+        public string? Witness { get; set; }
+
+        public string Content { get; set; } = string.Empty;
+    }
+
+    /// <summary>
+    /// Pulls the apparatus out of one leaf element.
+    ///
+    /// TEI encodes this two ways and both appear in the corpus:
+    ///
+    ///   &lt;app&gt;&lt;lem&gt;adopted&lt;/lem&gt;&lt;rdg wit="M"&gt;variant&lt;/rdg&gt;&lt;/app&gt;
+    ///       structured - the adopted reading and its rejected alternatives
+    ///
+    ///   &lt;note resp="editor"&gt;εἶτʼ οὐ R: εἶτα&lt;/note&gt;
+    ///       unstructured - the whole apparatus entry as prose, which is what
+    ///       Perseus mostly uses. No attempt is made to parse it into lemma
+    ///       and variant; that would mean guessing at an editor's punctuation
+    ///       conventions, and guessing wrong silently is worse than showing
+    ///       the entry as written.
+    ///
+    /// Content is flattened with the same editorial filter used for reading
+    /// text, so a &lt;foreign&gt; wrapper around a Greek variant contributes its
+    /// text while a nested &lt;bibl&gt; does not.
+    /// </summary>
+    /// <summary>
+    /// Whether an apparatus entry says anything.
+    ///
+    /// Some editions put the footnote MARKER in a &lt;note&gt; rather than the
+    /// note: the German Thucydides yields entries whose entire content is "1",
+    /// "2", "3", and the English one yields a bare full stop. Stored, they
+    /// become rows in the reader's notes list that say nothing and cannot be
+    /// clicked through to anything.
+    ///
+    /// The test is a single letter anywhere in the content. Digits and
+    /// punctuation alone are a marker; a siglum like "M" or an abbreviation
+    /// like "cf." is real and passes. Deliberately permissive - the cost of
+    /// keeping a marginal entry is one line in a list, while dropping a real
+    /// note loses scholarship silently.
+    /// </summary>
+    private static bool CarriesInformation(string content) =>
+        !string.IsNullOrWhiteSpace(content) && content.Any(char.IsLetter);
+
+    private static List<ParsedApparatus> ExtractApparatus(XElement leaf, string citationRef)
+    {
+        var entries = new List<ParsedApparatus>();
+        var order = 0;
+
+        foreach (var el in leaf.Descendants())
+        {
+            var name = el.Name.LocalName;
+
+            if (string.Equals(name, "app", StringComparison.OrdinalIgnoreCase))
+            {
+                var lem = el.Elements().FirstOrDefault(e =>
+                    string.Equals(e.Name.LocalName, "lem", StringComparison.OrdinalIgnoreCase));
+                var lemText = lem == null ? null : FlattenText(lem);
+
+                foreach (var rdg in el.Elements().Where(e =>
+                             string.Equals(e.Name.LocalName, "rdg", StringComparison.OrdinalIgnoreCase)))
+                {
+                    var content = FlattenText(rdg);
+                    if (!CarriesInformation(content)) continue;
+
+                    entries.Add(new ParsedApparatus
+                    {
+                        CitationRef = citationRef,
+                        SortOrder = order++,
+                        Kind = "variant",
+                        Lemma = string.IsNullOrWhiteSpace(lemText) ? null : lemText,
+                        Witness = (string?)rdg.Attribute("wit") ?? (string?)rdg.Attribute("resp"),
+                        Content = content
+                    });
+                }
+
+                continue;
+            }
+
+            if (!string.Equals(name, "note", StringComparison.OrdinalIgnoreCase)) continue;
+
+            // A note nested inside an <app> is part of that entry and was
+            // already covered above; taking it again would duplicate it.
+            if (el.Ancestors().Any(a => string.Equals(a.Name.LocalName, "app", StringComparison.OrdinalIgnoreCase)))
+                continue;
+
+            var noteText = FlattenText(el);
+            if (!CarriesInformation(noteText)) continue;
+
+            entries.Add(new ParsedApparatus
+            {
+                CitationRef = citationRef,
+                SortOrder = order++,
+                Kind = "note",
+                Witness = (string?)el.Attribute("resp"),
+                Content = noteText
+            });
+        }
+
+        return entries;
+    }
+
+    /// <summary>
+    /// Whether an element encloses any athetized text.
+    ///
+    /// Checked on the whole subtree rather than direct children: a line can be
+    /// &lt;l&gt;&lt;quote&gt;&lt;del&gt;...&lt;/del&gt;&lt;/quote&gt;&lt;/l&gt;,
+    /// and Athenaeus nests it inside &lt;add&gt;.
+    /// </summary>
+    private static bool ContainsAthetizedText(XElement element) =>
+        element.Descendants().Any(e =>
+            string.Equals(e.Name.LocalName, "del", StringComparison.OrdinalIgnoreCase));
 
     /// <summary>
     /// Whether an element is a division container. Covers TEI P5's
@@ -140,6 +275,18 @@ public class TeiParser
             && name.StartsWith("div", StringComparison.OrdinalIgnoreCase)
             && char.IsDigit(name[3]);
     }
+
+    /// <summary>
+    /// Apparatus collected by the most recent Parse/ParseXml call.
+    ///
+    /// Exposed as state rather than returned alongside the nodes because
+    /// WalkDiv is recursive and already threads four parameters; a fifth
+    /// out-list through every call site buys nothing. Reset at the start of
+    /// each parse, so it always describes the file just read.
+    /// </summary>
+    public IReadOnlyList<ParsedApparatus> LastApparatus => _apparatus;
+
+    private readonly List<ParsedApparatus> _apparatus = new();
 
     public List<ParsedNode> Parse(string xmlFilePath) => ParseXml(File.ReadAllText(xmlFilePath));
 
@@ -168,6 +315,7 @@ public class TeiParser
 
         var nodes = new List<ParsedNode>();
         int sortCounter = 0;
+        _apparatus.Clear();
         WalkDiv(body, new List<string>(), nodes, ref sortCounter, new Dictionary<string, int>());
 
         // Fallback: nothing leaf-like was found (milestone-style text) - take
@@ -325,9 +473,13 @@ public class TeiParser
                 var text = FlattenText(child);
                 if (string.IsNullOrWhiteSpace(text)) continue;
 
+                var leafRef = CapCitationRef(string.Join(".", trail));
+                _apparatus.AddRange(ExtractApparatus(child, leafRef));
+
                 nodes.Add(new ParsedNode
                 {
-                    CitationRef = CapCitationRef(string.Join(".", trail)),
+                    IsAthetized = ContainsAthetizedText(child),
+                    CitationRef = leafRef,
                     SortOrder = sortCounter++,
                     Text = text.Trim()
                 });
@@ -427,6 +579,20 @@ public class TeiParser
         return citationRef.Length <= maxLength ? citationRef : citationRef.Substring(0, maxLength);
     }
 
+    public IReadOnlyList<ApparatusEntry> ToApparatusEntries(int editionId)
+    {
+        return _apparatus.Select(a => new ApparatusEntry
+        {
+            EditionId = editionId,
+            CitationRef = a.CitationRef,
+            SortOrder = a.SortOrder,
+            Kind = a.Kind,
+            Lemma = a.Lemma,
+            Witness = a.Witness,
+            Content = a.Content
+        }).ToList();
+    }
+
     public IReadOnlyList<TextNode> ToTextNodes(int editionId, List<ParsedNode> parsed)
     {
         return parsed.Select(p => new TextNode
@@ -434,7 +600,8 @@ public class TeiParser
             EditionId = editionId,
             CitationRef = p.CitationRef,
             SortOrder = p.SortOrder,
-            Text = p.Text
+            Text = p.Text,
+            IsAthetized = p.IsAthetized
         }).ToList();
     }
 }

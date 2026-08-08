@@ -64,15 +64,16 @@ public class TextNodeRepository
             for (var i = 0; i < batchSize; i++)
             {
                 var node = nodes[offset + i];
-                valueRows.Add($"(@e{i},@c{i},@s{i},@t{i})");
+                valueRows.Add($"(@e{i},@c{i},@s{i},@t{i},@a{i})");
                 cmd.Parameters.AddWithValue($"@e{i}", node.EditionId);
                 cmd.Parameters.AddWithValue($"@c{i}", node.CitationRef);
                 cmd.Parameters.AddWithValue($"@s{i}", node.SortOrder);
                 cmd.Parameters.AddWithValue($"@t{i}", node.Text);
+                cmd.Parameters.AddWithValue($"@a{i}", node.IsAthetized ? 1 : 0);
             }
 
             cmd.CommandText =
-                $"INSERT INTO TextNodes (EditionId, CitationRef, SortOrder, Text) VALUES {string.Join(",", valueRows)};";
+                $"INSERT INTO TextNodes (EditionId, CitationRef, SortOrder, Text, IsAthetized) VALUES {string.Join(",", valueRows)};";
             await cmd.ExecuteNonQueryAsync(cancellationToken);
         }
 
@@ -84,7 +85,8 @@ public class TextNodeRepository
         var results = new List<TextNode>();
         await using var conn = await DbConnectionFactory.OpenConnectionAsync(cancellationToken);
 
-        const string sql = @"SELECT TextNodeId, EditionId, CitationRef, SortOrder, Text
+        const string sql = @"SELECT TextNodeId, EditionId, CitationRef, SortOrder, Text,
+                                    COALESCE(IsAthetized, 0)
                              FROM TextNodes WHERE EditionId = @EditionId ORDER BY SortOrder;";
         await using var cmd = conn.CreateCommand();
         cmd.CommandText = sql;
@@ -99,7 +101,8 @@ public class TextNodeRepository
                 EditionId = reader.GetInt32(1),
                 CitationRef = reader.GetString(2),
                 SortOrder = reader.GetInt32(3),
-                Text = reader.GetString(4)
+                Text = reader.GetString(4),
+                IsAthetized = reader.GetInt32(5) != 0
             });
         }
 
@@ -727,16 +730,6 @@ public class TextNodeRepository
     /// GetByEditionAsync would pull a few thousand rows into memory to
     /// answer what is a single COUNT.
     /// </summary>
-    public async Task<int> CountByEditionAsync(int editionId, CancellationToken cancellationToken = default)
-    {
-        await using var conn = await DbConnectionFactory.OpenConnectionAsync(cancellationToken);
-        await using var cmd = conn.CreateCommand();
-        cmd.CommandText = "SELECT COUNT(*) FROM TextNodes WHERE EditionId = @EditionId;";
-        cmd.Parameters.AddWithValue("@EditionId", editionId);
-        cmd.CommandTimeout = 60;
-        return Convert.ToInt32(await cmd.ExecuteScalarAsync(cancellationToken));
-    }
-
     /// <summary>
     /// Total character length of an edition's text.
     ///
@@ -754,6 +747,16 @@ public class TextNodeRepository
         await using var conn = await DbConnectionFactory.OpenConnectionAsync(cancellationToken);
         await using var cmd = conn.CreateCommand();
         cmd.CommandText = "SELECT COALESCE(SUM(LENGTH(Text)), 0) FROM TextNodes WHERE EditionId = @EditionId;";
+        cmd.Parameters.AddWithValue("@EditionId", editionId);
+        cmd.CommandTimeout = 60;
+        return Convert.ToInt32(await cmd.ExecuteScalarAsync(cancellationToken));
+    }
+
+    public async Task<int> CountByEditionAsync(int editionId, CancellationToken cancellationToken = default)
+    {
+        await using var conn = await DbConnectionFactory.OpenConnectionAsync(cancellationToken);
+        await using var cmd = conn.CreateCommand();
+        cmd.CommandText = "SELECT COUNT(*) FROM TextNodes WHERE EditionId = @EditionId;";
         cmd.Parameters.AddWithValue("@EditionId", editionId);
         cmd.CommandTimeout = 60;
         return Convert.ToInt32(await cmd.ExecuteScalarAsync(cancellationToken));

@@ -29,7 +29,7 @@ public class StylometryAnalysisForm : Form
     private readonly ListView _stabilityList;
     private readonly ListView _lengthList;
     private readonly Label _lengthSummary;
-    private readonly TabControl _tabs;
+    private readonly ThemedTabControl _tabs;
 
     private List<StylometrySettings> _profiles = new();
     private List<StylometryRunMetrics> _currentMetrics = new();
@@ -62,7 +62,7 @@ public class StylometryAnalysisForm : Form
         };
         _authorCombo.SelectedIndexChanged += (_, _) => RenderMetrics();
 
-        _tabs = new TabControl
+        _tabs = new ThemedTabControl
         {
             Left = 12,
             Top = 44,
