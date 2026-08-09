@@ -6,16 +6,11 @@ Built as a personal project, for reading and researching the classics more close
 
 ## Download
 
-Download the latest Windows release from the
-[GitHub Releases page](https://github.com/ClassicaCodex/ClassicaCodex/releases/latest).
-
-1. Download the Windows ZIP file.
-2. Extract the entire archive.
-3. Run `ClassicaCodex.UI.exe`.
-4. Follow the setup wizard to download and ingest the classical corpora.
-
-> Windows may show an “Unknown publisher” warning because the application is not code-signed.
-> 
+The latest Windows release is on the
+[Releases page](https://github.com/ClassicaCodex/ClassicaCodex/releases/latest).
+Extract it, run `ClassicaCodex.UI.exe`, and the setup wizard does the rest — see
+[Getting started](#getting-started) for what to expect, including the Windows
+security warning you'll hit on first run.
 
 <img width="1805" height="769" alt="image" src="https://github.com/user-attachments/assets/d680005b-7226-4a14-94b0-1fadf02ba954" />
 
@@ -52,17 +47,19 @@ Download the latest Windows release from the
 - **Adjustable text size** — Greek, Latin and English, linked by default. Polytonic diacritics are what you need to see to look a word up, and they're a few pixels each at a small size
 - **Linked panes, or not** — original and translation scroll together by default, which suits verse; switch it off for prose, where line counts diverge and the mirroring starts fighting you
 - **Picks up where you left off** — reopens the passage you were last reading, and can be turned off if you'd rather it didn't
-- Dark mode, with a parchment light theme, and separate artwork for each
+- **Medieval Nordic manuscripts** — Old Norse, Icelandic, Swedish and Danish texts from the [Medieval Nordic Text Archive](https://www.menota.org), transcribed word by word from the parchment rather than edited into a printed text: Heimskringla, Laxdœla saga, the Codex Wormianus, the Old Norwegian homily book, Vǫluspá in the Codex Regius. A manuscript is a physical object containing whatever was bound into it, so the import shows you what it found in each file and lets you merge, split, retitle or drop works before anything is written
+- **Editor's Notes** — the apparatus of those manuscripts, kept beside the text rather than read as part of it. Manuscript variants carry the adopted reading, the alternative and the witness it came from; editorial notes carry ligatures, scribal corrections, worn passages and missing leaves. A variant collated from another manuscript is not a word of this one, and reading the two together would quietly corrupt every word count and frequency measure built on the text
+- **Dark mode**, with a parchment light theme, and separate artwork for each
 
 ## Getting started
 
-There's no installer yet — this runs from source. You'll need:
+Download the ZIP from [Releases](https://github.com/ClassicaCodex/ClassicaCodex/releases/latest), extract all of it, and run `ClassicaCodex.UI.exe`. Nothing to install, and no developer tools needed.
 
-- **Windows** (this is a WinForms app — see [Platform](#platform))
-- [.NET 8 SDK](https://dotnet.microsoft.com/download/dotnet/8.0)
-- [Visual Studio 2022](https://visualstudio.microsoft.com/) or later (or `dotnet build` from the command line)
+Windows will almost certainly stop you the first time with a blue "Windows protected your PC" box. That's SmartScreen, and it appears because the app isn't code-signed — a certificate costs a few hundred dollars a year, which isn't something a free personal project carries. Click **More info**, then **Run anyway**. Windows remembers, and won't ask again.
 
-Clone the repo, open `ClassicaCodex.sln`, build, and run. On first launch, a setup wizard walks you through everything else — it'll ask which of two ways you'd like to do that:
+Extract the whole archive before running it, not just the `.exe`. Running it from inside the ZIP, or copying the executable out on its own, leaves its libraries behind and it won't start.
+
+On first launch, a setup wizard walks you through everything else — it'll ask which of two ways you'd like to do that:
 
 - **Guided Setup** (default on first run) — one step at a time, plain language, no file paths or repository URLs on screen
 - **Advanced Setup** — every data source on one screen, for pointing at files you've already downloaded or wanting more control over where things go
@@ -73,9 +70,9 @@ Clone the repo, open `ClassicaCodex.sln`, build, and run. On first launch, a set
 
 It is not stuck. Progress is reported at each stage, but individual stages — ingestion especially — can sit on one line for several minutes at a time. Leave it running.
 
-You can also skip any step and come back to it later from the same wizard, so there's no need to do it all in one sitting.
+The first step is the database — where your library, tags, and bookmarks will live. Everything after that (the texts, dictionaries, lemma data, map data, and the word index that makes search fast) can be done in whatever order suits. Any step can be skipped and picked up later from the same wizard, so there's no need to do it all in one sitting.
 
-Either way, the first real step is the database — where your library, tags, and bookmarks will live. Everything after that (the texts, dictionaries, lemma data, map data, and the word index that makes search fast) can be done in whatever order suits, and it's safe to skip anything and come back to it later from the same wizard.
+The Medieval Nordic manuscripts are the one source the wizard can't fetch for you: Menota publishes one XML file per manuscript through a catalogue rather than as an archive, so that step opens the catalogue and points at a folder for you to save into. Skipping it costs you nothing else.
 
 ## Data sources & licensing
 
@@ -92,6 +89,7 @@ Classica Codex doesn't own or bundle any of the texts, dictionaries, or linguist
 | [Princeton WordNet](https://wordnet.princeton.edu) | English word-form → headword mapping and definitions, for search and Word Study on translations | WordNet License (permissive, free for any use) |
 | [PerseusDL/canonical-engLit](https://github.com/PerseusDL/canonical-engLit) | Renaissance & Early Modern English texts (Shakespeare, Marlowe, Hakluyt…), optional | CC BY-SA 4.0 |
 | [OpenGreekAndLatin/First1KGreek](https://github.com/OpenGreekAndLatin/First1KGreek) | Post-Classical Greek texts extending the corpus into late antiquity, optional | CC BY-SA 4.0 |
+| [Medieval Nordic Text Archive](https://www.menota.org) | Old Norse, Icelandic, Swedish and Danish manuscript transcriptions, optional — downloaded by hand from Menota's catalogue, one file per manuscript, since there's no archive to fetch | CC BY-SA 4.0 |
 
 The Greek lemma data is the one entry above marked **noncommercial** — it can't be sold, and because it's woven into the search and Word Study features, that restriction carries over to the whole project as distributed. Which is fine: Classica Codex is a free personal tool, and it's going to stay that way regardless. (WordNet's license, despite doing a similar job for English, doesn't carry the same restriction — it's permissive and doesn't add a second constraint on top of the Greek lemma data's.)
 
@@ -100,6 +98,10 @@ The AI-assisted translation feature is a separate case from all of the above: it
 ## Platform
 
 Windows only, for now — it's built on WinForms, which doesn't run elsewhere. No Mac or Linux build exists, and none is planned in the near term.
+
+### Building from source
+
+Not necessary to use the app — the release ZIP is self-contained. If you want to build it anyway, you'll need the [.NET 8 SDK](https://dotnet.microsoft.com/download/dotnet/8.0). Clone the repo and either open `ClassicaCodex.sln` in Visual Studio 2022 or later, or run `dotnet build` from the command line. Everything after that is the same setup wizard.
 
 ## License
 
@@ -133,13 +135,16 @@ any ranking should be believed.
 
 ## Status
 
-Version 2.0.
+Version 3.0.
 
-Version 1 was a first draft. This is a substantially different application: a
-searchable, taggable, cross-referenced library rather than a reader, plus the
-translation workbench, and a schema that has moved through ten migrations
-since. Existing databases upgrade in place on first launch — annotations,
-bookmarks and tags are carried forward.
+Version 1 was a reader. Version 2 made it a searchable, taggable,
+cross-referenced library and added the translation workbench. Version 3 adds the
+Medieval Nordic manuscript reader and its editorial apparatus — a different kind
+of text from the printed editions the rest of the library holds, and the first
+material here where the manuscript evidence is visible rather than settled.
+
+The schema has moved through thirteen migrations. Existing databases upgrade in
+place on first launch — annotations, bookmarks and tags are carried forward.
 
 Built for my own reading, and shared in case it's useful to someone else doing
 the same thing.

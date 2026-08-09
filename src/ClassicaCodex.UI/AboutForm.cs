@@ -183,6 +183,23 @@ public class AboutForm : Form
             "https://github.com/OpenGreekAndLatin/First1KGreek",
             null);
 
+        AddSourceSection(
+            scrollHost, ref y,
+            "Medieval Nordic Manuscripts",
+            "Old Norse, Old Icelandic, Old Swedish and Old Danish manuscripts, transcribed word by word " +
+            "from the parchment - Heimskringla, Laxdœla saga, the Codex Wormianus, the Old Norwegian " +
+            "homily book, Vǫluspá in the Codex Regius. Downloaded by hand from Menota's catalogue rather " +
+            "than fetched automatically: Menota publishes one file per manuscript, and there is no single " +
+            "archive to pull.",
+            "Medieval Nordic Text Archive (menota.org)",
+            "Creative Commons Attribution-ShareAlike 4.0 International",
+            "https://www.menota.org/EN_forside.xhtml",
+            "Each manuscript carries its own licence statement naming the editor who granted it. Menota " +
+            "transcribes at up to three levels - facsimile, diplomatic and normalised - and this app reads " +
+            "one of them per manuscript, chosen for coverage and recorded with the edition, because a text " +
+            "assembled from whichever level each word happened to carry would belong to no scribe and no " +
+            "dictionary.");
+
         AddParagraph(scrollHost,
             "One more thing worth being plain about, separate from the data sources above: Translate's " +
             "AI option can send a selected passage to a live third-party API on request - either " +

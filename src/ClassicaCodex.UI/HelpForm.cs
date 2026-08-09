@@ -383,6 +383,34 @@ Preferences (theme, category shapes, database location) sit in small files besid
 None of the texts, dictionaries, or linguistic data belong to this app - see About for the full attribution and licensing.
 """),
 
+        ("Manuscripts and editorial notes", """
+Most of the library is printed editions - a text an editor settled long ago, with the manuscript evidence behind it out of sight. The Medieval Nordic material is different: those are transcriptions of particular manuscripts, made word by word from the parchment, and they carry the editor's working notes with them.
+
+Reading levels
+   Menota transcribes at up to three levels. Facsimile follows the page letter for letter, abbreviation marks and all. Diplomatic expands the abbreviations but keeps the scribe's own spelling. Normalised regularises spelling to a standard Old Norse orthography.
+
+   The app reads one level per manuscript, chosen for whichever one covers nearly every word, and records it with the edition. Mixing them would produce a text belonging to no scribe and no dictionary, and nothing downstream could tell.
+
+   This matters for Stylometry above all. Comparing a diplomatic text with a normalised one measures the scribes' spelling habits, not the authors' style - so the Menota survey reports each manuscript's level before anything is imported, and says which are safe to compare.
+
+Editor's Notes
+   The apparatus. Two kinds of entry appear here:
+
+   A manuscript variant is a reading from another manuscript - the adopted reading, the alternative, and the witness it comes from. AM 63 fol's Heimskringla is collated against AM 18 fol throughout, and each of its 4,157 variants names that witness. Where a variant has no adopted reading, the other manuscript has text this one lacks.
+
+   An editor's note is a comment: a ligature, a correction the scribe made, a worn passage, a leaf missing from the manuscript. Where the file names the editor responsible, that name appears too.
+
+   Either can be read for the current line or for the whole edition. These are kept out of the text rather than read as part of it - a variant from another manuscript is not a word of this one, and reading them together would silently corrupt word counts, search, and every frequency measure built on them.
+
+Citations
+   A manuscript line is cited by leaf and line - "69r.2" is the second line of folio 69 recto. Menota also marks the pages of printed editions in the same files, and those are deliberately not used for citation: "161.11" would mean page 161 of a book published in 1931, which looks exactly like a folio you could find and is not one.
+
+   Verse is cited by line number instead, because that is how verse is cited.
+
+One file, several works
+   A manuscript is a physical object that happens to contain whatever was bound into it, not a book with one author. The import shows what it found in each file and lets you merge divisions into a single work, split them, retitle them, or leave them out, before anything is written. Those decisions are saved beside the manuscript and reused next time.
+"""),
+
         ("When something looks wrong", """
 A few things the app reports about itself, and what they actually mean.
 

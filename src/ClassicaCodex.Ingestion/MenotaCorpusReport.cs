@@ -204,10 +204,11 @@ public class MenotaCorpusReport
         }
 
         sb.AppendLine();
-        sb.AppendLine("Nothing has been imported. This step only reports what is in the folder,");
-        sb.AppendLine("because the Menota reader is not finished - and because a corpus that");
-        sb.AppendLine("mixes normalised and diplomatic text produces results that look fine");
-        sb.AppendLine("and are not.");
+        sb.AppendLine("This is a survey of the folder, not an import. The import runs next, and");
+        sb.AppendLine("asks you to review what it found in each manuscript before writing it.");
+        sb.AppendLine("The reading levels above are worth a look first: a corpus that mixes");
+        sb.AppendLine("normalised and diplomatic text produces results that look fine and are");
+        sb.AppendLine("not.");
 
         return sb.ToString();
     }
