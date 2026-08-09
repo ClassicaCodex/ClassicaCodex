@@ -404,6 +404,44 @@ public class TeiParser
             // a block of apparatus rather than a reading belonging to a
             // specific line. Taking its <lem> would insert text at a position
             // in the work where it does not belong.
+            // A note sitting between the divisions rather than inside a line.
+            //
+            // ExtractApparatus only ever sees leaves, so a note at this level
+            // reached neither it nor the text and was dropped outright.
+            // Hecuba's dramatis personae is one of these: Coleridge's cast
+            // list, wrapped in <note resp="Coleridge">, listing the Ghost of
+            // Polydorus, Hecuba, the Chorus of Captive Trojan Women and the
+            // rest - the whole cast, invisible.
+            //
+            // It goes to the apparatus rather than the text because that is
+            // what it is: an editor's addition, named as his, not Euripides.
+            // The Editor's Notes pane is exactly the place for it, and routing
+            // it there leaves EditorialElements untouched - the skip that
+            // keeps 17,000 characters of Agamemnon's apparatus out of the word
+            // counts still holds for every note inside a line.
+            if (string.Equals(child.Name.LocalName, "note", StringComparison.OrdinalIgnoreCase))
+            {
+                var noteText = FlattenText(child);
+                if (!CarriesInformation(noteText)) continue;
+
+                var noteKey = string.Join(".", citationTrail) + ":note";
+                leafCounters.TryGetValue(noteKey, out var notesSeen);
+                leafCounters[noteKey] = notesSeen + 1;
+
+                var noteTrail = new List<string>(citationTrail) { $"note{notesSeen + 1}" };
+
+                _apparatus.Add(new ParsedApparatus
+                {
+                    CitationRef = CapCitationRef(string.Join(".", noteTrail)),
+                    SortOrder = notesSeen,
+                    Kind = "note",
+                    Witness = (string?)child.Attribute("resp"),
+                    Content = noteText
+                });
+
+                continue;
+            }
+
             if (EditorialElements.Contains(child.Name.LocalName)) continue;
 
             if (IsDivElement(child))
@@ -451,6 +489,70 @@ public class TeiParser
                     CitationRef = CapCitationRef(string.Join(".", headTrail)),
                     SortOrder = sortCounter++,
                     Text = headText
+                });
+            }
+            else if (string.Equals(child.Name.LocalName, "castItem", StringComparison.OrdinalIgnoreCase))
+            {
+                // The dramatis personae. Like <head>, a cast entry is neither a
+                // div nor a leaf, so the fallback branch below descended into
+                // it, found only <role> and <roleDesc> - which are not leaves
+                // either - and emitted nothing at all.
+                //
+                // King Lear lost all 24 of its cast entries that way. What
+                // survived was the two <castGroup> headings, "Servants to
+                // Cornwall" and "Daughters to Lear", because those are <head>
+                // elements - so the reader showed a dramatis personae listing
+                // two group labels and not one character.
+                //
+                // Named "cast1", "cast2" segments rather than numbers from the
+                // leaf counter, for the same reason <head> is: consuming
+                // counter slots would renumber every sibling leaf after them,
+                // and annotations resolve through (EditionId, CitationRef), so
+                // existing bookmarks and tags would silently move.
+                var castText = FlattenText(child);
+                if (string.IsNullOrWhiteSpace(castText)) continue;
+
+                var castKey = string.Join(".", citationTrail) + ":cast";
+                leafCounters.TryGetValue(castKey, out var castSeen);
+                leafCounters[castKey] = castSeen + 1;
+
+                var castTrail = new List<string>(citationTrail) { $"cast{castSeen + 1}" };
+
+                nodes.Add(new ParsedNode
+                {
+                    CitationRef = CapCitationRef(string.Join(".", castTrail)),
+                    SortOrder = sortCounter++,
+                    Text = castText
+                });
+            }
+            else if (string.Equals(child.Name.LocalName, "stage", StringComparison.OrdinalIgnoreCase))
+            {
+                // Stage directions, which sit beside the speeches rather than
+                // inside them and so met the same fate as the cast list: not a
+                // div, not a leaf, descended into, nothing emitted.
+                //
+                // Hecuba has 48 of them, none inside an <sp>, and they carry
+                // the whole staging - "Before Agamemnon's tent in the Greek
+                // camp upon the shore of the Thracian Chersonese", "The Ghost
+                // vanishes", "The Chorus of captive Trojan women enters". A
+                // play read without them is a play with the exits and
+                // entrances removed. King Lear has 291.
+                //
+                // Named segments, not counter numbers - see <head> above.
+                var stageText = FlattenText(child);
+                if (string.IsNullOrWhiteSpace(stageText)) continue;
+
+                var stageKey = string.Join(".", citationTrail) + ":stage";
+                leafCounters.TryGetValue(stageKey, out var stageSeen);
+                leafCounters[stageKey] = stageSeen + 1;
+
+                var stageTrail = new List<string>(citationTrail) { $"stage{stageSeen + 1}" };
+
+                nodes.Add(new ParsedNode
+                {
+                    CitationRef = CapCitationRef(string.Join(".", stageTrail)),
+                    SortOrder = sortCounter++,
+                    Text = stageText
                 });
             }
             else if (LeafElements.Contains(child.Name.LocalName))
