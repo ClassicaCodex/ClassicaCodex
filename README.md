@@ -1,8 +1,12 @@
 # Classica Codex
 
-A desktop reader and research tool for the [Perseus Digital Library](http://www.perseus.tufts.edu/) — the Greek and Latin classics (plus optional Post-Classical Greek and the Renaissance authors who reworked the classics in English), their translations, dictionaries, and the linguistic data that makes searching them work properly.
+A desktop reader and research tool for the [Perseus Digital Library](http://www.perseus.tufts.edu/) — the Greek and Latin classics (plus optional Post-Classical Greek and the Renaissance authors who reworked the classics in English), their translations, dictionaries, and the linguistic data that makes searching them work properly. Also, Menota documents can be manually added. This is new and still a bit experimental.
 
 Built as a personal project, for reading and researching the classics more closely than a browser tab really allows.
+
+Why make it a Windows Forms application? 
+This was just my personal preference for development. 
+If there is interest from Mac users then let me know and I can attempt to make a version for the Mac as well.
 
 ## Download
 
@@ -12,11 +16,43 @@ Extract it, run `ClassicaCodex.UI.exe`, and the setup wizard does the rest — s
 [Getting started](#getting-started) for what to expect, including the Windows
 security warning you'll hit on first run.
 
-<img width="1805" height="769" alt="image" src="https://github.com/user-attachments/assets/d680005b-7226-4a14-94b0-1fadf02ba954" />
+## Guided Setup 
+- Get what you want, skip what you don't want. For everything, including a Word Indexing for faster searches, it can take an hour but it is unattended.
+<img width="625" height="494" alt="GuidedSetupScreenshot" src="https://github.com/user-attachments/assets/8f6f405a-eebc-44db-a801-0ef0bcfe0a29" />
 
-<img width="1168" height="770" alt="image" src="https://github.com/user-attachments/assets/db82c1b9-5421-4a62-9c07-a2c11273e26b" />
+## View
+- See the original next to the translation and the application can link the scrolling but it's not perfect so you can toggle scroll linking.
+<img width="1804" height="779" alt="Screenshot 2026-08-08 204119" src="https://github.com/user-attachments/assets/0bea6828-d5b7-40b6-9c89-2a166d4108fa" />
 
-<img width="1171" height="759" alt="image" src="https://github.com/user-attachments/assets/01cbec82-500e-4d85-bea4-673bb3dc3acc" />
+## Search
+- Search the whole library with a variety of filters. Recent searches are saved and you can export your results.
+<img width="1074" height="696" alt="SearchScreenshot" src="https://github.com/user-attachments/assets/6c34169c-ca03-4653-a0a5-281243afd17a" />
+
+## Timeline
+- View a timeline of the authors and click to see what documents they authored.
+<img width="1170" height="777" alt="TimelineScreenshot" src="https://github.com/user-attachments/assets/6228dab0-7079-4f0d-a3e9-75b5dfac32d2" />
+
+## Stylometric Analysis
+- Analyze the documents with a variety of filters and save your results for comparison. Feel free to contact me to discuss any accuracy concerns and how we can rectify them.
+- This tool was built purely for fun as a hobby but if it can help your research then that would be awesome and I'll try to assist any way I can by enhancing this tool for research.
+<img width="1120" height="773" alt="StylometricsScreenshot" src="https://github.com/user-attachments/assets/d88eb89d-c4d9-4017-b034-ff88e99118bb" />
+
+## Myth Network 
+- Explore and mass tag passages and build your own network for finding rabbit holes
+- This may be fun for research projects or for writers wanting to explore.
+<img width="1167" height="772" alt="MythNetworkScreenshot" src="https://github.com/user-attachments/assets/73e4439b-9932-48ec-b689-8575a5dcef25" />
+
+## My Translate Workbench
+- Try to translate a document yourself. AI acts as a tutor here and can help give context on a word in the document.
+<img width="1147" height="752" alt="MyTranslateWorkbenchScreenshot" src="https://github.com/user-attachments/assets/18a7ff1d-6280-45e8-909b-41cad83f8775" />
+
+## Word Study
+- You can get here by right clicking a passage or in the My Translate Workbench. Lemma and Dictionary data required for a lot of this.
+<img width="1371" height="744" alt="WordStudyScreenshot" src="https://github.com/user-attachments/assets/ea5dbdbf-c0a5-408d-92f0-a0aa74cf75b6" />
+
+## Dark Mode
+- Easier on your eyes if working for a while.
+<img width="1800" height="767" alt="DarkModeScreenshot" src="https://github.com/user-attachments/assets/20bffceb-a7b0-482e-bf3a-e1e3c1869244" />
 
 
 ## Features
@@ -41,7 +77,7 @@ security warning you'll hit on first run.
 - **Read Aloud** — text-to-speech for Greek, Latin, or English, using whatever voices are already installed on Windows; fully offline, no network involved
 - **Export** passages to plain text, Word, or PDF, citations intact — and every translation carries the edition it came from, so a published rendering, your own, and an AI's are never confused once the text has left the app
 - **Recent searches** — the last ten searches you ran, with every filter, recorded automatically; nothing to save and nothing to tidy up
-- **Favourites** — star the works you actually return to and filter the library to them; stored against the work's CTS URN, so they survive a corpus re-ingest
+- **Favorites** — star the works you actually return to and filter the library to them; stored against the work's CTS URN, so they survive a corpus re-ingest
 - **Back and Forward** — retrace where you've been. Ten features here end in "jump to it"; following a reference no longer costs you your place
 - **Keyboard shortcuts** — Escape closes any window you're looking at, Ctrl+F searches, Alt+Left and Alt+Right navigate; the workbench saves and advances on Ctrl+Enter
 - **Adjustable text size** — Greek, Latin and English, linked by default. Polytonic diacritics are what you need to see to look a word up, and they're a few pixels each at a small size
@@ -66,9 +102,9 @@ On first launch, a setup wizard walks you through everything else — it'll ask 
 
 ### What to expect the first time
 
-**Setup takes about an hour**, most of it unattended. The wizard downloads several corpora, parses them, ingests them into SQLite, and then builds the word index that makes search fast. On a clean Windows machine with a decent connection that came to roughly an hour end to end; a slower link will take longer.
+**Full Setup takes about an hour**, most of it unattended and you can skip what you don't want and it's faster. The wizard downloads several corpora, parses them, ingests them into SQLite, and then builds the word index that makes search fast. On a clean Windows machine with a decent connection that came to roughly an hour end to end; a slower link will take longer. The Greek and Latin Lemma data and Word Indexing for faster searching takes the longest time.
 
-It is not stuck. Progress is reported at each stage, but individual stages — ingestion especially — can sit on one line for several minutes at a time. Leave it running.
+It is probably not stuck. Progress is reported at each stage, but individual stages — ingestion especially — can sit on one line for several minutes at a time. Leave it running until you get resolution.
 
 The first step is the database — where your library, tags, and bookmarks will live. Everything after that (the texts, dictionaries, lemma data, map data, and the word index that makes search fast) can be done in whatever order suits. Any step can be skipped and picked up later from the same wizard, so there's no need to do it all in one sitting.
 
@@ -89,7 +125,7 @@ Classica Codex doesn't own or bundle any of the texts, dictionaries, or linguist
 | [Princeton WordNet](https://wordnet.princeton.edu) | English word-form → headword mapping and definitions, for search and Word Study on translations | WordNet License (permissive, free for any use) |
 | [PerseusDL/canonical-engLit](https://github.com/PerseusDL/canonical-engLit) | Renaissance & Early Modern English texts (Shakespeare, Marlowe, Hakluyt…), optional | CC BY-SA 4.0 |
 | [OpenGreekAndLatin/First1KGreek](https://github.com/OpenGreekAndLatin/First1KGreek) | Post-Classical Greek texts extending the corpus into late antiquity, optional | CC BY-SA 4.0 |
-| [Medieval Nordic Text Archive](https://www.menota.org) | Old Norse, Icelandic, Swedish and Danish manuscript transcriptions, optional — downloaded by hand from Menota's catalogue, one file per manuscript, since there's no archive to fetch | CC BY-SA 4.0 |
+| [Medieval Nordic Text Archive](https://www.menota.org) | Old Norse, Icelandic, Swedish and Danish manuscript transcriptions, optional — downloaded individually from Menota's catalogue, one file per manuscript, since there's no archive to fetch | CC BY-SA 4.0 |
 
 The Greek lemma data is the one entry above marked **noncommercial** — it can't be sold, and because it's woven into the search and Word Study features, that restriction carries over to the whole project as distributed. Which is fine: Classica Codex is a free personal tool, and it's going to stay that way regardless. (WordNet's license, despite doing a similar job for English, doesn't carry the same restriction — it's permissive and doesn't add a second constraint on top of the Greek lemma data's.)
 
@@ -97,7 +133,7 @@ The AI-assisted translation feature is a separate case from all of the above: it
 
 ## Platform
 
-Windows only, for now — it's built on WinForms, which doesn't run elsewhere. No Mac or Linux build exists, and none is planned in the near term.
+Windows only, for now — it's built on WinForms, which doesn't run elsewhere. No Mac or Linux build exists.
 
 ### Building from source
 
