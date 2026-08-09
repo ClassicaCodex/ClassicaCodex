@@ -177,6 +177,59 @@ public class TagRepository
         return results;
     }
 
+    /// <summary>
+    /// Which of these passages carry any tag, and what those tags are.
+    ///
+    /// For marking a list assembled some other way - a place's search results,
+    /// say - where the tags aren't what produced the list but are worth
+    /// noticing when they coincide with it.
+    ///
+    /// PassageTags is keyed on edition and citation reference, not on a text
+    /// node id, so the ids have to be resolved back through TextNodes. Tagging
+    /// a passage that way survives a re-ingest: node ids are reassigned when a
+    /// corpus is rebuilt, but "Iliad 1.1 in this edition" is still the same
+    /// line afterwards.
+    /// </summary>
+    public async Task<Dictionary<long, List<string>>> GetTagNamesForNodesAsync(
+        IReadOnlyCollection<long> textNodeIds, CancellationToken cancellationToken = default)
+    {
+        var results = new Dictionary<long, List<string>>();
+        if (textNodeIds.Count == 0) return results;
+
+        await using var conn = await DbConnectionFactory.OpenConnectionAsync(cancellationToken);
+
+        // Inlined rather than parameterised because the list is a set of
+        // integers this code produced itself, never user text, and a
+        // parameter per id would run into SQLite's variable limit on a long
+        // result list.
+        var ids = string.Join(",", textNodeIds.Distinct());
+
+        var sql = $@"
+            SELECT tn.TextNodeId, t.Name
+            FROM TextNodes tn
+            JOIN PassageTags pt ON pt.EditionId = tn.EditionId AND pt.CitationRef = tn.CitationRef
+            JOIN Tags t ON t.TagId = pt.TagId
+            WHERE tn.TextNodeId IN ({ids})
+            ORDER BY t.Name;";
+
+        await using var cmd = conn.CreateCommand();
+        cmd.CommandText = sql;
+        await using var reader = await cmd.ExecuteReaderAsync(cancellationToken);
+        while (await reader.ReadAsync(cancellationToken))
+        {
+            var nodeId = reader.GetInt64(0);
+            if (!results.TryGetValue(nodeId, out var names))
+            {
+                names = new List<string>();
+                results[nodeId] = names;
+            }
+
+            names.Add(reader.GetString(1));
+        }
+
+        return results;
+    }
+
     public async Task<List<(int WorkId, long TextNodeId, string AuthorName, string WorkTitle, string CitationRef, string Text)>> GetByTagAsync(
         string tagName, CancellationToken cancellationToken = default)
     {

@@ -370,76 +370,210 @@ public class CrossLanguageEchoForm : Form
     /// resolve is dropped and counted, never displayed as a result.
     /// </summary>
     /// <summary>
-    /// Whether the words a rationale quotes are actually in the line it cites.
+    /// Latin letters for the Greek ones, close enough to recognise a word by.
+    /// Not a reading transliteration - no breathings, no vowel-length marks,
+    /// no iota subscript - because the only question here is whether a word
+    /// the rationale wrote in Latin letters is the same word as one in the
+    /// line it cites.
+    /// </summary>
+    private static readonly Dictionary<char, string> GreekToLatin = new()
+    {
+        ['α'] = "a", ['β'] = "b", ['γ'] = "g", ['δ'] = "d", ['ε'] = "e",
+        ['ζ'] = "z", ['η'] = "e", ['θ'] = "th", ['ι'] = "i", ['κ'] = "k",
+        ['λ'] = "l", ['μ'] = "m", ['ν'] = "n", ['ξ'] = "x", ['ο'] = "o",
+        ['π'] = "p", ['ρ'] = "r", ['σ'] = "s", ['ς'] = "s", ['τ'] = "t",
+        ['υ'] = "u", ['φ'] = "ph", ['χ'] = "ch", ['ψ'] = "ps", ['ω'] = "o"
+    };
+
+    /// <summary>
+    /// Marks that only a transliterated Greek word is likely to carry. A
+    /// quoted Latin-script word without one of these is taken for the
+    /// rationale's own English - a gloss like 'remember' or a source-language
+    /// dictionary form like 'muna' - and left alone, because neither is a
+    /// claim about the Greek line and flagging them is just noise.
+    /// </summary>
+    private static readonly string[] TransliterationMarks = { "th", "ph", "ch", "ps", "rh" };
+    private static readonly string[] TransliterationEndings = { "os", "on", "ai", "ei", "oi", "eus", "ato" };
+
+    private static string Transliterate(string normalized)
+    {
+        var sb = new System.Text.StringBuilder(normalized.Length);
+        foreach (var c in normalized) sb.Append(GreekToLatin.TryGetValue(c, out var s) ? s : c.ToString());
+        return sb.ToString();
+    }
+
+    private static IEnumerable<string> Forms(string word)
+    {
+        var normalized = WordNormalizer.Normalize(word);
+        if (normalized.Length == 0) yield break;
+
+        yield return normalized;
+
+        var transliterated = Transliterate(normalized);
+        if (transliterated != normalized) yield return transliterated;
+    }
+
+    private static HashSet<string> FormsIn(string text)
+    {
+        var set = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var word in text.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries))
+        foreach (var form in Forms(word))
+            set.Add(form);
+
+        return set;
+    }
+
+    /// <summary>
+    /// Whether a word is close enough to one in the passage to count as the
+    /// same word. Three shared opening letters and near-equal length, which
+    /// covers a rationale citing a dictionary form where the line has an
+    /// inflected one - 'noos' against νόον - without stretching to unrelated
+    /// words.
+    /// </summary>
+    private static bool NearAny(string word, HashSet<string> forms)
+    {
+        if (word.Length < 4) return true;
+
+        foreach (var form in forms)
+        {
+            if (form.Length < 4) continue;
+            if (Math.Abs(form.Length - word.Length) > 1) continue;
+            if (string.CompareOrdinal(form, 0, word, 0, 3) == 0) return true;
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// The spans a rationale puts in quotation marks, which is where it puts
+    /// its evidence.
+    ///
+    /// An apostrophe between two letters is a possessive or a contraction -
+    /// "the Odyssey's theme", "Telemachus's father" - and opening a quoted
+    /// span on one swallows the surrounding English prose, which then fails
+    /// every check and flags everything. So a quote only opens before a
+    /// letter and only closes after one.
+    /// </summary>
+    private static List<string> QuotedSpans(string rationale)
+    {
+        const string quotes = "'\u2018\u2019\u201C\u201D\"";
+
+        var spans = new List<string>();
+        var current = new System.Text.StringBuilder();
+        var inside = false;
+
+        for (var i = 0; i < rationale.Length; i++)
+        {
+            var c = rationale[i];
+            var previous = i > 0 ? rationale[i - 1] : ' ';
+            var next = i + 1 < rationale.Length ? rationale[i + 1] : ' ';
+
+            if (quotes.Contains(c))
+            {
+                if (char.IsLetter(previous) && char.IsLetter(next))
+                {
+                    if (inside) current.Append(c);
+                    continue;
+                }
+
+                if (inside && char.IsLetter(previous))
+                {
+                    spans.Add(current.ToString());
+                    current.Clear();
+                    inside = false;
+                }
+                else if (!inside && char.IsLetter(next))
+                {
+                    inside = true;
+                }
+
+                continue;
+            }
+
+            if (inside) current.Append(c);
+        }
+
+        if (current.Length > 0) spans.Add(current.ToString());
+
+        return spans;
+    }
+
+    private static string LettersOnly(string raw)
+    {
+        var sb = new System.Text.StringBuilder(raw.Length);
+        foreach (var c in raw)
+        {
+            if (char.IsLetter(c) || CharUnicodeInfo.GetUnicodeCategory(c) == UnicodeCategory.NonSpacingMark)
+                sb.Append(c);
+        }
+
+        return sb.ToString();
+    }
+
+    /// <summary>
+    /// Whether the words a rationale offers as evidence are in the line it
+    /// cites.
     ///
     /// The citation check above confirms a reference resolves to a real
     /// passage. It does not confirm the reason given for it. Gemini reasons
     /// about a work as a whole and then attaches that reasoning to one line,
-    /// and the two can come apart: asked for echoes of Vǫluspá's "þau er
-    /// fremst um man", it cited Odyssey 1.3 and justified it with μνήσατο and
-    /// ἔννεπε, which are at 1.29 and 1.1. The reference was real, the words
-    /// were real, and neither was in the line the two were joined at.
+    /// and the two come apart: asked for echoes of Vǫluspá's "þau er fremst um
+    /// man", it cited Odyssey 1.3 and justified it with μνήσατο and ἔννεπε,
+    /// which are at 1.29 and 1.1. The reference was real, the words were real,
+    /// and neither was in the line the two were joined at.
     ///
-    /// So any word the rationale quotes in the comparison work's own script is
-    /// looked for in the cited line, matched on bare letters via
-    /// WordNormalizer so accentuation and precomposed-versus-combining Unicode
-    /// don't produce false alarms.
+    /// Two passes, because the evidence arrives in two alphabets. Any word in
+    /// the comparison work's own script is checked wherever it appears.
+    /// Latin-script words are checked only inside quotation marks and only
+    /// when they look transliterated, since a rationale writing 'munesthai' is
+    /// making the same claim as one writing μνήσασθαι and the earlier check
+    /// saw straight through it.
+    ///
+    /// The source passage counts as support too. A rationale properly quotes
+    /// the passage it was asked about, and those words are not meant to be in
+    /// the Greek.
     ///
     /// Flagged, never dropped. A rationale may legitimately reach for the
     /// surrounding context - an invocation two lines up genuinely bears on the
     /// line beneath it - so this marks evidence a reader should check rather
-    /// than deciding it is wrong. Latin-script words are ignored: those are
-    /// the rationale's own English, and transliterations and glosses would
-    /// never match anyway.
+    /// than deciding it is wrong.
     /// </summary>
-    private static List<string> UnsupportedQuotedWords(string rationale, string lineText)
+    private static List<string> UnsupportedQuotedWords(string rationale, string lineText, string sourceText)
     {
         if (string.IsNullOrWhiteSpace(rationale)) return new List<string>();
+
+        var lineForms = FormsIn(lineText);
+        var sourceForms = FormsIn(sourceText);
 
         var missing = new List<string>();
         var seen = new HashSet<string>(StringComparer.Ordinal);
 
-        var lineWords = new HashSet<string>(StringComparer.Ordinal);
-        foreach (var word in lineText.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries))
+        bool Supported(string word) =>
+            Forms(word).Any(f => lineForms.Contains(f) || sourceForms.Contains(f)
+                                 || NearAny(f, lineForms) || NearAny(f, sourceForms));
+
+        foreach (var span in QuotedSpans(rationale))
+        foreach (var raw in span.Replace('/', ' ').Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries))
         {
-            var normalized = WordNormalizer.Normalize(word);
-            if (normalized.Length > 0) lineWords.Add(normalized);
+            var word = LettersOnly(raw);
+            if (word.Length < 4) continue;
+
+            var lower = word.ToLowerInvariant();
+            if (word.All(char.IsAscii)
+                && !TransliterationMarks.Any(m => lower.Contains(m, StringComparison.Ordinal))
+                && !TransliterationEndings.Any(e => lower.EndsWith(e, StringComparison.Ordinal)))
+                continue;
+
+            if (Supported(word)) continue;
+            if (seen.Add(word)) missing.Add(word);
         }
 
-        // Split on anything that isn't a letter: the rationale pairs its
-        // evidence with slashes and parentheses - "(ὀσσόμενος/μνήσατο)" - and
-        // those have to come apart into separate words.
-        var quoted = new List<string>();
-        var current = new System.Text.StringBuilder();
-        foreach (var c in rationale)
+        foreach (var raw in rationale.Replace('/', ' ').Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries))
         {
-            if (char.IsLetter(c) || CharUnicodeInfo.GetUnicodeCategory(c) == UnicodeCategory.NonSpacingMark)
-            {
-                current.Append(c);
-            }
-            else if (current.Length > 0)
-            {
-                quoted.Add(current.ToString());
-                current.Clear();
-            }
-        }
-        if (current.Length > 0) quoted.Add(current.ToString());
-
-        foreach (var raw in quoted)
-        {
-            var word = raw.Trim();
-            if (word.Length < 3) continue;
-
-            // Only words written in the comparison work's script. Anything in
-            // basic Latin letters is the rationale talking, not quoting.
-            if (!word.Any(c => char.IsLetter(c) && c > '\u024F')) continue;
-
-            var normalized = WordNormalizer.Normalize(word);
-            if (normalized.Length < 3) continue;
-            if (lineWords.Contains(normalized)) continue;
-            if (!seen.Add(normalized)) continue;
-
-            missing.Add(word);
+            var word = LettersOnly(raw);
+            if (word.Length < 3 || word.All(char.IsAscii)) continue;
+            if (Supported(word)) continue;
+            if (seen.Add(word)) missing.Add(word);
         }
 
         return missing;
@@ -472,12 +606,12 @@ public class CrossLanguageEchoForm : Form
         {
             var preview = node.Text.Length > 70 ? node.Text[..70] + "..." : node.Text;
 
-            var missing = UnsupportedQuotedWords(candidate.Rationale, node.Text);
+            var missing = UnsupportedQuotedWords(candidate.Rationale, node.Text, _sourceNode.Text);
             var flag = "";
             if (missing.Count > 0)
             {
                 unsupportedCount++;
-                flag = $"  \u26A0 {string.Join(", ", missing.Take(3))} " +
+                flag = $"  (!) {string.Join(", ", missing.Take(3))} " +
                        (missing.Count == 1 ? "is" : "are") + " not in this line";
             }
 
@@ -493,7 +627,7 @@ public class CrossLanguageEchoForm : Form
         if (unsupportedCount > 0)
         {
             statusParts.Add(
-                $"{unsupportedCount} marked \u26A0 - the rationale quotes a word that isn't in the line it " +
+                $"{unsupportedCount} marked (!) - the rationale quotes a word that isn't in the line it " +
                 "cites. Often the reasoning belongs to a nearby line; worth reading before trusting it.");
         }
 

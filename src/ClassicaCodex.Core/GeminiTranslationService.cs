@@ -73,7 +73,13 @@ public static class GeminiTranslationService
 
         var prompt =
             $"Translate the following {sourceLanguageName} passage into clear, readable " +
-            $"{targetLanguageName} prose. It is from {authorName}, {workTitle}, at {citationRef}. " +
+            $"{targetLanguageName} prose. It is from {authorName}, {workTitle}, at {citationRef} - " +
+            "context only, for register and reference; translate the words given below and nothing else. " +
+            "Do not supply text you associate with this author or work from memory. If the passage is a " +
+            "title, a heading, a fragment label or an editorial note rather than running text, translate " +
+            "just that, however short the result - a two-word heading has a two-word translation. If it is " +
+            "not in the language named above - headings are often Latin over a Greek text - translate it " +
+            "from whatever language it is actually in. " +
             "Return only the translation itself - no preamble, no notes, no repeating the original.\n\n" +
             passageText;
 
@@ -287,7 +293,10 @@ public static class GeminiTranslationService
 
         var prompt =
             $"Translate each of the following numbered {sourceLanguageName} passages into clear, readable " +
-            $"{targetLanguageName} prose. They are from {authorName}, {workTitle}. Each passage below is " +
+            $"{targetLanguageName} prose. They are from {authorName}, {workTitle} - context only; translate " +
+            "the words given and nothing else, and do not supply text you associate with this author or " +
+            "work from memory. Where a passage is a title, a heading or a fragment label rather than " +
+            "running text, translate just that, however short the result. Each passage below is " +
             "tagged with its own citation reference in square brackets - repeat that exact reference back " +
             "for each one in your response, translating every single passage listed, in the same order.\n\n" +
             $"{taggedText}\n\n" +

@@ -9,7 +9,6 @@ public class PlacesMapForm : Form
     private readonly MapCanvas _canvas;
     private readonly ListBox _passageList;
     private readonly Label _selectedPlaceLabel;
-    private readonly CheckBox _showAllPlacesCheckbox;
     private readonly TagRepository _tagRepo = new();
     private readonly TextNodeRepository _textNodeRepo = new();
     private readonly ArtifactRepository _artifactRepo = new();
@@ -17,6 +16,9 @@ public class PlacesMapForm : Form
     private readonly ArtifactBrowserControl _artifactBrowser;
 
     private List<(int WorkId, long TextNodeId, string AuthorName, string WorkTitle, string CitationRef, string Text)> _currentPassages = new();
+
+    /// <summary>Tags on the currently listed passages, keyed by node.</summary>
+    private Dictionary<long, List<string>> _tagsByNode = new();
 
     /// <summary>
     /// The place whose passages are listed, kept separately from the label
@@ -40,53 +42,26 @@ public class PlacesMapForm : Form
 
         var legend = new Label
         {
-            Text = "Places are matched from your tags against a curated ancient-places reference list - tag a line " +
-                   "with a place name (\"Athens\", \"Troy\", \"Rome\"...) to see it show up here. Scroll to zoom, " +
-                   "drag to pan, double-click open sea to reset the view.",
+            Text = "Click any place to search the library for it. Passages you have tagged are marked in the " +
+                   "results. Scroll to zoom, drag to pan, double-click open sea to reset the view.",
             Left = 12,
             Top = 10,
             Width = 860
         };
 
-        _showAllPlacesCheckbox = new CheckBox
-        {
-            Text = "Show all known places",
-            Left = 12,
-            Top = 46,
-            Width = 170,
-            Height = 22
-        };
-        _showAllPlacesCheckbox.CheckedChanged += (_, _) => _canvas.ShowAllKnownPlaces = _showAllPlacesCheckbox.Checked;
-
         _canvas = new MapCanvas
         {
             Left = 12,
-            Top = 76,
+            Top = 48,
             Width = 860,
-            Height = 668,
+            Height = 696,
             Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right,
             BorderStyle = BorderStyle.FixedSingle
         };
-        _canvas.PlaceClicked += async (name, isYourTag) =>
+        _canvas.PlaceClicked += async (name, _) =>
         {
             await LoadArtifactsAsync(name);
-            if (isYourTag) await LoadTaggedPassagesAsync(name);
-            else await LoadSearchResultsAsync(name);
-        };
-
-        // Small swatches referencing the canvas's own instance colors
-        // directly, not a guessed-at copy - so this key can never quietly
-        // go out of sync with what color the pins actually are, in either
-        // theme.
-        var yourTagsSwatch = new Panel { Left = 210, Top = 50, Width = 12, Height = 12, BackColor = _canvas.PinFillColor };
-        var yourTagsLabel = new Label { Text = "Your tagged places", Left = 226, Top = 46, Width = 130 };
-        var knownPlacesSwatch = new Panel { Left = 366, Top = 50, Width = 12, Height = 12, BackColor = _canvas.KnownPlaceFillColor };
-        var knownPlacesLabel = new Label
-        {
-            Text = "All known places (click to search the text for it)",
-            Left = 382,
-            Top = 46,
-            Width = 320
+            await LoadSearchResultsAsync(name);
         };
 
         _artifactBrowser = new ArtifactBrowserControl
@@ -128,59 +103,41 @@ public class PlacesMapForm : Form
                 r.WorkId, r.TextNodeId, r.AuthorName, r.WorkTitle, r.CitationRef, r.Text)).ToList()), this);
 
         Controls.Add(legend);
-        Controls.Add(_showAllPlacesCheckbox);
-        Controls.Add(yourTagsSwatch);
-        Controls.Add(yourTagsLabel);
-        Controls.Add(knownPlacesSwatch);
-        Controls.Add(knownPlacesLabel);
         Controls.Add(_canvas);
         Controls.Add(_artifactBrowser);
         Controls.Add(_selectedPlaceLabel);
         Controls.Add(_passageList);
 
-        Load += async (_, _) => await LoadPlacesAsync();
+        Load += (_, _) => LoadPlaces();
         ReadingTheme.AttachTo(this);
         WindowShortcuts.CloseOnEscape(this);
     }
 
-    private async Task LoadPlacesAsync()
+    /// <summary>
+    /// Every place in the reference list, on one footing.
+    ///
+    /// The map used to pin tagged places in one colour and the rest in
+    /// another, behind a toggle. That split was worth nothing here: the
+    /// reference list is loaded for everyone during setup, so on a fresh
+    /// library every pin was the same colour anyway, and a place you happened
+    /// to have tagged behaved differently from an identical one beside it for
+    /// reasons the map couldn't show. Tags still surface, but where they mean
+    /// something - against the passages themselves, in the list.
+    /// </summary>
+    private void LoadPlaces()
     {
-        var (nodes, _) = await _tagRepo.GetCoOccurrenceGraphAsync();
-
-        var yourTagMarkers = new List<MapCanvas.PlaceMarker>();
-        var taggedCoordinates = new HashSet<(double, double)>();
-        foreach (var node in nodes)
-        {
-            var coords = PlaceData.Lookup(node.Name);
-            if (coords == null) continue;
-
-            yourTagMarkers.Add(new MapCanvas.PlaceMarker
-            {
-                Name = node.Name,
-                Lat = coords.Value.Lat,
-                Lon = coords.Value.Lon,
-                UsageCount = node.UsageCount,
-                IsYourTag = true
-            });
-            taggedCoordinates.Add((coords.Value.Lat, coords.Value.Lon));
-        }
-
-        // Everything in the full catalog EXCEPT places already covered
-        // above - otherwise a place you've tagged would show two stacked
-        // pins, one from each list, right on top of each other.
-        var knownPlaceMarkers = PlaceData.All()
-            .Where(p => !taggedCoordinates.Contains((p.Lat, p.Lon)))
+        var markers = PlaceData.All()
             .Select(p => new MapCanvas.PlaceMarker
             {
                 Name = p.Name,
                 Lat = p.Lat,
                 Lon = p.Lon,
-                IsYourTag = false
+                IsYourTag = true
             })
             .ToList();
 
-        _canvas.SetData(yourTagMarkers);
-        _canvas.SetAllPlacesData(knownPlaceMarkers);
+        _canvas.SetData(markers);
+        _canvas.SetAllPlacesData(new List<MapCanvas.PlaceMarker>());
     }
 
     private async Task LoadArtifactsAsync(string placeName)
@@ -189,20 +146,9 @@ public class PlacesMapForm : Form
         _artifactBrowser.LoadArtifacts(artifacts);
     }
 
-    private async Task LoadTaggedPassagesAsync(string placeName)
-    {
-        _selectedPlaceName = placeName;
-        _selectedPlaceLabel.Text = $"Passages tagged \"{placeName}\" (double-click to jump):";
-        _passageList.Items.Clear();
-
-        _currentPassages = await _tagRepo.GetByTagAsync(placeName);
-        RenderPassageList();
-    }
-
     /// <summary>
-    /// For a place you haven't tagged - there's no tag data to show, so
-    /// this runs the same word-form-aware text search the main search box
-    /// uses instead, over the place's literal name.
+    /// Runs the same word-form-aware search the main search box uses, over the
+    /// place's literal name.
     /// </summary>
     private async Task LoadSearchResultsAsync(string placeName)
     {
@@ -212,6 +158,10 @@ public class PlacesMapForm : Form
 
         var hits = await _textNodeRepo.SearchAsync(placeName);
         _currentPassages = hits.Rows;
+
+        _tagsByNode = await _tagRepo.GetTagNamesForNodesAsync(
+            _currentPassages.Select(p => p.TextNodeId).ToList());
+
         RenderPassageList(hits.Truncated);
     }
 
@@ -219,7 +169,22 @@ public class PlacesMapForm : Form
     {
         foreach (var p in _currentPassages)
         {
-            _passageList.Items.Add($"{p.AuthorName}, {p.WorkTitle}: {p.Text}");
+            // A passage you have already marked, met again from the map side.
+            // The tags didn't produce this list and aren't a filter on it -
+            // they are worth noticing where they happen to coincide with it,
+            // which is the only thing tags were ever doing on this screen.
+            //
+            // Plain ASCII rather than a star or a bullet. This ListBox has
+            // HorizontalScrollbar set, so every item added is measured for the
+            // scroll extent, and a character the list's font has no glyph for
+            // took that measurement down with a GDI+ error rather than falling
+            // back to a box. The same lesson as the elided Greek in the PDF
+            // export: one font, no fallback, so stay inside what it carries.
+            var mark = _tagsByNode.TryGetValue(p.TextNodeId, out var tags)
+                ? $"[tagged: {string.Join(", ", tags)}]  "
+                : "";
+
+            _passageList.Items.Add($"{mark}{p.AuthorName}, {p.WorkTitle}: {p.Text}");
         }
 
         if (_currentPassages.Count == 0)
