@@ -1,6 +1,6 @@
 # Classica Codex
 
-A desktop reader and research tool for the [Perseus Digital Library](http://www.perseus.tufts.edu/) — the Greek and Latin classics (plus optional Post-Classical Greek and the Renaissance authors who reworked the classics in English), their translations, dictionaries, and the linguistic data that makes searching them work properly.
+A desktop reader and research tool for the [Perseus Digital Library](http://www.perseus.tufts.edu/) — the Greek and Latin classics (plus optional Post-Classical Greek and the Renaissance authors who reworked the classics in English), their translations, dictionaries, and the linguistic data that makes searching them work properly. Also, Menota documents can be manually added. This is new and still a bit experimental.
 
 Built as a personal project, for reading and researching the classics more closely than a browser tab really allows.
 
