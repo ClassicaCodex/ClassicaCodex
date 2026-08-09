@@ -12,11 +12,18 @@ Extract it, run `ClassicaCodex.UI.exe`, and the setup wizard does the rest — s
 [Getting started](#getting-started) for what to expect, including the Windows
 security warning you'll hit on first run.
 
-<img width="1805" height="769" alt="image" src="https://github.com/user-attachments/assets/d680005b-7226-4a14-94b0-1fadf02ba954" />
-
-<img width="1168" height="770" alt="image" src="https://github.com/user-attachments/assets/db82c1b9-5421-4a62-9c07-a2c11273e26b" />
-
-<img width="1171" height="759" alt="image" src="https://github.com/user-attachments/assets/01cbec82-500e-4d85-bea4-673bb3dc3acc" />
+## Guided Setup - Get what you want, skip what you don't want. For everything, including a Word Indexing for faster searches, it can take an hour but it is unattended.
+<img width="625" height="494" alt="GuidedSetupScreenshot" src="https://github.com/user-attachments/assets/8f6f405a-eebc-44db-a801-0ef0bcfe0a29" />
+<img width="1804" height="779" alt="Screenshot 2026-08-08 204119" src="https://github.com/user-attachments/assets/0bea6828-d5b7-40b6-9c89-2a166d4108fa" />
+<img width="1074" height="696" alt="SearchScreenshot" src="https://github.com/user-attachments/assets/6c34169c-ca03-4653-a0a5-281243afd17a" />
+<img width="1170" height="777" alt="TimelineScreenshot" src="https://github.com/user-attachments/assets/6228dab0-7079-4f0d-a3e9-75b5dfac32d2" />
+<img width="1120" height="773" alt="StylometricsScreenshot" src="https://github.com/user-attachments/assets/d88eb89d-c4d9-4017-b034-ff88e99118bb" />
+## Myth Network - Explore and mass tag passages and build your own network for finding rabbit holes 
+<img width="1167" height="772" alt="MythNetworkScreenshot" src="https://github.com/user-attachments/assets/73e4439b-9932-48ec-b689-8575a5dcef25" />
+## My Translate Workbench - Try to translate a document yourself. AI acts as a tutor here and can help give context on a word in the document.
+<img width="1147" height="752" alt="MyTranslateWorkbenchScreenshot" src="https://github.com/user-attachments/assets/18a7ff1d-6280-45e8-909b-41cad83f8775" />
+## - Word Study - You can get here by right clicking a passage or in the My Translate Workbench. Lemma and Dictionary data required for a lot of this.
+<img width="1371" height="744" alt="WordStudyScreenshot" src="https://github.com/user-attachments/assets/ea5dbdbf-c0a5-408d-92f0-a0aa74cf75b6" />
 
 
 ## Features
@@ -41,7 +48,7 @@ security warning you'll hit on first run.
 - **Read Aloud** — text-to-speech for Greek, Latin, or English, using whatever voices are already installed on Windows; fully offline, no network involved
 - **Export** passages to plain text, Word, or PDF, citations intact — and every translation carries the edition it came from, so a published rendering, your own, and an AI's are never confused once the text has left the app
 - **Recent searches** — the last ten searches you ran, with every filter, recorded automatically; nothing to save and nothing to tidy up
-- **Favourites** — star the works you actually return to and filter the library to them; stored against the work's CTS URN, so they survive a corpus re-ingest
+- **Favorites** — star the works you actually return to and filter the library to them; stored against the work's CTS URN, so they survive a corpus re-ingest
 - **Back and Forward** — retrace where you've been. Ten features here end in "jump to it"; following a reference no longer costs you your place
 - **Keyboard shortcuts** — Escape closes any window you're looking at, Ctrl+F searches, Alt+Left and Alt+Right navigate; the workbench saves and advances on Ctrl+Enter
 - **Adjustable text size** — Greek, Latin and English, linked by default. Polytonic diacritics are what you need to see to look a word up, and they're a few pixels each at a small size
