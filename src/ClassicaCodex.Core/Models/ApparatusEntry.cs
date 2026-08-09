@@ -54,8 +54,14 @@ public class ApparatusEntry
     ///
     /// Kept because the schema is right and the code that reads it is already
     /// written - a corpus that does encode an apparatus properly would work
-    /// with no changes. But anything relying on these being populated will be
-    /// dealing with nulls.
+    /// with no changes.
+    ///
+    /// One now does. Menota's AM 63 fol collates Heimskringla against AM 18
+    /// fol throughout: 4,157 variants, every one with a siglum and 3,884 with
+    /// an adopted reading. The remaining 273 are additions - text AM 18 has
+    /// and this manuscript does not - which have a witness and a reading but
+    /// no lemma, and are the reason this stays nullable on entries of Kind
+    /// "variant" rather than only on notes.
     /// </summary>
     public string? Lemma { get; set; }
 

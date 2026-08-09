@@ -196,7 +196,15 @@ public class ApparatusForm : Form
 
         if (e.Kind == "variant")
         {
-            var lemma = string.IsNullOrWhiteSpace(e.Lemma) ? "" : $"{e.Lemma}  ]  ";
+            // A Menota note is written as the two readings either side of a
+            // colon, so its Content already opens with the lemma and prefixing
+            // it again gives "Uphaf ] Uphaf : Vphaf Sogo". Printed only where
+            // the lemma came from somewhere the reader cannot see - a @wit or
+            // @resp attribute, as in the Perseus editions.
+            var repeated = !string.IsNullOrWhiteSpace(e.Lemma)
+                           && e.Content.StartsWith(e.Lemma, StringComparison.Ordinal);
+
+            var lemma = string.IsNullOrWhiteSpace(e.Lemma) || repeated ? "" : $"{e.Lemma}  ]  ";
             var witness = string.IsNullOrWhiteSpace(e.Witness) ? "" : $"  ({e.Witness})";
             return $"{prefix}{lemma}{e.Content}{witness}";
         }

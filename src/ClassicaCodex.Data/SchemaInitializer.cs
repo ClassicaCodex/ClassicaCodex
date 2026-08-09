@@ -50,7 +50,7 @@ public static class SchemaInitializer
     /// doing anything - and without "delete your database and re-ingest"
     /// ever being the release note.
     /// </summary>
-    private const int TargetSchemaVersion = 12;
+    private const int TargetSchemaVersion = 13;
 
     public static async Task EnsureSchemaAsync(CancellationToken cancellationToken = default)
     {
@@ -605,6 +605,30 @@ public static class SchemaInitializer
 
             @"CREATE INDEX IF NOT EXISTS IX_ApparatusEntries_Line
                 ON ApparatusEntries (EditionId, CitationRef, SortOrder);"
+        },
+
+        // v13: the orthographic level of an edition's text.
+        //
+        // Menota manuscripts ingest as ordinary Original editions, which puts
+        // them in the same pool as Greek and Latin the moment
+        // GetAllOriginalEditionsAsync runs. They must not be there. They are
+        // diplomatic transcriptions - the spelling follows each scribe rather
+        // than a dictionary - so Delta between two of them measures scribal
+        // habit, and no amount of sample-size correction fixes that. The
+        // failure would be invisible: the numbers come out looking exactly
+        // like author distances.
+        //
+        // A column recording what the text is, rather than a flag saying where
+        // it may not be used. A normalised Menota text ingested later is
+        // genuinely comparable and needs no special case to become so.
+        //
+        // Existing rows are NULL, which the stylometry pool reads as
+        // editorially normalised - correct for every printed edition already
+        // ingested, where an editor has regularised the orthography and the
+        // Menota levels do not apply.
+        [13] = new[]
+        {
+            @"ALTER TABLE Editions ADD COLUMN Orthography TEXT NULL;"
         }
     };
 
@@ -637,6 +661,7 @@ public static class SchemaInitializer
             Language    TEXT NULL,
             Translator  TEXT NULL,
             SourcePath  TEXT NULL,
+            Orthography TEXT NULL,   -- normalised / diplomatic / NULL; see migration 13
             CONSTRAINT UQ_Editions_CtsUrn UNIQUE (CtsUrn),
             CONSTRAINT FK_Editions_Works FOREIGN KEY (WorkId) REFERENCES Works(WorkId)
         );",

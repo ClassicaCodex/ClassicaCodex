@@ -59,9 +59,13 @@ public class GuidedSetupForm : Form
     private TextBox _pathBox = null!;
     private Button _browseButton = null!;
     private Button _actionButton = null!;
+    private Button _secondaryButton = null!;
+    private LinkLabel[] _sourceLinks = null!;
+    private Label _readinessLabel = null!;
     private ProgressBar _progressBar = null!;
     private Label _statusLabel = null!;
     private Label _elapsedLabel = null!;
+    private TextBox _outputBox = null!;
 
     private Button _backButton = null!;
     private Button _nextButton = null!;
@@ -182,22 +186,87 @@ public class GuidedSetupForm : Form
             if (dialog.ShowDialog(this) == DialogResult.OK) _pathBox.Text = dialog.FileName;
         };
 
-        _actionButton = new Button { Left = 0, Top = 166, Width = 240, Height = 38 };
+        // Sits between the description and the buttons, for sources whose
+        // files come from a website. Opening a browser is not an operation
+        // with progress and an outcome, so it does not belong on the action
+        // button beside things that are.
+        // Two is what Menota needs and no source has asked for more. Built
+        // once and hidden rather than created per step, so the panel's control
+        // collection stays stable.
+        _sourceLinks = new LinkLabel[2];
+        for (var i = 0; i < _sourceLinks.Length; i++)
+        {
+            var link = new LinkLabel
+            {
+                Left = 0,
+                Top = 150 + (i * 18),
+                Width = 370,
+                Height = 18,
+                Visible = false
+            };
+
+            link.LinkClicked += (sender, _) => OpenLink((sender as LinkLabel)?.Tag as string);
+            _sourceLinks[i] = link;
+        }
+
+        _actionButton = new Button { Left = 0, Top = 172, Width = 280, Height = 38 };
         _actionButton.Click += async (_, _) => await RunCurrentStepActionAsync();
+
+        // Only sources that declare one show this; it stays hidden otherwise,
+        // which is every source but Menota today.
+        _secondaryButton = new Button { Left = 292, Top = 172, Width = 280, Height = 38, Visible = false };
+        _secondaryButton.Click += async (_, _) => await RunCurrentStepSecondaryAsync();
 
         _progressBar = new ProgressBar { Left = 0, Top = 214, Width = 616, Height = 22 };
         _statusLabel = new Label { Left = 0, Top = 244, Width = 616, Height = 20 };
         _elapsedLabel = new Label { Left = 0, Top = 268, Width = 616, Height = 20, ForeColor = Color.DimGray };
+
+        // Where a step's report actually lands.
+        //
+        // Everything a step had to say used to go through the single-line
+        // status label, one Report call overwriting the last, so a
+        // twenty-line survey flashed past and left only its final line - and
+        // then RenderStep in the finally block replaced even that with "Not
+        // loaded yet." A step whose entire output is a report had no way to
+        // show one. Most steps still have nothing to put here and it stays
+        // hidden for them.
+        _outputBox = new TextBox
+        {
+            Left = 0,
+            Top = 302,
+            Width = 616,
+            Height = 64,
+            Multiline = true,
+            ReadOnly = true,
+            ScrollBars = ScrollBars.Vertical,
+            Font = new Font(FontFamily.GenericMonospace, 8.25F),
+            Visible = false
+        };
 
         _contentPanel.Controls.Add(_statusIcon);
         _contentPanel.Controls.Add(_titleLabel);
         _contentPanel.Controls.Add(_descriptionLabel);
         _contentPanel.Controls.Add(_pathBox);
         _contentPanel.Controls.Add(_browseButton);
+        // Beside the second link rather than below it, so the answer to "have
+        // I got that file yet" sits where the question was asked.
+        _readinessLabel = new Label
+        {
+            Left = 380,
+            Top = 168,
+            Width = 236,
+            Height = 18,
+            Visible = false
+        };
+
+        foreach (var link in _sourceLinks) _contentPanel.Controls.Add(link);
+        _contentPanel.Controls.Add(_readinessLabel);
         _contentPanel.Controls.Add(_actionButton);
+        _contentPanel.Controls.Add(_secondaryButton);
         _contentPanel.Controls.Add(_progressBar);
         _contentPanel.Controls.Add(_statusLabel);
         _contentPanel.Controls.Add(_elapsedLabel);
+        _contentPanel.Controls.Add(_outputBox);
         Controls.Add(_contentPanel);
     }
 
@@ -319,6 +388,30 @@ public class GuidedSetupForm : Form
 
         _pathBox.Visible = isDatabase;
         _browseButton.Visible = isDatabase;
+        // The description shares vertical space with the path box, which the
+        // Database step uses for a file to write and a source step uses to
+        // show the folder its files live in - read-only there, since the
+        // wizard's Browse opens a SaveFileDialog filtered to .db and that is
+        // the wrong dialog entirely for choosing a download folder.
+        foreach (var link in _sourceLinks) link.Visible = false;
+        _readinessLabel.Visible = false;
+        _secondaryButton.Visible = false;
+        _outputBox.Visible = false;
+        _outputBox.Clear();
+
+        _descriptionLabel.Height = isDatabase ? 70 : 96;
+        _pathBox.ReadOnly = !isDatabase;
+        _pathBox.Top = isDatabase ? 130 : 190;
+        _browseButton.Visible = isDatabase;
+
+        _actionButton.Top = isDatabase ? 172 : 218;
+        _secondaryButton.Top = _actionButton.Top;
+        _progressBar.Top = isDatabase ? 214 : 258;
+        _statusLabel.Top = isDatabase ? 244 : 280;
+        _statusLabel.Width = isDatabase ? 616 : 430;
+        _elapsedLabel.Top = isDatabase ? 268 : 280;
+        _elapsedLabel.Left = isDatabase ? 0 : 440;
+        _elapsedLabel.Width = isDatabase ? 616 : 176;
 
         _backButton.Enabled = !isWelcome;
         _nextButton.Text = isWelcome ? "Get Started" : isFinish ? "Start Reading" : "Next";
@@ -354,7 +447,66 @@ public class GuidedSetupForm : Form
                 _titleLabel.Text = source.Title;
                 _descriptionLabel.Text = source.PlainLanguageDescription;
                 _statusIcon.Image = AppIcons.Get(complete ? "Complete" : "Error", 32);
-                _actionButton.Text = complete ? "Re-download && Re-install" : "Download && Install";
+                // A source can name its own action. "Download & Install" is
+                // wrong for a step that opens a website and inspects a folder,
+                // and a button that misdescribes itself is worse than a plain
+                // one.
+                _actionButton.Text = source.ActionButtonText is { } label
+                    ? label.Replace("&", "&&")
+                    : complete ? "Re-download && Re-install" : "Download && Install";
+
+                for (var i = 0; i < _sourceLinks.Length && i < source.Links.Count; i++)
+                {
+                    _sourceLinks[i].Text = source.Links[i].Text;
+                    _sourceLinks[i].Tag = source.Links[i].Url;
+                    _sourceLinks[i].Visible = true;
+                }
+
+                if (source.SecondaryButtonText is { } secondaryLabel && source.RunSecondary is not null)
+                {
+                    _secondaryButton.Text = secondaryLabel.Replace("&", "&&");
+                    _secondaryButton.Visible = true;
+                }
+
+                if (source.CheckReadiness is { } check)
+                {
+                    // Never let a check throw into RenderStep - the step would
+                    // fail to draw, and a file that cannot be inspected is a
+                    // problem to report rather than a crash.
+                    SetupReadiness readiness;
+                    try
+                    {
+                        readiness = check(source.DefaultDestination);
+                    }
+                    catch (Exception ex)
+                    {
+                        readiness = new SetupReadiness(SetupReadinessState.Problem, ex.Message);
+                    }
+
+                    _readinessLabel.Text = readiness.State switch
+                    {
+                        SetupReadinessState.Ready => "\u2713 " + readiness.Message,
+                        SetupReadinessState.Problem => "\u26A0 " + readiness.Message,
+                        _ => readiness.Message
+                    };
+
+                    _readinessLabel.ForeColor = readiness.State switch
+                    {
+                        SetupReadinessState.Ready => Color.FromArgb(30, 120, 60),
+                        SetupReadinessState.Problem => Color.FromArgb(170, 95, 20),
+                        _ => Color.DimGray
+                    };
+
+                    _readinessLabel.Visible = true;
+                }
+
+                if (source.ShowDestinationPath)
+                {
+                    _pathBox.Visible = true;
+                    _pathBox.Text = source.DefaultDestination;
+                    _outputBox.Visible = true;
+                }
+
                 _statusLabel.Text = complete ? "Already loaded." : "Not loaded yet.";
             }
             else
@@ -390,6 +542,40 @@ public class GuidedSetupForm : Form
         else
         {
             await RunWordIndexAsync();
+        }
+    }
+
+    private async Task RunCurrentStepSecondaryAsync()
+    {
+        var stepInSources = _currentStep - FirstSourceStepIndex;
+        if (stepInSources < 0 || stepInSources >= _sources.Count) return;
+
+        var source = _sources[stepInSources];
+        if (source.RunSecondary is null) return;
+
+        // On the UI thread, deliberately: this is where a step gets to ask
+        // something before it starts, and RunSourceActionAsync is past the
+        // point where a dialog can be shown.
+        if (source.PrepareSecondary is { } prepare && !prepare(this)) return;
+
+        await RunSourceActionAsync(source, source.RunSecondary, fetch: false);
+    }
+
+    private void OpenLink(string? url)
+    {
+        if (string.IsNullOrWhiteSpace(url)) return;
+
+        try
+        {
+            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(url)
+            { UseShellExecute = true });
+        }
+        catch (Exception ex)
+        {
+            // A browser that won't launch is not a setup failure, and a modal
+            // error box would imply it was. The address is the useful thing to
+            // hand over.
+            _statusLabel.Text = $"Couldn't open a browser ({ex.Message}). Go to {url} manually.";
         }
     }
 
@@ -434,21 +620,41 @@ public class GuidedSetupForm : Form
         }
     }
 
-    private async Task RunSourceAsync(SetupDataSource source)
+    private Task RunSourceAsync(SetupDataSource source) =>
+        RunSourceActionAsync(source, source.RunIngest, fetch: true);
+
+    /// <param name="fetch">
+    /// False for a secondary action, which works on files already sitting in
+    /// the destination folder and must not re-download anything to do it.
+    /// </param>
+    private async Task RunSourceActionAsync(
+        SetupDataSource source,
+        Func<string, IProgress<string>, CancellationToken, Task<IngestOutcome>> action,
+        bool fetch)
     {
         SetNavEnabled(false);
         _cts = new CancellationTokenSource();
         _progressBar.Style = ProgressBarStyle.Marquee;
         StartHeartbeat();
 
-        var progress = new Progress<string>(message => _statusLabel.Text = message);
+        var progress = new Progress<string>(message =>
+        {
+            _statusLabel.Text = message;
+            if (_outputBox.Visible) _outputBox.AppendText(message + Environment.NewLine);
+        });
+
+        if (_outputBox.Visible) _outputBox.Clear();
 
         try
         {
             Directory.CreateDirectory(source.DefaultDestination);
 
-            _statusLabel.Text = "Downloading...";
-            if (source.FetchMode == SetupFetchMode.SelfManaged)
+            _statusLabel.Text = fetch ? "Downloading..." : "Working...";
+            if (!fetch)
+            {
+                // Secondary action - the files are already here.
+            }
+            else if (source.FetchMode == SetupFetchMode.SelfManaged)
             {
                 // Nothing to do here - RunIngest below does its own
                 // fetching, however many files that takes.
@@ -466,9 +672,9 @@ public class GuidedSetupForm : Form
                 await fetchService.FetchAsync(source.RepoUrl, source.DefaultDestination, fetchProgress, _cts.Token);
             }
 
-            _statusLabel.Text = "Installing...";
+            if (fetch) _statusLabel.Text = "Installing...";
             var outcome = await Task.Run(
-                () => source.RunIngest(source.DefaultDestination, progress, _cts.Token), _cts.Token);
+                () => action(source.DefaultDestination, progress, _cts.Token), _cts.Token);
 
             _statusLabel.Text = outcome.HasSkippedFiles
                 ? $"{source.Title} is ready, but {outcome.SkippedCount:N0} file(s) were skipped."
@@ -492,7 +698,20 @@ public class GuidedSetupForm : Form
             _progressBar.Style = ProgressBarStyle.Blocks;
             SetNavEnabled(true);
             await RefreshAllCompletionAsync();
+
+            // RenderStep rewrites the status label from the step's completion
+            // state and clears the log, which is right when arriving at a step
+            // and wrong the instant a run has just finished: it replaced the
+            // result of the run - the count of skipped files, the plan names
+            // to go and confirm - with "Not loaded yet." The step looked like
+            // it had done nothing, on every run, however much it had done.
+            var finalStatus = _statusLabel.Text;
+            var finalLog = _outputBox.Text;
+
             RenderStep();
+
+            _statusLabel.Text = finalStatus;
+            if (_outputBox.Visible) _outputBox.Text = finalLog;
         }
     }
 

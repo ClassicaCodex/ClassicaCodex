@@ -264,6 +264,182 @@ public static class SetupDataSourceCatalog
 
             new SetupDataSource
             {
+                Title = "Medieval Nordic Texts (Menota)",
+                RepoUrl = "https://www.menota.org/EN_forside.xhtml",
+                DisplayNote = "manuscripts are downloaded by hand from the Menota catalogue",
+                DefaultDestination = Path.Combine(dataRoot, "menota"),
+
+                // Not GitClone and not DirectDownload: Menota publishes per-manuscript XML
+                // through a catalogue on its website, with no archive or repository to
+                // fetch. Every other source here can be pulled in one request; this one
+                // cannot, and pretending otherwise would mean inventing a URL.
+                FetchMode = SetupFetchMode.SelfManaged,
+
+                Links =
+                {
+                    new SetupLink
+                    {
+                        Text = "1. Open the Menota catalogue to download manuscripts",
+                        Url = "https://www.menota.org/EN_forside.xhtml"
+                    },
+                    new SetupLink
+                    {
+                        // Menota manuscripts reference their special characters
+                        // by name rather than encoding them directly - &thorn;,
+                        // &oslashsupfinal;, seventy-odd distinct ones in a single
+                        // manuscript and twenty thousand references. The names are
+                        // defined in one file that every manuscript assumes you
+                        // have. Without it those characters can only be counted,
+                        // not shown, and an offline reader must not fetch it
+                        // mid-parse to find out.
+                        Text = "2. Download menota-entities.txt into the same folder (see below)",
+                        Url = "https://www.menota.org/menota-entities.txt"
+                    }
+                },
+
+                // The folder is the thing this step is about, so it goes on the form
+                // rather than into a sentence.
+                ShowDestinationPath = true,
+
+                // Whether menota-entities.txt is there and is what it should be.
+                //
+                // Checked by parsing it rather than by File.Exists, because the
+                // likeliest failure is a file of the right name with the wrong
+                // contents: clicking a .txt link opens it in the browser, and
+                // saving that page gives you HTML. Exists would say yes, every
+                // manuscript would still import full of replacement characters,
+                // and nothing on screen would connect the two.
+                CheckReadiness = root =>
+                {
+                    var path = Path.Combine(root, "menota-entities.txt");
+
+                    if (!File.Exists(path))
+                        return new SetupReadiness(SetupReadinessState.Missing, "menota-entities.txt not found");
+
+                    var entities = MenotaXmlLoader.LoadEntities(root);
+
+                    return entities.Count == 0
+                        ? new SetupReadiness(SetupReadinessState.Problem,
+                            "File found but defines no characters")
+                        : new SetupReadiness(SetupReadinessState.Ready,
+                            $"{entities.Count:N0} characters ready");
+                },
+
+                ActionButtonText = "Open Folder",
+                SecondaryButtonText = "Import Manuscripts",
+
+                // Shows the division proposal for each manuscript not yet
+                // confirmed, before the import starts. The .plan.json is still
+                // written and still the record of what was confirmed - it is
+                // just no longer something anyone has to open in an editor.
+                PrepareSecondary = owner => MenotaPlanReview.Run(
+                    owner, Path.Combine(dataRoot, "menota")),
+
+                PlainLanguageDescription =
+                    "Medieval texts in Old Norse, Old Norwegian and Old Swedish - sagas, the Eddic poems, " +
+                    "and the Norwegian law manuscripts - from the Medieval Nordic Text Archive.\n\n" +
+                    "Menota publishes one file per manuscript, with no single archive to fetch, so these " +
+                    "are downloaded by hand. Save the XML files into the folder below, then import them.\n\n" +
+                    "Save menota-entities.txt into that same folder as well. These manuscripts use medieval " +
+                    "letters and abbreviation marks that they refer to by name, and that file is what turns " +
+                    "the names into characters - without it they read as \u25AF. Right-click the second link " +
+                    "and choose Save link as. It is worth doing before importing, because whatever is " +
+                    "unreadable at import time stays unreadable in your library.",
+
+                // Open Folder. Nothing more - it opens the destination in Explorer so the
+                // downloaded XML can be dropped in, and reports if the folder is empty.
+                RunIngest = (root, progress, ct) =>
+                {
+                    Directory.CreateDirectory(root);
+
+                    try
+                    {
+                        System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(root)
+                        { UseShellExecute = true });
+                    }
+                    catch (Exception ex)
+                    {
+                        progress.Report($"Couldn't open the folder ({ex.Message}): {root}");
+                        return Task.FromResult(IngestOutcome.Clean);
+                    }
+
+                    var count = Directory.EnumerateFiles(root, "*.xml", SearchOption.AllDirectories).Count();
+                    progress.Report(count == 0
+                        ? "Folder is empty. Download manuscripts from the link above into it."
+                        : $"{count} XML file(s) in the folder.");
+
+                    return Task.FromResult(IngestOutcome.Clean);
+                },
+
+                // Import Manuscripts. Surveys first and prints the report - which
+                // orthographic level each manuscript carries, how many words, which MUFI
+                // characters could not be resolved - then imports.
+                //
+                // On a manuscript it has not seen before the import writes an unconfirmed
+                // .plan.json beside the XML and imports nothing from that file, reporting
+                // it as skipped. So the first press never adds a text to the library, by
+                // design: a Menota file is a manuscript containing several works, nothing
+                // in it links the catalogue entries to the body divisions, so the division
+                // is proposed and a person confirms it. See MenotaIngestPlan.
+                RunSecondary = async (root, progress, ct) =>
+                {
+                    Directory.CreateDirectory(root);
+
+                    if (!Directory.EnumerateFiles(root, "*.xml", SearchOption.AllDirectories).Any())
+                    {
+                        progress.Report("No XML files in the folder yet.");
+                        progress.Report("Use the link above to download manuscripts, then Open Folder to drop them in.");
+                        return IngestOutcome.Clean;
+                    }
+
+                    var report = new MenotaCorpusReport();
+                    var surveyed = await Task.Run(() => report.Survey(root, progress), ct);
+
+                    foreach (var line in MenotaCorpusReport.Format(surveyed)
+                                 .Split(Environment.NewLine, StringSplitOptions.RemoveEmptyEntries))
+                    {
+                        progress.Report(line);
+                    }
+
+                    progress.Report("---");
+
+                    var service = new MenotaIngestService();
+                    var outcome = await service.IngestAsync(root, progress, ct);
+
+                    // Reaching this branch means a manuscript arrived in the folder
+                    // after the review dialogs ran, or its review was skipped. The
+                    // plan is on disk either way; pressing Import again reviews it.
+                    if (service.ApparatusEntries > 0)
+                    {
+                        progress.Report(
+                            $"{service.ApparatusEntries:N0} editorial note(s) kept as apparatus rather than " +
+                            "read as text. See Editor's Notes in the reader.");
+                    }
+
+                    if (service.RemovedEditions > 0)
+                    {
+                        progress.Report(
+                            $"Removed {service.RemovedEditions:N0} edition(s) the confirmed plans no longer " +
+                            "produce - merged or split works, or rows unticked.");
+                    }
+
+                    if (service.PlansWritten.Count > 0)
+                    {
+                        progress.Report(
+                            $"{service.PlansWritten.Count} manuscript(s) were not reviewed and so not " +
+                            "imported. Press Import Manuscripts again to review them.");
+                    }
+
+                    return outcome;
+                },
+
+                CheckComplete = async () => await authorRepo.CountByNamespaceAsync(
+                    MenotaIngestService.Namespace) > 0
+            },
+
+
+            new SetupDataSource
+            {
                 Title = "Post-Classical Greek Texts (optional)",
                 RepoUrl = "https://github.com/OpenGreekAndLatin/First1KGreek",
                 DisplayNote = "extends the Ancient Greek Texts above into late antiquity - same library, not a separate one",

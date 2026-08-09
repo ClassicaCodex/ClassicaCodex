@@ -10,13 +10,14 @@ public class EditionRepository
         await using var conn = await DbConnectionFactory.OpenConnectionAsync(cancellationToken);
 
         const string sql = @"
-            INSERT INTO Editions (WorkId, CtsUrn, Kind, Language, Translator, SourcePath)
-            VALUES (@WorkId, @CtsUrn, @Kind, @Language, @Translator, @SourcePath)
+            INSERT INTO Editions (WorkId, CtsUrn, Kind, Language, Translator, SourcePath, Orthography)
+            VALUES (@WorkId, @CtsUrn, @Kind, @Language, @Translator, @SourcePath, @Orthography)
             ON CONFLICT(CtsUrn) DO UPDATE SET
                 Kind = excluded.Kind,
                 Language = excluded.Language,
                 Translator = excluded.Translator,
                 SourcePath = excluded.SourcePath,
+                Orthography = excluded.Orthography,
                 WorkId = excluded.WorkId
             RETURNING EditionId;";
 
@@ -28,6 +29,7 @@ public class EditionRepository
         cmd.Parameters.AddWithValue("@Language", (object?)edition.Language ?? DBNull.Value);
         cmd.Parameters.AddWithValue("@Translator", (object?)edition.Translator ?? DBNull.Value);
         cmd.Parameters.AddWithValue("@SourcePath", (object?)edition.SourcePath ?? DBNull.Value);
+        cmd.Parameters.AddWithValue("@Orthography", (object?)edition.Orthography ?? DBNull.Value);
 
         var result = await cmd.ExecuteScalarAsync(cancellationToken);
         return Convert.ToInt32(result);
@@ -38,7 +40,7 @@ public class EditionRepository
         var results = new List<Edition>();
         await using var conn = await DbConnectionFactory.OpenConnectionAsync(cancellationToken);
 
-        const string sql = @"SELECT EditionId, WorkId, CtsUrn, Kind, Language, Translator, SourcePath
+        const string sql = @"SELECT EditionId, WorkId, CtsUrn, Kind, Language, Translator, SourcePath, Orthography
                              FROM Editions WHERE WorkId = @WorkId;";
         await using var cmd = conn.CreateCommand();
         cmd.CommandText = sql;
@@ -55,7 +57,8 @@ public class EditionRepository
                 Kind = Enum.TryParse<EditionKind>(reader.GetString(3), out var kind) ? kind : EditionKind.Unknown,
                 Language = reader.IsDBNull(4) ? null : reader.GetString(4),
                 Translator = reader.IsDBNull(5) ? null : reader.GetString(5),
-                SourcePath = reader.IsDBNull(6) ? null : reader.GetString(6)
+                SourcePath = reader.IsDBNull(6) ? null : reader.GetString(6),
+                Orthography = reader.IsDBNull(7) ? null : reader.GetString(7)
             });
         }
 
@@ -103,6 +106,7 @@ public class EditionRepository
             JOIN Works w ON e.WorkId = w.WorkId
             JOIN Authors a ON w.AuthorId = a.AuthorId
             WHERE e.Kind = 'Original'
+              AND (e.Orthography IS NULL OR e.Orthography = 'normalised')
             ORDER BY e.Language, a.Name, w.Title;";
 
         await using var cmd = conn.CreateCommand();
@@ -171,6 +175,96 @@ public class EditionRepository
     /// unique to it - a convention, not a guarantee, and not something worth
     /// betting a setup step on.
     /// </summary>
+    /// <summary>
+    /// The CTS URNs of every edition ingested from one source file.
+    ///
+    /// Needed because re-importing a manuscript is not only an insert. A work
+    /// merged or split in the review mints different URNs from the ones it had
+    /// before, and the previous ones stay in the library untouched - so the
+    /// tree keeps showing thirty-five chapters beside the one work they were
+    /// merged into, and the only way out was to delete the database.
+    /// </summary>
+    public async Task<List<(int EditionId, int WorkId, string CtsUrn)>> GetBySourcePathAsync(
+        string sourcePath, CancellationToken cancellationToken = default)
+    {
+        await using var conn = await DbConnectionFactory.OpenConnectionAsync(cancellationToken);
+        await using var cmd = conn.CreateCommand();
+
+        cmd.CommandText = "SELECT EditionId, WorkId, CtsUrn FROM Editions WHERE SourcePath = @SourcePath;";
+        cmd.Parameters.AddWithValue("@SourcePath", sourcePath);
+
+        var result = new List<(int, int, string)>();
+        await using var reader = await cmd.ExecuteReaderAsync(cancellationToken);
+
+        while (await reader.ReadAsync(cancellationToken))
+            result.Add((reader.GetInt32(0), reader.GetInt32(1), reader.GetString(2)));
+
+        return result;
+    }
+
+    /// <summary>
+    /// Removes an edition and its text, then the work and author it belonged
+    /// to if nothing else uses them.
+    ///
+    /// Work and author are cleaned up because an orphaned one is worse than
+    /// useless: it shows in the author browser with nothing under it. The
+    /// checks are counts rather than cascades, so a work with a second witness
+    /// or an author with other works survives.
+    /// </summary>
+    public async Task DeleteEditionAsync(int editionId, CancellationToken cancellationToken = default)
+    {
+        await using var conn = await DbConnectionFactory.OpenConnectionAsync(cancellationToken);
+        await using var tx = await conn.BeginTransactionAsync(cancellationToken);
+
+        async Task<int> ScalarAsync(string sql, string name, object value)
+        {
+            await using var cmd = conn.CreateCommand();
+            cmd.Transaction = (Microsoft.Data.Sqlite.SqliteTransaction)tx;
+            cmd.CommandText = sql;
+            cmd.Parameters.AddWithValue(name, value);
+            return Convert.ToInt32(await cmd.ExecuteScalarAsync(cancellationToken));
+        }
+
+        async Task ExecuteAsync(string sql, string name, object value)
+        {
+            await using var cmd = conn.CreateCommand();
+            cmd.Transaction = (Microsoft.Data.Sqlite.SqliteTransaction)tx;
+            cmd.CommandText = sql;
+            cmd.Parameters.AddWithValue(name, value);
+            await cmd.ExecuteNonQueryAsync(cancellationToken);
+        }
+
+        var workId = await ScalarAsync(
+            "SELECT IFNULL(WorkId, 0) FROM Editions WHERE EditionId = @EditionId;", "@EditionId", editionId);
+
+        if (workId == 0)
+        {
+            await tx.CommitAsync(cancellationToken);
+            return;
+        }
+
+        var authorId = await ScalarAsync(
+            "SELECT IFNULL(AuthorId, 0) FROM Works WHERE WorkId = @WorkId;", "@WorkId", workId);
+
+        await ExecuteAsync("DELETE FROM TextNodes WHERE EditionId = @EditionId;", "@EditionId", editionId);
+        await ExecuteAsync("DELETE FROM ApparatusEntries WHERE EditionId = @EditionId;", "@EditionId", editionId);
+        await ExecuteAsync("DELETE FROM Editions WHERE EditionId = @EditionId;", "@EditionId", editionId);
+
+        if (await ScalarAsync(
+                "SELECT COUNT(*) FROM Editions WHERE WorkId = @WorkId;", "@WorkId", workId) == 0)
+        {
+            await ExecuteAsync("DELETE FROM Works WHERE WorkId = @WorkId;", "@WorkId", workId);
+
+            if (authorId != 0 && await ScalarAsync(
+                    "SELECT COUNT(*) FROM Works WHERE AuthorId = @AuthorId;", "@AuthorId", authorId) == 0)
+            {
+                await ExecuteAsync("DELETE FROM Authors WHERE AuthorId = @AuthorId;", "@AuthorId", authorId);
+            }
+        }
+
+        await tx.CommitAsync(cancellationToken);
+    }
+
     public async Task<int> CountBySourcePathPrefixAsync(
         string folder, CancellationToken cancellationToken = default)
     {
