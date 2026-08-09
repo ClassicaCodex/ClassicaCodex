@@ -178,11 +178,20 @@ public static class GeminiTranslationService
             $"{sourceCitationRef}:\n{sourcePassageText}\n\n" +
             $"COMPARISON WORK ({comparisonLanguageName}), {comparisonAuthorName}, {comparisonWorkTitle}. Each " +
             $"line is tagged with its citation reference in square brackets:\n\n{taggedComparisonText}\n\n" +
-            "Identify passages in the comparison work that genuinely seem to echo the source passage's central " +
-            "image, theme, or idea - not passages that merely share common words. For each real candidate, " +
-            "report its citation reference exactly as tagged above, a confidence level, and a one-sentence " +
-            "rationale naming the shared image or idea. If there are no genuine echoes, return an empty list - " +
-            "don't strain to find something. Never invent a citation reference that isn't tagged above.\n\n" +
+            "Before looking for anything, construe the source passage word by word in its own language. Do not " +
+            "let a word's resemblance to a modern English word stand in for its meaning. Older Germanic " +
+            "languages in particular are full of forms that look like English and are not: an Old Norse 'man' " +
+            "may be the first person of 'muna', to remember, rather than a noun; 'of' and 'um' are often " +
+            "expletive particles rather than prepositions; 'fremst' can mean furthest back in time rather than " +
+            "foremost in rank. Decide the part of speech and the sense from the grammar of the line, not from " +
+            "what the letters suggest.\n\n" +
+            "Then identify passages in the comparison work that genuinely seem to echo the source passage's " +
+            "central image, theme, or idea - not passages that merely share common words. For each real " +
+            "candidate, report its citation reference exactly as tagged above, a confidence level, and a " +
+            "one-sentence rationale naming the shared image or idea. Where your rationale rests on the meaning " +
+            "of a particular source word, give that word and the sense you have taken it in, so a reader can " +
+            "check it. If there are no genuine echoes, return an empty list - don't strain to find something. " +
+            "Never invent a citation reference that isn't tagged above.\n\n" +
             "Respond with ONLY a JSON array, no other text and no markdown code fences, in this exact shape: " +
             "[{\"citationRef\": \"...\", \"confidence\": \"high|medium|low\", \"rationale\": \"...\"}]";
 

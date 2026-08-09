@@ -117,6 +117,45 @@ public static class PassageExportService
     /// character-fitting fragments instead of letting it overflow the
     /// margin, which is what was happening to long titles.
     /// </summary>
+    /// <summary>
+    /// Substitutes characters an embedded font is unlikely to carry with the
+    /// nearest one it certainly does.
+    ///
+    /// Only the PDF path needs this. On screen, Windows quietly falls back to
+    /// another installed font for any character the chosen one lacks, so the
+    /// text looks right; a PDF embeds one font and gets a .notdef box instead.
+    /// That difference is why elided Greek - "ὅ τ'", "νῦν δ'" - read correctly
+    /// in the reader and came out as "ὅ τ⊕" once exported.
+    ///
+    /// Greek elision is marked with several different code points depending on
+    /// who prepared the text: the koronis, the modifier letter apostrophe, the
+    /// typographic right quote, and the plain ASCII one all appear across
+    /// Perseus and Menota. They are all the same mark to a reader, and U+2019
+    /// is the one every Windows text font has.
+    /// </summary>
+    private static string SubstituteUnsupportedGlyphs(string text)
+    {
+        if (string.IsNullOrEmpty(text)) return text;
+
+        var sb = new System.Text.StringBuilder(text.Length);
+
+        foreach (var c in text)
+        {
+            sb.Append(c switch
+            {
+                '\u1FBD' => '\u2019', // Greek koronis
+                '\u02BC' => '\u2019', // modifier letter apostrophe
+                '\u02BB' => '\u2018', // modifier letter turned comma
+                '\u2032' => '\u2019', // prime
+                '\u1FBF' => '\u2019', // Greek psili
+                '\u1FFE' => '\u2018', // Greek dasia
+                _ => c
+            });
+        }
+
+        return sb.ToString();
+    }
+
     public static void ExportPdf(string filePath, string title, string sourceUrl, IReadOnlyList<(string Label, string Text)> chunks, string fontName)
     {
         EnsureFontResolverRegistered();
@@ -145,9 +184,13 @@ public static class PassageExportService
             y = margin;
         }
 
-        void DrawFlowingText(string text, XFont font, XBrush brush)
+        void DrawFlowingText(string rawText, XFont font, XBrush brush)
         {
-            if (string.IsNullOrEmpty(text)) return;
+            if (string.IsNullOrEmpty(rawText)) return;
+
+            // Once, here, rather than at each call site - every string that
+            // reaches the page goes through this method.
+            var text = SubstituteUnsupportedGlyphs(rawText);
 
             var lineHeight = font.GetHeight() * 1.15;
             var spaceWidth = gfx.MeasureString(" ", font).Width;

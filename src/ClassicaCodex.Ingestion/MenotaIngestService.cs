@@ -307,7 +307,31 @@ public class MenotaIngestService
             }
 
             _used[reference] = seen + 1;
-            return $"{reference}{(char)('a' + Math.Min(seen - 1, 25))}";
+            return $"{reference}{Suffix(seen - 1)}";
+        }
+
+        /// <summary>
+        /// a, b, ... z, aa, ab, and so on.
+        ///
+        /// This used to clamp at z, so a twenty-seventh collision and every one
+        /// after it came out identical - which is the exact duplication
+        /// Unique() exists to prevent, reappearing silently once the range ran
+        /// out. Nothing in the present corpus collides more than nine times
+        /// (AM 63 fol's nine sagas each restarting at chapter 1), so it has
+        /// never fired; a corpus with more repetition would have found it.
+        /// </summary>
+        private static string Suffix(int index)
+        {
+            var sb = new StringBuilder();
+
+            do
+            {
+                sb.Insert(0, (char)('a' + index % 26));
+                index = index / 26 - 1;
+            }
+            while (index >= 0);
+
+            return sb.ToString();
         }
     }
 
@@ -500,6 +524,7 @@ public class MenotaIngestService
 
         var citation = "";
         var lastReference = "";
+        var lastOrder = 0;
 
         void Flush()
         {
@@ -525,6 +550,7 @@ public class MenotaIngestService
             var order = 0;
             foreach (var note in pending) AddApparatus(note, level, reference, order++, apparatus);
             pending.Clear();
+            lastOrder = order;
         }
 
         foreach (var el in div.Descendants())
@@ -630,7 +656,10 @@ public class MenotaIngestService
         // belongs to that chapter, not to nothing.
         if (pending.Count > 0 && lastReference.Length > 0)
         {
-            var order = 0;
+            // Continuing the last line's numbering rather than restarting at
+            // zero, or a note about the blank foot of a chapter sorts ahead of
+            // the notes on the line it follows.
+            var order = lastOrder;
             foreach (var note in pending)
                 AddApparatus(note, level, lastReference, order++, apparatus);
         }

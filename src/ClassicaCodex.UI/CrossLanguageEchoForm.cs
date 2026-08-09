@@ -1,3 +1,4 @@
+using System.Globalization;
 using ClassicaCodex.Core;
 using ClassicaCodex.Core.Models;
 using ClassicaCodex.Data.Repositories;
@@ -368,6 +369,82 @@ public class CrossLanguageEchoForm : Form
     /// is all within the one work it was just shown). Anything that doesn't
     /// resolve is dropped and counted, never displayed as a result.
     /// </summary>
+    /// <summary>
+    /// Whether the words a rationale quotes are actually in the line it cites.
+    ///
+    /// The citation check above confirms a reference resolves to a real
+    /// passage. It does not confirm the reason given for it. Gemini reasons
+    /// about a work as a whole and then attaches that reasoning to one line,
+    /// and the two can come apart: asked for echoes of Vǫluspá's "þau er
+    /// fremst um man", it cited Odyssey 1.3 and justified it with μνήσατο and
+    /// ἔννεπε, which are at 1.29 and 1.1. The reference was real, the words
+    /// were real, and neither was in the line the two were joined at.
+    ///
+    /// So any word the rationale quotes in the comparison work's own script is
+    /// looked for in the cited line, matched on bare letters via
+    /// WordNormalizer so accentuation and precomposed-versus-combining Unicode
+    /// don't produce false alarms.
+    ///
+    /// Flagged, never dropped. A rationale may legitimately reach for the
+    /// surrounding context - an invocation two lines up genuinely bears on the
+    /// line beneath it - so this marks evidence a reader should check rather
+    /// than deciding it is wrong. Latin-script words are ignored: those are
+    /// the rationale's own English, and transliterations and glosses would
+    /// never match anyway.
+    /// </summary>
+    private static List<string> UnsupportedQuotedWords(string rationale, string lineText)
+    {
+        if (string.IsNullOrWhiteSpace(rationale)) return new List<string>();
+
+        var missing = new List<string>();
+        var seen = new HashSet<string>(StringComparer.Ordinal);
+
+        var lineWords = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var word in lineText.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries))
+        {
+            var normalized = WordNormalizer.Normalize(word);
+            if (normalized.Length > 0) lineWords.Add(normalized);
+        }
+
+        // Split on anything that isn't a letter: the rationale pairs its
+        // evidence with slashes and parentheses - "(ὀσσόμενος/μνήσατο)" - and
+        // those have to come apart into separate words.
+        var quoted = new List<string>();
+        var current = new System.Text.StringBuilder();
+        foreach (var c in rationale)
+        {
+            if (char.IsLetter(c) || CharUnicodeInfo.GetUnicodeCategory(c) == UnicodeCategory.NonSpacingMark)
+            {
+                current.Append(c);
+            }
+            else if (current.Length > 0)
+            {
+                quoted.Add(current.ToString());
+                current.Clear();
+            }
+        }
+        if (current.Length > 0) quoted.Add(current.ToString());
+
+        foreach (var raw in quoted)
+        {
+            var word = raw.Trim();
+            if (word.Length < 3) continue;
+
+            // Only words written in the comparison work's script. Anything in
+            // basic Latin letters is the rationale talking, not quoting.
+            if (!word.Any(c => char.IsLetter(c) && c > '\u024F')) continue;
+
+            var normalized = WordNormalizer.Normalize(word);
+            if (normalized.Length < 3) continue;
+            if (lineWords.Contains(normalized)) continue;
+            if (!seen.Add(normalized)) continue;
+
+            missing.Add(word);
+        }
+
+        return missing;
+    }
+
     private void VerifyAndDisplayResults(
         List<EchoCandidate> candidates, List<TextNode> comparisonNodes, string? truncatedAtRef)
     {
@@ -390,17 +467,35 @@ public class CrossLanguageEchoForm : Form
             }
         }
 
+        var unsupportedCount = 0;
         foreach (var (node, candidate) in _verifiedResults)
         {
             var preview = node.Text.Length > 70 ? node.Text[..70] + "..." : node.Text;
+
+            var missing = UnsupportedQuotedWords(candidate.Rationale, node.Text);
+            var flag = "";
+            if (missing.Count > 0)
+            {
+                unsupportedCount++;
+                flag = $"  \u26A0 {string.Join(", ", missing.Take(3))} " +
+                       (missing.Count == 1 ? "is" : "are") + " not in this line";
+            }
+
             _resultsListBox.Items.Add(
-                $"[{candidate.Confidence}] {node.CitationRef}: {preview}  \u2014  {candidate.Rationale}");
+                $"[{candidate.Confidence}] {node.CitationRef}: {preview}  \u2014  {candidate.Rationale}{flag}");
         }
 
         var statusParts = new List<string>();
         statusParts.Add(_verifiedResults.Count == 0
             ? "No verified echoes found."
             : $"{_verifiedResults.Count} verified candidate(s).");
+
+        if (unsupportedCount > 0)
+        {
+            statusParts.Add(
+                $"{unsupportedCount} marked \u26A0 - the rationale quotes a word that isn't in the line it " +
+                "cites. Often the reasoning belongs to a nearby line; worth reading before trusting it.");
+        }
 
         if (unresolvedCount > 0)
         {
