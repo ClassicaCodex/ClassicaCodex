@@ -1,7 +1,7 @@
 # Notes on Burrows's Delta in Classica Codex
 
 What the stylometry tool can and cannot tell you, written up after using it to
-work on a real disputed-authorship question. The short version: it found three
+work on a real disputed-authorship question. The short version: it found four
 genuine corpus bugs, and it did not answer the authorship question. Both halves
 are worth recording.
 
