@@ -12,18 +12,29 @@ Extract it, run `ClassicaCodex.UI.exe`, and the setup wizard does the rest — s
 [Getting started](#getting-started) for what to expect, including the Windows
 security warning you'll hit on first run.
 
-## Guided Setup - Get what you want, skip what you don't want. For everything, including a Word Indexing for faster searches, it can take an hour but it is unattended.
+## Guided Setup 
+- Get what you want, skip what you don't want. For everything, including a Word Indexing for faster searches, it can take an hour but it is unattended.
 <img width="625" height="494" alt="GuidedSetupScreenshot" src="https://github.com/user-attachments/assets/8f6f405a-eebc-44db-a801-0ef0bcfe0a29" />
 <img width="1804" height="779" alt="Screenshot 2026-08-08 204119" src="https://github.com/user-attachments/assets/0bea6828-d5b7-40b6-9c89-2a166d4108fa" />
 <img width="1074" height="696" alt="SearchScreenshot" src="https://github.com/user-attachments/assets/6c34169c-ca03-4653-a0a5-281243afd17a" />
 <img width="1170" height="777" alt="TimelineScreenshot" src="https://github.com/user-attachments/assets/6228dab0-7079-4f0d-a3e9-75b5dfac32d2" />
 <img width="1120" height="773" alt="StylometricsScreenshot" src="https://github.com/user-attachments/assets/d88eb89d-c4d9-4017-b034-ff88e99118bb" />
-## Myth Network - Explore and mass tag passages and build your own network for finding rabbit holes 
+
+## Myth Network 
+- Explore and mass tag passages and build your own network for finding rabbit holes 
 <img width="1167" height="772" alt="MythNetworkScreenshot" src="https://github.com/user-attachments/assets/73e4439b-9932-48ec-b689-8575a5dcef25" />
-## My Translate Workbench - Try to translate a document yourself. AI acts as a tutor here and can help give context on a word in the document.
+
+## My Translate Workbench
+- Try to translate a document yourself. AI acts as a tutor here and can help give context on a word in the document.
 <img width="1147" height="752" alt="MyTranslateWorkbenchScreenshot" src="https://github.com/user-attachments/assets/18a7ff1d-6280-45e8-909b-41cad83f8775" />
-## - Word Study - You can get here by right clicking a passage or in the My Translate Workbench. Lemma and Dictionary data required for a lot of this.
+
+## Word Study
+- You can get here by right clicking a passage or in the My Translate Workbench. Lemma and Dictionary data required for a lot of this.
 <img width="1371" height="744" alt="WordStudyScreenshot" src="https://github.com/user-attachments/assets/ea5dbdbf-c0a5-408d-92f0-a0aa74cf75b6" />
+
+## Dark Mode
+- Easier on your eyes if working for a while.
+<img width="1800" height="767" alt="DarkModeScreenshot" src="https://github.com/user-attachments/assets/20bffceb-a7b0-482e-bf3a-e1e3c1869244" />
 
 
 ## Features
