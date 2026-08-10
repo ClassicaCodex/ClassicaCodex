@@ -114,7 +114,10 @@ public class VocabularyForm : Form
     {
         try
         {
-            var passages = await _textNodeRepo.GetByEditionAsync(_editionId);
+            // Reading lines only: a core-vocabulary list is a list of the
+            // words the author used, and speaker tags, stage directions and
+            // headings are not among them.
+            var passages = await _textNodeRepo.GetByEditionAsync(_editionId, readingLinesOnly: true);
             var formCounts = VocabularyProfile.CountForms(passages.Select(p => p.Text));
 
             if (formCounts.Count == 0)

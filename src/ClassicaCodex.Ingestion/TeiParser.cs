@@ -32,6 +32,120 @@ public class TeiParser
     private static readonly HashSet<string> LeafElements = new() { "l", "p", "said", "lg" };
 
     /// <summary>
+    /// Elements WalkDiv can reach a TextNode through. An element that is
+    /// none of these and contains none of them has no way to produce a node
+    /// by being descended into, so it is emitted whole instead - see the
+    /// family branch in WalkDiv.
+    ///
+    /// &lt;item&gt; is here without having a branch of its own: it is emitted
+    /// by the family rule, but a &lt;list&gt; wrapping several of them must
+    /// still be descended into rather than flattened into one node.
+    /// </summary>
+    private static readonly HashSet<string> HandledElements = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "l", "p", "said", "lg", "head", "castItem", "stage", "item", "note"
+    };
+
+    /// <summary>
+    /// What a block element's text is, for
+    /// <see cref="TextNode.NodeKind"/>. Anything not listed is treated as
+    /// running text and counted.
+    ///
+    /// The default direction matters. An unlisted element is far more likely
+    /// to be prose this parser hasn't met than to be an annotation, and
+    /// getting that wrong in the "don't count it" direction is the worse
+    /// error: an edition whose entire body is one unrecognised block would
+    /// report zero countable words and hand the stylometry an empty text.
+    /// Erring towards Line means an unknown element behaves exactly as it
+    /// did when it was being flattened into a line, which is the status quo.
+    /// </summary>
+    private static readonly Dictionary<string, string> BlockKinds = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ["speaker"] = TextNodeKinds.Speaker,
+        ["stage"] = TextNodeKinds.Stage,
+        ["head"] = TextNodeKinds.Head,
+        ["label"] = TextNodeKinds.Head,
+        ["title"] = TextNodeKinds.Head,
+        ["castItem"] = TextNodeKinds.Cast,
+        ["trailer"] = TextNodeKinds.Paratext,
+        ["closer"] = TextNodeKinds.Paratext,
+        ["opener"] = TextNodeKinds.Paratext,
+        ["salute"] = TextNodeKinds.Paratext,
+        ["signed"] = TextNodeKinds.Paratext,
+        ["dateline"] = TextNodeKinds.Paratext,
+        ["byline"] = TextNodeKinds.Paratext,
+        ["docAuthor"] = TextNodeKinds.Attribution,
+        ["docDate"] = TextNodeKinds.Attribution
+    };
+
+    private static string KindFor(string localName) =>
+        BlockKinds.TryGetValue(localName, out var kind) ? kind : TextNodeKinds.Line;
+
+    /// <summary>
+    /// Whether an element contains anything WalkDiv would recognise.
+    ///
+    /// This is the test that decides between descending and emitting. A
+    /// &lt;castGroup&gt; holds &lt;castItem&gt;s and must be descended into
+    /// or its entries collapse into one blob; a &lt;trailer&gt; holds only
+    /// its own words and must be emitted or it is lost. Both are elements
+    /// this parser has no branch for, and only their contents tell them
+    /// apart.
+    /// </summary>
+    private static bool HasHandledDescendant(XElement element) =>
+        element.Descendants().Any(d =>
+            HandledElements.Contains(d.Name.LocalName) || IsDivElement(d));
+
+    /// <summary>
+    /// Whether a &lt;label&gt; is the speaker tag of the speech it sits in.
+    ///
+    /// Perseus encodes dramatic dialogue one way and Platonic dialogue
+    /// another. Tragedy and comedy use &lt;sp&gt;&lt;speaker&gt;; the
+    /// dialogues put the attribution in a &lt;label&gt; inside the
+    /// &lt;said&gt; - "ΣΩ.", "Soc.", "ΚΑΛ." - which then flattens into the
+    /// line and is tokenised as a word. Measured over canonical-greekLit:
+    /// 4.1% of Gorgias and 1.9% of the Laws by word count.
+    ///
+    /// Both halves of the test are load-bearing, and each was arrived at by
+    /// running it over all 1,612 Greek editions:
+    ///
+    ///   @who alone misfires on 4 entries - the Symposium wraps section
+    ///   summaries ("The Speech of Pausanias") in a &lt;label&gt; inside a
+    ///   &lt;said who="..."&gt;, and those are headings, not attributions.
+    ///
+    ///   The shape test alone misfires on 2,113 - Josephus numbers his
+    ///   paragraphs α. β. γ. in a &lt;label&gt; inside a &lt;p&gt;, which
+    ///   looks exactly like an abbreviated speaker and is not one.
+    ///
+    /// Together they classify 25,820 labels and nothing else in the corpus.
+    ///
+    /// A length rule alone was tried and rejected: "Hermogenes." is eleven
+    /// characters and a speaker, "ΣΩ." is three, and "The Speech of
+    /// Socrates" is not one at any length.
+    /// </summary>
+    private static bool IsSpeakerLabel(XElement label)
+    {
+        var said = label.Ancestors().FirstOrDefault(a =>
+            string.Equals(a.Name.LocalName, "said", StringComparison.OrdinalIgnoreCase));
+
+        if (said?.Attributes().Any(a =>
+                string.Equals(a.Name.LocalName, "who", StringComparison.OrdinalIgnoreCase)) != true)
+        {
+            return false;
+        }
+
+        var text = FlattenText(label);
+        if (text.Length == 0 || text.Length > 12) return false;
+
+        // A name, so at least one letter. Nothing in the corpora needs this
+        // - there are no letterless labels inside a speech - but without it
+        // the All() below is vacuously true for "1." and a numbered label
+        // would read as a speaker the first time one appeared.
+        if (!text.Any(char.IsLetter)) return false;
+
+        return text.EndsWith('.') || text.Where(char.IsLetter).All(char.IsUpper);
+    }
+
+    /// <summary>
     /// Elements whose content is editorial commentary about the text rather
     /// than the text itself, and which must never reach a TextNode.
     ///
@@ -131,6 +245,9 @@ public class TeiParser
         /// this is a flag rather than brackets in Text.
         /// </summary>
         public bool IsAthetized { get; set; }
+
+        /// <summary>See <see cref="TextNode.NodeKind"/>.</summary>
+        public string NodeKind { get; set; } = TextNodeKinds.Line;
     }
 
     /// <summary>
@@ -471,25 +588,13 @@ public class TeiParser
                 // (EditionId, CitationRef) - existing bookmarks and tags on
                 // those works would silently point at the wrong line. A named
                 // segment is unambiguous and leaves the numbering alone.
-                var headText = FlattenText(child);
-                if (string.IsNullOrWhiteSpace(headText)) continue;
-
-                var headTrail = new List<string>(citationTrail);
-                var headKey = string.Join(".", citationTrail) + ":head";
-                leafCounters.TryGetValue(headKey, out var headsSeen);
-                leafCounters[headKey] = headsSeen + 1;
-
-                // Second and subsequent heads under one trail are numbered;
-                // the first is plain "head", which is the overwhelmingly
-                // common case and reads better in a citation.
-                headTrail.Add(headsSeen == 0 ? "head" : $"head{headsSeen + 1}");
-
-                nodes.Add(new ParsedNode
-                {
-                    CitationRef = CapCitationRef(string.Join(".", headTrail)),
-                    SortOrder = sortCounter++,
-                    Text = headText
-                });
+                //
+                // Second and subsequent heads under one trail are numbered; the
+                // first is plain "head", which is the overwhelmingly common case
+                // and reads better in a citation.
+                var headsSeen = NextSegmentNumber(citationTrail, "head", leafCounters);
+                EmitBlock(child, citationTrail, headsSeen == 1 ? "head" : $"head{headsSeen}",
+                          TextNodeKinds.Head, nodes, ref sortCounter);
             }
             else if (string.Equals(child.Name.LocalName, "castItem", StringComparison.OrdinalIgnoreCase))
             {
@@ -503,27 +608,9 @@ public class TeiParser
                 // Cornwall" and "Daughters to Lear", because those are <head>
                 // elements - so the reader showed a dramatis personae listing
                 // two group labels and not one character.
-                //
-                // Named "cast1", "cast2" segments rather than numbers from the
-                // leaf counter, for the same reason <head> is: consuming
-                // counter slots would renumber every sibling leaf after them,
-                // and annotations resolve through (EditionId, CitationRef), so
-                // existing bookmarks and tags would silently move.
-                var castText = FlattenText(child);
-                if (string.IsNullOrWhiteSpace(castText)) continue;
-
-                var castKey = string.Join(".", citationTrail) + ":cast";
-                leafCounters.TryGetValue(castKey, out var castSeen);
-                leafCounters[castKey] = castSeen + 1;
-
-                var castTrail = new List<string>(citationTrail) { $"cast{castSeen + 1}" };
-
-                nodes.Add(new ParsedNode
-                {
-                    CitationRef = CapCitationRef(string.Join(".", castTrail)),
-                    SortOrder = sortCounter++,
-                    Text = castText
-                });
+                var castSeen = NextSegmentNumber(citationTrail, "cast", leafCounters);
+                EmitBlock(child, citationTrail, $"cast{castSeen}",
+                          TextNodeKinds.Cast, nodes, ref sortCounter);
             }
             else if (string.Equals(child.Name.LocalName, "stage", StringComparison.OrdinalIgnoreCase))
             {
@@ -537,26 +624,26 @@ public class TeiParser
                 // vanishes", "The Chorus of captive Trojan women enters". A
                 // play read without them is a play with the exits and
                 // entrances removed. King Lear has 291.
-                //
-                // Named segments, not counter numbers - see <head> above.
-                var stageText = FlattenText(child);
-                if (string.IsNullOrWhiteSpace(stageText)) continue;
-
-                var stageKey = string.Join(".", citationTrail) + ":stage";
-                leafCounters.TryGetValue(stageKey, out var stageSeen);
-                leafCounters[stageKey] = stageSeen + 1;
-
-                var stageTrail = new List<string>(citationTrail) { $"stage{stageSeen + 1}" };
-
-                nodes.Add(new ParsedNode
-                {
-                    CitationRef = CapCitationRef(string.Join(".", stageTrail)),
-                    SortOrder = sortCounter++,
-                    Text = stageText
-                });
+                var stageSeen = NextSegmentNumber(citationTrail, "stage", leafCounters);
+                EmitBlock(child, citationTrail, $"stage{stageSeen}",
+                          TextNodeKinds.Stage, nodes, ref sortCounter);
             }
             else if (LeafElements.Contains(child.Name.LocalName))
             {
+                // Any speaker tag inside this speech comes out first, so it
+                // precedes the words spoken in reading order. See
+                // IsSpeakerLabel: Perseus puts Plato's attributions inside the
+                // <said> rather than beside it, and FlattenElement drops them
+                // from the line so they are not counted twice.
+                foreach (var label in child.Descendants().Where(d =>
+                             string.Equals(d.Name.LocalName, "label", StringComparison.OrdinalIgnoreCase)
+                             && IsSpeakerLabel(d)))
+                {
+                    var speakerSeen = NextSegmentNumber(citationTrail, "speaker", leafCounters);
+                    EmitBlock(label, citationTrail, $"speaker{speakerSeen}",
+                              TextNodeKinds.Speaker, nodes, ref sortCounter);
+                }
+
                 var n = child.Attribute("n")?.Value;
                 var trail = new List<string>(citationTrail);
 
@@ -583,16 +670,101 @@ public class TeiParser
                     IsAthetized = ContainsAthetizedText(child),
                     CitationRef = leafRef,
                     SortOrder = sortCounter++,
-                    Text = text.Trim()
+                    Text = text.Trim(),
+                    NodeKind = TextNodeKinds.Line
                 });
+            }
+            else if (!HasHandledDescendant(child))
+            {
+                // An element with no branch of its own and nothing inside it
+                // that has one. Descending, which is what used to happen, can
+                // only reach a dead end - so its words were lost outright.
+                //
+                // This is the same failure that took King Lear's cast list and
+                // Hecuba's stage directions, and it had more members than
+                // those two. Measured across the Perseus Greek, Latin and
+                // English corpora: <speaker> in every play (42,448 in Greek
+                // alone), <item> in Holinshed's lists, <trailer>, <closer>,
+                // <opener>, <salute>, <signed>, <dateline>, <label>, <ab>,
+                // <docAuthor> - the Greek Anthology's poet attributions, so
+                // the epigrams read without knowing who wrote them.
+                //
+                // Handled as a family rather than one branch per element,
+                // because the list of elements is open and the test is not:
+                // if nothing inside can be reached, the element itself is the
+                // content. An element that DOES contain something handled -
+                // <castGroup> around its <castItem>s, <sp> around its lines -
+                // still falls through to the descent below.
+                //
+                // The reference segment is the element's own name, so a
+                // citation says what it points at: "1.2.speaker1", "3.item4".
+                var name = child.Name.LocalName;
+                var seen = NextSegmentNumber(citationTrail, name.ToLowerInvariant(), leafCounters);
+                EmitBlock(child, citationTrail, $"{name.ToLowerInvariant()}{seen}",
+                          KindFor(name), nodes, ref sortCounter);
             }
             else
             {
-                // Unrecognized wrapper element (e.g. <sp>, <head>) - descend
-                // into it without adding to the citation trail.
+                // Unrecognized wrapper element (e.g. <sp>, <castGroup>) -
+                // descend into it without adding to the citation trail.
                 WalkDiv(child, citationTrail, nodes, ref sortCounter, leafCounters);
             }
         }
+    }
+
+    /// <summary>
+    /// Reserves the next number for a named reference segment under this
+    /// trail - "head", "cast3", "speaker12".
+    ///
+    /// Named segments rather than numbers from the leaf counter, for the
+    /// reason &lt;head&gt; has always used one: consuming a counter slot
+    /// renumbers every sibling leaf after it, and annotations resolve through
+    /// (EditionId, CitationRef), so existing bookmarks and tags would
+    /// silently move to a different line. The counters dictionary is shared,
+    /// but each segment name keys its own entry, so they cannot collide with
+    /// the line numbering or with each other.
+    /// </summary>
+    private static int NextSegmentNumber(
+        List<string> citationTrail, string segmentName, Dictionary<string, int> leafCounters)
+    {
+        var key = string.Join(".", citationTrail) + ":" + segmentName;
+        leafCounters.TryGetValue(key, out var seen);
+        leafCounters[key] = seen + 1;
+        return seen + 1;
+    }
+
+    /// <summary>
+    /// Emits one non-leaf block as a TextNode under a named reference
+    /// segment, and collects any apparatus it carries.
+    ///
+    /// The apparatus collection is the part that is easy to leave out.
+    /// ExtractApparatus used to run only on leaves, so a &lt;note&gt; inside
+    /// a heading reached neither the text (FlattenText skips notes, as it
+    /// must) nor the Editor's Notes pane. 24 notes and 14,422 characters
+    /// across the Greek corpus, 11,025 of them in three notes on headings in
+    /// the German Thucydides.
+    /// </summary>
+    private void EmitBlock(
+        XElement element,
+        List<string> citationTrail,
+        string segment,
+        string kind,
+        List<ParsedNode> nodes,
+        ref int sortCounter)
+    {
+        var text = FlattenText(element);
+        if (string.IsNullOrWhiteSpace(text)) return;
+
+        var reference = CapCitationRef(string.Join(".", new List<string>(citationTrail) { segment }));
+        _apparatus.AddRange(ExtractApparatus(element, reference));
+
+        nodes.Add(new ParsedNode
+        {
+            CitationRef = reference,
+            SortOrder = sortCounter++,
+            Text = text.Trim(),
+            NodeKind = kind
+        });
     }
 
     private static string FlattenText(XElement element)
@@ -630,6 +802,15 @@ public class TeiParser
             if (node is not XElement child) continue;
 
             var name = child.Name.LocalName;
+
+            // A speaker tag is emitted as its own node by WalkDiv, so it must
+            // not also appear inside the speech - otherwise Plato reads
+            // "ΣΩ. ΣΩ. ἐξ ἀγορᾶς..." and the tag is still counted as a word.
+            if (string.Equals(name, "label", StringComparison.OrdinalIgnoreCase)
+                && IsSpeakerLabel(child))
+            {
+                continue;
+            }
 
             if (string.Equals(name, "app", StringComparison.OrdinalIgnoreCase))
             {
@@ -703,7 +884,8 @@ public class TeiParser
             CitationRef = p.CitationRef,
             SortOrder = p.SortOrder,
             Text = p.Text,
-            IsAthetized = p.IsAthetized
+            IsAthetized = p.IsAthetized,
+            NodeKind = p.NodeKind
         }).ToList();
     }
 }

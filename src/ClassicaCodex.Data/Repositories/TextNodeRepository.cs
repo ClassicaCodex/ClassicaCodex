@@ -64,30 +64,50 @@ public class TextNodeRepository
             for (var i = 0; i < batchSize; i++)
             {
                 var node = nodes[offset + i];
-                valueRows.Add($"(@e{i},@c{i},@s{i},@t{i},@a{i})");
+                valueRows.Add($"(@e{i},@c{i},@s{i},@t{i},@a{i},@k{i})");
                 cmd.Parameters.AddWithValue($"@e{i}", node.EditionId);
                 cmd.Parameters.AddWithValue($"@c{i}", node.CitationRef);
                 cmd.Parameters.AddWithValue($"@s{i}", node.SortOrder);
                 cmd.Parameters.AddWithValue($"@t{i}", node.Text);
                 cmd.Parameters.AddWithValue($"@a{i}", node.IsAthetized ? 1 : 0);
+                cmd.Parameters.AddWithValue($"@k{i}",
+                    string.IsNullOrWhiteSpace(node.NodeKind) ? TextNodeKinds.Line : node.NodeKind);
             }
 
             cmd.CommandText =
-                $"INSERT INTO TextNodes (EditionId, CitationRef, SortOrder, Text, IsAthetized) VALUES {string.Join(",", valueRows)};";
+                $"INSERT INTO TextNodes (EditionId, CitationRef, SortOrder, Text, IsAthetized, NodeKind) VALUES {string.Join(",", valueRows)};";
             await cmd.ExecuteNonQueryAsync(cancellationToken);
         }
 
         await transaction.CommitAsync(cancellationToken);
     }
 
-    public async Task<List<TextNode>> GetByEditionAsync(int editionId, CancellationToken cancellationToken = default)
+    /// <param name="readingLinesOnly">
+    /// Restricts the result to nodes the author wrote - see
+    /// <see cref="TextNode.NodeKind"/>. False for anything that displays or
+    /// exports an edition, since a play needs its speakers and stage
+    /// directions; true for anything that counts words, since those are not
+    /// the author's vocabulary.
+    ///
+    /// COALESCE rather than a bare comparison because a library ingested
+    /// before migration 14 has the column but not the labelling: every row
+    /// reads 'line', which is what those rows were being treated as anyway.
+    /// </param>
+    public async Task<List<TextNode>> GetByEditionAsync(
+        int editionId, bool readingLinesOnly = false, CancellationToken cancellationToken = default)
     {
         var results = new List<TextNode>();
         await using var conn = await DbConnectionFactory.OpenConnectionAsync(cancellationToken);
 
-        const string sql = @"SELECT TextNodeId, EditionId, CitationRef, SortOrder, Text,
-                                    COALESCE(IsAthetized, 0)
-                             FROM TextNodes WHERE EditionId = @EditionId ORDER BY SortOrder;";
+        var kindFilter = readingLinesOnly
+            ? "AND COALESCE(NodeKind, 'line') = 'line' "
+            : string.Empty;
+
+        var sql = @"SELECT TextNodeId, EditionId, CitationRef, SortOrder, Text,
+                           COALESCE(IsAthetized, 0), COALESCE(NodeKind, 'line')
+                    FROM TextNodes
+                    WHERE EditionId = @EditionId " + kindFilter + "ORDER BY SortOrder;";
+
         await using var cmd = conn.CreateCommand();
         cmd.CommandText = sql;
         cmd.Parameters.AddWithValue("@EditionId", editionId);
@@ -102,7 +122,8 @@ public class TextNodeRepository
                 CitationRef = reader.GetString(2),
                 SortOrder = reader.GetInt32(3),
                 Text = reader.GetString(4),
-                IsAthetized = reader.GetInt32(5) != 0
+                IsAthetized = reader.GetInt32(5) != 0,
+                NodeKind = reader.GetString(6)
             });
         }
 
@@ -626,7 +647,8 @@ public class TextNodeRepository
         await using var conn = await DbConnectionFactory.OpenConnectionAsync(cancellationToken);
 
         const string sql = @"
-            SELECT TextNodeId, EditionId, CitationRef, SortOrder, Text
+            SELECT TextNodeId, EditionId, CitationRef, SortOrder, Text,
+                   COALESCE(NodeKind, 'line')
             FROM TextNodes
             WHERE EditionId = @EditionId
               AND SortOrder >= (SELECT SortOrder FROM TextNodes WHERE TextNodeId = @StartId)
@@ -648,7 +670,8 @@ public class TextNodeRepository
                 EditionId = reader.GetInt32(1),
                 CitationRef = reader.GetString(2),
                 SortOrder = reader.GetInt32(3),
-                Text = reader.GetString(4)
+                Text = reader.GetString(4),
+                NodeKind = reader.GetString(5)
             });
         }
 

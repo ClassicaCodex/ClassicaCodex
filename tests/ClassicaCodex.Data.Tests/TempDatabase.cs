@@ -88,7 +88,8 @@ public sealed class TempDatabase : IDisposable
             (9,  "StylometryRuns", "TargetTokenCount"),
             (10, "StylometryRuns", "ChunkSize"),
             (11, "TextNodes",      "IsAthetized"),
-            (13, "Editions",       "Orthography")
+            (13, "Editions",       "Orthography"),
+            (14, "TextNodes",      "NodeKind")
         };
 
         foreach (var c in columns)

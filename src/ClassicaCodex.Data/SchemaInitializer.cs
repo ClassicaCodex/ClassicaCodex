@@ -55,7 +55,7 @@ public static class SchemaInitializer
     /// 7 to 13 until version 3 was cut, at which point they all failed at
     /// once and said nothing about what had actually broken.
     /// </summary>
-    public const int TargetSchemaVersion = 13;
+    public const int TargetSchemaVersion = 14;
 
     public static async Task EnsureSchemaAsync(CancellationToken cancellationToken = default)
     {
@@ -634,6 +634,33 @@ public static class SchemaInitializer
         [13] = new[]
         {
             @"ALTER TABLE Editions ADD COLUMN Orthography TEXT NULL;"
+        },
+
+        // v14: what sort of thing each text node is.
+        //
+        // TextNodes holds more than the author's words, and has since the
+        // parser learned to stop dropping headings, cast lists and stage
+        // directions. Everything in it belongs on the page - a play without
+        // its speakers is unreadable - but not all of it is language the
+        // author wrote, and every word in Text is tokenised, counted and fed
+        // to Burrows's Delta.
+        //
+        // Nothing filtered by anything, because there was nothing to filter
+        // by. Measured across the corpora before this column existed:
+        // headings, cast entries and stage directions were 0.5% of the word
+        // stream overall but 6.8% of Holinshed's first history and 3-5% of
+        // the Terence translations. Adding the 42,448 dropped speaker
+        // attributions in the Greek alone would have pushed a play towards
+        // 8%, with "ΣΩ." and "Ham." among its most frequent tokens.
+        //
+        // Defaulting to 'line' is what makes this safe on an existing
+        // library: every row already there was reading text as far as
+        // anything downstream was concerned, and stays counted. Only a
+        // re-ingest labels the rest, and until then the behaviour is exactly
+        // what it was.
+        [14] = new[]
+        {
+            @"ALTER TABLE TextNodes ADD COLUMN NodeKind TEXT NOT NULL DEFAULT 'line';"
         }
     };
 
@@ -696,6 +723,7 @@ public static class SchemaInitializer
             SortOrder   INTEGER NOT NULL,
             Text        TEXT NOT NULL,
             IsAthetized INTEGER NOT NULL DEFAULT 0,
+            NodeKind    TEXT NOT NULL DEFAULT 'line',
             CONSTRAINT FK_TextNodes_Editions FOREIGN KEY (EditionId) REFERENCES Editions(EditionId)
         );",
 

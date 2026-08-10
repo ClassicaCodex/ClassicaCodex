@@ -1,3 +1,4 @@
+using ClassicaCodex.Core.Models;
 using ClassicaCodex.Ingestion;
 using Xunit;
 
@@ -66,10 +67,19 @@ public class DramaParsingTests
             <sp><speaker>Ghost</speaker><l n=""1"">I have come from out the charnel-house</l></sp>
             <stage>The Ghost vanishes.</stage>"));
 
-        Assert.Equal(3, nodes.Count);
-        Assert.Equal("Before Agamemnon's tent.", nodes[0].Text);
-        Assert.Equal("I have come from out the charnel-house", nodes[1].Text);
-        Assert.Equal("The Ghost vanishes.", nodes[2].Text);
+        // Four, not three: the speech carries its speaker. This test asserted
+        // three while <speaker> was being dropped, which is exactly the shape
+        // of loss it exists to catch - so it now names each part rather than
+        // counting them, and a part going missing says which one.
+        Assert.Collection(nodes,
+            n => Assert.Equal("Before Agamemnon's tent.", n.Text),
+            n => Assert.Equal("Ghost", n.Text),
+            n => Assert.Equal("I have come from out the charnel-house", n.Text),
+            n => Assert.Equal("The Ghost vanishes.", n.Text));
+
+        Assert.Equal(
+            new[] { TextNodeKinds.Stage, TextNodeKinds.Speaker, TextNodeKinds.Line, TextNodeKinds.Stage },
+            nodes.Select(n => n.NodeKind));
     }
 
     /// <summary>
@@ -115,8 +125,13 @@ public class DramaParsingTests
             </note>
             <sp><speaker>Ghost</speaker><l>I have come from out the charnel-house</l></sp>"));
 
-        Assert.Single(nodes);
-        Assert.StartsWith("I have come", nodes[0].Text);
+        // The note stays out of the text; the speech keeps its speaker. Both
+        // halves matter together: this is the test that pins the boundary
+        // between "editorial, goes to the apparatus" and "on the page, goes
+        // to a node".
+        Assert.Equal(new[] { "Ghost", "I have come from out the charnel-house" },
+            nodes.Select(n => n.Text));
+        Assert.DoesNotContain(nodes, n => n.Text.Contains("Dramatis Personae"));
 
         var entry = Assert.Single(parser.LastApparatus);
         Assert.Contains("Ghost of Polydorus", entry.Content);

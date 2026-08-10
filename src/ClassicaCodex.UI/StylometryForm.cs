@@ -706,7 +706,15 @@ public class StylometryForm : Form
 
     private List<string> TokenizeWork(WorkItem work, bool foldAccents)
     {
-        var nodes = _textNodeRepo.GetByEditionAsync(work.EditionId).GetAwaiter().GetResult();
+        // Reading lines only. Delta is a measure over relative word
+        // frequencies, so anything in the text that the author did not write
+        // competes for the same frequency table - and speaker tags are
+        // exactly the kind of very high frequency, very short token the
+        // measure weights most heavily. Gorgias is 4.1% speaker
+        // abbreviations by word count.
+        var nodes = _textNodeRepo
+            .GetByEditionAsync(work.EditionId, readingLinesOnly: true)
+            .GetAwaiter().GetResult();
         var text = string.Join(' ', nodes.Select(n => n.Text));
         var tokens = new List<string>();
 
