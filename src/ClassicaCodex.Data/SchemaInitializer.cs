@@ -49,8 +49,13 @@ public static class SchemaInitializer
     /// library gets brought forward on the next launch without the user
     /// doing anything - and without "delete your database and re-ingest"
     /// ever being the release note.
+    ///
+    /// Public so the tests can assert against this number rather than a copy
+    /// of it. Nine tests hardcoded 6 and went on passing through migrations
+    /// 7 to 13 until version 3 was cut, at which point they all failed at
+    /// once and said nothing about what had actually broken.
     /// </summary>
-    private const int TargetSchemaVersion = 13;
+    public const int TargetSchemaVersion = 13;
 
     public static async Task EnsureSchemaAsync(CancellationToken cancellationToken = default)
     {

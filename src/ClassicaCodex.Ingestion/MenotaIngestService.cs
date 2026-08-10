@@ -711,8 +711,12 @@ public class MenotaIngestService
     /// This is the same shape of mistake as the inline apparatus read as text,
     /// running the other way: markup that carries a coordinate rather than a
     /// comment, in an element whose name says comment.
+    ///
+    /// Public, with AddApparatus below, so the tests can exercise the rules
+    /// directly rather than through a whole ingest - the same reason
+    /// CountWords and ResolvePath are.
     /// </summary>
-    private static bool IsApparatus(XElement note) =>
+    public static bool IsApparatus(XElement note) =>
         (string?)note.Attribute("type") != "location";
 
     private static void CollectApparatus(
@@ -758,7 +762,7 @@ public class MenotaIngestService
     /// the corpus - no note misfiled as a variant, no variant misfiled as a
     /// note.
     /// </summary>
-    private static void AddApparatus(
+    public static void AddApparatus(
         XElement note, string level, string citationRef, int order, List<ApparatusEntry> apparatus)
     {
         var content = NoteText(note, level);

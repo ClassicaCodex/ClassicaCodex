@@ -112,7 +112,7 @@ public class EditionHeaderTests
     {
         using var db = await TempDatabase.CreateAsync();
 
-        Assert.Equal(6, await db.ScalarAsync<int>("PRAGMA user_version;"));
+        Assert.Equal(SchemaInitializer.TargetSchemaVersion, await db.ScalarAsync<int>("PRAGMA user_version;"));
         Assert.True(await db.TableExistsAsync("EditionHeaders"));
         Assert.True(await db.TableExistsAsync("EditionResponsibilities"));
         Assert.True(await db.TableExistsAsync("RecentSearches"));
@@ -136,7 +136,7 @@ public class EditionHeaderTests
 
         await SchemaInitializer.EnsureSchemaAsync();
 
-        Assert.Equal(6, await db.ScalarAsync<int>("PRAGMA user_version;"));
+        Assert.Equal(SchemaInitializer.TargetSchemaVersion, await db.ScalarAsync<int>("PRAGMA user_version;"));
         Assert.True(await db.TableExistsAsync("EditionHeaders"));
 
         var bookmark = Assert.Single(await new BookmarkRepository().GetAllAsync());
@@ -160,13 +160,14 @@ public class EditionHeaderTests
         using var db = await TempDatabase.CreateAsync();
         await db.ExecuteAsync(
             "DROP TABLE RecentSearches; DROP TABLE EditionResponsibilities; " +
-            "DROP TABLE EditionHeaders; PRAGMA user_version = 2;");
+            "DROP TABLE EditionHeaders;");
+        await db.RewindSchemaAsync(2);
 
         Assert.False(await db.TableExistsAsync("EditionHeaders"));
 
         await SchemaInitializer.EnsureSchemaAsync();
 
-        Assert.Equal(6, await db.ScalarAsync<int>("PRAGMA user_version;"));
+        Assert.Equal(SchemaInitializer.TargetSchemaVersion, await db.ScalarAsync<int>("PRAGMA user_version;"));
         Assert.True(await db.TableExistsAsync("EditionHeaders"));
         Assert.True(await db.TableExistsAsync("EditionResponsibilities"));
         Assert.True(await db.TableExistsAsync("RecentSearches"));

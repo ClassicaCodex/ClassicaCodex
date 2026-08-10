@@ -18,7 +18,7 @@ public class SchemaMigrationTests
     {
         using var db = await TempDatabase.CreateAsync();
 
-        Assert.Equal(6, await db.ScalarAsync<int>("PRAGMA user_version;"));
+        Assert.Equal(SchemaInitializer.TargetSchemaVersion, await db.ScalarAsync<int>("PRAGMA user_version;"));
     }
 
     [Fact]
@@ -29,7 +29,7 @@ public class SchemaMigrationTests
         await SchemaInitializer.EnsureSchemaAsync();
         await SchemaInitializer.EnsureSchemaAsync();
 
-        Assert.Equal(6, await db.ScalarAsync<int>("PRAGMA user_version;"));
+        Assert.Equal(SchemaInitializer.TargetSchemaVersion, await db.ScalarAsync<int>("PRAGMA user_version;"));
         Assert.True(await db.TableExistsAsync("PassageTags"));
     }
 
@@ -41,7 +41,7 @@ public class SchemaMigrationTests
 
         await SchemaInitializer.EnsureSchemaAsync();
 
-        Assert.Equal(6, await db.ScalarAsync<int>("PRAGMA user_version;"));
+        Assert.Equal(SchemaInitializer.TargetSchemaVersion, await db.ScalarAsync<int>("PRAGMA user_version;"));
         Assert.True(await db.TableExistsAsync("PassageTags"));
         Assert.False(await db.TableExistsAsync("TextNodeTags"));
     }
@@ -158,7 +158,7 @@ public class SchemaMigrationTests
 
         await SchemaInitializer.EnsureSchemaAsync();
 
-        Assert.Equal(6, await db.ScalarAsync<int>("PRAGMA user_version;"));
+        Assert.Equal(SchemaInitializer.TargetSchemaVersion, await db.ScalarAsync<int>("PRAGMA user_version;"));
         var bookmark = Assert.Single(await new BookmarkRepository().GetAllAsync());
         Assert.Equal("note", bookmark.Note);
     }

@@ -193,7 +193,7 @@ public class RecentSearchTests
     {
         using var db = await TempDatabase.CreateAsync();
 
-        Assert.Equal(6, await db.ScalarAsync<int>("PRAGMA user_version;"));
+        Assert.Equal(SchemaInitializer.TargetSchemaVersion, await db.ScalarAsync<int>("PRAGMA user_version;"));
         Assert.True(await db.TableExistsAsync("RecentSearches"));
     }
 
@@ -259,8 +259,9 @@ public class RecentSearchTests
                 CreatedAt      TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
                 CONSTRAINT UQ_SavedSearches_Name UNIQUE (Name));
             INSERT INTO RecentSearches (Name, Query, MatchMode, CreatedAt)
-                VALUES ('carried over', 'q', 'Contains', '2026-01-01T00:00:00.0000000');
-            PRAGMA user_version = 5;");
+                VALUES ('carried over', 'q', 'Contains', '2026-01-01T00:00:00.0000000');");
+
+        await db.RewindSchemaAsync(5);
 
         await SchemaInitializer.EnsureSchemaAsync();
 
@@ -309,7 +310,7 @@ public class RecentSearchTests
 
         await SchemaInitializer.EnsureSchemaAsync();
 
-        Assert.Equal(6, await db.ScalarAsync<int>("PRAGMA user_version;"));
+        Assert.Equal(SchemaInitializer.TargetSchemaVersion, await db.ScalarAsync<int>("PRAGMA user_version;"));
         Assert.True(await db.TableExistsAsync("RecentSearches"));
         Assert.Equal("keep me", Assert.Single(await new BookmarkRepository().GetAllAsync()).Note);
         Assert.Equal(0, await db.ScalarAsync<long>("SELECT COUNT(*) FROM pragma_foreign_key_check;"));

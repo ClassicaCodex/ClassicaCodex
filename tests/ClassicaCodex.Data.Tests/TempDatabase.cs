@@ -65,6 +65,44 @@ public sealed class TempDatabase : IDisposable
         return db;
     }
 
+    /// <summary>
+    /// Puts a current database back into the shape it had at an earlier
+    /// version, so that stamping user_version back to that number describes
+    /// something true.
+    ///
+    /// Several tests fake an older library by dropping a table or two and
+    /// re-stamping the version. That worked while every later migration was a
+    /// CREATE TABLE IF NOT EXISTS, which is harmless to re-run. Migrations 9
+    /// through 13 are ALTER TABLE ADD COLUMN, which is not: re-running one
+    /// against a column that already exists throws, and two tests started
+    /// failing with a SQLite error rather than an assertion.
+    ///
+    /// So the added columns come back off. This list has to grow whenever a
+    /// migration adds a column - which is the point of naming the migration
+    /// beside each one.
+    /// </summary>
+    public async Task RewindSchemaAsync(int toVersion)
+    {
+        var columns = new (int Migration, string Table, string Column)[]
+        {
+            (9,  "StylometryRuns", "TargetTokenCount"),
+            (10, "StylometryRuns", "ChunkSize"),
+            (11, "TextNodes",      "IsAthetized"),
+            (13, "Editions",       "Orthography")
+        };
+
+        foreach (var c in columns)
+        {
+            if (c.Migration <= toVersion) continue;
+            if (!await TableExistsAsync(c.Table)) continue;
+            if (!(await ColumnNamesAsync(c.Table)).Contains(c.Column)) continue;
+
+            await ExecuteAsync($"ALTER TABLE {c.Table} DROP COLUMN {c.Column};");
+        }
+
+        await ExecuteAsync($"PRAGMA user_version = {toVersion};");
+    }
+
     public async Task ExecuteAsync(string sql)
     {
         await using var conn = await DbConnectionFactory.OpenConnectionAsync();
