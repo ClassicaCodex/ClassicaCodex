@@ -171,7 +171,7 @@ any ranking should be believed.
 
 ## Status
 
-Version 3.0.
+Version 3.0.1.
 
 Version 1 was a reader. Version 2 made it a searchable, taggable,
 cross-referenced library and added the translation workbench. Version 3 adds the
@@ -179,7 +179,20 @@ Medieval Nordic manuscript reader and its editorial apparatus — a different ki
 of text from the printed editions the rest of the library holds, and the first
 material here where the manuscript evidence is visible rather than settled.
 
-The schema has moved through thirteen migrations. Existing databases upgrade in
+3.0.1 is a corpus-accuracy release. Speech attributions were being dropped from
+every play in the library — 42,448 of them in the Greek alone, and every Terence
+comedy and Shakespeare play besides — along with list entries, colophons and the
+Greek Anthology's poet attributions. Plato's attributions had the opposite
+problem: they were being counted as vocabulary, so Gorgias read as 4.1% "ΣΩ." by
+word count. Text nodes now record what kind of thing they are, which lets the
+reader show a play's speakers while the word counts and the stylometry ignore
+them.
+
+Re-ingesting is what applies this to an existing library — the text that was
+dropped was never stored, so a migration cannot recover it. Citation references
+are unchanged, so annotations, bookmarks and tags survive re-ingesting intact.
+
+The schema has moved through fourteen migrations. Existing databases upgrade in
 place on first launch — annotations, bookmarks and tags are carried forward.
 
 Built for my own reading, and shared in case it's useful to someone else doing
