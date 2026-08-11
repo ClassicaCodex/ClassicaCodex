@@ -44,7 +44,41 @@ namespace ClassicaCodex.Core;
 /// </summary>
 public static class GeminiTranslationService
 {
-    private static readonly HttpClient s_httpClient = new() { Timeout = TimeSpan.FromSeconds(60) };
+    /// <summary>
+    /// No timeout on the client itself - each request sets its own, in
+    /// SendAsync.
+    ///
+    /// HttpClient.Timeout is a property of the client, not the call, and this
+    /// one client serves requests that are not remotely alike: a single line
+    /// to translate is a few hundred characters, while an echo search hands
+    /// over up to 250,000 and asks the model to read all of them. A number
+    /// generous enough for the second leaves the first hanging for minutes on
+    /// a request that was never coming back.
+    ///
+    /// Infinite here is only safe because SendAsync is the sole place a
+    /// request is sent and it always applies a timeout of its own. A second
+    /// send site that forgot to would wait forever.
+    /// </summary>
+    private static readonly HttpClient s_httpClient = new() { Timeout = Timeout.InfiniteTimeSpan };
+
+    /// <summary>
+    /// How long to wait, given how much the model was asked to read.
+    ///
+    /// Scaled by prompt size rather than set per caller, because size is the
+    /// thing that actually makes a request slow and the code can measure it
+    /// without being told. A line to translate gets the floor; a whole play
+    /// handed over for comparison gets roughly three minutes.
+    ///
+    /// The ceiling matters as much as the floor. This runs on a dialog
+    /// somebody is sitting in front of, and past a few minutes the honest
+    /// thing is to say it did not work rather than to keep them waiting on
+    /// the chance that it might.
+    /// </summary>
+    private static TimeSpan TimeoutFor(string prompt)
+    {
+        var seconds = 60 + prompt.Length / 2000;
+        return TimeSpan.FromSeconds(Math.Min(seconds, 240));
+    }
 
     private const string PrimaryModel = "gemini-3.5-flash";
     private const string FallbackModel = "gemini-3.1-flash-lite";
@@ -503,29 +537,54 @@ public static class GeminiTranslationService
         };
         request.Headers.Add("x-goog-api-key", apiKey);
 
-        using var response = await s_httpClient.SendAsync(request, cancellationToken);
-        var responseText = await response.Content.ReadAsStringAsync(cancellationToken);
+        var timeout = TimeoutFor(prompt);
+        using var timeoutSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        timeoutSource.CancelAfter(timeout);
 
-        if (!response.IsSuccessStatusCode)
+        HttpResponseMessage response;
+        string responseText;
+
+        try
         {
-            var message = ExtractErrorMessage(responseText, response.StatusCode);
-
-            // Status code first where Google's own signal is unambiguous -
-            // 429 always means a rate/quota limit regardless of wording.
-            if (response.StatusCode == HttpStatusCode.TooManyRequests)
-                throw new QuotaExceededException(message);
-
-            if (message.Contains("no longer available", StringComparison.OrdinalIgnoreCase))
-                throw new ModelUnavailableException(message);
-
-            if (message.Contains("high demand", StringComparison.OrdinalIgnoreCase)
-                || message.Contains("overloaded", StringComparison.OrdinalIgnoreCase))
-                throw new ModelOverloadedException(message);
-
-            throw new InvalidOperationException(message);
+            response = await s_httpClient.SendAsync(request, timeoutSource.Token);
+            responseText = await response.Content.ReadAsStringAsync(timeoutSource.Token);
+        }
+        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+        {
+            // Our own deadline, not the person pressing Stop - the linked
+            // token fires for both and the two need different answers.
+            // Unhandled, this surfaces as "A task was canceled", which tells
+            // whoever is waiting nothing at all about what happened or what
+            // to do about it.
+            throw new TimeoutException(
+                $"Gemini didn't respond within {timeout.TotalSeconds:N0} seconds. " +
+                "Large requests - searching a whole work for echoes - can take longer than this " +
+                "when the service is busy. Trying again usually works; a shorter work is faster.");
         }
 
-        return ExtractTranslatedText(responseText);
+        using (response)
+        {
+            if (!response.IsSuccessStatusCode)
+            {
+                var message = ExtractErrorMessage(responseText, response.StatusCode);
+
+                // Status code first where Google's own signal is unambiguous -
+                // 429 always means a rate/quota limit regardless of wording.
+                if (response.StatusCode == HttpStatusCode.TooManyRequests)
+                    throw new QuotaExceededException(message);
+
+                if (message.Contains("no longer available", StringComparison.OrdinalIgnoreCase))
+                    throw new ModelUnavailableException(message);
+
+                if (message.Contains("high demand", StringComparison.OrdinalIgnoreCase)
+                    || message.Contains("overloaded", StringComparison.OrdinalIgnoreCase))
+                    throw new ModelOverloadedException(message);
+
+                throw new InvalidOperationException(message);
+            }
+
+            return ExtractTranslatedText(responseText);
+        }
     }
 
     /// <summary>Marks specifically the "this model ID has been retired" failure, to drive the one-shot fallback above.</summary>

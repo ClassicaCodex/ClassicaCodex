@@ -239,7 +239,15 @@ public class CreateTranslationForm : Form
     {
         _sourceNodes = await _textNodeRepo.GetByEditionAsync(_sourceEditionId);
         _originalHeader.Text = $"Original ({TranslationLanguageNames.DisplayName(_sourceLanguage)})";
-        _originalBox.Text = string.Join(" ", _sourceNodes.Select(n => n.Text));
+        // One node per line rather than run together with spaces.
+        //
+        // Each node is a discrete citable unit and the reader shows them one
+        // per row; running them into a single paragraph was tolerable while
+        // they were all prose and stopped being so once speech attributions
+        // and stage directions joined them - "DRAMATIS PERSONAE LEAR king of
+        // Britain ... Ber. Who's there?" is not a passage anyone can work
+        // from. What the translator sees now matches what the reader shows.
+        _originalBox.Text = string.Join(Environment.NewLine, _sourceNodes.Select(n => n.Text));
         _headerLabel.Text = $"{_authorName}, {_workTitle} \u2014 {_sourceNodes.Count:N0} line(s)";
 
         if (_sourceNodes.Count == 0)
@@ -424,7 +432,7 @@ public class CreateTranslationForm : Form
         var parts = _sourceNodes
             .Select(n => _translatedByRef.TryGetValue(n.CitationRef, out var t) ? t : null)
             .Where(t => t != null);
-        _translatedBox.Text = string.Join(" ", parts);
+        _translatedBox.Text = string.Join(Environment.NewLine, parts);
         UpdateButtonsForCurrentProgress();
     }
 
@@ -496,7 +504,18 @@ public class CreateTranslationForm : Form
                 EditionId = _workingEditionId.Value,
                 CitationRef = sourceNode.CitationRef,
                 SortOrder = sortOrder++,
-                Text = translated
+                Text = translated,
+
+                // The translation of a stage direction is a stage direction.
+                //
+                // Without this every row saved as a plain line, so a
+                // translated cast list counted towards the translation's word
+                // frequencies, could not be switched off in the reader, and
+                // left the translation pane offering only "Text" while the
+                // original beside it offered five kinds. Carried from the
+                // source node because the two editions share citation refs -
+                // the same reference means the same thing on both sides.
+                NodeKind = sourceNode.NodeKind
             });
         }
 

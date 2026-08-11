@@ -268,12 +268,29 @@ public class CrossLanguageEchoForm : Form
         var hasSelection = _workListBox.SelectedItem is WorkOption;
         var hasKey = !string.IsNullOrWhiteSpace(TranslationSettings.GeminiApiKey);
 
-        _findButton.Enabled = hasSelection || !hasKey;
+        // The other side of the same argument that filters the comparison
+        // corpus: if the line this was opened on is not the author's own
+        // words, there is nothing to look for an echo of. Someone
+        // right-clicking a speaker name would otherwise spend an API call
+        // asking which passages of Aeschylus resemble "Ber.".
+        _findButton.Enabled = (hasSelection && SourceIsReadingText) || !hasKey;
         _findButton.Text = !hasKey ? "Configure Gemini Key..."
+            : !SourceIsReadingText
+                ? $"{NodeKindVisibility.Label(_sourceNode.NodeKind)} can't be echoed - pick a line of text"
             : hasSelection ? "Find Echoes with Gemini (free)"
             : "Pick a work above first";
         AppIcons.Apply(_findButton, "Translate", 16);
     }
+
+    /// <summary>
+    /// Whether the line this was opened on is the author's own words rather
+    /// than a speech attribution, stage direction or heading. Blank counts as
+    /// reading text, so an edition ingested before node kinds existed behaves
+    /// as it always did.
+    /// </summary>
+    private bool SourceIsReadingText =>
+        string.IsNullOrWhiteSpace(_sourceNode.NodeKind)
+        || string.Equals(_sourceNode.NodeKind, TextNodeKinds.Line, StringComparison.OrdinalIgnoreCase);
 
     private async Task OnFindButtonClickAsync()
     {
@@ -311,7 +328,21 @@ public class CrossLanguageEchoForm : Form
 
         try
         {
-            var comparisonNodes = await _textNodeRepo.GetByEditionAsync(selected.Edition.EditionId);
+            // Reading lines only, for both the prompt and the verification
+            // that follows it.
+            //
+            // An echo is a resemblance between things an author wrote. "Ber."
+            // and "Enter the Ghost" are not candidates, and offering them
+            // invites a match on the stage business two plays happen to share
+            // rather than on their language.
+            //
+            // They also cost room. The prompt stops at MaxComparisonChars and
+            // reports where it stopped, so anything included is something
+            // else excluded: in Hamlet the non-line nodes are 11.2% of the
+            // tagged text, in Gorgias 10.2%, and the play is already close
+            // enough to the ceiling that a tenth of it matters.
+            var comparisonNodes = await _textNodeRepo.GetByEditionAsync(
+                selected.Edition.EditionId, readingLinesOnly: true);
 
             var (taggedText, truncatedAtRef) = BuildTaggedComparisonText(comparisonNodes);
 
