@@ -1090,6 +1090,18 @@ public class MainForm : Form
         prefaceItem.Click += (_, _) => ShowPrefaceForPane(list);
         menu.Opening += (_, _) => prefaceItem.Visible = GetPrefaceMatch(list) != null;
 
+        // What to show beside the text. Built fresh each time the menu opens
+        // and only from the kinds this edition actually contains, so a prose
+        // history offers nothing about speakers and a play does - the menu
+        // describes the document in front of the reader rather than everything
+        // the parser can produce.
+        var showItem = new ToolStripMenuItem("Show");
+        showItem.Image = AppIcons.Get("Preface", 16);
+        menu.Items.Add(showItem);
+        menu.Opening += (_, _) => BuildKindMenu(showItem, list);
+
+        _themedMenuItemIcons.Add((showItem, "Preface"));
+
         list.ContextMenuStrip = menu;
         _themedContextMenus.Add(menu);
         _themedMenuItemIcons.Add((copyItem, "CopyToClipboard"));
@@ -1175,6 +1187,90 @@ public class MainForm : Form
     /// but that's an inherent limit of index-based sync, not a bug to chase -
     /// which is why the link can be switched off from the toolbar.
     /// </summary>
+    /// <summary>
+    /// Fills the "Show" submenu with one checkable entry per kind of node this
+    /// pane's edition contains.
+    ///
+    /// Read from the items already loaded rather than from the database. The
+    /// pane holds the nodes it rendered, but those are the visible ones - a
+    /// kind that has been switched off would disappear from the menu that
+    /// switches it back on, which is a trap - so the kinds come from the
+    /// edition's full set, refreshed when the pane is.
+    ///
+    /// Only offered when the edition has more than one kind in it. A work with
+    /// nothing but text has nothing to choose between, and a menu of one
+    /// permanently-ticked box is noise.
+    /// </summary>
+    private void BuildKindMenu(ToolStripMenuItem showItem, SyncListView pane)
+    {
+        showItem.DropDownItems.Clear();
+
+        var kinds = _paneKinds.TryGetValue(pane, out var known)
+            ? known
+            : new List<string>();
+
+        // Available, not Visible, and the decision held in a local rather than
+        // read back off the item.
+        //
+        // ToolStripItem.Visible's getter is not a mirror of its setter: it
+        // returns Available && Parent != null && Parent.Visible, and during
+        // Opening the menu has not been shown yet, so the parent is not
+        // visible and the getter answers false whatever was just assigned.
+        // Reading it back therefore returned early every time and the submenu
+        // was never filled - while the setter had correctly marked the item
+        // available, so "Show" appeared in the menu and did nothing.
+        var hasChoices = kinds.Count > 1;
+        showItem.Available = hasChoices;
+        if (!hasChoices) return;
+
+        foreach (var kind in NodeKindVisibility.InMenuOrder(kinds))
+        {
+            var entry = new ToolStripMenuItem(NodeKindVisibility.Label(kind))
+            {
+                CheckOnClick = true,
+                Checked = NodeKindVisibility.IsVisible(kind)
+            };
+
+            var captured = kind;
+            entry.Click += async (_, _) =>
+            {
+                NodeKindVisibility.SetVisible(captured, entry.Checked);
+                await RefreshReaderPanesAsync();
+            };
+
+            showItem.DropDownItems.Add(entry);
+        }
+
+        // The way back from a pane hidden to nothing, and from a set of
+        // toggles the reader has lost track of.
+        showItem.DropDownItems.Add(new ToolStripSeparator());
+        var showAll = new ToolStripMenuItem("Show everything")
+        {
+            Enabled = NodeKindVisibility.AnythingHidden()
+        };
+        showAll.Click += async (_, _) =>
+        {
+            NodeKindVisibility.ShowAll();
+            await RefreshReaderPanesAsync();
+        };
+        showItem.DropDownItems.Add(showAll);
+    }
+
+    /// <summary>
+    /// Re-renders both panes from what they last loaded.
+    ///
+    /// Both, not just the one clicked: the panes scroll and select together,
+    /// and a Greek play showing its speakers opposite an English one that is
+    /// not would put the two sides permanently out of step.
+    /// </summary>
+    private async Task RefreshReaderPanesAsync()
+    {
+        foreach (var (pane, source) in _paneSource.ToList())
+        {
+            await PopulateReaderAsync(pane, source.Edition, source.EmptyMessage);
+        }
+    }
+
     private void SyncScroll(SyncListView source, SyncListView target)
     {
         if (!_panesLinked) return;
@@ -1939,8 +2035,26 @@ public class MainForm : Form
         await PopulateReaderAsync(_translationPane, selected?.Edition, "(no translation ingested)");
     }
 
+    /// <summary>
+    /// What each pane last loaded, so the kind toggles can re-render it
+    /// without knowing which combo it came from or going back to the database.
+    /// </summary>
+    private readonly Dictionary<SyncListView, (Edition? Edition, string EmptyMessage)> _paneSource = new();
+
+    /// <summary>
+    /// Every kind of node each pane's edition contains, hidden ones included.
+    ///
+    /// Taken from the full set before filtering. Reading it back off the
+    /// rendered items would only ever show what is already visible, so a kind
+    /// switched off would vanish from the menu that switches it on.
+    /// </summary>
+    private readonly Dictionary<SyncListView, List<string>> _paneKinds = new();
+
     private async Task PopulateReaderAsync(SyncListView pane, Edition? edition, string emptyMessage)
     {
+        _paneSource[pane] = (edition, emptyMessage);
+        _paneKinds[pane] = new List<string>();
+
         pane.BeginUpdate();
         try
         {
@@ -1978,6 +2092,28 @@ public class MainForm : Form
             // instead, on whichever pane it belongs to.
             var prefaceNodes = nodes.Where(IsPrefaceNode).ToList();
             var bodyNodes = prefaceNodes.Count == 0 ? nodes : nodes.Except(prefaceNodes).ToList();
+
+            _paneKinds[pane] = bodyNodes
+                .Select(n => string.IsNullOrWhiteSpace(n.NodeKind) ? TextNodeKinds.Line : n.NodeKind)
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+
+            // Speakers, stage directions, headings and the rest are shown or
+            // withheld per the reader's own choice - see NodeKindVisibility.
+            // Applied after the preface split so hiding a kind cannot take the
+            // preface with it.
+            var visibleNodes = NodeKindVisibility.Filter(bodyNodes);
+
+            // Everything the edition has was switched off. Saying so, with the
+            // way back, beats a blank pane that reads as a bug - and this is
+            // reachable, because the text itself can be hidden.
+            if (visibleNodes.Count == 0)
+            {
+                pane.Items.Add("(everything in this edition is hidden - right-click and use Show to bring it back)");
+                return;
+            }
+
+            bodyNodes = visibleNodes;
 
             if (prefaceNodes.Count > 0)
             {

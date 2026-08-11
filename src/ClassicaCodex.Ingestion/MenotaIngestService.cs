@@ -263,7 +263,6 @@ public class MenotaIngestService
     private sealed class Counter
     {
         private int _value;
-        private readonly Dictionary<string, int> _used = new(StringComparer.Ordinal);
 
         public int Next() => _value++;
 
@@ -298,41 +297,16 @@ public class MenotaIngestService
         /// to both. The first keeps the plain reference and later ones get a
         /// letter, the way an editor distinguishes 3a from 3b.
         /// </summary>
-        public string Unique(string reference)
-        {
-            if (!_used.TryGetValue(reference, out var seen))
-            {
-                _used[reference] = 1;
-                return reference;
-            }
-
-            _used[reference] = seen + 1;
-            return $"{reference}{Suffix(seen - 1)}";
-        }
-
         /// <summary>
-        /// a, b, ... z, aa, ab, and so on.
-        ///
-        /// This used to clamp at z, so a twenty-seventh collision and every one
-        /// after it came out identical - which is the exact duplication
-        /// Unique() exists to prevent, reappearing silently once the range ran
-        /// out. Nothing in the present corpus collides more than nine times
-        /// (AM 63 fol's nine sagas each restarting at chapter 1), so it has
-        /// never fired; a corpus with more repetition would have found it.
+        /// Shared with the TEI path. Both corpora collide for different
+        /// reasons - repeated folio numbers here, sparse @n numbering there -
+        /// and both want the same answer, so the letter scheme lives in one
+        /// place rather than two.
         /// </summary>
-        private static string Suffix(int index)
-        {
-            var sb = new StringBuilder();
+        private readonly CitationDisambiguator _disambiguator = new();
 
-            do
-            {
-                sb.Insert(0, (char)('a' + index % 26));
-                index = index / 26 - 1;
-            }
-            while (index >= 0);
+        public string Unique(string reference) => _disambiguator.Unique(reference);
 
-            return sb.ToString();
-        }
     }
 
     private sealed record ParsedLine(string CitationRef, int SortOrder, string Text);
@@ -914,16 +888,52 @@ public class MenotaIngestService
         if (target == null)
             return MenotaXmlLoader.Collapse(word.Value);
 
-        // Value rather than a child walk, so <ex> - the editorial expansion of
-        // an abbreviation - comes through as part of the word. AM 242 has
-        // 23,211 of them. <c> wrapping a decorated initial comes through the
-        // same way.
-        var text = target.Elements(Tei + "del").Any()
-            ? string.Concat(target.Nodes().Where(n => n is not XElement e || e.Name != Tei + "del")
-                .Select(n => n is XElement e ? e.Value : n.ToString()))
-            : target.Value;
+        return MenotaXmlLoader.Collapse(TextExcludingDeletions(target));
+    }
 
-        return MenotaXmlLoader.Collapse(text);
+    /// <summary>
+    /// An element's text with every &lt;del&gt; subtree left out, at any depth.
+    ///
+    /// Everything else comes through, which is the point: &lt;ex&gt;, the
+    /// editorial expansion of an abbreviation, is part of the word and AM 242
+    /// has 23,211 of them; &lt;c&gt; wrapping a decorated initial is part of
+    /// the word too.
+    ///
+    /// This used to test target.Elements(Tei + "del"), which sees direct
+    /// children only, so a deletion nested one level down - a &lt;del&gt;
+    /// inside a &lt;c&gt; inside the orthographic level - was invisible to the
+    /// test and .Value then pulled the deleted letters into the word. Even
+    /// when a direct &lt;del&gt; did trigger the filter, .Value on a sibling
+    /// could still carry a nested one through. Whether the Menota corpus
+    /// contains that shape is unverified - a recursive walk costs nothing and
+    /// removes the question.
+    ///
+    /// It also fixes a quieter fault in the same expression: the old filter
+    /// called ToString() on text nodes, and XText.ToString() serializes rather
+    /// than returning the text, so a word containing an ampersand came out as
+    /// "&amp;amp;". Reading .Value gives the characters themselves.
+    ///
+    /// A word wholly inside a &lt;del&gt; never reaches here - WordText
+    /// returns empty for those before looking at the level at all.
+    /// </summary>
+    private static string TextExcludingDeletions(XElement element)
+    {
+        var text = new StringBuilder();
+
+        foreach (var node in element.Nodes())
+        {
+            switch (node)
+            {
+                case XText value:
+                    text.Append(value.Value);
+                    break;
+                case XElement child when child.Name != Tei + "del":
+                    text.Append(TextExcludingDeletions(child));
+                    break;
+            }
+        }
+
+        return text.ToString();
     }
 
     /// <summary>

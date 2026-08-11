@@ -37,6 +37,19 @@ public class PassageExportForm : Form
     private readonly CheckBox _showCitationsCheckbox;
     private readonly CheckBox _combineCheckbox;
     private readonly CheckBox _bilingualCheckbox;
+
+    /// <summary>
+    /// One box per kind of node the edition contains, beyond the text itself.
+    ///
+    /// Separate from the reader's own toggles rather than following them. What
+    /// you want on screen and what you want in a file are different questions:
+    /// a reader with the stage directions switched off may still be exporting
+    /// a scene for someone staging it. They start where the reader is, because
+    /// that is the better guess, and then go their own way.
+    /// </summary>
+    private readonly List<(string Kind, CheckBox Box)> _kindCheckboxes = new();
+
+    private readonly FlowLayoutPanel _kindPanel;
     private readonly TextBox _previewBox;
     private readonly RadioButton _txtRadio;
     private readonly RadioButton _docxRadio;
@@ -144,11 +157,24 @@ public class PassageExportForm : Form
                 "This work doesn't have both an original and a translation loaded in the reader.");
         }
 
-        var previewLabel = new Label { Text = "Preview:", Left = 16, Top = 156, Width = 200 };
+        // Populated on Load, once the edition's nodes have been read and it is
+        // known which kinds are actually in it.
+        _kindPanel = new FlowLayoutPanel
+        {
+            Left = 16,
+            Top = 152,
+            Width = 580,
+            Height = 26,
+            AutoScroll = false,
+            WrapContents = false,
+            Visible = false
+        };
+
+        var previewLabel = new Label { Text = "Preview:", Left = 16, Top = 182, Width = 200 };
         _previewBox = new TextBox
         {
             Left = 16,
-            Top = 178,
+            Top = 204,
             Width = 580,
             Height = 268,
             Multiline = true,
@@ -190,6 +216,7 @@ public class PassageExportForm : Form
         Controls.Add(_showCitationsCheckbox);
         Controls.Add(_combineCheckbox);
         Controls.Add(_bilingualCheckbox);
+        Controls.Add(_kindPanel);
         Controls.Add(previewLabel);
         Controls.Add(_previewBox);
         Controls.Add(formatLabel);
@@ -210,6 +237,69 @@ public class PassageExportForm : Form
     /// </summary>
     private List<int>? ResolveCounterpartIndices(string citationRef) => _aligner?.ResolveIndices(citationRef);
 
+    /// <summary>
+    /// Adds a checkbox for any kind of node seen that does not have one yet.
+    ///
+    /// Grown rather than built once, because the scope controls change which
+    /// nodes are loaded: a five-line range from the middle of a play contains
+    /// no cast list, and switching to the whole work should offer one rather
+    /// than silently exporting it because no box existed to untick. Boxes are
+    /// never removed for the same reason in reverse - a choice already made
+    /// should not disappear when the range narrows.
+    ///
+    /// Each starts where the reader has it, which is the better guess than
+    /// on-by-default, and is free to diverge from there.
+    /// </summary>
+    private void SyncKindCheckboxes(IEnumerable<TextNode> nodes)
+    {
+        var present = nodes
+            .Select(n => string.IsNullOrWhiteSpace(n.NodeKind) ? TextNodeKinds.Line : n.NodeKind)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .Where(k => !_kindCheckboxes.Any(c => string.Equals(c.Kind, k, StringComparison.OrdinalIgnoreCase)))
+            .ToList();
+
+        foreach (var kind in NodeKindVisibility.InMenuOrder(
+                     _kindCheckboxes.Select(c => c.Kind).Concat(present)))
+        {
+            if (_kindCheckboxes.Any(c => string.Equals(c.Kind, kind, StringComparison.OrdinalIgnoreCase)))
+            {
+                continue;
+            }
+
+            var box = new CheckBox
+            {
+                Text = NodeKindVisibility.Label(kind),
+                AutoSize = true,
+                Checked = NodeKindVisibility.IsVisible(kind),
+                Margin = new Padding(0, 3, 14, 0)
+            };
+
+            box.CheckedChanged += async (_, _) => await RefreshPreviewAsync();
+
+            _kindCheckboxes.Add((kind, box));
+            _kindPanel.Controls.Add(box);
+        }
+
+        // Nothing to choose between when the edition is only text.
+        _kindPanel.Visible = _kindCheckboxes.Count > 1;
+    }
+
+    /// <summary>
+    /// Whether a kind is included. Unknown kinds are included: a box is only
+    /// absent because nothing of that kind has been seen yet, and the default
+    /// everywhere else is that a node the parser produced is a node the reader
+    /// gets.
+    /// </summary>
+    private bool KindIsChecked(string nodeKind)
+    {
+        var kind = string.IsNullOrWhiteSpace(nodeKind) ? TextNodeKinds.Line : nodeKind;
+
+        var match = _kindCheckboxes
+            .FirstOrDefault(c => string.Equals(c.Kind, kind, StringComparison.OrdinalIgnoreCase));
+
+        return match.Box?.Checked ?? true;
+    }
+
     private async Task RefreshPreviewAsync()
     {
         List<TextNode> nodes;
@@ -226,6 +316,14 @@ public class PassageExportForm : Form
             var lineCount = _toEndModeRadio.Checked ? int.MaxValue : requestedCount;
             nodes = await _textNodeRepo.GetRangeAsync(_editionId, _startNode.TextNodeId, lineCount);
         }
+
+        SyncKindCheckboxes(nodes);
+
+        // Held before filtering: "only N available from here to the end" is a
+        // statement about the range, and unticking Stage directions does not
+        // mean the edition ran out of lines.
+        var loadedCount = nodes.Count;
+        nodes = nodes.Where(n => KindIsChecked(n.NodeKind)).ToList();
 
         _currentLines = nodes.Select(n => (n.CitationRef, n.Text)).ToList();
 
@@ -255,8 +353,8 @@ public class PassageExportForm : Form
         }
         else
         {
-            _statusLabel.Text = _lineCountModeRadio.Checked && nodes.Count < requestedCount
-                ? $"Only {nodes.Count} line(s) available from here to the end of the edition."
+            _statusLabel.Text = _lineCountModeRadio.Checked && loadedCount < requestedCount
+                ? $"Only {loadedCount} line(s) available from here to the end of the edition."
                 : $"{nodes.Count} line(s).";
         }
     }

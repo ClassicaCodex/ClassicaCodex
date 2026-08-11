@@ -374,9 +374,34 @@ public class TeiParser
     /// &lt;l&gt;&lt;quote&gt;&lt;del&gt;...&lt;/del&gt;&lt;/quote&gt;&lt;/l&gt;,
     /// and Athenaeus nests it inside &lt;add&gt;.
     /// </summary>
+    /// <summary>
+    /// Whether any of this element's READING text is athetized.
+    ///
+    /// A &lt;del&gt; anywhere in the subtree used to be enough, which flagged
+    /// lines whose only deletion sat inside a note or an apparatus entry -
+    /// text FlattenText correctly excludes, so the reader was told a line was
+    /// athetized on the strength of words it was not showing. A Euripides line
+    /// was marked deleted because a note beside it quoted the play's title,
+    /// "Χορός Αἰχμαλωτίδων Γυναικών". 16 nodes across 10 editions, against
+    /// 6,259 flagged correctly.
+    ///
+    /// The test has to match FlattenText's idea of what the text is, so a
+    /// deletion counts only when nothing editorial stands between it and this
+    /// element.
+    ///
+    /// One known limit: a &lt;del&gt; inside an &lt;app&gt;'s &lt;lem&gt; IS
+    /// reading text - FlattenText takes the lemma - but reads as editorial
+    /// here and would be missed. Nothing in the corpora does this (zero
+    /// occurrences, checked), so the simpler test is the one that can be
+    /// verified; a corpus that did it would need the ancestor walk to mirror
+    /// FlattenElement's app and choice handling instead.
+    /// </summary>
     private static bool ContainsAthetizedText(XElement element) =>
         element.Descendants().Any(e =>
-            string.Equals(e.Name.LocalName, "del", StringComparison.OrdinalIgnoreCase));
+            string.Equals(e.Name.LocalName, "del", StringComparison.OrdinalIgnoreCase)
+            && !e.Ancestors()
+                 .TakeWhile(a => a != element)
+                 .Any(a => EditorialElements.Contains(a.Name.LocalName)));
 
     /// <summary>
     /// Whether an element is a division container. Covers TEI P5's
@@ -404,6 +429,38 @@ public class TeiParser
     public IReadOnlyList<ParsedApparatus> LastApparatus => _apparatus;
 
     private readonly List<ParsedApparatus> _apparatus = new();
+
+    /// <summary>
+    /// Keeps citation references distinct within one edition.
+    ///
+    /// TEI numbering is often sparse: Shakespeare marks every tenth line, so a
+    /// scene produces "1".."9" from the positional counter, then "10" from
+    /// @n="10", then the counter's own "10" on the next line. Both nodes went
+    /// in, because IX_TextNodes_Edition_Citation is not a unique index, and
+    /// nothing reported it - 502 references across the corpora pointed at two
+    /// nodes each. Troilus alone collided 216 times.
+    /// </summary>
+    private readonly CitationDisambiguator _citations = new();
+
+    /// <summary>
+    /// Apparatus found on an element that produced no text node, waiting for
+    /// one to attach to.
+    ///
+    /// FlattenText excludes notes and apparatus, as it must, so an element
+    /// holding nothing else flattens to nothing and is skipped - and the
+    /// apparatus went with it, because ExtractApparatus only ran after that
+    /// early return. 106 of them across 16 editions, and they are not
+    /// throwaway: Polybius records an entire lost book in one,
+    /// "Nihil huius libri superest", inside a &lt;p&gt; with no other text.
+    ///
+    /// Carried to the next node rather than keyed to a reference of its own.
+    /// The empty element mints no citation, so a reference invented for it
+    /// would resolve to nothing - a bookmark or an apparatus lookup would find
+    /// a citation with no line behind it, which is worse than the loss it was
+    /// fixing. The Menota path answers the same question the same way, and the
+    /// two should not disagree.
+    /// </summary>
+    private readonly List<ParsedApparatus> _pendingApparatus = new();
 
     public List<ParsedNode> Parse(string xmlFilePath) => ParseXml(File.ReadAllText(xmlFilePath));
 
@@ -433,6 +490,8 @@ public class TeiParser
         var nodes = new List<ParsedNode>();
         int sortCounter = 0;
         _apparatus.Clear();
+        _pendingApparatus.Clear();
+        _citations.Reset();
         WalkDiv(body, new List<string>(), nodes, ref sortCounter, new Dictionary<string, int>());
 
         // Fallback: nothing leaf-like was found (milestone-style text) - take
@@ -449,7 +508,7 @@ public class TeiParser
 
                 nodes.Add(new ParsedNode
                 {
-                    CitationRef = n,
+                    CitationRef = _citations.Unique(n),
                     SortOrder = sortCounter++,
                     Text = text
                 });
@@ -467,6 +526,33 @@ public class TeiParser
                 nodes.Add(new ParsedNode { CitationRef = "1", SortOrder = 0, Text = wholeText });
             }
         }
+
+        // Anything still waiting had no node after it - the file ended, or
+        // every element that followed was textless too. Attached to the last
+        // node instead, so a closing note lands beside the line it follows
+        // rather than being dropped for want of a successor.
+        //
+        // Placed after both fallbacks deliberately: they are the parse's last
+        // chance to produce a node, and if they do, the apparatus has
+        // somewhere to go. If nothing at all was readable there is no
+        // reference to attach to and the entries are dropped - a citation
+        // minted for a node that does not exist would resolve to nothing,
+        // which is worse than the loss.
+        if (_pendingApparatus.Count > 0 && nodes.Count > 0)
+        {
+            var last = nodes[^1].CitationRef;
+            var tail = _apparatus.Count(a => a.CitationRef == last);
+
+            foreach (var carried in _pendingApparatus)
+            {
+                carried.CitationRef = last;
+                carried.SortOrder = tail++;
+            }
+
+            _apparatus.AddRange(_pendingApparatus);
+        }
+
+        _pendingApparatus.Clear();
 
         return nodes;
     }
@@ -628,6 +714,31 @@ public class TeiParser
                 EmitBlock(child, citationTrail, $"stage{stageSeen}",
                           TextNodeKinds.Stage, nodes, ref sortCounter);
             }
+            else if (string.Equals(child.Name.LocalName, "lg", StringComparison.OrdinalIgnoreCase)
+                     && child.Descendants().Any(d =>
+                         string.Equals(d.Name.LocalName, "l", StringComparison.OrdinalIgnoreCase)))
+            {
+                // A verse group holding lines is a container, not a leaf.
+                //
+                // <lg> is in LeafElements and was tested before anything else,
+                // so a stanza was flattened into one node and the <l> inside it
+                // never became nodes at all. Perseus numbers those lines:
+                // Theocritus' Idylls are <lg> wrapping <l n="1">, <l n="2">,
+                // and all 1,142 of those numbers were discarded, so Theocritus
+                // 1.1 could not be cited - the whole of Idyll 1 was one node.
+                // 11,224 lines across 108 editions.
+                //
+                // Tested by contents rather than by attribute: @type="stanza"
+                // appears on some and not others, and 26 verse groups in the
+                // corpora nest a stanza inside a poem. Descending handles the
+                // nesting without a branch of its own, since the inner group
+                // holds lines too and the citable unit is the line either way.
+                //
+                // An <lg> with no <l> inside - a stanza whose text sits
+                // directly in it - still falls through to the leaf branch
+                // below and keeps the reference it has always had.
+                WalkDiv(child, citationTrail, nodes, ref sortCounter, leafCounters);
+            }
             else if (LeafElements.Contains(child.Name.LocalName))
             {
                 // Any speaker tag inside this speech comes out first, so it
@@ -660,10 +771,19 @@ public class TeiParser
                 }
 
                 var text = FlattenText(child);
-                if (string.IsNullOrWhiteSpace(text)) continue;
+                if (string.IsNullOrWhiteSpace(text))
+                {
+                    // No text, so no node and no citation - but the apparatus
+                    // is often the whole point of such a line. Held for the
+                    // next node.
+                    _pendingApparatus.AddRange(ExtractApparatus(child, string.Empty));
+                    continue;
+                }
 
-                var leafRef = CapCitationRef(string.Join(".", trail));
-                _apparatus.AddRange(ExtractApparatus(child, leafRef));
+                // Disambiguated before the apparatus is keyed to it, so a note
+                // on the second "10" attaches to that line and not to both.
+                var leafRef = _citations.Unique(CapCitationRef(string.Join(".", trail)));
+                AttachApparatus(child, leafRef);
 
                 nodes.Add(new ParsedNode
                 {
@@ -724,6 +844,34 @@ public class TeiParser
     /// but each segment name keys its own entry, so they cannot collide with
     /// the line numbering or with each other.
     /// </summary>
+    /// <summary>
+    /// Keys an element's apparatus to the node just emitted, and lets anything
+    /// carried from an earlier textless element ride along with it.
+    ///
+    /// Carried entries go first: they come from earlier in the document, and
+    /// SortOrder is what the Editor's Notes pane reads to put a citation's
+    /// entries in order. The whole group is renumbered together, because
+    /// ExtractApparatus counts from zero on every call and two calls landing
+    /// on one reference would otherwise both claim entry 0.
+    /// </summary>
+    private void AttachApparatus(XElement element, string reference)
+    {
+        var entries = new List<ParsedApparatus>();
+
+        foreach (var carried in _pendingApparatus)
+        {
+            carried.CitationRef = reference;
+            entries.Add(carried);
+        }
+
+        _pendingApparatus.Clear();
+        entries.AddRange(ExtractApparatus(element, reference));
+
+        for (var i = 0; i < entries.Count; i++) entries[i].SortOrder = i;
+
+        _apparatus.AddRange(entries);
+    }
+
     private static int NextSegmentNumber(
         List<string> citationTrail, string segmentName, Dictionary<string, int> leafCounters)
     {
@@ -753,10 +901,17 @@ public class TeiParser
         ref int sortCounter)
     {
         var text = FlattenText(element);
-        if (string.IsNullOrWhiteSpace(text)) return;
+        if (string.IsNullOrWhiteSpace(text))
+        {
+            // A heading or stage direction that is nothing but its note. Same
+            // treatment as an empty leaf: the apparatus waits for a node.
+            _pendingApparatus.AddRange(ExtractApparatus(element, string.Empty));
+            return;
+        }
 
-        var reference = CapCitationRef(string.Join(".", new List<string>(citationTrail) { segment }));
-        _apparatus.AddRange(ExtractApparatus(element, reference));
+        var reference = _citations.Unique(
+            CapCitationRef(string.Join(".", new List<string>(citationTrail) { segment })));
+        AttachApparatus(element, reference);
 
         nodes.Add(new ParsedNode
         {
