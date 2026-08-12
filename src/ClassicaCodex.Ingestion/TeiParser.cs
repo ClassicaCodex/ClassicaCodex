@@ -40,10 +40,30 @@ public class TeiParser
     /// &lt;item&gt; is here without having a branch of its own: it is emitted
     /// by the family rule, but a &lt;list&gt; wrapping several of them must
     /// still be descended into rather than flattened into one node.
+    ///
+    /// &lt;note&gt; WAS IN THIS LIST AND SHOULD NOT HAVE BEEN. WalkDiv routes a
+    /// note to the apparatus and never makes a TextNode from one, so a note is
+    /// precisely an element this set's own definition excludes - and counting
+    /// it re-opened the hole the family branch was written to close. An element
+    /// carrying a footnote was sent down the descent branch, WalkDiv reads only
+    /// child elements, and the element's own words went nowhere:
+    ///
+    ///   &lt;speaker&gt;Ἀφροδίτη&lt;note&gt;ΑΦΡΟΔΙΤΗ vulg.: HPΑ MSS.&lt;/note&gt;&lt;/speaker&gt;
+    ///
+    /// - the speaker vanishes and no Speaker node is emitted at all. 135
+    /// elements across the four corpora, most of them Lucian's speakers (17 in
+    /// canonical-greekLit, 12 in First1KGreek, 2 in canonical-latinLit) and
+    /// the rest &lt;quote&gt;, &lt;cit&gt;, &lt;hi&gt; and &lt;docAuthor&gt;
+    /// carrying an editor's note.
+    ///
+    /// Nothing is lost by the change: EmitBlock collects the element's
+    /// apparatus on the way past, so the note still reaches the Editor's Notes
+    /// pane - now keyed to a citation that has a line behind it rather than to
+    /// a "noteN" reference of its own.
     /// </summary>
     private static readonly HashSet<string> HandledElements = new(StringComparer.OrdinalIgnoreCase)
     {
-        "l", "p", "said", "lg", "head", "castItem", "stage", "item", "note"
+        "l", "p", "said", "lg", "head", "castItem", "stage", "item"
     };
 
     /// <summary>
@@ -90,10 +110,20 @@ public class TeiParser
     /// its own words and must be emitted or it is lost. Both are elements
     /// this parser has no branch for, and only their contents tell them
     /// apart.
+    ///
+    /// A descendant sitting inside an editorial subtree does not count. WalkDiv
+    /// skips those subtrees wholesale, so an &lt;l&gt; inside a &lt;note&gt; is
+    /// not a line this element can be descended into to reach - it is part of
+    /// the editor's prose. Counting it sent the element down the descent branch
+    /// to find nothing, which is the same loss the &lt;note&gt; entry in
+    /// HandledElements used to cause, arriving one level lower down.
     /// </summary>
     private static bool HasHandledDescendant(XElement element) =>
         element.Descendants().Any(d =>
-            HandledElements.Contains(d.Name.LocalName) || IsDivElement(d));
+            (HandledElements.Contains(d.Name.LocalName) || IsDivElement(d))
+            && !d.Ancestors()
+                 .TakeWhile(a => a != element)
+                 .Any(a => EditorialElements.Contains(a.Name.LocalName)));
 
     /// <summary>
     /// Whether a &lt;label&gt; is the speaker tag of the speech it sits in.
@@ -143,6 +173,141 @@ public class TeiParser
         if (!text.Any(char.IsLetter)) return false;
 
         return text.EndsWith('.') || text.Where(char.IsLetter).All(char.IsUpper);
+    }
+
+    /// <summary>
+    /// Elements that name a thing rather than say something. A
+    /// &lt;reg&gt; inside one of these is the authority-file form of the name,
+    /// not a word of the text.
+    /// </summary>
+    private static readonly HashSet<string> NamingElements = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "name", "placeName", "persName", "rs", "orgName", "geogName"
+    };
+
+    /// <summary>
+    /// Whether a &lt;reg&gt; is a gazetteer entry rather than reading text.
+    ///
+    /// &lt;reg&gt; normally holds the regularised form of a word and IS the
+    /// text - 35,059 of them across the corpora do exactly that, almost all in
+    /// canonical-latinLit, where Perseus lower-cases a sentence's first word
+    /// and marks it &lt;reg&gt;etsi&lt;/reg&gt;. Skipping those would delete a
+    /// word from the start of thousands of sentences.
+    ///
+    /// The English Herodotus uses the same element for something else
+    /// entirely. Every place name carries its Getty Thesaurus record inline,
+    /// with the text of Herodotus as the sibling or the tail:
+    ///
+    ///   &lt;name key="tgn,7016142" type="place"&gt;
+    ///     &lt;reg&gt;Bodrum [27.466,37.5] (inhabited place), Mugla Ili, Ege
+    ///           kiyilari, Turkey, Asia &lt;/reg&gt;
+    ///     &lt;placeName key="tgn,7016142"&gt;Halicarnassus&lt;/placeName&gt;
+    ///   &lt;/name&gt;
+    ///
+    ///   &lt;name key="tgn,7008330" type="place"&gt;
+    ///     &lt;reg&gt;Etruria (region (general)), Italy, Europe&lt;/reg&gt;Tyrrhenia
+    ///   &lt;/name&gt;
+    ///
+    /// Taken as text, Herodotus 1.1 opened "Bodrum [27.466,37.5] (inhabited
+    /// place), Mugla Ili, Ege kiyilari, Turkey, Asia Halicarnassus" - modern
+    /// Turkish place names and decimal coordinates tokenised and counted as
+    /// Greek historiography in English translation.
+    ///
+    /// The parent element is the whole test, and it separates the two uses
+    /// cleanly over all four corpora: all 4,305 gazetteer entries sit inside a
+    /// &lt;name&gt;, and not one of the 35,059 regularisations does - their
+    /// parents are &lt;p&gt;, &lt;q&gt;, &lt;said&gt;, &lt;quote&gt;,
+    /// &lt;seg&gt;, &lt;l&gt;, &lt;hi&gt;, &lt;note&gt;, &lt;choice&gt;.
+    /// Matching on @key="tgn,..." instead would have worked here and broken on
+    /// the next authority file Perseus cites.
+    ///
+    /// The content test is belt and braces. Nothing in the corpora is a
+    /// &lt;name&gt; holding only its &lt;reg&gt; - all 4,305 have the reading
+    /// text beside it - but if one existed, skipping would leave the name
+    /// blank, and a gazetteer string in the text is a smaller loss than a
+    /// place with no name at all.
+    /// </summary>
+    private static bool IsNameAuthorityForm(XElement reg)
+    {
+        var parent = reg.Parent;
+        if (parent == null || !NamingElements.Contains(parent.Name.LocalName)) return false;
+
+        return parent.Nodes().Any(n => n != reg && CarriesText(n));
+    }
+
+    private static bool CarriesText(XNode node) => node switch
+    {
+        XText text => !string.IsNullOrWhiteSpace(text.Value),
+        XElement element => !string.IsNullOrWhiteSpace(element.Value),
+        _ => false
+    };
+
+    /// <summary>
+    /// What an &lt;expan&gt; contributes to the reading text: its
+    /// &lt;abbr&gt; if it holds one, and otherwise nothing.
+    ///
+    /// An &lt;expan&gt; is the editor's expansion of an abbreviation the
+    /// manuscripts print. Both were being taken, so Nepos read "affinitatem
+    /// Publii P. Sulpicii" - the praenomen twice, once expanded and once
+    /// abbreviated. Four encodings, all in canonical-latinLit, and the
+    /// abbreviation sits in a different place in each:
+    ///
+    ///   &lt;expan&gt;&lt;abbr&gt;acturu's&lt;/abbr&gt;&lt;ex&gt;acturus es&lt;/ex&gt;&lt;/expan&gt;   304
+    ///   &lt;abbr&gt;M.&lt;expan&gt;&lt;ex&gt;Marci&lt;/ex&gt;&lt;/expan&gt;&lt;/abbr&gt;              98
+    ///   &lt;abbr&gt;&lt;expan&gt;&lt;ex&gt;Titus&lt;/ex&gt;&lt;/expan&gt;T.&lt;/abbr&gt;              79
+    ///   &lt;abbr&gt;&lt;expan&gt;commentus es&lt;/expan&gt;commentu's&lt;/abbr&gt;         15
+    ///
+    /// Only the first keeps the abbreviation inside the &lt;expan&gt;; in the
+    /// other three it is the enclosing &lt;abbr&gt;'s own text or the
+    /// &lt;expan&gt;'s tail, and is therefore reached anyway once the
+    /// &lt;expan&gt; itself contributes nothing. One rule covers all four:
+    /// take the &lt;abbr&gt; within, or take nothing.
+    ///
+    /// The expansion is not discarded - ExtractApparatus records it as an
+    /// editor's note against the same citation, keyed to the abbreviation as
+    /// its lemma. Same treatment as &lt;app&gt;: the adopted reading in the
+    /// text, the alternative in the Editor's Notes.
+    /// </summary>
+    private static XElement? ReadingOfExpansion(XElement element)
+    {
+        if (!string.Equals(element.Name.LocalName, "expan", StringComparison.OrdinalIgnoreCase))
+            return element;
+
+        return element.Descendants().FirstOrDefault(e =>
+            string.Equals(e.Name.LocalName, "abbr", StringComparison.OrdinalIgnoreCase));
+    }
+
+    /// <summary>
+    /// The expanded reading an &lt;expan&gt; carries, without the abbreviation
+    /// it expands - so "acturus es" rather than "acturu's acturus es".
+    /// </summary>
+    private static string ExpandedReading(XElement expan)
+    {
+        var copy = new XElement(expan);
+        copy.Descendants().Where(e =>
+            string.Equals(e.Name.LocalName, "abbr", StringComparison.OrdinalIgnoreCase))
+            .ToList()
+            .ForEach(e => e.Remove());
+
+        return FlattenText(copy);
+    }
+
+    /// <summary>
+    /// The abbreviation an &lt;expan&gt; expands, for the apparatus entry's
+    /// lemma. Either inside the element or in the &lt;abbr&gt; that wraps it;
+    /// the wrapper flattens to the abbreviation alone now that the
+    /// &lt;expan&gt; inside it contributes nothing.
+    /// </summary>
+    private static string? AbbreviatedForm(XElement expan)
+    {
+        var inner = ReadingOfExpansion(expan);
+        if (inner != null) return FlattenText(inner);
+
+        var wrapper = expan.Ancestors().FirstOrDefault(a =>
+            string.Equals(a.Name.LocalName, "abbr", StringComparison.OrdinalIgnoreCase));
+
+        var text = wrapper == null ? null : FlattenText(wrapper);
+        return string.IsNullOrWhiteSpace(text) ? null : text;
     }
 
     /// <summary>
@@ -224,14 +389,26 @@ public class TeiParser
     /// Inside &lt;choice&gt;, the readings to prefer, in order. TEI pairs an
     /// original with a normalised alternative and expects the consumer to
     /// choose one; taking both concatenates a word with its own correction.
+    ///
+    /// The pairs are positional: reg/orig, abbr/expan, corr/sic.
+    ///
+    /// &lt;abbr&gt; is preferred over &lt;expan&gt;, which is the reverse of
+    /// the other two pairs and deliberate: the abbreviation is what the
+    /// manuscripts print and the expansion is the editor's, so the expansion
+    /// belongs in the Editor's Notes rather than in the text. See
+    /// ReadingOfExpansion. 192 &lt;choice&gt;-wrapped pairs across the corpora
+    /// read the other way before this, which disagreed with the 498 that are
+    /// not wrapped in a &lt;choice&gt; at all - the same abbreviation resolving
+    /// two different ways inside one edition depending on how it happened to
+    /// be marked up.
     /// </summary>
-    private static readonly string[] PreferredChoiceReadings = { "reg", "expan", "corr" };
+    private static readonly string[] PreferredChoiceReadings = { "reg", "abbr", "corr" };
 
     /// <summary>
     /// The counterparts to <see cref="PreferredChoiceReadings"/> - kept only
     /// when no preferred sibling exists.
     /// </summary>
-    private static readonly string[] FallbackChoiceReadings = { "orig", "abbr", "sic" };
+    private static readonly string[] FallbackChoiceReadings = { "orig", "expan", "sic" };
 
     public class ParsedNode
     {
@@ -317,6 +494,37 @@ public class TeiParser
         foreach (var el in leaf.Descendants())
         {
             var name = el.Name.LocalName;
+
+            // The expanded form of an abbreviation. The text now carries the
+            // abbreviation the manuscripts print, so the editor's expansion is
+            // recorded here instead of being dropped - keyed to the
+            // abbreviation as its lemma, the way an <app> is keyed to the
+            // reading it discusses.
+            if (string.Equals(name, "expan", StringComparison.OrdinalIgnoreCase))
+            {
+                // Inside an <app> or a <note> it is part of that entry's own
+                // wording and was taken with it.
+                if (el.Ancestors().Any(a =>
+                        string.Equals(a.Name.LocalName, "app", StringComparison.OrdinalIgnoreCase)
+                        || string.Equals(a.Name.LocalName, "note", StringComparison.OrdinalIgnoreCase)))
+                {
+                    continue;
+                }
+
+                var expansion = ExpandedReading(el);
+                if (!CarriesInformation(expansion)) continue;
+
+                entries.Add(new ParsedApparatus
+                {
+                    CitationRef = citationRef,
+                    SortOrder = order++,
+                    Kind = "note",
+                    Lemma = AbbreviatedForm(el),
+                    Content = expansion
+                });
+
+                continue;
+            }
 
             if (string.Equals(name, "app", StringComparison.OrdinalIgnoreCase))
             {
@@ -922,11 +1130,97 @@ public class TeiParser
         });
     }
 
+    /// <summary>
+    /// Elements whose boundary is a break in the text even when the source
+    /// leaves no whitespace at it.
+    ///
+    /// The default is now to trust the source's own spacing (see
+    /// <see cref="AppendText"/>), which is right for markup that sits INSIDE a
+    /// word - &lt;add&gt;, &lt;del&gt;, &lt;hi&gt;, &lt;num&gt;. It is wrong for
+    /// markup that IS a boundary. A &lt;castItem&gt; holding
+    /// &lt;role&gt;LEAR&lt;/role&gt;&lt;roleDesc&gt;King of Britain&lt;/roleDesc&gt;
+    /// with nothing between them would otherwise flatten to "LEARKing".
+    ///
+    /// &lt;expan&gt; and &lt;ex&gt; WERE HERE and are not any more. They were
+    /// holding apart two readings of the same word that were both being taken -
+    /// &lt;expan&gt;&lt;ex&gt;Publii&lt;/ex&gt;&lt;/expan&gt;P., which had to
+    /// stay two tokens rather than fuse into "PubliiP.". Now that only the
+    /// abbreviation is read (see ReadingOfExpansion) there is no second reading
+    /// to hold apart: an &lt;expan&gt; that contributes nothing already sets the
+    /// interrupted flag by the length check, and one that contributes its
+    /// &lt;abbr&gt; is a single word like any other. Removing them changes no
+    /// leaf in any of the four corpora - checked, zero - and leaving them would
+    /// have meant a rule whose stated reason no longer exists.
+    /// </summary>
+    private static readonly HashSet<string> BlockBoundaryElements = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "head", "castItem", "stage", "item", "role", "roleDesc", "l", "p", "lg",
+        "said", "speaker", "label", "sp", "trailer", "closer", "opener", "ab",
+        "salute", "signed", "dateline", "byline", "docAuthor", "docDate", "list"
+    };
+
     private static string FlattenText(XElement element)
     {
         var sb = new StringBuilder();
-        FlattenElement(element, sb);
+        var interrupted = false;
+        FlattenElement(element, sb, ref interrupted);
         return CollapseWhitespace(sb.ToString());
+    }
+
+    /// <summary>
+    /// Appends one run of source text, inserting a separator only where one is
+    /// needed and the source does not already supply it.
+    ///
+    /// This replaces an unconditional <c>.Append(' ')</c> after every text
+    /// node. That unconditional space was invisible wherever the source had
+    /// whitespace at the same point - which is most places - and wrong
+    /// wherever it did not:
+    ///
+    ///     Ἀγάθων&lt;add&gt;ος&lt;/add&gt;   ->  "Ἀγάθων ος"
+    ///     ἀ&lt;del&gt;μφι&lt;/del&gt;γνοεῖν ->  "ἀ μφι γνοεῖν"
+    ///     qui&lt;add&gt;c&lt;/add&gt;quam     ->  "qui c quam"
+    ///     ἡ &lt;num&gt;ΑΒ&lt;/num&gt;.       ->  "ἡ ΑΒ ."
+    ///
+    /// TokenizeLine is a bare whitespace split, so each of those went into the
+    /// word index exactly as shown: a real word destroyed and two fragments
+    /// invented in its place. Measured over the four corpora, 215,471 tokens
+    /// were being created this way - 19,264 of them genuine letter-to-letter
+    /// word splits, the rest punctuation detached from the word it follows.
+    /// The fragments are short function-word-shaped strings ("ος", "que",
+    /// "c"), which is the worst possible shape for anything frequency-based.
+    ///
+    /// <paramref name="interrupted"/> carries the one case the source's own
+    /// spacing cannot answer: an element that contributed no text at all sat
+    /// between these two runs. That is either a break marker (&lt;lb/&gt;,
+    /// &lt;pb/&gt;, &lt;milestone/&gt;) or an element that was skipped as
+    /// editorial (&lt;note&gt;, &lt;gap/&gt;), and the two want opposite
+    /// treatment:
+    ///
+    ///     word&lt;lb/&gt;next          -> "word next"  (fusing would be wrong)
+    ///     autem&lt;note&gt;…&lt;/note&gt;, ut -> "autem, ut"  (breaking would be wrong)
+    ///
+    /// Deciding by element type would need a list of every marker every corpus
+    /// uses. Deciding by what is on either side needs nothing: a separator
+    /// goes in only where omitting it would run two word characters together.
+    /// Punctuation stays attached to its word either way. 859 empty
+    /// &lt;note&gt; anchors, 5,894 &lt;milestone/&gt; and 4,445 &lt;lb/&gt; sit
+    /// tight against text on both sides across the corpora, so both halves of
+    /// this carry weight.
+    /// </summary>
+    private static void AppendText(StringBuilder sb, string value, ref bool interrupted)
+    {
+        if (value.Length == 0) return;
+
+        if (interrupted
+            && sb.Length > 0
+            && char.IsLetterOrDigit(sb[sb.Length - 1])
+            && char.IsLetterOrDigit(value[0]))
+        {
+            sb.Append(' ');
+        }
+
+        sb.Append(value);
+        interrupted = false;
     }
 
     /// <summary>
@@ -943,20 +1237,26 @@ public class TeiParser
     /// the rejected alternatives. Dropping the whole element would silently
     /// delete words from the line. Where there is no &lt;lem&gt; - the entry
     /// records only variants - nothing is taken.
+    ///
+    /// Every branch now falls through to the same two lines at the bottom
+    /// rather than each one returning, because whether a child produced text
+    /// is not known until it has been walked, and it is what decides whether
+    /// the next run of text needs a separator in front of it.
     /// </summary>
-    private static void FlattenElement(XElement element, StringBuilder sb)
+    private static void FlattenElement(XElement element, StringBuilder sb, ref bool interrupted)
     {
         foreach (var node in element.Nodes())
         {
             if (node is XText text)
             {
-                sb.Append(text.Value).Append(' ');
+                AppendText(sb, text.Value, ref interrupted);
                 continue;
             }
 
             if (node is not XElement child) continue;
 
             var name = child.Name.LocalName;
+            var mark = sb.Length;
 
             // A speaker tag is emitted as its own node by WalkDiv, so it must
             // not also appear inside the speech - otherwise Plato reads
@@ -964,21 +1264,31 @@ public class TeiParser
             if (string.Equals(name, "label", StringComparison.OrdinalIgnoreCase)
                 && IsSpeakerLabel(child))
             {
-                continue;
+                // Nothing taken; the length check below marks the gap.
             }
-
-            if (string.Equals(name, "app", StringComparison.OrdinalIgnoreCase))
+            else if (string.Equals(name, "reg", StringComparison.OrdinalIgnoreCase)
+                     && IsNameAuthorityForm(child))
+            {
+                // A gazetteer entry, not a word of the text. See
+                // IsNameAuthorityForm.
+            }
+            else if (string.Equals(name, "app", StringComparison.OrdinalIgnoreCase))
             {
                 // Take only the adopted reading, if the entry names one.
                 foreach (var lem in child.Elements().Where(e =>
                              string.Equals(e.Name.LocalName, "lem", StringComparison.OrdinalIgnoreCase)))
                 {
-                    FlattenElement(lem, sb);
+                    FlattenElement(lem, sb, ref interrupted);
                 }
-                continue;
             }
-
-            if (string.Equals(name, "choice", StringComparison.OrdinalIgnoreCase))
+            else if (string.Equals(name, "expan", StringComparison.OrdinalIgnoreCase))
+            {
+                // The abbreviation is the text; the expansion is the editor's
+                // and goes to the apparatus. See ReadingOfExpansion.
+                var reading = ReadingOfExpansion(child);
+                if (reading != null) FlattenElement(reading, sb, ref interrupted);
+            }
+            else if (string.Equals(name, "choice", StringComparison.OrdinalIgnoreCase))
             {
                 var chosen =
                     PreferredChoiceReadings
@@ -988,15 +1298,50 @@ public class TeiParser
                     ?? FallbackChoiceReadings
                         .Select(fb => child.Elements().FirstOrDefault(e =>
                             string.Equals(e.Name.LocalName, fb, StringComparison.OrdinalIgnoreCase)))
-                        .FirstOrDefault(e => e != null);
+                        .FirstOrDefault(e => e != null)
+                    // Neither list matched, so this is a pairing this parser has
+                    // not met. Take the first reading rather than none.
+                    //
+                    // <choice> means "here are alternatives, pick one", so the
+                    // first is always A reading of the text even when it is not
+                    // the one a scholar would choose - and the alternative is
+                    // dropping every word in the element. Menota's manuscript
+                    // encoding is exactly this shape:
+                    //
+                    //   <choice><me:facs>hæꝩir</me:facs><me:dipl>hefir</me:dipl>
+                    //           <me:norm>hefir</me:norm></choice>
+                    //
+                    // 158,700 of them in the ten manuscripts, none matching any
+                    // name in either list. MenotaXmlLoader handles that corpus
+                    // and reads the levels properly, so nothing routes a Menota
+                    // file here today - but if one ever arrives it should come
+                    // out at the wrong orthographic level, not blank. Every
+                    // <choice> in the Perseus corpora resolves through the two
+                    // lists above, so this changes nothing there.
+                    ?? child.Elements().FirstOrDefault();
 
-                if (chosen != null) FlattenElement(chosen, sb);
-                continue;
+                // A <choice> whose only child is an <expan> resolves to it, and
+                // an <expan> is still not the reading - 9 of them wrap the
+                // <abbr> that is.
+                var chosenReading = chosen == null ? null : ReadingOfExpansion(chosen);
+                if (chosenReading != null) FlattenElement(chosenReading, sb, ref interrupted);
+            }
+            else if (!EditorialElements.Contains(name))
+            {
+                FlattenElement(child, sb, ref interrupted);
             }
 
-            if (EditorialElements.Contains(name)) continue;
-
-            FlattenElement(child, sb);
+            if (sb.Length == mark)
+            {
+                // Contributed nothing: a break marker, or a subtree that was
+                // skipped. Either way the runs on each side of it were not
+                // adjacent in the source.
+                interrupted = true;
+            }
+            else if (BlockBoundaryElements.Contains(name))
+            {
+                interrupted = true;
+            }
         }
     }
 

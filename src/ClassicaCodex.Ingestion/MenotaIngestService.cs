@@ -326,14 +326,24 @@ public class MenotaIngestService
     /// claim actually rests on and it holds for any scribe with the same habit
     /// under any label. AM 28 runs at 0.997 marks per word, AM 242 at 0.07,
     /// AM 619 at 0.11.
+    ///
+    /// Marks inside a &lt;w&gt; are excluded, because LineText does not emit
+    /// them - they belong to the word's own reading. Counting a population
+    /// other than the one the decision governs cannot help, though no
+    /// manuscript here is near the threshold either way: Holm perg 4 fol has
+    /// 1,565 of them and moves from 0.101 to 0.088.
     /// </summary>
-    private static bool PunctuationIsWordDivider(XDocument doc)
+    public static bool PunctuationIsWordDivider(XDocument doc)
     {
         var words = doc.Descendants(Tei + "w").Count(w => !MenotaXmlLoader.IsEditorial(w));
         if (words == 0) return false;
 
-        var marks = doc.Descendants(Tei + "pc").Count(m => !MenotaXmlLoader.IsEditorial(m))
-                    + doc.Descendants(MenotaXmlLoader.Me + "punct").Count(m => !MenotaXmlLoader.IsEditorial(m));
+        var marks = doc.Descendants(Tei + "pc")
+                        .Count(m => !MenotaXmlLoader.IsEditorial(m)
+                                    && !m.Ancestors(Tei + "w").Any())
+                    + doc.Descendants(MenotaXmlLoader.Me + "punct")
+                        .Count(m => !MenotaXmlLoader.IsEditorial(m)
+                                    && !m.Ancestors(Tei + "w").Any());
 
         return (double)marks / words > 0.5;
     }
@@ -617,6 +627,24 @@ public class MenotaIngestService
             {
                 if (punctuationIsWordDivider) continue;
 
+                // A mark INSIDE a <w> is part of that word's reading and was
+                // already taken with it - this is a flat Descendants() walk, so
+                // the word and the marks within it are both visited.
+                //
+                // Holm perg 4 fol writes its Roman numerals
+                // <w><choice><me:dipl><pc>.</pc>íí<pc>.</pc></me:dipl>…</choice></w>,
+                // and every one of those periods was emitted twice: once as
+                // part of ".íí." and again on its own. 1,565 in that manuscript
+                // and 40 in AM 619 4to.
+                //
+                // Skipping rather than appending is right even where the chosen
+                // level does NOT contain the mark, because Append puts it at
+                // the end of the buffer rather than at its place inside the
+                // word - a mark the normalised reading omits would land after
+                // the word instead of inside it, which is a guess the source
+                // does not support.
+                if (el.Ancestors(Tei + "w").Any()) continue;
+
                 var mark = WordText(el, level);
                 if (mark.Length > 0) buffer.Append(mark);
             }
@@ -823,7 +851,7 @@ public class MenotaIngestService
         return MenotaXmlLoader.Collapse(sb.ToString());
     }
 
-    private static string LineText(XElement container, string level, bool punctuationIsWordDivider)
+    public static string LineText(XElement container, string level, bool punctuationIsWordDivider)
     {
         var sb = new StringBuilder();
 
@@ -859,6 +887,10 @@ public class MenotaIngestService
                 // yields words rather than a stream of full stops.
                 if (punctuationIsWordDivider) continue;
 
+                // Already carried by the word it sits in - this walk visits the
+                // <w> and its contents both. See the same guard in LineText.
+                if (el.Ancestors(Tei + "w").Any()) continue;
+
                 var mark = WordText(el, level);
                 if (mark.Length > 0) sb.Append(mark);
             }
@@ -881,9 +913,12 @@ public class MenotaIngestService
     {
         if (word.Ancestors(Tei + "del").Any()) return string.Empty;
 
-        var target = word.Descendants(MenotaXmlLoader.Me + level).FirstOrDefault()
-                     ?? word.Descendants(MenotaXmlLoader.Me + "dipl").FirstOrDefault()
-                     ?? word.Descendants(MenotaXmlLoader.Me + "facs").FirstOrDefault();
+        // LevelElement, not a raw Descendants().FirstOrDefault(): an empty
+        // <me:norm/> placeholder is not a normalised reading, and stopping at
+        // one here is what emptied Holm perg 4 fol.
+        var target = MenotaXmlLoader.LevelElement(word, level)
+                     ?? MenotaXmlLoader.LevelElement(word, "dipl")
+                     ?? MenotaXmlLoader.LevelElement(word, "facs");
 
         if (target == null)
             return MenotaXmlLoader.Collapse(word.Value);

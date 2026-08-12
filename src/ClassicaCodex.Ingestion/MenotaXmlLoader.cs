@@ -94,8 +94,8 @@ public static class MenotaXmlLoader
     }
 
     /// <summary>
-    /// The text of one orthographic level of a word, or null if the word does
-    /// not carry that level.
+    /// The element holding one orthographic level of a word, or null if the
+    /// word does not carry that level.
     ///
     /// Descendants, not Elements. Menota encodes the levels two ways - as
     /// direct children of &lt;w&gt;, and wrapped in a &lt;choice&gt; - and a
@@ -104,15 +104,29 @@ public static class MenotaXmlLoader
     /// only direct children reports AM 28 as having no diplomatic level at
     /// all, which is what MenotaCorpusReport currently does.
     ///
+    /// An EMPTY level element counts as not carrying the level. Holm perg 4
+    /// fol transcribes at the diplomatic level and leaves the other two as
+    /// placeholders - &lt;me:facs/&gt;&lt;me:norm/&gt;, present and empty, on
+    /// 114,684 and 106,989 of its 115,241 words. Treated as present, they
+    /// broke the manuscript three ways at once: ChooseReadingLevel saw 100%
+    /// normalised coverage and picked "norm"; the ?? fallbacks below stopped
+    /// at the empty element instead of falling through to the diplomatic
+    /// reading, because "" is not null; and WordText then returned nothing for
+    /// 93% of the words, so they were skipped. The manuscript ingested as 7%
+    /// of itself and reported full coverage while doing it.
+    ///
     /// &lt;ex&gt; inside a level is the editorial expansion of an
     /// abbreviation, and .Value includes it - which is right: the diplomatic
     /// reading of an abbreviated word is the expanded word.
     /// </summary>
-    public static string? Level(XElement word, string level)
-    {
-        var el = word.Descendants(Me + level).FirstOrDefault();
-        return el?.Value;
-    }
+    public static XElement? LevelElement(XElement word, string level) =>
+        word.Descendants(Me + level).FirstOrDefault(e => !string.IsNullOrWhiteSpace(e.Value));
+
+    /// <summary>
+    /// The text of one orthographic level of a word, or null if the word does
+    /// not carry that level. See <see cref="LevelElement"/>.
+    /// </summary>
+    public static string? Level(XElement word, string level) => LevelElement(word, level)?.Value;
 
     /// <summary>
     /// The readable text of an element that contains word markup, at one

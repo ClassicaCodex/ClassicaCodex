@@ -100,12 +100,19 @@ public class MenotaCorpusReport
                 // absent from all of them and UsableForStylometry turns on
                 // norm - but the first normalised manuscript encoded this way
                 // would have been reported diplomatic and wrongly excluded.
+                //
+                // LevelElement rather than .Any(), so an empty placeholder does
+                // not count as a reading. Holm perg 4 fol carries a
+                // <me:norm/> on 115,232 words and text in only 8,243 of them;
+                // counted by presence it reports as fully normalised and passes
+                // UsableForStylometry, which would put a manuscript that is 93%
+                // empty at that level into a Delta run.
                 foreach (var w in doc.Descendants(Tei + "w"))
                 {
                     summary.WordElements++;
-                    if (w.Descendants(Me + "facs").Any()) summary.WithFacsimile++;
-                    if (w.Descendants(Me + "dipl").Any()) summary.WithDiplomatic++;
-                    if (w.Descendants(Me + "norm").Any()) summary.WithNormalised++;
+                    if (MenotaXmlLoader.LevelElement(w, "facs") != null) summary.WithFacsimile++;
+                    if (MenotaXmlLoader.LevelElement(w, "dipl") != null) summary.WithDiplomatic++;
+                    if (MenotaXmlLoader.LevelElement(w, "norm") != null) summary.WithNormalised++;
                     if (w.Attribute("lemma") != null) summary.WithLemma++;
                 }
             }
