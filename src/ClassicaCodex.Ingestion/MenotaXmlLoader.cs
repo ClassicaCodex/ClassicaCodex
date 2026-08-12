@@ -1,3 +1,4 @@
+using System.Text;
 using System.Text.RegularExpressions;
 using System.Xml.Linq;
 
@@ -167,32 +168,107 @@ public static class MenotaXmlLoader
     public static bool IsEditorial(XElement el) =>
         el.Ancestors(Tei + "note").Any();
 
-    public static string WordsText(XElement container, string level)
+    /// <summary>
+    /// The words of an element at one orthographic level, and optionally the
+    /// punctuation between them.
+    ///
+    /// <paramref name="includePunctuation"/> is off by default because most
+    /// callers want the words alone. It is on for the heading text that goes
+    /// into a TextNode, which is what a reader sees: 1,191 free-standing
+    /// &lt;pc&gt; sit inside headings across the ten manuscripts - 628 in AM 36
+    /// fol, 315 in Holm perg 4 fol, 152 in AM 63 fol - so every Menota heading
+    /// was displayed unpunctuated while the lines beneath it were not.
+    ///
+    /// It stays off for the plan's titles and for MenotaPlanForm's preview.
+    /// Those are matched against catalogue entries through a Normalise that
+    /// keeps only letters and digits, so punctuation could not help them, and
+    /// they are written into .plan.json files that already exist on disk -
+    /// changing the string would change titles a user has already reviewed.
+    ///
+    /// A mark inside a &lt;w&gt; is skipped: it belongs to that word's reading
+    /// and was taken with it. Holm perg 4 fol has 28 of those in its headings
+    /// alone, and appending them again is the doubling that LineText had.
+    ///
+    /// Callers that pass a &lt;w&gt; as the container - AddApparatus, NoteText -
+    /// are unaffected either way, since every mark inside a word is nested by
+    /// definition.
+    /// </summary>
+    /// <param name="includePunctuation">
+    /// Never pass true for a manuscript whose marks are word dividers rather
+    /// than punctuation. AM 28 8vo runs at 0.997 marks per word and has 5 in
+    /// its 2 headings; taken as punctuation they render "om: konæ: iordh:".
+    /// See MenotaIngestService.PunctuationIsWordDivider.
+    /// </param>
+    public static string WordsText(XElement container, string level, bool includePunctuation = false)
     {
         var words = container.Descendants(Tei + "w")
             .Where(w => !IsEditorial(w) || container.Name == Tei + "note")
             .ToList();
         if (words.Count == 0) return Collapse(container.Value);
 
-        var parts = new List<string>();
-
-        foreach (var word in words)
+        if (!includePunctuation)
         {
-            // <del> in a manuscript transcription is the scribe's own
-            // deletion, not an editor's athetesis, and is not part of the
-            // text being read.
-            if (word.Ancestors(Tei + "del").Any()) continue;
+            var parts = new List<string>();
 
-            var text = Level(word, level)
-                       ?? Level(word, "dipl")
-                       ?? Level(word, "facs")
-                       ?? word.Value;
+            foreach (var word in words)
+            {
+                // <del> in a manuscript transcription is the scribe's own
+                // deletion, not an editor's athetesis, and is not part of the
+                // text being read.
+                if (word.Ancestors(Tei + "del").Any()) continue;
 
-            text = Collapse(text);
-            if (text.Length > 0) parts.Add(text);
+                var text = WordAtLevel(word, level);
+                if (text.Length > 0) parts.Add(text);
+            }
+
+            return string.Join(" ", parts);
         }
 
-        return string.Join(" ", parts);
+        // Document order, so a mark lands after the word it follows rather
+        // than at the end. Same walk LineText makes, and the same guards.
+        var sb = new StringBuilder();
+        var wordSet = new HashSet<XElement>(words);
+
+        foreach (var el in container.Descendants())
+        {
+            if (el.Ancestors(Tei + "del").Any()) continue;
+
+            if (el.Name == Tei + "w")
+            {
+                if (!wordSet.Contains(el)) continue;
+
+                var text = WordAtLevel(el, level);
+                if (text.Length == 0) continue;
+
+                if (sb.Length > 0) sb.Append(' ');
+                sb.Append(text);
+            }
+            else if (el.Name == Tei + "pc" || el.Name == Me + "punct")
+            {
+                if (IsEditorial(el) && container.Name != Tei + "note") continue;
+                if (el.Ancestors(Tei + "w").Any()) continue;
+
+                var mark = WordAtLevel(el, level);
+                if (mark.Length > 0) sb.Append(mark);
+            }
+        }
+
+        return Collapse(sb.ToString());
+    }
+
+    /// <summary>
+    /// One word or mark at the requested level, falling back through the
+    /// levels it does carry. See <see cref="LevelElement"/> for why an empty
+    /// element does not count as carrying one.
+    /// </summary>
+    private static string WordAtLevel(XElement word, string level)
+    {
+        var text = Level(word, level)
+                   ?? Level(word, "dipl")
+                   ?? Level(word, "facs")
+                   ?? word.Value;
+
+        return Collapse(text);
     }
 
     /// <summary>

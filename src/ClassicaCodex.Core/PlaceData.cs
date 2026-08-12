@@ -144,6 +144,113 @@ public static class PlaceData
         // the existing box.
         ("Aleppo", 36.2021, 37.1343),
         ("Astrakhan", 46.3497, 48.0408),
+		
+		// ---- Herodotus, from the Getty TGN records Perseus embeds in the text.
+        // Harvested from tlg0016.tlg001.perseus-eng2: 424 distinct places, 344 with
+        // coordinates, of which 49 were already covered here. These are the 100 new
+        // ones mentioned five times or more that fall inside MapCanvas's viewport.
+        // The source writes them [lon,lat]; they are (lat, lon) below - verified
+        // against the 38 places both sources name, mean error 0.70 degrees.
+        ("Hellas", 39.0000, 22.0000),         // 210x, nation
+        ("Libya", 25.0000, 17.0000),          // 100x, nation
+        ("Nile", 30.1660, 31.1000),           // 72x, river
+        ("Persia", 32.0000, 53.0000),         // 72x, nation
+        ("Samos", 37.7500, 26.8000),          // 71x, island
+        ("Attica", 38.8300, 23.5000),         // 57x, department
+        ("Peloponnese", 37.5000, 22.0000),    // 54x, region
+        ("Thessaly", 39.5000, 22.2500),       // 53x, region
+        ("Aegina", 37.7500, 23.4330),         // 48x, inhabited place
+        ("Lacedaemon", 37.8300, 22.4160),     // 45x, inhabited place
+        ("Artemisium", 39.0083, 23.2417),     // 39x, Perseus
+        ("Sicily", 37.5000, 14.0000),         // 29x, region
+        ("Pontus", 42.0000, 38.0000),         // 24x, sea
+        ("Syria", 35.0000, 38.0000),          // 23x, nation
+        ("Arabia", 25.0000, 45.0000),         // 22x, region (general
+        ("Chios", 38.3660, 26.0000),          // 22x, island
+        ("Euboea", 38.5660, 23.8330),         // 22x, island
+        ("Tegea", 37.5000, 22.4000),          // 22x, Perseus
+        ("Abydos", 40.2000, 26.4160),         // 19x, deserted settlement
+        ("Lydia", 38.6830, 27.5160),          // 18x, region (general
+        ("Naxos", 37.8160, 15.2830),          // 18x, deserted settlement
+        ("Croton", 39.0833, 17.1333),         // 17x, Perseus
+        ("Eleusis", 38.0417, 23.5583),        // 16x, Perseus
+        ("Lemnos", 39.9160, 25.2500),         // 16x, island
+        ("Mykale", 38.1000, 26.8667),         // 16x, Perseus
+        ("Sicyon", 37.9833, 22.7250),         // 16x, Perseus
+        ("Thera", 36.4000, 25.4330),          // 16x, island
+        ("Eretria", 38.3917, 23.8083),        // 15x, Perseus
+        ("Athos", 40.1660, 24.3160),          // 14x, inhabited place
+        ("Bubastis", 30.5660, 31.5160),       // 14x, deserted settlement
+        ("Dodona", 39.5500, 20.8000),         // 14x, Perseus
+        ("Italy", 42.8330, 12.8330),          // 14x, nation
+        ("Arcadia", 37.5830, 22.2500),        // 13x, department
+        ("Buto", 31.2000, 30.7330),           // 13x, deserted settlement
+        ("Cilicia", 36.6660, 34.3330),        // 13x, region (general
+        ("Elis", 37.8833, 21.4000),           // 13x, Perseus
+        ("Maeander", 37.4660, 27.1830),       // 13x, river
+        ("Abdera", 40.9833, 24.9667),         // 12x, Perseus
+        ("Lesbos", 39.1660, 26.3330),         // 12x, island
+        ("Phocaea", 38.6660, 26.7500),        // 12x, inhabited place
+        ("Trachis", 38.8000, 22.5500),        // 12x, Perseus
+        ("Apollonia", 38.0167, 14.5833),      // 11x, Perseus
+        ("Barce", 32.5000, 20.8330),          // 11x, inhabited place
+        ("Caria", 37.5000, 28.0000),          // 11x, region (general
+        ("Cyme", 38.6333, 24.1167),           // 11x, Perseus
+        ("Heliopolis", 30.1000, 31.3330),     // 11x, deserted settlement
+        ("Pallene", 38.0500, 23.8833),        // 11x, Perseus
+        ("Tanaïs", 47.1000, 39.4330),         // 11x, inhabited place
+        ("Zancle", 38.1833, 15.5667),         // 11x, Perseus
+        ("Euphrates", 31.8300, 47.5000),      // 10x, river
+        ("Mytilene", 39.1000, 26.5500),       // 10x, Perseus
+        ("Thasos", 40.7830, 24.7160),         // 10x, deserted settlement
+        ("Therma", 40.6330, 22.9330),         // 10x, inhabited place
+        ("Andros", 37.8160, 24.9000),         // 9x, inhabited place
+        ("Aphetae", 39.1167, 23.1167),        // 9x, Perseus
+        ("Chalcis", 38.4667, 23.6083),        // 9x, Perseus
+        ("Gela", 37.0667, 14.2500),           // 9x, Perseus
+        ("Magnesia", 39.2500, 22.7500),       // 9x, department
+        ("Megara", 38.0000, 23.3500),         // 9x, Perseus
+        ("Branchidae", 37.3500, 27.2330),     // 8x, historic site
+        ("Corcyra", 39.6330, 19.9160),        // 8x, inhabited place
+        ("Orchomenus", 37.7160, 22.3000),     // 8x, inhabited place
+        ("Sestus", 40.2833, 26.4000),         // 8x, Perseus
+        ("Sybaris", 39.7500, 16.4833),        // 8x, Perseus
+        ("Tanagra", 38.3083, 23.6000),        // 8x, Perseus
+        ("Troezen", 37.5000, 23.3750),        // 8x, Perseus
+        ("Arabian Gulf", 25.5830, 53.8300),   // 7x, gulf
+        ("Atarneus", 39.0500, 26.9500),       // 7x, Perseus
+        ("Cyzicus", 40.4167, 27.9000),        // 7x, Perseus
+        ("Euxine", 42.0000, 38.0000),         // 7x, sea
+        ("Euxine sea", 42.0000, 38.0000),     // 7x, sea
+        ("Khemmis", 26.5660, 31.7330),        // 7x, inhabited place
+        ("Melissa", 39.3000, 17.0333),        // 7x, Perseus
+        ("Naucratis", 30.9000, 30.5830),      // 7x, inhabited place
+        ("Palestine", 31.9160, 35.3330),      // 7x, region (general
+        ("Proconnesus", 40.6330, 27.6160),    // 7x, island
+        ("Achaea", 38.2500, 21.7500),         // 6x, department
+        ("Cappadocia", 38.5000, 36.0000),     // 6x, region (general
+        ("Caucasus", 42.0000, 46.8330),       // 6x, mountain range
+        ("Eion", 40.7333, 23.8833),           // 6x, Perseus
+        ("Laconia", 37.0000, 22.5830),        // 6x, department
+        ("Phasis", 42.1830, 41.6830),         // 6x, inhabited place
+        ("Priene", 37.6333, 27.2833),         // 6x, Perseus
+        ("Rhegium", 38.1000, 15.6500),        // 6x, inhabited place
+        ("Tiryns", 37.6000, 22.8167),         // 6x, Perseus
+        ("lake Moeris", 29.4660, 30.6660),    // 6x, salt lake
+        ("Abae", 38.5917, 22.9583),           // 5x, Perseus
+        ("Aegean", 38.5000, 25.0000),         // 5x, sea
+        ("Axius", 40.5830, 22.8330),          // 5x, river
+        ("Clazomenae", 38.3167, 26.7833),     // 5x, Perseus
+        ("Colophon", 38.1167, 27.1333),       // 5x, Perseus
+        ("Cos", 36.8917, 27.3000),            // 5x, Perseus
+        ("Hermione", 37.3833, 23.2583),       // 5x, Perseus
+        ("Ilion", 39.9500, 26.2500),          // 5x, deserted settlement
+        ("Lampsacus", 40.3660, 26.7000),      // 5x, inhabited place
+        ("Lindus", 36.0833, 28.1083),         // 5x, Perseus
+        ("Olynthus", 40.3000, 23.3667),       // 5x, Perseus
+        ("Panionion", 37.6833, 27.1167),      // 5x, Perseus
+        ("Paros", 37.1000, 25.2000),          // 5x, island
+        ("Tigris", 31.0000, 47.4160),         // 5x, river
     };
 
     /// <summary>

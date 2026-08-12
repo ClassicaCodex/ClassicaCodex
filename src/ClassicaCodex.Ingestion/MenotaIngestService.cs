@@ -394,7 +394,9 @@ public class MenotaIngestService
 
             if (heads.Count > 0)
             {
-                var headText = head == null ? "" : MenotaXmlLoader.WordsText(head, level);
+                var headText = head == null
+                    ? ""
+                    : MenotaXmlLoader.WordsText(head, level, !punctuationIsWordDivider);
 
                 var duplicatesTitle = string.Equals(
                     Normalise(headText), Normalise(workTitle), StringComparison.OrdinalIgnoreCase);
