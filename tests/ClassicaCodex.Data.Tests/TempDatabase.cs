@@ -81,6 +81,22 @@ public sealed class TempDatabase : IDisposable
     /// migration adds a column - which is the point of naming the migration
     /// beside each one.
     /// </summary>
+    /// <summary>
+    /// Makes a current database look like an older one.
+    ///
+    /// EVERY MIGRATION THAT ADDS A COLUMN NEEDS AN ENTRY BELOW. A fresh
+    /// database is built from SchemaStatements, which describes the CURRENT
+    /// shape - so a column added by an ALTER migration is already present, and
+    /// rewinding the version stamp without dropping it produces a file that
+    /// claims to be v2 while carrying v16 columns. The migration then re-adds
+    /// a column that exists and fails with "duplicate column name".
+    ///
+    /// The failure names the column, so it is quick to diagnose and easy to
+    /// forget: NearestCount was missing from this list for exactly as long as
+    /// it took to run the suite once.
+    /// ARewindToTheOldestRepresentableVersionStillUpgrades in SchemaMigrationTests
+    /// is the guard that catches an omission without anyone remembering.
+    /// </summary>
     public async Task RewindSchemaAsync(int toVersion)
     {
         var columns = new (int Migration, string Table, string Column)[]
@@ -89,7 +105,8 @@ public sealed class TempDatabase : IDisposable
             (10, "StylometryRuns", "ChunkSize"),
             (11, "TextNodes",      "IsAthetized"),
             (13, "Editions",       "Orthography"),
-            (14, "TextNodes",      "NodeKind")
+            (14, "TextNodes",      "NodeKind"),
+            (16, "StylometryExperimentRows", "NearestCount")
         };
 
         foreach (var c in columns)

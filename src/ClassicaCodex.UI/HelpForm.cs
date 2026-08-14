@@ -290,13 +290,33 @@ Stylometry
    Reading the results honestly
       Vary a setting and re-run. If a work's position moves, the position was about the setting.
 
-      Check the Length confound tab before believing a ranking. If depth correlates with token count, the ranking is measuring how much text there is.
+      Check the length confound before believing a ranking. If a measure correlates with token count, the ranking is measuring how much text there is. Four separate measures turned out to be doing exactly that, so the Validation window now computes the correlation on every run rather than leaving it on a tab someone has to remember to open.
 
       Depth to first outsider - how far down a work's neighbour list you get before another author appears - is shown because watching it move is instructive, but it is not reliable for attribution. In testing it varied by up to 20 ranks for a single work on a 500-token change in sample size. Delta floor, the distance to the nearest neighbour, is more stable.
 
       Replicate at more than one sample size before believing anything. In the work this feature was built for, the single most promising result turned out to be an artifact of which words happened to fall into one sample.
 
-   docs/stylometry-notes.md in the repository is the longer write-up: what the tool found, what it got wrong, and why the authorship question it was built for came back unanswered.
+The validation bench
+   Three windows that exist to attack a result rather than produce one. They open from each other: Validate settings on the Stylometry window, then Test parameter stability and Perturbation series from there.
+
+   Validation - can these settings recover known texts?
+      Hides one work at a time and asks whether the method puts it back with its own author. Reports margin - mean Delta to other authors minus mean Delta to its own - along with the correlation between margin and text length, which is the thing to read first. On a same-genre pool recovery saturates at 100% and tells you nothing; the correlation is what says whether a ranking is about style or about size.
+
+   Stability - does the result survive a change of settings?
+      Runs the validation across a grid of sample sizes, feature counts and accent settings. Every cell carries a 95% band, because on a corpus of twenty works the spread across forty configurations can sit entirely inside the estimation error of any one of them. If the bands overlap, the ordering is noise and the summary says so rather than naming a best cell.
+
+   Perturbation - how much disturbance before the method stops recognising it?
+      Replaces a chosen percentage of a work's words with another author's and measures what happens to the margin. Replace mode holds the token count constant, so length cannot move while composition does.
+
+      Always run the same-author control, which is on by default. A falling curve alone cannot tell disturbance by another author's style from disturbance as such - injecting a work's OWN author moves the margin the other way, and the two curves diverging is the evidence. If the control falls too, something is wrong with the experiment rather than interesting about the text.
+
+      Run every work by this author sweeps the whole author and reports two things a single series cannot. The first is whether any work responds unusually once the part of its response that is predictable from its baseline margin has been fitted out - works with more margin to lose lose more of it, so a ranking on the raw drop mostly rediscovers which work has the least. The second is detection power: how large a contamination this method could find on this corpus at all, as the probability of correctly ranking a contaminated work above a clean one. Read that before believing a null result. On the Greek tragic corpus nothing below about a third of a play is reliably detectable, which bounds what any negative finding there can mean.
+
+      Save experiment stores a run in the library with its seed, its exact pool and every setting, so it can be reloaded and re-run. Load puts all of that back on the controls; if the pool has changed since, the status line says so, because a margin is a property of the comparison rather than of the text and is not comparable across pools.
+
+   Right-click any results table to copy it or export to CSV, tab-separated text, or Excel. The export carries full precision rather than the rounded figures on screen, plus the seed and settings as a header, so the numbers cannot be separated from what produced them.
+
+   docs/stylometry-notes.md in the repository is the longer write-up: what the tool found, what it got wrong, and why the authorship question it was built for came back unanswered. Six candidate findings appear there; five of them dissolved on checking, and how each one dissolved is the most useful part.
 
 Find Echoes
    Looks for passages sharing unusually rare words with the one you started from. Rare-word overlap is a much stronger signal of allusion than shared common words - two authors both using "and" means nothing. These are candidates worth a human look, not proof of borrowing.

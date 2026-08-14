@@ -1,5 +1,5 @@
-using System.Text.RegularExpressions;
 using ClassicaCodex.Core;
+using ClassicaCodex.Core.Stylometry;
 using ClassicaCodex.Data.Repositories;
 
 namespace ClassicaCodex.UI;
@@ -36,6 +36,7 @@ public class StylometryForm : Form
     private readonly Button _analyzeButton;
     private readonly Button _saveRunButton;
     private readonly Button _batchButton;
+    private readonly Button _validateButton;
     private readonly CheckBox _foldAccentsCheck;
     private readonly CheckBox _excludeNonCompositionsCheck;
     private readonly NumericUpDown _minTokensInput;
@@ -71,7 +72,7 @@ public class StylometryForm : Form
         Text = "Stylometric Fingerprint (Burrows' Delta)";
         AppIcons.ApplyWindowIcon(this, "Stylometry");
         Width = 1150;
-        Height = 830;
+        Height = 872;   // one more button row than it used to have
         StartPosition = FormStartPosition.CenterParent;
 
         // LAYOUT
@@ -243,10 +244,27 @@ public class StylometryForm : Form
         };
         _batchButton.Click += async (_, _) => await RunBatchForAuthorAsync();
 
+        // The validation bench. A separate window rather than a tab here, for
+        // the same reason Compare Saved Runs is: this form answers "what is the
+        // Delta for this work", the bench answers "should I believe a Delta at
+        // these settings at all". They are asked at different moments, and the
+        // second one should be asked first.
+        _validateButton = new Button
+        {
+            Text = "Validate settings...",
+            Left = LeftCol + 216, Top = 720, Width = 140, Height = 30,
+            Anchor = AnchorStyles.Bottom | AnchorStyles.Left
+        };
+        _validateButton.Click += (_, _) =>
+        {
+            using var bench = new ValidationForm { OnOpenWork = OnOpenWork };
+            bench.ShowDialog(this);
+        };
+
         _statusLabel = new Label
         {
             Text = "Pick a work, then Analyze style.",
-            Left = LeftCol, Top = 722, Width = LeftWidth, Height = 46,
+            Left = LeftCol, Top = 760, Width = LeftWidth, Height = 46,
             Anchor = AnchorStyles.Bottom | AnchorStyles.Left
         };
 
@@ -288,6 +306,7 @@ public class StylometryForm : Form
         Controls.Add(_analyzeButton);
         Controls.Add(_saveRunButton);
         Controls.Add(_batchButton);
+        Controls.Add(_validateButton);
         Controls.Add(_statusLabel);
         Controls.Add(resultsLabel);
         Controls.Add(_resultsList);
@@ -561,8 +580,6 @@ public class StylometryForm : Form
     /// </summary>
     private const bool StripElisionMarksAlways = true;
 
-    private static readonly Regex WordPattern = new(@"\p{L}+", RegexOptions.Compiled);
-
     // FeatureWordCount and UseAccentStripping used to be consts here. They are
     // now read from the controls on the form and passed into ComputeDelta,
     // because a const requires a rebuild to change - which in practice means
@@ -585,125 +602,6 @@ public class StylometryForm : Form
     // obviously right - run both and compare rank order. Stable ordering means
     // the result is robust to the choice; a flip means it was orthography.
 
-    /// <summary>
-    /// Removes elision apostrophes so that δ' and δε count as the same token.
-    ///
-    /// This is a correctness fix, not a preference. Whether an elided form is
-    /// written δ' or δε is a decision made by a nineteenth-century editor, not
-    /// by the author, and Perseus is not consistent about it across ~2,000
-    /// files. Left in place it becomes the single highest-weighted feature in a
-    /// Greek run - i.e. the analysis measures which editor prepared the text.
-    ///
-    /// It has to happen here rather than being left to the tokenizer or to
-    /// WordNormalizer, because both let it through:
-    ///
-    ///   - The regex above matches \p{L}+, and U+02BC MODIFIER LETTER
-    ///     APOSTROPHE is Unicode category Lm, which is a Letter category. So
-    ///     \p{L} captures it as part of the word.
-    ///   - WordNormalizer.Normalize filters on char.IsLetter, which returns
-    ///     true for Lm for the same reason. It strips combining marks and folds
-    ///     final sigma, but the apostrophe survives.
-    ///
-    /// U+2019 (Pf) and U+0027 (Po) are punctuation and would be dropped by
-    /// either filter - which is the actual problem, since it means the same
-    /// word tokenizes differently depending on which codepoint an edition
-    /// happens to use. All three are removed here so the treatment is uniform.
-    ///
-    /// Verify after running: δ' should no longer appear in the fingerprint
-    /// chart. If it does, this is not being reached.
-    ///
-    /// WHAT THIS DOES NOT DO. Stripping the mark maps δ' to δ, not to δε. The
-    /// elided and unelided forms of the same word therefore remain separate
-    /// features. That is deliberate, and it is the smaller problem:
-    ///
-    ///   - The confound being fixed is CROSS-EDITION inconsistency. The same
-    ///     elided form was previously counted as δ' in one edition and δ in
-    ///     another purely on the codepoint chosen. Every edition now agrees.
-    ///   - Merging δ into δε is a separate question requiring a restoration
-    ///     table (δ'→δέ, τ'→τε, μ'→με, ἀλλ'→ἀλλά ...), some of which is
-    ///     genuinely ambiguous.
-    ///
-    /// Whether to go further is arguable. Elision is metrically conditioned, so
-    /// how often a poet elides is plausibly a real stylistic feature rather than
-    /// noise - though it is also mediated by editorial convention. Leaving them
-    /// separate keeps that signal; merging them would discard it. Not resolved
-    /// here.
-    /// </summary>
-    private static string StripElisionMarks(string token) => token
-        .Replace("\u02BC", string.Empty)   // MODIFIER LETTER APOSTROPHE (Lm - survives \p{L} and char.IsLetter)
-        .Replace("\u2019", string.Empty)   // RIGHT SINGLE QUOTATION MARK (Pf)
-        .Replace("\u1FBD", string.Empty)   // GREEK KORONIS (Sk)
-        .Replace("'", string.Empty);       // ASCII APOSTROPHE (Po)
-
-    private static string NormalizeToken(string raw, bool foldAccents)
-    {
-        var token = foldAccents ? WordNormalizer.Normalize(raw) : raw.ToLowerInvariant();
-        return StripElisionMarks(token);
-    }
-
-    /// <summary>
-    /// One comparison unit: either a whole work, or a fixed-size sample drawn
-    /// from one.
-    /// </summary>
-    private sealed class Chunk
-    {
-        public int WorkId;
-        public string AuthorName = string.Empty;
-        public string WorkTitle = string.Empty;
-        public int ChunkIndex;                       // 1-based; 0 when not chunking
-        public int ChunkCount;                       // how many this work produced
-        public Dictionary<string, int> Counts = new();
-        public int TotalTokens;
-
-        /// <summary>Label for the results list. Chunk numbers only appear when there is more than one.</summary>
-        public string Label => ChunkCount > 1
-            ? $"{AuthorName}, {WorkTitle} [{ChunkIndex}/{ChunkCount}]"
-            : $"{AuthorName}, {WorkTitle}";
-    }
-
-    /// <summary>
-    /// Splits a token list into equal-size samples.
-    ///
-    /// WHY SAMPLE RATHER THAN SLICE. Eder found randomly drawn bags of words
-    /// outperform contiguous passages of the same size for attribution: a
-    /// contiguous passage carries local subject matter - one episode, one
-    /// speaker, one messenger speech - and that shows up in word frequencies as
-    /// though it were style. Drawing across the whole work averages the topic
-    /// out and leaves the habitual vocabulary, which is what Delta is for.
-    ///
-    /// The shuffle is seeded from the work id, so a given work always yields
-    /// the same chunks. Reproducibility matters more here than fresh randomness:
-    /// a run that cannot be repeated cannot be compared against.
-    ///
-    /// Remainder tokens are discarded. Keeping a short final chunk would put a
-    /// noisier sample into the same pool as full ones and reintroduce exactly
-    /// the length effect this is meant to remove. The cost is real - Rhesus at
-    /// 5,431 tokens yields one 3,000-token chunk and 2,431 tokens go unused -
-    /// and it is reported so the discard is visible rather than silent.
-    /// </summary>
-    private static List<List<string>> SplitIntoChunks(List<string> tokens, int chunkSize, int seed)
-    {
-        var chunkCount = tokens.Count / chunkSize;
-        if (chunkCount < 1) return new List<List<string>>();
-
-        var order = Enumerable.Range(0, tokens.Count).ToArray();
-        var rng = new Random(seed);
-        for (var i = order.Length - 1; i > 0; i--)
-        {
-            var j = rng.Next(i + 1);
-            (order[i], order[j]) = (order[j], order[i]);
-        }
-
-        var result = new List<List<string>>(chunkCount);
-        for (var c = 0; c < chunkCount; c++)
-        {
-            var bag = new List<string>(chunkSize);
-            for (var k = c * chunkSize; k < (c + 1) * chunkSize; k++) bag.Add(tokens[order[k]]);
-            result.Add(bag);
-        }
-        return result;
-    }
-
     private List<string> TokenizeWork(WorkItem work, bool foldAccents)
     {
         // Reading lines only. Delta is a measure over relative word
@@ -716,49 +614,31 @@ public class StylometryForm : Form
             .GetByEditionAsync(work.EditionId, readingLinesOnly: true)
             .GetAwaiter().GetResult();
         var text = string.Join(' ', nodes.Select(n => n.Text));
-        var tokens = new List<string>();
 
-        foreach (Match m in WordPattern.Matches(text))
-        {
-            var w = NormalizeToken(m.Value, foldAccents);
-
-            // Normalize drops everything that isn't a letter, so a token
-            // consisting only of marks can come back empty. Counting those
-            // would inflate the denominator with nothing.
-            if (w.Length == 0) continue;
-            tokens.Add(w);
-        }
-
-        return tokens;
+        return StylometryTokenizer.Tokenize(text, foldAccents);
     }
 
     /// <summary>
-    /// Burrows' Delta over the pool, optionally at fixed sample size.
+    /// Runs Burrows' Delta for one target against a pool of works.
     ///
-    /// WHY CHUNKING EXISTS. Without it, depth to first outsider tracks text
-    /// length: across the Euripides corpus the four shortest works are the four
-    /// shallowest, and Rhesus - second shortest - sits exactly where its length
-    /// predicts. A shorter text gives noisier relative-frequency estimates,
-    /// which inflates its Delta against everything and lets other authors rise
-    /// earlier in its ranking. That is a property of the sample, not the author.
+    /// The calculation itself now lives in DeltaEngine, in Core. It moved
+    /// because leave-one-out validation, parameter grids and perturbation
+    /// experiments all need to run it thousands of times with no window open,
+    /// and a private method on a Form cannot be called that way or tested
+    /// directly. All the reasoning that used to sit here - why sampling draws
+    /// bags rather than passages, why chunks are never aggregated back to
+    /// works, why the target's own chunks are excluded - moved with it and is
+    /// unchanged.
     ///
-    /// With chunkSize > 0 every comparison unit holds the same number of tokens,
-    /// so that particular explanation is removed rather than measured. If a work
-    /// still ranks shallow at equal length, length is no longer available as the
-    /// reason.
+    /// What stays here is what is specific to this form: reading the pool out
+    /// of the database, tokenising it, and turning the result into the sentence
+    /// under the chart.
     ///
-    /// WHY NO AGGREGATION BACK TO WORKS. Chunks stay chunks all the way through.
-    /// Collapsing them into a per-work distance requires choosing between the
-    /// mean of pairwise chunk distances - which rewards works with more chunks,
-    /// i.e. longer works - and the minimum, which rewards them differently by
-    /// giving them more chances at a close match. Both smuggle length back in.
-    /// Leaving the unit as the chunk avoids the choice: every chunk is one
-    /// observation of equal size, and a long work simply contributes more
-    /// observations.
-    ///
-    /// The consequence for reading results: a work with three chunks appears
-    /// three times, and the target work's own chunks are excluded so it cannot
-    /// match itself.
+    /// Tokenisation is the expensive half - it reads every node of every work
+    /// in the pool from SQLite. It is done here, once per run, and handed to
+    /// the engine as data. That is also the seam an experiment harness needs:
+    /// tokenise the pool once, then run the engine over it repeatedly at
+    /// different settings without touching the database again.
     /// </summary>
     private (List<(int WorkId, string AuthorName, string WorkTitle, double Delta)> Results,
              List<(string Word, double Frequency)> Fingerprint,
@@ -766,155 +646,29 @@ public class StylometryForm : Form
              string ChunkNote)
         ComputeDelta(WorkItem target, List<WorkItem> pool, bool foldAccents, int featureWordCount, int chunkSize)
     {
-        // 0. One entry per WORK, not per EDITION.
-        //
-        // GetAllOriginalEditionsAsync returns a row per edition, and a work can
-        // carry several. Left unhandled, a work with three editions contributes
-        // its values three times to every feature's mean and standard deviation.
-        // The multi-edition works cluster in Aeschylus and Sophocles while most
-        // Euripides plays carry one, so the normalisation ends up weighted
-        // toward exactly the authors a Euripides comparison is measured against.
-        var distinctPool = pool
+        var tokenized = pool
             .GroupBy(w => w.WorkId)
             .Select(g => g.First())
+            .Select(w => new WorkTokens(w.WorkId, w.AuthorName, w.WorkTitle, TokenizeWork(w, foldAccents)))
             .ToList();
 
-        // 1. Tokenize, then split into comparison units.
-        var chunks = new List<Chunk>();
-        var targetTotalTokens = 0;
-        var droppedShort = new List<string>();
-        var discardedTokens = 0;
+        var result = DeltaEngine.Compute(
+            tokenized, target.WorkId, new DeltaSettings(featureWordCount, chunkSize));
 
-        foreach (var work in distinctPool)
-        {
-            var tokens = TokenizeWork(work, foldAccents);
-            if (work.WorkId == target.WorkId) targetTotalTokens = tokens.Count;
-
-            if (chunkSize <= 0)
-            {
-                var counts = new Dictionary<string, int>();
-                foreach (var t in tokens) counts[t] = counts.GetValueOrDefault(t) + 1;
-                chunks.Add(new Chunk
-                {
-                    WorkId = work.WorkId,
-                    AuthorName = work.AuthorName,
-                    WorkTitle = work.WorkTitle,
-                    ChunkIndex = 0,
-                    ChunkCount = 1,
-                    Counts = counts,
-                    TotalTokens = Math.Max(tokens.Count, 1)
-                });
-                continue;
-            }
-
-            var bags = SplitIntoChunks(tokens, chunkSize, work.WorkId);
-
-            if (bags.Count == 0)
-            {
-                // Shorter than one chunk. Dropped rather than padded or kept
-                // whole - a short unit in a pool of full-size ones is the
-                // problem chunking exists to solve.
-                droppedShort.Add(work.WorkTitle);
-                continue;
-            }
-
-            discardedTokens += tokens.Count - bags.Count * chunkSize;
-
-            for (var i = 0; i < bags.Count; i++)
-            {
-                var counts = new Dictionary<string, int>();
-                foreach (var t in bags[i]) counts[t] = counts.GetValueOrDefault(t) + 1;
-                chunks.Add(new Chunk
-                {
-                    WorkId = work.WorkId,
-                    AuthorName = work.AuthorName,
-                    WorkTitle = work.WorkTitle,
-                    ChunkIndex = i + 1,
-                    ChunkCount = bags.Count,
-                    Counts = counts,
-                    TotalTokens = chunkSize
-                });
-            }
-        }
-
-        var targetChunks = chunks.Where(c => c.WorkId == target.WorkId).ToList();
-        if (targetChunks.Count == 0)
-        {
-            throw new InvalidOperationException(
-                $"{target.WorkTitle} has fewer than {chunkSize:N0} tokens, so it cannot be compared at " +
-                "this sample size. Lower the sample size or turn chunking off.");
-        }
-
-        // 2. Feature set: the N most frequent words across all units.
-        var aggregate = new Dictionary<string, int>();
-        foreach (var c in chunks)
-            foreach (var (word, count) in c.Counts)
-                aggregate[word] = aggregate.GetValueOrDefault(word) + count;
-
-        var featureWords = aggregate
-            .OrderByDescending(kv => kv.Value)
-            .Take(featureWordCount)
-            .Select(kv => kv.Key)
-            .ToList();
-
-        // 3. Relative frequency per unit.
-        var relFreq = new List<Dictionary<string, double>>(chunks.Count);
-        foreach (var c in chunks)
-            relFreq.Add(featureWords.ToDictionary(w => w, w => (double)c.Counts.GetValueOrDefault(w) / c.TotalTokens));
-
-        // 4. Z-score each feature across the units.
-        var zScores = Enumerable.Range(0, chunks.Count)
-            .Select(_ => new Dictionary<string, double>())
-            .ToList();
-
-        foreach (var word in featureWords)
-        {
-            var values = relFreq.Select(r => r[word]).ToList();
-            var mean = values.Average();
-            var stdev = Math.Sqrt(values.Select(v => (v - mean) * (v - mean)).Average());
-            if (stdev < 1e-9) stdev = 1e-9; // a word every unit uses identically
-
-            for (var i = 0; i < chunks.Count; i++)
-                zScores[i][word] = (relFreq[i][word] - mean) / stdev;
-        }
-
-        // 5. Delta from the target's first unit to every unit of every OTHER work.
-        //
-        // Other chunks of the target's own work are excluded. They would
-        // otherwise dominate the top of the ranking - two samples of one text
-        // are about as close as two samples get - and would push the first
-        // work by another author further down, inflating depth to first
-        // outsider by however many chunks the target happens to have. Which is
-        // the length effect, back again by another route.
-        var targetIndex = chunks.IndexOf(targetChunks[0]);
-        var targetZ = zScores[targetIndex];
-
-        var results = new List<(int WorkId, string AuthorName, string WorkTitle, double Delta)>();
-        for (var i = 0; i < chunks.Count; i++)
-        {
-            if (chunks[i].WorkId == target.WorkId) continue;
-            var otherZ = zScores[i];
-            var delta = featureWords.Average(word => Math.Abs(targetZ[word] - otherZ[word]));
-            results.Add((chunks[i].WorkId, chunks[i].AuthorName, chunks[i].Label, delta));
-        }
-        results = results.OrderBy(r => r.Delta).ToList();
-
-        var fingerprint = relFreq[targetIndex]
-            .OrderByDescending(kv => kv.Value)
-            .Take(15)
-            .Select(kv => (kv.Key, kv.Value))
+        var results = result.Neighbors
+            .Select(n => (n.WorkId, n.AuthorName, WorkTitle: n.Label, n.Delta))
             .ToList();
 
         var note = chunkSize <= 0
             ? "whole works (no sampling)"
-            : $"{chunks.Count} samples of {chunkSize:N0} tokens from {chunks.Select(c => c.WorkId).Distinct().Count()} works" +
-              (droppedShort.Count > 0 ? $"; {droppedShort.Count} works too short" : "") +
-              (discardedTokens > 0 ? $"; {discardedTokens:N0} tokens unused" : "");
+            : $"{result.SampleCount} samples of {chunkSize:N0} tokens from {result.WorkCount} works" +
+              (result.WorksTooShort.Count > 0 ? $"; {result.WorksTooShort.Count} works too short" : "") +
+              (result.DiscardedTokens > 0 ? $"; {result.DiscardedTokens:N0} tokens unused" : "");
 
-        // Token count is the work's full length, not the chunk's - it is what
-        // the length-confound analysis needs, and at fixed chunk size the chunk
-        // length is a constant and tells you nothing.
-        return (results, fingerprint, targetTotalTokens, note);
+        return (results,
+                result.Fingerprint.ToList(),
+                result.TargetTokenCount,
+                note);
     }
 
     private async Task SaveCurrentRunAsync()

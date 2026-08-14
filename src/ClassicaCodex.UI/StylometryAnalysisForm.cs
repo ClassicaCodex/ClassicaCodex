@@ -10,13 +10,30 @@ namespace ClassicaCodex.UI;
 /// answer survive a change of preprocessing? Both need many runs side by side,
 /// which is what this form is for.
 ///
-/// The headline measure is DEPTH TO FIRST OUTSIDER - the rank at which the
-/// first work by a different author appears in a work's own neighbour list.
-/// It is used in preference to nearest-neighbour identity because it proved
-/// far more stable: across feature counts and accent-folding settings that
-/// reshuffled raw rank order substantially, depth stayed in the same band for
-/// the same work. A measure that moves when only the preprocessing moves is
-/// not measuring the text.
+/// DEPTH TO FIRST OUTSIDER IS NOT AN ATTRIBUTION MEASURE, and this comment
+/// used to say it was - that it "proved far more stable" than
+/// nearest-neighbour identity, on the strength of holding its band across
+/// feature counts and accent folding. Held against sample size instead, it
+/// collapsed. Across the eighteen undisputed Euripides plays plus Rhesus,
+/// depth moved by up to twenty ranks for a single work on a 500-token change
+/// in sample size: Heracleidae read 4, 24 and 10; Hippolytus 13, 21, 8.
+///
+/// The reason is structural. Depth is a rank position, and rank positions
+/// depend on what else is in the pool. On whole works it tracked text length
+/// at rho about 0.58 - the four shortest works were the four shallowest. Made
+/// to use equal-size samples, it tracked sample COUNT instead: mean depth 6.5
+/// for one-sample works, 12.9 for two, 20.0 for three. A longer work
+/// contributes more samples, those samples pad the top of everyone's ranking,
+/// and the confound returns wearing a different hat. The quantity being
+/// measured is length either way.
+///
+/// It is still shown, because watching it move is instructive and because the
+/// columns below are what demonstrated the problem. Do not read it as evidence
+/// about authorship. Delta floor - the distance to the nearest neighbour - is
+/// the better measure and does not inherit pool composition: at fixed sample
+/// size rho(tokens, floor) is -0.21 against 0.58 for depth.
+///
+/// docs/stylometry-notes.md has the full working.
 /// </summary>
 public class StylometryAnalysisForm : Form
 {
@@ -110,8 +127,10 @@ public class StylometryAnalysisForm : Form
         var stabilityHelp = new Label
         {
             Text = "Depth to first outsider for each work under every saved settings profile. " +
-                   "A row that holds steady across columns is a result about the text; " +
-                   "a row that swings is a result about the preprocessing.",
+                   "A row that holds steady across columns survived THIS change; a row that swings " +
+                   "was about the preprocessing. Steadiness here is necessary and not sufficient - " +
+                   "depth holds its band across feature counts and still moves by up to twenty ranks " +
+                   "on a 500-token change of sample size, so vary sample size too before believing a row.",
             Left = 8,
             Top = 8,
             Width = 1052,
@@ -141,8 +160,10 @@ public class StylometryAnalysisForm : Form
         {
             Text = "Depth to first outsider against text length. Shorter texts give noisier " +
                    "relative-frequency estimates, which inflates Delta against everything and lets " +
-                   "other authors rise earlier in the ranking. If depth correlates with length, it " +
-                   "is measuring how much text there is, not who wrote it.",
+                   "other authors rise earlier in the ranking. On this corpus depth DOES correlate " +
+                   "with length - rho about 0.58 on whole works, and with sample count once samples " +
+                   "are equalised - so treat a correlation here as confirmation rather than news, " +
+                   "and treat its absence as the surprising result worth checking.",
             Left = 8,
             Top = 8,
             Width = 1052,
@@ -333,7 +354,13 @@ public class StylometryAnalysisForm : Form
                 Environment.NewLine +
                 "not distinguish a different author from a short text, an unusual genre, or an edition" +
                 Environment.NewLine +
-                "prepared to different conventions.";
+                "prepared to different conventions - and on this corpus, length is what it usually turns" +
+                Environment.NewLine +
+                "out to be. Depth moved by up to twenty ranks for one work on a 500-token change of sample" +
+                Environment.NewLine +
+                "size. Read the Delta floor row instead: it is a distance rather than a rank, so it does" +
+                Environment.NewLine +
+                "not inherit the composition of the pool. See docs/stylometry-notes.md.";
         }
         else
         {

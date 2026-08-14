@@ -55,7 +55,7 @@ public static class SchemaInitializer
     /// 7 to 13 until version 3 was cut, at which point they all failed at
     /// once and said nothing about what had actually broken.
     /// </summary>
-    public const int TargetSchemaVersion = 14;
+    public const int TargetSchemaVersion = 16;
 
     public static async Task EnsureSchemaAsync(CancellationToken cancellationToken = default)
     {
@@ -661,11 +661,176 @@ public static class SchemaInitializer
         [14] = new[]
         {
             @"ALTER TABLE TextNodes ADD COLUMN NodeKind TEXT NOT NULL DEFAULT 'line';"
+        },
+
+        // v15: saved validation-bench experiments.
+        //
+        // The bench produces runs that cannot be re-derived from a Delta run:
+        // a leave-one-out sweep is nineteen validations, a parameter grid is
+        // forty, a perturbation series is thousands of synthetic mixtures. Up
+        // to now each existed only as a CSV somebody remembered to export, and
+        // several conclusions in docs/stylometry-notes.md rest on runs that
+        // are gone.
+        //
+        // WHY A SEPARATE TABLE RATHER THAN MORE COLUMNS ON StylometryRuns.
+        // A Delta run has one target and one neighbour list. These have a
+        // target AUTHOR, a donor set, a level series, a seed and an iteration
+        // count, and produce one row per work per level per donor. Bolting
+        // that onto a table shaped for the other thing would leave most
+        // columns null in most rows and force the analysis form to branch on
+        // which kind of row it was reading.
+        //
+        // ExperimentKind carries what sort of run it was, so the next
+        // experiment type is a new value rather than a new table. Parameters
+        // and Metrics are JSON for the same reason: every experiment type has
+        // different ones, and a column per parameter would mean a migration
+        // per experiment type. The columns that ARE broken out - seed,
+        // iterations, sample size, feature count, accent folding - are the
+        // ones a query needs to group by, and they are exactly the settings
+        // that make two runs incomparable when they differ.
+        //
+        // Seed is NOT NULL and has no default. An experiment whose seed was not
+        // recorded cannot be rebuilt, and a row that silently claimed seed 0
+        // would be worse than one that refused to be written.
+        [15] = new[]
+        {
+            @"CREATE TABLE IF NOT EXISTS StylometryExperiments (
+                ExperimentId    INTEGER PRIMARY KEY,
+                CreatedUtc      TEXT    NOT NULL,
+                Kind            TEXT    NOT NULL,
+                TargetAuthor    TEXT    NOT NULL,
+                Language        TEXT    NULL,
+                PoolSummary     TEXT    NOT NULL,
+                PoolWorkIds     TEXT    NOT NULL,
+                Seed            INTEGER NOT NULL,
+                Iterations      INTEGER NOT NULL,
+                ChunkSize       INTEGER NOT NULL,
+                FeatureWordCount INTEGER NOT NULL,
+                FoldAccents     INTEGER NOT NULL,
+                AlgorithmVersion INTEGER NOT NULL,
+                Parameters      TEXT    NOT NULL,
+                Metrics         TEXT    NOT NULL,
+                Label           TEXT    NULL,
+                Notes           TEXT    NULL
+            );",
+
+            @"CREATE INDEX IF NOT EXISTS IX_StylometryExperiments_Kind
+                ON StylometryExperiments (Kind, TargetAuthor, CreatedUtc);",
+
+            // One row per work per level per donor. Wide enough to rebuild the
+            // table the form showed, and to recompute the cross-work fit and
+            // the detection power without re-running anything - which matters,
+            // because the detection power was computed against the wrong
+            // scatter once already and the fix had to be checked against a
+            // stored run rather than a memory of one.
+            @"CREATE TABLE IF NOT EXISTS StylometryExperimentRows (
+                ExperimentId    INTEGER NOT NULL,
+                RowIndex        INTEGER NOT NULL,
+                WorkId          INTEGER NULL,
+                WorkTitle       TEXT    NOT NULL,
+                Donor           TEXT    NOT NULL,
+                Level           REAL    NOT NULL,
+                MeanMargin      REAL    NOT NULL,
+                StdDev          REAL    NOT NULL,
+                BaselineMargin  REAL    NOT NULL,
+                Recovered       INTEGER NOT NULL,
+                Trials          INTEGER NOT NULL,
+                NearestAuthor   TEXT    NULL,
+                TokenCount      INTEGER NOT NULL,
+                PRIMARY KEY (ExperimentId, RowIndex),
+                FOREIGN KEY (ExperimentId) REFERENCES StylometryExperiments(ExperimentId) ON DELETE CASCADE
+            );"
+        },
+
+        // v16: how many mixtures agreed on the nearest author.
+        //
+        // v15 stored the nearest author's name and not the count, and a
+        // reloaded experiment therefore showed "Euripides" where the run had
+        // shown "Euripides (14/25)". That count is not decoration: it is how
+        // Rhesus was seen to flip to Sophocles in fourteen mixtures out of
+        // twenty-five, and how Heracleidae showed nine of twenty-five leaving
+        // Euripides at one percent injection. It was the first signal in the
+        // whole investigation to move at all.
+        //
+        // Defaulting to 0 rather than to Trials: rows written under v15 do not
+        // know the count, and claiming unanimity for them would be inventing
+        // data. Zero displays as a bare author name, which is what those rows
+        // honestly are.
+        [16] = new[]
+        {
+            @"ALTER TABLE StylometryExperimentRows ADD COLUMN NearestCount INTEGER NOT NULL DEFAULT 0;"
         }
     };
 
     private static readonly string[] SchemaStatements =
     {
+
+        // The statements below are also created by migrations, and have to
+        // be here as well because a NEW database never runs a migration - it
+        // is treated as already current and takes its shape from this list
+        // alone. A table that exists only in Migrations therefore exists on
+        // every upgraded library and on no fresh one.
+        //
+        // SavedSearches had exactly that gap: present since v4 for anyone
+        // who upgraded, absent for anyone starting from an empty file.
+        @"CREATE TABLE IF NOT EXISTS SavedSearches (
+                SavedSearchId  INTEGER PRIMARY KEY AUTOINCREMENT,
+                Name           TEXT NOT NULL,
+                Query          TEXT NOT NULL,
+                MatchMode      TEXT NOT NULL,
+                Languages      TEXT NOT NULL DEFAULT '',
+                Corpora        TEXT NOT NULL DEFAULT '',
+                OriginalsOnly  INTEGER NULL,
+                AuthorName     TEXT NULL,
+                TagName        TEXT NULL,
+                BookmarkedOnly INTEGER NOT NULL DEFAULT 0,
+                EraLabel       TEXT NULL,
+                CreatedAt      TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                CONSTRAINT UQ_SavedSearches_Name UNIQUE (Name)
+            );",
+
+        @"CREATE TABLE IF NOT EXISTS StylometryExperiments (
+                ExperimentId    INTEGER PRIMARY KEY,
+                CreatedUtc      TEXT    NOT NULL,
+                Kind            TEXT    NOT NULL,
+                TargetAuthor    TEXT    NOT NULL,
+                Language        TEXT    NULL,
+                PoolSummary     TEXT    NOT NULL,
+                PoolWorkIds     TEXT    NOT NULL,
+                Seed            INTEGER NOT NULL,
+                Iterations      INTEGER NOT NULL,
+                ChunkSize       INTEGER NOT NULL,
+                FeatureWordCount INTEGER NOT NULL,
+                FoldAccents     INTEGER NOT NULL,
+                AlgorithmVersion INTEGER NOT NULL,
+                Parameters      TEXT    NOT NULL,
+                Metrics         TEXT    NOT NULL,
+                Label           TEXT    NULL,
+                Notes           TEXT    NULL
+            );",
+
+        @"CREATE INDEX IF NOT EXISTS IX_StylometryExperiments_Kind
+                ON StylometryExperiments (Kind, TargetAuthor, CreatedUtc);",
+
+        @"CREATE TABLE IF NOT EXISTS StylometryExperimentRows (
+                ExperimentId    INTEGER NOT NULL,
+                RowIndex        INTEGER NOT NULL,
+                WorkId          INTEGER NULL,
+                WorkTitle       TEXT    NOT NULL,
+                Donor           TEXT    NOT NULL,
+                Level           REAL    NOT NULL,
+                MeanMargin      REAL    NOT NULL,
+                StdDev          REAL    NOT NULL,
+                BaselineMargin  REAL    NOT NULL,
+                Recovered       INTEGER NOT NULL,
+                Trials          INTEGER NOT NULL,
+                NearestAuthor   TEXT    NULL,
+                TokenCount      INTEGER NOT NULL,
+                NearestCount    INTEGER NOT NULL DEFAULT 0,
+                PRIMARY KEY (ExperimentId, RowIndex),
+                FOREIGN KEY (ExperimentId) REFERENCES StylometryExperiments(ExperimentId) ON DELETE CASCADE
+            );",
+
         @"CREATE TABLE IF NOT EXISTS Authors (
             AuthorId    INTEGER PRIMARY KEY,
             CtsUrn      TEXT NOT NULL,

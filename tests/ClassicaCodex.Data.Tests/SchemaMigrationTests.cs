@@ -216,4 +216,98 @@ public class SchemaMigrationTests
         Assert.Equal(0, await db.ScalarAsync<long>(
             "SELECT COUNT(*) FROM pragma_foreign_key_check;"));
     }
+
+    /// <summary>
+    /// Every table a migration creates must also be in SchemaStatements.
+    ///
+    /// A NEW database never runs a migration - InitializeAsync treats it as
+    /// already current and builds it from SchemaStatements alone. So a table
+    /// added only to Migrations exists on every upgraded library and on no
+    /// fresh one, and the failure is invisible until somebody starts from an
+    /// empty file.
+    ///
+    /// SavedSearches sat in that gap from v4 until this test was written, and
+    /// StylometryExperiments joined it the same day. Rather than checking a
+    /// list by eye, this creates a fresh database the way the application does
+    /// and asks SQLite what is actually in it.
+    /// </summary>
+    [Fact]
+    public async Task AFreshDatabaseHasEveryTableTheMigrationsWouldCreate()
+    {
+        using var db = await TempDatabase.CreateAsync();
+
+        var expected = new[]
+        {
+            "Authors", "Works", "Editions", "TextNodes", "Tags", "PassageTags",
+            "Bookmarks", "EditionHeaders", "EditionResponsibilities", "SavedSearches",
+            "RecentSearches", "FavoriteWorks", "ApparatusEntries", "Artifacts",
+            "ArtifactImages", "Lemmas", "Definitions",
+            "StylometryRuns", "StylometryRunResults", "StylometryRunFeatures",
+            "StylometryExperiments", "StylometryExperimentRows"
+        };
+
+        await using var conn = await DbConnectionFactory.OpenConnectionAsync();
+        await using var cmd = conn.CreateCommand();
+        cmd.CommandText = "SELECT name FROM sqlite_master WHERE type = 'table';";
+
+        var present = new List<string>();
+        await using (var reader = await cmd.ExecuteReaderAsync())
+        {
+            while (await reader.ReadAsync()) present.Add(reader.GetString(0));
+        }
+
+        var missing = expected.Where(t => !present.Contains(t)).ToList();
+
+        Assert.True(missing.Count == 0,
+            $"a fresh database is missing: {string.Join(", ", missing)}");
+    }
+
+    /// <summary>
+    /// The lowest version a CURRENT database can honestly be rewound to.
+    ///
+    /// RewindSchemaAsync drops columns; it cannot resurrect a table that a
+    /// migration renamed or dropped. Migrations 2, 5 and 6 restructure -
+    /// TextNodeTags becomes PassageTags, Bookmarks is rebuilt on
+    /// (EditionId, CitationRef) - so a current file rewound below 6 claims a
+    /// state it cannot represent, and the migration fails looking for a table
+    /// that this database never had.
+    ///
+    /// MOVE THIS if a future migration restructures rather than adds. It would
+    /// sit above the rewind point, run against a database already in its new
+    /// shape, and fail the same way.
+    /// </summary>
+    private const int LowestRewindableVersion = 6;
+
+    /// <summary>
+    /// Rewinding a current database to the oldest state it can represent and
+    /// upgrading it again must work - which it only does if RewindSchemaAsync
+    /// knows about every column the migrations above that point add.
+    ///
+    /// A fresh database is built from SchemaStatements, the CURRENT shape, so
+    /// every ALTER-added column is already there. Rewinding the version stamp
+    /// without dropping those columns makes a file that claims to be v6 while
+    /// carrying v16 columns, and the migration then fails re-adding one -
+    /// which is exactly what NearestCount did.
+    ///
+    /// The other rewind tests each stop at some intermediate version and so
+    /// exercise only the migrations above it. This one starts below every
+    /// column-adding migration in the file (the earliest is v9), so an
+    /// omission fails here whatever version introduced it, instead of waiting
+    /// for someone to write a test that happens to rewind past it.
+    /// </summary>
+    [Fact]
+    public async Task ARewindToTheOldestRepresentableVersionStillUpgrades()
+    {
+        using var db = await TempDatabase.CreateAsync();
+
+        await db.RewindSchemaAsync(LowestRewindableVersion);
+        Assert.Equal(LowestRewindableVersion, await db.ScalarAsync<int>("PRAGMA user_version;"));
+
+        // Throws if any migration re-adds something SchemaStatements already
+        // created and RewindSchemaAsync did not remove.
+        await SchemaInitializer.EnsureSchemaAsync();
+
+        Assert.Equal(SchemaInitializer.TargetSchemaVersion,
+            await db.ScalarAsync<int>("PRAGMA user_version;"));
+    }
 }

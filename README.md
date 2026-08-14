@@ -67,7 +67,8 @@ security warning you'll hit on first run.
 - **Core Vocabulary** — every headword in a work ranked by how much of the text it accounts for, with a running total: learn the top N and you can read half of it. Counted from the text itself, and honest about the share it can't cover
 - **Where should I start?** — a short curated list of works that are reasonable to translate first, filtered to what's in your library, and a plain warning about the ones that aren't
 - **Timeline** of authors and works across time
-- **Stylometry** — authorial "fingerprints" using Burrows's Delta, with saved runs, batch comparison across an author's whole output, and built-in tests for the confounds that make the method misleading. See [Notes on Burrows's Delta](docs/stylometry-notes.md) for what it can and cannot tell you
+- **Stylometry** — authorial "fingerprints" using Burrows's Delta, with saved runs and batch comparison across an author's whole output
+- **Validation bench** — leave-one-out validation, a parameter-stability grid, and controlled perturbation with synthetic contamination and same-author controls. Reports how much contamination the method could detect at all, which is what a null result needs to mean anything. Experiments save with their seed and pool; every table exports to CSV, text or Excel. See [Notes on Burrows's Delta](docs/stylometry-notes.md) for what it can and cannot tell you
 - **Concordance** (KWIC) search across the whole library
 - **Echo Finder** and **Reception Tracker** — find intertextual echoes, and track how a passage gets reused by later authors
 - **Cross-Language Echo** — the same idea across languages, for finding where a Latin (or English) passage is reworking a Greek original, or vice versa
@@ -167,11 +168,14 @@ The short version, because it matters for anyone using the feature:
 Delta measures similarity of word-frequency profile. On a same-genre corpus that
 comes apart from authorship more than is comfortable. The tool includes a
 stability comparison and a length-confound test because both are needed before
-any ranking should be believed.
+any ranking should be believed, and a validation bench because those two were
+not enough — four separate measures turned out to be reading text length or
+baseline margin rather than style, each caught by checking rather than by
+suspecting.
 
 ## Status
 
-Version 3.0.1.
+Version 3.1.0.
 
 Version 1 was a reader. Version 2 made it a searchable, taggable,
 cross-referenced library and added the translation workbench. Version 3 adds the
@@ -179,7 +183,26 @@ Medieval Nordic manuscript reader and its editorial apparatus — a different ki
 of text from the printed editions the rest of the library holds, and the first
 material here where the manuscript evidence is visible rather than settled.
 
-3.0.1 is a corpus-accuracy release. Speech attributions were being dropped from
+3.1.0 adds a validation bench for the stylometry: leave-one-out validation, a
+parameter-stability grid, and controlled perturbation with synthetic
+contamination. It exists because the stylometry was producing results faster
+than it could check them, and everything it has produced since has been
+negative. Five candidate findings dissolved under it; the sixth is a bound on
+the method itself — on this corpus Burrows's Delta cannot reliably detect a
+second hand contributing less than about a third of a play. A null result is
+worth little without that number, so the bench now computes it on every sweep.
+
+Experiments save to the library with their seed, exact pool and settings, and
+reload complete enough to re-run. Any results table right-clicks to CSV,
+tab-separated text or Excel, at full precision and with the settings in the
+header.
+
+Two older bugs surfaced while testing it: saved searches were missing from
+databases created fresh rather than upgraded, and a schema-initialisation path
+no test covered. Both are fixed, and there is now a test that asks SQLite what
+a new database actually contains rather than trusting a list.
+
+3.0.1 was a corpus-accuracy release. Speech attributions were being dropped from
 every play in the library — 42,448 of them in the Greek alone, and every Terence
 comedy and Shakespeare play besides — along with list entries, colophons and the
 Greek Anthology's poet attributions. Plato's attributions had the opposite
@@ -192,7 +215,7 @@ Re-ingesting is what applies this to an existing library — the text that was
 dropped was never stored, so a migration cannot recover it. Citation references
 are unchanged, so annotations, bookmarks and tags survive re-ingesting intact.
 
-The schema has moved through fourteen migrations. Existing databases upgrade in
+The schema has moved through sixteen migrations. Existing databases upgrade in
 place on first launch — annotations, bookmarks and tags are carried forward.
 
 Built for my own reading, and shared in case it's useful to someone else doing
