@@ -463,6 +463,88 @@ public static class GeminiTranslationService
         }
     }
 
+    /// <summary>
+    /// Performs a deliberately bounded close reading of two exact, locally
+    /// resolved passages. Suggestions remain a separate candidate record;
+    /// the caller never writes them into the researcher's classification.
+    /// </summary>
+    public static async Task<GeminiParallelAnalysisResult> AnalyzeParallelPassagesAsync(
+        string projectQuestion,
+        string sourceAuthor, string sourceWork, string sourceCitation, string sourceText, string? sourceLanguage,
+        string targetAuthor, string targetWork, string targetCitation, string targetText, string? targetLanguage,
+        string? existingRationale, string apiKey, CancellationToken cancellationToken = default)
+    {
+        var prompt = $$"""
+            PARALLEL PASSAGE CLOSE-READING CANDIDATE
+            Compare only the two passages supplied below. This is a research aid, not a finding of borrowing,
+            influence, priority, or authorship. Distinguish verbal resemblance from shared image, narrative
+            situation, structure, genre convention, and coincidence. Attend to grammar and semantics in each
+            passage's own language. Never invent words, citations, surrounding context, dates, or scholarship.
+            If chronology would be needed to infer direction, say it must be verified and suggest "Unknown".
+            Treat the existing rationale as a claim to audit, not as evidence.
+
+            PROJECT QUESTION
+            {{projectQuestion}}
+
+            SOURCE ({{TranslationLanguageNames.DisplayName(sourceLanguage)}})
+            {{sourceAuthor}}, {{sourceWork}} [{{sourceCitation}}]
+            {{sourceText}}
+
+            TARGET ({{TranslationLanguageNames.DisplayName(targetLanguage)}})
+            {{targetAuthor}}, {{targetWork}} [{{targetCitation}}]
+            {{targetText}}
+
+            EXISTING CANDIDATE RATIONALE
+            {{existingRationale ?? "(none)"}}
+
+            Return ONLY one JSON object with string values in this exact shape:
+            {"summary":"brief cautious assessment","sharedFeatures":"specific correspondences grounded in the quoted text",
+            "importantDifferences":"differences that weaken or qualify the parallel","lexicalObservations":"language-aware observations; say none if none",
+            "alternativeExplanations":"genre, convention, common source, coincidence, or other rivals",
+            "verificationTasks":"concrete checks a human should make","suggestedMotifs":"comma-separated controlled motif labels",
+            "suggestedConnectionType":"Unclassified|Verbal|Thematic|Imagistic|Narrative|Structural|GenericConvention|Reception|Coincidental",
+            "suggestedDirectionality":"Unknown|SourceToTarget|TargetToSource|CommonSource|SharedTradition|ChronologicallyImpossible"}
+            """;
+        string? modelUsed = null;
+        try
+        {
+            var raw = await TranslateWithModelAsync(PrimaryModel, true, prompt, apiKey, cancellationToken,
+                model => modelUsed = model);
+            return ParseParallelAnalysis(raw, modelUsed ?? PrimaryModel, prompt);
+        }
+        catch (QuotaExceededException)
+        {
+            throw new InvalidOperationException(
+                "Both Gemini models have hit today's free-tier usage limit. Try again after the daily reset.");
+        }
+    }
+
+    internal static GeminiParallelAnalysisResult ParseParallelAnalysis(string rawResponse, string model, string prompt)
+    {
+        var cleaned = rawResponse.Trim();
+        if (cleaned.StartsWith("```"))
+        {
+            var firstNewline = cleaned.IndexOf('\n');
+            if (firstNewline >= 0) cleaned = cleaned[(firstNewline + 1)..];
+            if (cleaned.EndsWith("```")) cleaned = cleaned[..^3];
+            cleaned = cleaned.Trim();
+        }
+        try
+        {
+            using var doc = JsonDocument.Parse(cleaned);
+            string Field(string name) => doc.RootElement.TryGetProperty(name, out var value)
+                ? value.GetString()?.Trim() ?? string.Empty : string.Empty;
+            return new GeminiParallelAnalysisResult(model, prompt, Field("summary"), Field("sharedFeatures"),
+                Field("importantDifferences"), Field("lexicalObservations"), Field("alternativeExplanations"),
+                Field("verificationTasks"), Field("suggestedMotifs"), Field("suggestedConnectionType"),
+                Field("suggestedDirectionality"));
+        }
+        catch (Exception ex) when (ex is JsonException or InvalidOperationException)
+        {
+            throw new InvalidOperationException($"Gemini's parallel-passage response wasn't valid analysis JSON. ({ex.Message})");
+        }
+    }
+
     internal static List<ResearchEvidenceCandidate> ParseResearchEvidenceCandidates(string rawResponse)
     {
         var cleaned = rawResponse.Trim();

@@ -55,7 +55,7 @@ public static class SchemaInitializer
     /// 7 to 13 until version 3 was cut, at which point they all failed at
     /// once and said nothing about what had actually broken.
     /// </summary>
-    public const int TargetSchemaVersion = 27;
+    public const int TargetSchemaVersion = 28;
 
     public static async Task EnsureSchemaAsync(CancellationToken cancellationToken = default)
     {
@@ -878,11 +878,31 @@ public static class SchemaInitializer
         // row ids are retained only as navigation hints and are not FKs.
         [27] = new[]
         {
-            ResearchEchoInvestigationsDdl,
-            ResearchEchoResultsDdl,
+            ResearchEchoInvestigationsDdl.Replace("        SourceLanguage TEXT NULL,", ""),
+            ResearchEchoResultsDdl
+                .Replace("        TargetLanguage TEXT NULL,", "")
+                .Replace("        ConnectionType TEXT NOT NULL DEFAULT 'unclassified',", "")
+                .Replace("        Directionality TEXT NOT NULL DEFAULT 'unknown',", "")
+                .Replace("        MotifTags TEXT NULL,", "")
+                .Replace("        ParallelNote TEXT NULL,", ""),
             "CREATE INDEX IF NOT EXISTS IX_ResearchEchoInvestigations_Project ON ResearchEchoInvestigations (ResearchProjectId, CreatedUtc, ResearchEchoInvestigationId);",
             "CREATE INDEX IF NOT EXISTS IX_ResearchEchoResults_Investigation ON ResearchEchoResults (ResearchEchoInvestigationId, Disposition, SortOrder, ResearchEchoResultId);",
             "CREATE INDEX IF NOT EXISTS IX_ResearchEchoResults_Evidence ON ResearchEchoResults (EvidenceItemId);"
+        },
+
+        // v28: a close-reading layer over saved passage pairs. Human
+        // classifications live on the result; AI readings are append-only
+        // records so a later run never silently replaces an earlier one.
+        [28] = new[]
+        {
+            "ALTER TABLE ResearchEchoInvestigations ADD COLUMN SourceLanguage TEXT NULL;",
+            "ALTER TABLE ResearchEchoResults ADD COLUMN TargetLanguage TEXT NULL;",
+            "ALTER TABLE ResearchEchoResults ADD COLUMN ConnectionType TEXT NOT NULL DEFAULT 'unclassified';",
+            "ALTER TABLE ResearchEchoResults ADD COLUMN Directionality TEXT NOT NULL DEFAULT 'unknown';",
+            "ALTER TABLE ResearchEchoResults ADD COLUMN MotifTags TEXT NULL;",
+            "ALTER TABLE ResearchEchoResults ADD COLUMN ParallelNote TEXT NULL;",
+            ResearchEchoParallelAnalysesDdl,
+            "CREATE INDEX IF NOT EXISTS IX_ResearchEchoParallelAnalyses_Result ON ResearchEchoParallelAnalyses (ResearchEchoResultId, CreatedUtc, ResearchEchoParallelAnalysisId);"
         }
     };
 
@@ -1149,6 +1169,7 @@ public static class SchemaInitializer
         SourceEditionCtsUrn TEXT NOT NULL,
         SourceCitationRef TEXT NOT NULL,
         SourceText TEXT NOT NULL,
+        SourceLanguage TEXT NULL,
         TargetScope TEXT NULL,
         Settings TEXT NULL,
         AiModel TEXT NULL,
@@ -1175,11 +1196,16 @@ public static class SchemaInitializer
         TargetEditionCtsUrn TEXT NOT NULL,
         TargetCitationRef TEXT NOT NULL,
         TargetText TEXT NOT NULL,
+        TargetLanguage TEXT NULL,
         Score REAL NULL,
         ScoreLabel TEXT NULL,
         Rationale TEXT NULL,
         Disposition TEXT NOT NULL DEFAULT 'pending',
         ResearcherNote TEXT NULL,
+        ConnectionType TEXT NOT NULL DEFAULT 'unclassified',
+        Directionality TEXT NOT NULL DEFAULT 'unknown',
+        MotifTags TEXT NULL,
+        ParallelNote TEXT NULL,
         EvidenceItemId INTEGER NULL,
         SortOrder INTEGER NOT NULL DEFAULT 0,
         CreatedUtc TEXT NOT NULL,
@@ -1188,6 +1214,25 @@ public static class SchemaInitializer
             REFERENCES ResearchEchoInvestigations(ResearchEchoInvestigationId) ON DELETE CASCADE,
         CONSTRAINT FK_ResearchEchoResults_Evidence FOREIGN KEY (EvidenceItemId)
             REFERENCES EvidenceItems(EvidenceItemId) ON DELETE SET NULL
+    );";
+
+    private const string ResearchEchoParallelAnalysesDdl = @"CREATE TABLE IF NOT EXISTS ResearchEchoParallelAnalyses (
+        ResearchEchoParallelAnalysisId INTEGER PRIMARY KEY,
+        ResearchEchoResultId INTEGER NOT NULL,
+        Model TEXT NOT NULL,
+        Prompt TEXT NOT NULL,
+        Summary TEXT NOT NULL,
+        SharedFeatures TEXT NULL,
+        ImportantDifferences TEXT NULL,
+        LexicalObservations TEXT NULL,
+        AlternativeExplanations TEXT NULL,
+        VerificationTasks TEXT NULL,
+        SuggestedMotifs TEXT NULL,
+        SuggestedConnectionType TEXT NOT NULL DEFAULT 'unclassified',
+        SuggestedDirectionality TEXT NOT NULL DEFAULT 'unknown',
+        CreatedUtc TEXT NOT NULL,
+        CONSTRAINT FK_ResearchEchoParallelAnalyses_Results FOREIGN KEY (ResearchEchoResultId)
+            REFERENCES ResearchEchoResults(ResearchEchoResultId) ON DELETE CASCADE
     );";
 
     private static readonly string[] SchemaStatements =
@@ -1208,6 +1253,7 @@ public static class SchemaInitializer
         ResearchFindingEvidenceDdl,
         ResearchEchoInvestigationsDdl,
         ResearchEchoResultsDdl,
+        ResearchEchoParallelAnalysesDdl,
         "CREATE INDEX IF NOT EXISTS IX_ResearchProjects_Work ON ResearchProjects (WorkId, Status, UpdatedUtc);",
         "CREATE INDEX IF NOT EXISTS IX_ResearchQuestions_Project ON ResearchQuestions (ResearchProjectId, SortOrder);",
         "CREATE INDEX IF NOT EXISTS IX_EvidenceItems_Project ON EvidenceItems (ResearchProjectId, SortOrder);",
@@ -1229,6 +1275,7 @@ public static class SchemaInitializer
         "CREATE INDEX IF NOT EXISTS IX_ResearchEchoInvestigations_Project ON ResearchEchoInvestigations (ResearchProjectId, CreatedUtc, ResearchEchoInvestigationId);",
         "CREATE INDEX IF NOT EXISTS IX_ResearchEchoResults_Investigation ON ResearchEchoResults (ResearchEchoInvestigationId, Disposition, SortOrder, ResearchEchoResultId);",
         "CREATE INDEX IF NOT EXISTS IX_ResearchEchoResults_Evidence ON ResearchEchoResults (EvidenceItemId);",
+        "CREATE INDEX IF NOT EXISTS IX_ResearchEchoParallelAnalyses_Result ON ResearchEchoParallelAnalyses (ResearchEchoResultId, CreatedUtc, ResearchEchoParallelAnalysisId);",
 
         // The statements below are also created by migrations, and have to
         // be here as well because a NEW database never runs a migration - it

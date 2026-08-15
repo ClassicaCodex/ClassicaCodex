@@ -101,7 +101,13 @@ public sealed class TempDatabase : IDisposable
         (16, "StylometryExperimentRows", "NearestCount"),
         (17, "Works", "AttributionStatus"),
         (17, "Works", "AttributionNote"),
-        (17, "Works", "AttributionSetByUser")
+        (17, "Works", "AttributionSetByUser"),
+        (28, "ResearchEchoInvestigations", "SourceLanguage"),
+        (28, "ResearchEchoResults", "TargetLanguage"),
+        (28, "ResearchEchoResults", "ConnectionType"),
+        (28, "ResearchEchoResults", "Directionality"),
+        (28, "ResearchEchoResults", "MotifTags"),
+        (28, "ResearchEchoResults", "ParallelNote")
     };
 
     /// <summary>

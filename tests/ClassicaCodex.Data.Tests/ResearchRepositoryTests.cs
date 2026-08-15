@@ -188,7 +188,7 @@ public class ResearchRepositoryTests
         var workRepo = new WorkRepository();
         await workRepo.SetAttributionAsync(workId, AttributionStatus.Disputed, "My considered view");
 
-        await db.ExecuteAsync("DROP TABLE ResearchEchoResults; DROP TABLE ResearchEchoInvestigations; DROP TABLE ResearchFindingEvidence; DROP TABLE ResearchFindings; DROP TABLE ResearchReadingItems; DROP TABLE ResearchCorpusSnapshotEntries; DROP TABLE ResearchCorpusSnapshots; DROP TABLE EvidenceBibliographyMetadata; DROP TABLE EvidencePageAnnotations; DROP TABLE EvidenceAttachments; DROP TABLE ScholarlyClaims; DROP TABLE EvidenceGenerationMetadata; DROP TABLE ResearchLogEntries; DROP TABLE EvidenceItems; DROP TABLE ResearchQuestions; DROP TABLE ResearchProjects; PRAGMA user_version=17;");
+        await db.ExecuteAsync("DROP TABLE ResearchEchoParallelAnalyses; DROP TABLE ResearchEchoResults; DROP TABLE ResearchEchoInvestigations; DROP TABLE ResearchFindingEvidence; DROP TABLE ResearchFindings; DROP TABLE ResearchReadingItems; DROP TABLE ResearchCorpusSnapshotEntries; DROP TABLE ResearchCorpusSnapshots; DROP TABLE EvidenceBibliographyMetadata; DROP TABLE EvidencePageAnnotations; DROP TABLE EvidenceAttachments; DROP TABLE ScholarlyClaims; DROP TABLE EvidenceGenerationMetadata; DROP TABLE ResearchLogEntries; DROP TABLE EvidenceItems; DROP TABLE ResearchQuestions; DROP TABLE ResearchProjects; PRAGMA user_version=17;");
         await SchemaInitializer.EnsureSchemaAsync();
 
         var attribution = await workRepo.GetAttributionAsync(workId);
@@ -228,7 +228,7 @@ public class ResearchRepositoryTests
         };
         await repo.SaveEvidenceAsync(evidence);
 
-        await db.ExecuteAsync("DROP TABLE ResearchEchoResults; DROP TABLE ResearchEchoInvestigations; DROP TABLE ResearchFindingEvidence; DROP TABLE ResearchFindings; DROP TABLE ResearchReadingItems; DROP TABLE ResearchCorpusSnapshotEntries; DROP TABLE ResearchCorpusSnapshots; DROP TABLE EvidenceBibliographyMetadata; DROP TABLE EvidencePageAnnotations; DROP TABLE EvidenceAttachments; DROP TABLE ScholarlyClaims; DROP TABLE EvidenceGenerationMetadata; DROP TABLE ResearchLogEntries; PRAGMA user_version=18;");
+        await db.ExecuteAsync("DROP TABLE ResearchEchoParallelAnalyses; DROP TABLE ResearchEchoResults; DROP TABLE ResearchEchoInvestigations; DROP TABLE ResearchFindingEvidence; DROP TABLE ResearchFindings; DROP TABLE ResearchReadingItems; DROP TABLE ResearchCorpusSnapshotEntries; DROP TABLE ResearchCorpusSnapshots; DROP TABLE EvidenceBibliographyMetadata; DROP TABLE EvidencePageAnnotations; DROP TABLE EvidenceAttachments; DROP TABLE ScholarlyClaims; DROP TABLE EvidenceGenerationMetadata; DROP TABLE ResearchLogEntries; PRAGMA user_version=18;");
         await SchemaInitializer.EnsureSchemaAsync();
 
         Assert.Equal("Existing project",
@@ -428,7 +428,7 @@ public class ResearchRepositoryTests
         };
         await repo.SaveProjectAsync(project);
 
-        await db.ExecuteAsync("DROP TABLE ResearchEchoResults; DROP TABLE ResearchEchoInvestigations; DROP TABLE ResearchFindingEvidence; DROP TABLE ResearchFindings; DROP TABLE ResearchReadingItems; DROP TABLE ResearchCorpusSnapshotEntries; DROP TABLE ResearchCorpusSnapshots; DROP TABLE EvidenceBibliographyMetadata; DROP TABLE EvidencePageAnnotations; DROP TABLE EvidenceAttachments; DROP TABLE ScholarlyClaims; PRAGMA user_version=20;");
+        await db.ExecuteAsync("DROP TABLE ResearchEchoParallelAnalyses; DROP TABLE ResearchEchoResults; DROP TABLE ResearchEchoInvestigations; DROP TABLE ResearchFindingEvidence; DROP TABLE ResearchFindings; DROP TABLE ResearchReadingItems; DROP TABLE ResearchCorpusSnapshotEntries; DROP TABLE ResearchCorpusSnapshots; DROP TABLE EvidenceBibliographyMetadata; DROP TABLE EvidencePageAnnotations; DROP TABLE EvidenceAttachments; DROP TABLE ScholarlyClaims; PRAGMA user_version=20;");
         await SchemaInitializer.EnsureSchemaAsync();
 
         Assert.Equal("Existing project", Assert.Single(
@@ -518,7 +518,7 @@ public class ResearchRepositoryTests
         };
         await repo.SaveProjectAsync(project);
 
-        await db.ExecuteAsync("DROP TABLE ResearchEchoResults; DROP TABLE ResearchEchoInvestigations; DROP TABLE ResearchFindingEvidence; DROP TABLE ResearchFindings; DROP TABLE ResearchReadingItems; DROP TABLE ResearchCorpusSnapshotEntries; DROP TABLE ResearchCorpusSnapshots; DROP TABLE EvidenceBibliographyMetadata; DROP TABLE EvidencePageAnnotations; DROP TABLE EvidenceAttachments; PRAGMA user_version=21;");
+        await db.ExecuteAsync("DROP TABLE ResearchEchoParallelAnalyses; DROP TABLE ResearchEchoResults; DROP TABLE ResearchEchoInvestigations; DROP TABLE ResearchFindingEvidence; DROP TABLE ResearchFindings; DROP TABLE ResearchReadingItems; DROP TABLE ResearchCorpusSnapshotEntries; DROP TABLE ResearchCorpusSnapshots; DROP TABLE EvidenceBibliographyMetadata; DROP TABLE EvidencePageAnnotations; DROP TABLE EvidenceAttachments; PRAGMA user_version=21;");
         await SchemaInitializer.EnsureSchemaAsync();
 
         Assert.Equal("Existing project", Assert.Single(
@@ -567,7 +567,7 @@ public class ResearchRepositoryTests
         using var db = await TempDatabase.CreateAsync(); await db.SeedEditionAsync();
         var repo = new ResearchRepository(); var project = new ResearchProject { WorkId = await db.WorkIdForAsync("test1"), Name = "Existing project" };
         await repo.SaveProjectAsync(project);
-        await db.ExecuteAsync("DROP TABLE ResearchEchoResults; DROP TABLE ResearchEchoInvestigations; DROP TABLE ResearchFindingEvidence; DROP TABLE ResearchFindings; DROP TABLE ResearchReadingItems; DROP TABLE ResearchCorpusSnapshotEntries; DROP TABLE ResearchCorpusSnapshots; DROP TABLE EvidenceBibliographyMetadata; PRAGMA user_version=22;");
+        await db.ExecuteAsync("DROP TABLE ResearchEchoParallelAnalyses; DROP TABLE ResearchEchoResults; DROP TABLE ResearchEchoInvestigations; DROP TABLE ResearchFindingEvidence; DROP TABLE ResearchFindings; DROP TABLE ResearchReadingItems; DROP TABLE ResearchCorpusSnapshotEntries; DROP TABLE ResearchCorpusSnapshots; DROP TABLE EvidenceBibliographyMetadata; PRAGMA user_version=22;");
         await SchemaInitializer.EnsureSchemaAsync();
 
         Assert.Equal("Existing project", Assert.Single(await repo.GetProjectsForWorkAsync(project.WorkId)).Name);
@@ -652,7 +652,7 @@ public class ResearchRepositoryTests
     {
         using var db = await TempDatabase.CreateAsync(); await db.SeedEditionAsync(); var repo = new ResearchRepository();
         var project = new ResearchProject { WorkId = await db.WorkIdForAsync("test1"), Name = "Existing project" }; await repo.SaveProjectAsync(project);
-        await db.ExecuteAsync("DROP TABLE ResearchEchoResults; DROP TABLE ResearchEchoInvestigations; DROP TABLE ResearchFindingEvidence; DROP TABLE ResearchFindings; DROP TABLE ResearchReadingItems; DROP TABLE ResearchCorpusSnapshotEntries; DROP TABLE ResearchCorpusSnapshots; PRAGMA user_version=23;");
+        await db.ExecuteAsync("DROP TABLE ResearchEchoParallelAnalyses; DROP TABLE ResearchEchoResults; DROP TABLE ResearchEchoInvestigations; DROP TABLE ResearchFindingEvidence; DROP TABLE ResearchFindings; DROP TABLE ResearchReadingItems; DROP TABLE ResearchCorpusSnapshotEntries; DROP TABLE ResearchCorpusSnapshots; PRAGMA user_version=23;");
         await SchemaInitializer.EnsureSchemaAsync();
 
         Assert.Equal("Existing project", Assert.Single(await repo.GetProjectsForWorkAsync(project.WorkId)).Name);
@@ -790,7 +790,7 @@ public class ResearchRepositoryTests
             Name = "Existing project"
         };
         await research.SaveProjectAsync(project);
-        await db.ExecuteAsync("DROP TABLE ResearchEchoResults; DROP TABLE ResearchEchoInvestigations; DROP TABLE ResearchFindingEvidence; DROP TABLE ResearchFindings; DROP TABLE ResearchReadingItems; PRAGMA user_version=24;");
+        await db.ExecuteAsync("DROP TABLE ResearchEchoParallelAnalyses; DROP TABLE ResearchEchoResults; DROP TABLE ResearchEchoInvestigations; DROP TABLE ResearchFindingEvidence; DROP TABLE ResearchFindings; DROP TABLE ResearchReadingItems; PRAGMA user_version=24;");
 
         await SchemaInitializer.EnsureSchemaAsync();
 
@@ -894,7 +894,7 @@ public class ResearchRepositoryTests
             WorkId = await db.WorkIdForAsync("test1"), Name = "Existing project"
         };
         await research.SaveProjectAsync(project);
-        await db.ExecuteAsync("DROP TABLE ResearchEchoResults; DROP TABLE ResearchEchoInvestigations; DROP TABLE ResearchFindingEvidence; DROP TABLE ResearchFindings; PRAGMA user_version=25;");
+        await db.ExecuteAsync("DROP TABLE ResearchEchoParallelAnalyses; DROP TABLE ResearchEchoResults; DROP TABLE ResearchEchoInvestigations; DROP TABLE ResearchFindingEvidence; DROP TABLE ResearchFindings; PRAGMA user_version=25;");
 
         await SchemaInitializer.EnsureSchemaAsync();
 
@@ -950,16 +950,34 @@ public class ResearchRepositoryTests
         var reopened = Assert.Single(await repo.GetInvestigationsAsync(project.ResearchProjectId));
         Assert.Equal(saved.ResearchEchoInvestigationId, reopened.ResearchEchoInvestigationId);
         Assert.Equal("urn:e:source", reopened.SourceEditionCtsUrn);
+        Assert.Equal("grc", reopened.SourceLanguage);
         Assert.Equal("gemini-test", reopened.AiModel);
         Assert.Equal("full prompt", reopened.AiPrompt);
         var result = Assert.Single(await repo.GetResultsAsync(reopened.ResearchEchoInvestigationId));
         Assert.Equal("urn:e:target", result.TargetEditionCtsUrn);
+        Assert.Equal("grc", result.TargetLanguage);
         Assert.Equal("shared image", result.Rationale);
 
         await repo.SaveReviewAsync(result.ResearchEchoResultId, ResearchEchoDisposition.Accepted, "Worth comparing closely");
         result = Assert.Single(await repo.GetResultsAsync(reopened.ResearchEchoInvestigationId));
         Assert.Equal(ResearchEchoDisposition.Accepted, result.Disposition);
         Assert.Equal("Worth comparing closely", result.ResearcherNote);
+
+        await repo.SaveParallelClassificationAsync(result.ResearchEchoResultId,
+            ResearchEchoConnectionType.Imagistic, ResearchEchoDirectionality.Unknown,
+            "night watch, deception", "The dramatic function differs.");
+        var ai = new GeminiParallelAnalysisResult("gemini-test", "bounded prompt", "Cautious summary",
+            "Both stage a nocturnal watch", "Different speakers", "No secure verbal overlap",
+            "Generic tragic convention", "Check chronology and surrounding scenes", "night watch",
+            "Imagistic", "Unknown");
+        var analysisId = await repo.SaveParallelAnalysisAsync(result.ResearchEchoResultId, ai);
+        result = Assert.Single(await repo.GetResultsAsync(reopened.ResearchEchoInvestigationId));
+        Assert.Equal(ResearchEchoConnectionType.Imagistic, result.ConnectionType);
+        Assert.Equal("night watch, deception", result.MotifTags);
+        var storedAnalysis = Assert.Single(await repo.GetParallelAnalysesAsync(result.ResearchEchoResultId));
+        Assert.Equal(analysisId, storedAnalysis.ResearchEchoParallelAnalysisId);
+        Assert.Equal("Generic tragic convention", storedAnalysis.AlternativeExplanations);
+        Assert.Equal(ResearchEchoConnectionType.Imagistic, storedAnalysis.SuggestedConnectionType);
 
         var evidence = new EvidenceItem { ResearchProjectId = project.ResearchProjectId, Title = "Paired passages" };
         var evidenceId = await research.SaveEvidenceAsync(evidence);
@@ -977,12 +995,47 @@ public class ResearchRepositoryTests
     public async Task MigrationFromTwentySixAddsEchoInvestigationTables()
     {
         using var db = await TempDatabase.CreateAsync();
-        await db.ExecuteAsync("DROP TABLE ResearchEchoResults; DROP TABLE ResearchEchoInvestigations; PRAGMA user_version=26;");
+        await db.ExecuteAsync("DROP TABLE ResearchEchoParallelAnalyses; DROP TABLE ResearchEchoResults; DROP TABLE ResearchEchoInvestigations; PRAGMA user_version=26;");
 
         await SchemaInitializer.EnsureSchemaAsync();
 
         Assert.True(await db.TableExistsAsync("ResearchEchoInvestigations"));
         Assert.True(await db.TableExistsAsync("ResearchEchoResults"));
         Assert.Equal(SchemaInitializer.TargetSchemaVersion, await db.ScalarAsync<int>("PRAGMA user_version;"));
+    }
+
+    [Fact]
+    public async Task MigrationFromTwentySevenAddsParallelPassageStudioData()
+    {
+        using var db = await TempDatabase.CreateAsync();
+        await db.ExecuteAsync(@"DROP TABLE ResearchEchoParallelAnalyses;
+            ALTER TABLE ResearchEchoInvestigations DROP COLUMN SourceLanguage;
+            ALTER TABLE ResearchEchoResults DROP COLUMN TargetLanguage;
+            ALTER TABLE ResearchEchoResults DROP COLUMN ConnectionType;
+            ALTER TABLE ResearchEchoResults DROP COLUMN Directionality;
+            ALTER TABLE ResearchEchoResults DROP COLUMN MotifTags;
+            ALTER TABLE ResearchEchoResults DROP COLUMN ParallelNote;
+            PRAGMA user_version=27;");
+
+        await SchemaInitializer.EnsureSchemaAsync();
+
+        Assert.True(await db.TableExistsAsync("ResearchEchoParallelAnalyses"));
+        var resultColumns = await db.ColumnNamesAsync("ResearchEchoResults");
+        Assert.Contains("ConnectionType", resultColumns);
+        Assert.Contains("MotifTags", resultColumns);
+        Assert.Equal(SchemaInitializer.TargetSchemaVersion, await db.ScalarAsync<int>("PRAGMA user_version;"));
+    }
+
+    [Fact]
+    public void ParallelAnalysisParserRetainsGroundedSectionsAndSuggestions()
+    {
+        var parsed = GeminiTranslationService.ParseParallelAnalysis(
+            """{"summary":"Qualified","sharedFeatures":"night image","importantDifferences":"different function","lexicalObservations":"none","alternativeExplanations":"genre","verificationTasks":"check context","suggestedMotifs":"night watch","suggestedConnectionType":"Imagistic","suggestedDirectionality":"Unknown"}""",
+            "model", "prompt");
+
+        Assert.Equal("Qualified", parsed.Summary);
+        Assert.Equal("genre", parsed.AlternativeExplanations);
+        Assert.Equal("Imagistic", parsed.SuggestedConnectionType);
+        Assert.Equal("prompt", parsed.PromptProvenance);
     }
 }

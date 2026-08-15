@@ -82,7 +82,9 @@ public enum ResearchLogEntryKind
     ResearchDossierExported,
     EchoInvestigationSaved,
     EchoResultReviewed,
-    EchoResultPromoted
+    EchoResultPromoted,
+    EchoParallelClassified,
+    EchoParallelAiAnalyzed
 }
 
 /// <summary>A persistent line of inquiry attached to one work.</summary>

@@ -249,7 +249,7 @@ public class SchemaMigrationTests
             "EvidenceAttachments", "EvidencePageAnnotations", "EvidenceBibliographyMetadata",
             "ResearchCorpusSnapshots", "ResearchCorpusSnapshotEntries", "ResearchReadingItems",
             "ResearchFindings", "ResearchFindingEvidence",
-            "ResearchEchoInvestigations", "ResearchEchoResults"
+            "ResearchEchoInvestigations", "ResearchEchoResults", "ResearchEchoParallelAnalyses"
         };
 
         await using var conn = await DbConnectionFactory.OpenConnectionAsync();
