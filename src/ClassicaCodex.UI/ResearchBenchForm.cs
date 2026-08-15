@@ -174,10 +174,13 @@ public class ResearchBenchForm : Form
         var strip = new FlowLayoutPanel { Dock = DockStyle.Top, Height = 40, Padding = new Padding(4) };
         var add = new Button { Text = "New evidence", Width = 105, Height = 28 };
         var remove = new Button { Text = "Remove", Width = 78, Height = 28 };
+        var log = new Button { Text = "Research log", Width = 105, Height = 28 };
         add.Click += (_, _) => NewEvidence();
         remove.Click += async (_, _) => await RemoveEvidenceAsync();
+        log.Click += (_, _) => OpenResearchLog();
         strip.Controls.Add(add);
         strip.Controls.Add(remove);
+        strip.Controls.Add(log);
 
         _evidence.Dock = DockStyle.Fill;
         _evidence.AutoGenerateColumns = false;
@@ -275,6 +278,19 @@ public class ResearchBenchForm : Form
                 "Archive project", MessageBoxButtons.YesNo, MessageBoxIcon.Question) != DialogResult.Yes) return;
         await _repo.ArchiveProjectAsync(project.ResearchProjectId);
         await LoadProjectsAsync();
+    }
+
+    private void OpenResearchLog()
+    {
+        var project = CurrentProject;
+        if (project == null)
+        {
+            MessageBox.Show(this, "Open or create a research project first.");
+            return;
+        }
+
+        using var log = new ResearchLogForm(project);
+        log.ShowDialog(this);
     }
 
     private async Task AddQuestionAsync()

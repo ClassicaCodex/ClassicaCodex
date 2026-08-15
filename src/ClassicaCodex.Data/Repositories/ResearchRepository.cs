@@ -35,7 +35,8 @@ public class ResearchRepository
         await using var conn = await DbConnectionFactory.OpenConnectionAsync(cancellationToken);
         await using var cmd = conn.CreateCommand();
 
-        if (project.ResearchProjectId == 0)
+        var isNew = project.ResearchProjectId == 0;
+        if (isNew)
         {
             cmd.CommandText = @"
                 INSERT INTO ResearchProjects (WorkId, Name, Status, Notes, CreatedUtc, UpdatedUtc)
@@ -62,6 +63,13 @@ public class ResearchRepository
         project.ResearchProjectId = id;
         if (project.CreatedUtc == default) project.CreatedUtc = now;
         project.UpdatedUtc = now;
+        await AppendLogAsync(conn, new ResearchLogEntry
+        {
+            ResearchProjectId = id,
+            Kind = isNew ? ResearchLogEntryKind.ProjectCreated : ResearchLogEntryKind.ProjectUpdated,
+            Summary = isNew ? $"Created project: {project.Name.Trim()}" : $"Updated project: {project.Name.Trim()}",
+            Details = project.Notes
+        }, cancellationToken);
         return id;
     }
 
@@ -78,6 +86,12 @@ public class ResearchRepository
         cmd.Parameters.AddWithValue("@Now", DateTime.UtcNow.ToString("O"));
         cmd.Parameters.AddWithValue("@Id", projectId);
         await cmd.ExecuteNonQueryAsync(cancellationToken);
+        await AppendLogAsync(conn, new ResearchLogEntry
+        {
+            ResearchProjectId = projectId,
+            Kind = ResearchLogEntryKind.StatusChanged,
+            Summary = $"Changed project status to {status}"
+        }, cancellationToken);
     }
 
     public async Task<List<ResearchQuestion>> GetQuestionsAsync(
@@ -113,7 +127,8 @@ public class ResearchRepository
         var now = DateTime.UtcNow;
         await using var conn = await DbConnectionFactory.OpenConnectionAsync(cancellationToken);
         await using var cmd = conn.CreateCommand();
-        if (question.ResearchQuestionId == 0)
+        var isNew = question.ResearchQuestionId == 0;
+        if (isNew)
             cmd.CommandText = @"INSERT INTO ResearchQuestions
                 (ResearchProjectId, Text, Notes, SortOrder, CreatedUtc, UpdatedUtc)
                 VALUES (@ProjectId,@Text,@Notes,@Sort,@Now,@Now); SELECT last_insert_rowid();";
@@ -131,22 +146,56 @@ public class ResearchRepository
         var id = Convert.ToInt64(await cmd.ExecuteScalarAsync(cancellationToken));
         question.ResearchQuestionId = id;
         await TouchProjectAsync(conn, question.ResearchProjectId, cancellationToken);
+        await AppendLogAsync(conn, new ResearchLogEntry
+        {
+            ResearchProjectId = question.ResearchProjectId,
+            ResearchQuestionId = id,
+            Kind = isNew ? ResearchLogEntryKind.QuestionAdded : ResearchLogEntryKind.QuestionUpdated,
+            Summary = isNew ? $"Added question: {question.Text.Trim()}" : $"Updated question: {question.Text.Trim()}",
+            Details = question.Notes
+        }, cancellationToken);
         return id;
     }
 
     public async Task DeleteQuestionAsync(long questionId, CancellationToken cancellationToken = default)
     {
         await using var conn = await DbConnectionFactory.OpenConnectionAsync(cancellationToken);
+        long projectId;
+        string questionText;
+        await using (var read = conn.CreateCommand())
+        {
+            read.CommandText = "SELECT ResearchProjectId, Text FROM ResearchQuestions WHERE ResearchQuestionId=@Id;";
+            read.Parameters.AddWithValue("@Id", questionId);
+            await using var reader = await read.ExecuteReaderAsync(cancellationToken);
+            if (!await reader.ReadAsync(cancellationToken)) return;
+            projectId = reader.GetInt64(0);
+            questionText = reader.GetString(1);
+        }
         await using var cmd = conn.CreateCommand();
         cmd.CommandText = "DELETE FROM ResearchQuestions WHERE ResearchQuestionId=@Id;";
         cmd.Parameters.AddWithValue("@Id", questionId);
         await cmd.ExecuteNonQueryAsync(cancellationToken);
+        await TouchProjectAsync(conn, projectId, cancellationToken);
+        await AppendLogAsync(conn, new ResearchLogEntry
+        {
+            ResearchProjectId = projectId,
+            Kind = ResearchLogEntryKind.QuestionRemoved,
+            Summary = $"Removed question: {questionText}"
+        }, cancellationToken);
     }
 
     public async Task ReorderQuestionsAsync(IReadOnlyList<long> ids,
         CancellationToken cancellationToken = default)
     {
+        if (ids.Count == 0) return;
         await using var conn = await DbConnectionFactory.OpenConnectionAsync(cancellationToken);
+        long projectId;
+        await using (var read = conn.CreateCommand())
+        {
+            read.CommandText = "SELECT ResearchProjectId FROM ResearchQuestions WHERE ResearchQuestionId=@Id;";
+            read.Parameters.AddWithValue("@Id", ids[0]);
+            projectId = Convert.ToInt64(await read.ExecuteScalarAsync(cancellationToken));
+        }
         await using var tx = await conn.BeginTransactionAsync(cancellationToken);
         for (var i = 0; i < ids.Count; i++)
         {
@@ -159,6 +208,13 @@ public class ResearchRepository
             await cmd.ExecuteNonQueryAsync(cancellationToken);
         }
         await tx.CommitAsync(cancellationToken);
+        await TouchProjectAsync(conn, projectId, cancellationToken);
+        await AppendLogAsync(conn, new ResearchLogEntry
+        {
+            ResearchProjectId = projectId,
+            Kind = ResearchLogEntryKind.QuestionsReordered,
+            Summary = "Reordered research questions"
+        }, cancellationToken);
     }
 
     public async Task<List<EvidenceItem>> GetEvidenceAsync(
@@ -185,7 +241,8 @@ public class ResearchRepository
         var now = DateTime.UtcNow;
         await using var conn = await DbConnectionFactory.OpenConnectionAsync(cancellationToken);
         await using var cmd = conn.CreateCommand();
-        if (item.EvidenceItemId == 0)
+        var isNew = item.EvidenceItemId == 0;
+        if (isNew)
             cmd.CommandText = @"INSERT INTO EvidenceItems
                 (ResearchProjectId,ResearchQuestionId,Title,EvidenceType,SourceType,StableIdentifier,
                  CanonicalReference,Provenance,Excerpt,Judgment,Relationship,ResearcherNote,
@@ -219,16 +276,84 @@ public class ResearchRepository
         var id = Convert.ToInt64(await cmd.ExecuteScalarAsync(cancellationToken));
         item.EvidenceItemId = id;
         await TouchProjectAsync(conn, item.ResearchProjectId, cancellationToken);
+        await AppendLogAsync(conn, new ResearchLogEntry
+        {
+            ResearchProjectId = item.ResearchProjectId,
+            ResearchQuestionId = item.ResearchQuestionId,
+            EvidenceItemId = id,
+            Kind = isNew ? ResearchLogEntryKind.EvidenceAdded : ResearchLogEntryKind.EvidenceUpdated,
+            Summary = isNew ? $"Added evidence: {item.Title.Trim()}" : $"Updated evidence: {item.Title.Trim()}",
+            Details = $"{item.Judgment}; {item.Relationship}"
+        }, cancellationToken);
         return id;
     }
 
     public async Task DeleteEvidenceAsync(long evidenceId, CancellationToken cancellationToken = default)
     {
         await using var conn = await DbConnectionFactory.OpenConnectionAsync(cancellationToken);
+        long projectId;
+        string evidenceTitle;
+        await using (var read = conn.CreateCommand())
+        {
+            read.CommandText = "SELECT ResearchProjectId, Title FROM EvidenceItems WHERE EvidenceItemId=@Id;";
+            read.Parameters.AddWithValue("@Id", evidenceId);
+            await using var reader = await read.ExecuteReaderAsync(cancellationToken);
+            if (!await reader.ReadAsync(cancellationToken)) return;
+            projectId = reader.GetInt64(0);
+            evidenceTitle = reader.GetString(1);
+        }
         await using var cmd = conn.CreateCommand();
         cmd.CommandText = "DELETE FROM EvidenceItems WHERE EvidenceItemId=@Id;";
         cmd.Parameters.AddWithValue("@Id", evidenceId);
         await cmd.ExecuteNonQueryAsync(cancellationToken);
+        await TouchProjectAsync(conn, projectId, cancellationToken);
+        await AppendLogAsync(conn, new ResearchLogEntry
+        {
+            ResearchProjectId = projectId,
+            Kind = ResearchLogEntryKind.EvidenceRemoved,
+            Summary = $"Removed evidence: {evidenceTitle}"
+        }, cancellationToken);
+    }
+
+    public async Task<List<ResearchLogEntry>> GetResearchLogAsync(
+        long projectId, CancellationToken cancellationToken = default)
+    {
+        var result = new List<ResearchLogEntry>();
+        await using var conn = await DbConnectionFactory.OpenConnectionAsync(cancellationToken);
+        await using var cmd = conn.CreateCommand();
+        cmd.CommandText = @"SELECT ResearchLogEntryId, ResearchProjectId, Kind, Summary, Details,
+            ResearchQuestionId, EvidenceItemId, CreatedUtc
+            FROM ResearchLogEntries WHERE ResearchProjectId=@ProjectId
+            ORDER BY CreatedUtc DESC, ResearchLogEntryId DESC;";
+        cmd.Parameters.AddWithValue("@ProjectId", projectId);
+        await using var reader = await cmd.ExecuteReaderAsync(cancellationToken);
+        while (await reader.ReadAsync(cancellationToken))
+        {
+            result.Add(new ResearchLogEntry
+            {
+                ResearchLogEntryId = reader.GetInt64(0),
+                ResearchProjectId = reader.GetInt64(1),
+                Kind = Parse(reader.GetString(2), ResearchLogEntryKind.ManualNote),
+                Summary = reader.GetString(3),
+                Details = reader.IsDBNull(4) ? null : reader.GetString(4),
+                ResearchQuestionId = reader.IsDBNull(5) ? null : reader.GetInt64(5),
+                EvidenceItemId = reader.IsDBNull(6) ? null : reader.GetInt64(6),
+                CreatedUtc = ParseDate(reader.GetString(7))
+            });
+        }
+        return result;
+    }
+
+    public async Task<long> AddResearchLogEntryAsync(
+        ResearchLogEntry entry, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(entry.Summary))
+            throw new ArgumentException("A research log entry cannot be empty.", nameof(entry));
+        entry.Kind = ResearchLogEntryKind.ManualNote;
+        await using var conn = await DbConnectionFactory.OpenConnectionAsync(cancellationToken);
+        var id = await AppendLogAsync(conn, entry, cancellationToken);
+        await TouchProjectAsync(conn, entry.ResearchProjectId, cancellationToken);
+        return id;
     }
 
     private static ResearchProject ReadProject(SqliteDataReader reader) => new()
@@ -267,5 +392,27 @@ public class ResearchRepository
         cmd.Parameters.AddWithValue("@Now", DateTime.UtcNow.ToString("O"));
         cmd.Parameters.AddWithValue("@Id", projectId);
         await cmd.ExecuteNonQueryAsync(cancellationToken);
+    }
+
+    private static async Task<long> AppendLogAsync(SqliteConnection conn, ResearchLogEntry entry,
+        CancellationToken cancellationToken)
+    {
+        var created = entry.CreatedUtc == default ? DateTime.UtcNow : entry.CreatedUtc;
+        await using var cmd = conn.CreateCommand();
+        cmd.CommandText = @"INSERT INTO ResearchLogEntries
+            (ResearchProjectId, Kind, Summary, Details, ResearchQuestionId, EvidenceItemId, CreatedUtc)
+            VALUES (@ProjectId,@Kind,@Summary,@Details,@QuestionId,@EvidenceId,@Created);
+            SELECT last_insert_rowid();";
+        cmd.Parameters.AddWithValue("@ProjectId", entry.ResearchProjectId);
+        cmd.Parameters.AddWithValue("@Kind", Store(entry.Kind));
+        cmd.Parameters.AddWithValue("@Summary", entry.Summary.Trim());
+        cmd.Parameters.AddWithValue("@Details", Db(entry.Details));
+        cmd.Parameters.AddWithValue("@QuestionId", entry.ResearchQuestionId is null ? DBNull.Value : entry.ResearchQuestionId.Value);
+        cmd.Parameters.AddWithValue("@EvidenceId", entry.EvidenceItemId is null ? DBNull.Value : entry.EvidenceItemId.Value);
+        cmd.Parameters.AddWithValue("@Created", created.ToString("O"));
+        var id = Convert.ToInt64(await cmd.ExecuteScalarAsync(cancellationToken));
+        entry.ResearchLogEntryId = id;
+        entry.CreatedUtc = created;
+        return id;
     }
 }

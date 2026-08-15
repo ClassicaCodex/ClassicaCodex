@@ -39,6 +39,21 @@ public enum EvidenceRelationship
     Supersedes
 }
 
+public enum ResearchLogEntryKind
+{
+    ManualNote,
+    ProjectCreated,
+    ProjectUpdated,
+    StatusChanged,
+    QuestionAdded,
+    QuestionUpdated,
+    QuestionRemoved,
+    QuestionsReordered,
+    EvidenceAdded,
+    EvidenceUpdated,
+    EvidenceRemoved
+}
+
 /// <summary>A persistent line of inquiry attached to one work.</summary>
 public class ResearchProject
 {
@@ -89,4 +104,17 @@ public class EvidenceItem
     public int SortOrder { get; set; }
     public DateTime CreatedUtc { get; set; }
     public DateTime UpdatedUtc { get; set; }
+}
+
+/// <summary>An append-only account of a project's research decisions and changes.</summary>
+public class ResearchLogEntry
+{
+    public long ResearchLogEntryId { get; set; }
+    public long ResearchProjectId { get; set; }
+    public ResearchLogEntryKind Kind { get; set; } = ResearchLogEntryKind.ManualNote;
+    public string Summary { get; set; } = string.Empty;
+    public string? Details { get; set; }
+    public long? ResearchQuestionId { get; set; }
+    public long? EvidenceItemId { get; set; }
+    public DateTime CreatedUtc { get; set; }
 }

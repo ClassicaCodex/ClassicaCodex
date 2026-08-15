@@ -131,6 +131,51 @@ public class ResearchRepositoryTests
     }
 
     [Fact]
+    public async Task ResearchLogRecordsChangesAndRetainsManualNotesAfterRelatedRowsAreRemoved()
+    {
+        using var db = await TempDatabase.CreateAsync();
+        await db.SeedEditionAsync();
+        var repo = new ResearchRepository();
+        var project = new ResearchProject
+        {
+            WorkId = await db.WorkIdForAsync("test1"), Name = "Authorship inquiry"
+        };
+        await repo.SaveProjectAsync(project);
+        var question = new ResearchQuestion
+        {
+            ResearchProjectId = project.ResearchProjectId, Text = "Does the meter differ?"
+        };
+        await repo.SaveQuestionAsync(question);
+        var evidence = new EvidenceItem
+        {
+            ResearchProjectId = project.ResearchProjectId,
+            ResearchQuestionId = question.ResearchQuestionId,
+            Title = "Resolved-position frequency"
+        };
+        await repo.SaveEvidenceAsync(evidence);
+        await repo.AddResearchLogEntryAsync(new ResearchLogEntry
+        {
+            ResearchProjectId = project.ResearchProjectId,
+            Summary = "Check the same measure against the Cyclops",
+            Details = "A rival genre explanation needs a positive control."
+        });
+
+        await repo.DeleteEvidenceAsync(evidence.EvidenceItemId);
+        await repo.DeleteQuestionAsync(question.ResearchQuestionId);
+
+        var reopened = await new ResearchRepository().GetResearchLogAsync(project.ResearchProjectId);
+        Assert.Contains(reopened, e => e.Kind == ResearchLogEntryKind.ProjectCreated);
+        Assert.Contains(reopened, e => e.Kind == ResearchLogEntryKind.QuestionAdded);
+        Assert.Contains(reopened, e => e.Kind == ResearchLogEntryKind.EvidenceAdded);
+        Assert.Contains(reopened, e => e.Kind == ResearchLogEntryKind.EvidenceRemoved);
+        Assert.Contains(reopened, e => e.Kind == ResearchLogEntryKind.QuestionRemoved);
+        var note = Assert.Single(reopened, e => e.Kind == ResearchLogEntryKind.ManualNote);
+        Assert.Equal("Check the same measure against the Cyclops", note.Summary);
+        Assert.Equal("A rival genre explanation needs a positive control.", note.Details);
+        Assert.All(reopened, e => Assert.Equal(project.ResearchProjectId, e.ResearchProjectId));
+    }
+
+    [Fact]
     public async Task MigrationFromSeventeenPreservesAttributionAndAddsResearchTables()
     {
         using var db = await TempDatabase.CreateAsync();
@@ -139,7 +184,7 @@ public class ResearchRepositoryTests
         var workRepo = new WorkRepository();
         await workRepo.SetAttributionAsync(workId, AttributionStatus.Disputed, "My considered view");
 
-        await db.ExecuteAsync("DROP TABLE EvidenceItems; DROP TABLE ResearchQuestions; DROP TABLE ResearchProjects; PRAGMA user_version=17;");
+        await db.ExecuteAsync("DROP TABLE ResearchLogEntries; DROP TABLE EvidenceItems; DROP TABLE ResearchQuestions; DROP TABLE ResearchProjects; PRAGMA user_version=17;");
         await SchemaInitializer.EnsureSchemaAsync();
 
         var attribution = await workRepo.GetAttributionAsync(workId);
@@ -147,6 +192,36 @@ public class ResearchRepositoryTests
         Assert.Equal("My considered view", attribution.Note);
         Assert.True(attribution.SetByUser);
         Assert.True(await db.TableExistsAsync("ResearchProjects"));
-        Assert.Equal(18, await db.ScalarAsync<int>("PRAGMA user_version;"));
+        Assert.True(await db.TableExistsAsync("ResearchLogEntries"));
+        Assert.Equal(19, await db.ScalarAsync<int>("PRAGMA user_version;"));
+    }
+
+    [Fact]
+    public async Task MigrationFromEighteenPreservesExistingResearchAndAddsTheLog()
+    {
+        using var db = await TempDatabase.CreateAsync();
+        await db.SeedEditionAsync();
+        var repo = new ResearchRepository();
+        var project = new ResearchProject
+        {
+            WorkId = await db.WorkIdForAsync("test1"), Name = "Existing project"
+        };
+        await repo.SaveProjectAsync(project);
+        var evidence = new EvidenceItem
+        {
+            ResearchProjectId = project.ResearchProjectId, Title = "Existing evidence",
+            StableIdentifier = "urn:cts:test"
+        };
+        await repo.SaveEvidenceAsync(evidence);
+
+        await db.ExecuteAsync("DROP TABLE ResearchLogEntries; PRAGMA user_version=18;");
+        await SchemaInitializer.EnsureSchemaAsync();
+
+        Assert.Equal("Existing project",
+            Assert.Single(await repo.GetProjectsForWorkAsync(project.WorkId)).Name);
+        Assert.Equal("urn:cts:test",
+            Assert.Single(await repo.GetEvidenceAsync(project.ResearchProjectId)).StableIdentifier);
+        Assert.True(await db.TableExistsAsync("ResearchLogEntries"));
+        Assert.Equal(19, await db.ScalarAsync<int>("PRAGMA user_version;"));
     }
 }
