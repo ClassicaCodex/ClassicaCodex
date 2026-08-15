@@ -188,7 +188,7 @@ public class ResearchRepositoryTests
         var workRepo = new WorkRepository();
         await workRepo.SetAttributionAsync(workId, AttributionStatus.Disputed, "My considered view");
 
-        await db.ExecuteAsync("DROP TABLE ResearchReadingItems; DROP TABLE ResearchCorpusSnapshotEntries; DROP TABLE ResearchCorpusSnapshots; DROP TABLE EvidenceBibliographyMetadata; DROP TABLE EvidencePageAnnotations; DROP TABLE EvidenceAttachments; DROP TABLE ScholarlyClaims; DROP TABLE EvidenceGenerationMetadata; DROP TABLE ResearchLogEntries; DROP TABLE EvidenceItems; DROP TABLE ResearchQuestions; DROP TABLE ResearchProjects; PRAGMA user_version=17;");
+        await db.ExecuteAsync("DROP TABLE ResearchFindingEvidence; DROP TABLE ResearchFindings; DROP TABLE ResearchReadingItems; DROP TABLE ResearchCorpusSnapshotEntries; DROP TABLE ResearchCorpusSnapshots; DROP TABLE EvidenceBibliographyMetadata; DROP TABLE EvidencePageAnnotations; DROP TABLE EvidenceAttachments; DROP TABLE ScholarlyClaims; DROP TABLE EvidenceGenerationMetadata; DROP TABLE ResearchLogEntries; DROP TABLE EvidenceItems; DROP TABLE ResearchQuestions; DROP TABLE ResearchProjects; PRAGMA user_version=17;");
         await SchemaInitializer.EnsureSchemaAsync();
 
         var attribution = await workRepo.GetAttributionAsync(workId);
@@ -228,7 +228,7 @@ public class ResearchRepositoryTests
         };
         await repo.SaveEvidenceAsync(evidence);
 
-        await db.ExecuteAsync("DROP TABLE ResearchReadingItems; DROP TABLE ResearchCorpusSnapshotEntries; DROP TABLE ResearchCorpusSnapshots; DROP TABLE EvidenceBibliographyMetadata; DROP TABLE EvidencePageAnnotations; DROP TABLE EvidenceAttachments; DROP TABLE ScholarlyClaims; DROP TABLE EvidenceGenerationMetadata; DROP TABLE ResearchLogEntries; PRAGMA user_version=18;");
+        await db.ExecuteAsync("DROP TABLE ResearchFindingEvidence; DROP TABLE ResearchFindings; DROP TABLE ResearchReadingItems; DROP TABLE ResearchCorpusSnapshotEntries; DROP TABLE ResearchCorpusSnapshots; DROP TABLE EvidenceBibliographyMetadata; DROP TABLE EvidencePageAnnotations; DROP TABLE EvidenceAttachments; DROP TABLE ScholarlyClaims; DROP TABLE EvidenceGenerationMetadata; DROP TABLE ResearchLogEntries; PRAGMA user_version=18;");
         await SchemaInitializer.EnsureSchemaAsync();
 
         Assert.Equal("Existing project",
@@ -428,7 +428,7 @@ public class ResearchRepositoryTests
         };
         await repo.SaveProjectAsync(project);
 
-        await db.ExecuteAsync("DROP TABLE ResearchReadingItems; DROP TABLE ResearchCorpusSnapshotEntries; DROP TABLE ResearchCorpusSnapshots; DROP TABLE EvidenceBibliographyMetadata; DROP TABLE EvidencePageAnnotations; DROP TABLE EvidenceAttachments; DROP TABLE ScholarlyClaims; PRAGMA user_version=20;");
+        await db.ExecuteAsync("DROP TABLE ResearchFindingEvidence; DROP TABLE ResearchFindings; DROP TABLE ResearchReadingItems; DROP TABLE ResearchCorpusSnapshotEntries; DROP TABLE ResearchCorpusSnapshots; DROP TABLE EvidenceBibliographyMetadata; DROP TABLE EvidencePageAnnotations; DROP TABLE EvidenceAttachments; DROP TABLE ScholarlyClaims; PRAGMA user_version=20;");
         await SchemaInitializer.EnsureSchemaAsync();
 
         Assert.Equal("Existing project", Assert.Single(
@@ -518,7 +518,7 @@ public class ResearchRepositoryTests
         };
         await repo.SaveProjectAsync(project);
 
-        await db.ExecuteAsync("DROP TABLE ResearchReadingItems; DROP TABLE ResearchCorpusSnapshotEntries; DROP TABLE ResearchCorpusSnapshots; DROP TABLE EvidenceBibliographyMetadata; DROP TABLE EvidencePageAnnotations; DROP TABLE EvidenceAttachments; PRAGMA user_version=21;");
+        await db.ExecuteAsync("DROP TABLE ResearchFindingEvidence; DROP TABLE ResearchFindings; DROP TABLE ResearchReadingItems; DROP TABLE ResearchCorpusSnapshotEntries; DROP TABLE ResearchCorpusSnapshots; DROP TABLE EvidenceBibliographyMetadata; DROP TABLE EvidencePageAnnotations; DROP TABLE EvidenceAttachments; PRAGMA user_version=21;");
         await SchemaInitializer.EnsureSchemaAsync();
 
         Assert.Equal("Existing project", Assert.Single(
@@ -567,7 +567,7 @@ public class ResearchRepositoryTests
         using var db = await TempDatabase.CreateAsync(); await db.SeedEditionAsync();
         var repo = new ResearchRepository(); var project = new ResearchProject { WorkId = await db.WorkIdForAsync("test1"), Name = "Existing project" };
         await repo.SaveProjectAsync(project);
-        await db.ExecuteAsync("DROP TABLE ResearchReadingItems; DROP TABLE ResearchCorpusSnapshotEntries; DROP TABLE ResearchCorpusSnapshots; DROP TABLE EvidenceBibliographyMetadata; PRAGMA user_version=22;");
+        await db.ExecuteAsync("DROP TABLE ResearchFindingEvidence; DROP TABLE ResearchFindings; DROP TABLE ResearchReadingItems; DROP TABLE ResearchCorpusSnapshotEntries; DROP TABLE ResearchCorpusSnapshots; DROP TABLE EvidenceBibliographyMetadata; PRAGMA user_version=22;");
         await SchemaInitializer.EnsureSchemaAsync();
 
         Assert.Equal("Existing project", Assert.Single(await repo.GetProjectsForWorkAsync(project.WorkId)).Name);
@@ -652,7 +652,7 @@ public class ResearchRepositoryTests
     {
         using var db = await TempDatabase.CreateAsync(); await db.SeedEditionAsync(); var repo = new ResearchRepository();
         var project = new ResearchProject { WorkId = await db.WorkIdForAsync("test1"), Name = "Existing project" }; await repo.SaveProjectAsync(project);
-        await db.ExecuteAsync("DROP TABLE ResearchReadingItems; DROP TABLE ResearchCorpusSnapshotEntries; DROP TABLE ResearchCorpusSnapshots; PRAGMA user_version=23;");
+        await db.ExecuteAsync("DROP TABLE ResearchFindingEvidence; DROP TABLE ResearchFindings; DROP TABLE ResearchReadingItems; DROP TABLE ResearchCorpusSnapshotEntries; DROP TABLE ResearchCorpusSnapshots; PRAGMA user_version=23;");
         await SchemaInitializer.EnsureSchemaAsync();
 
         Assert.Equal("Existing project", Assert.Single(await repo.GetProjectsForWorkAsync(project.WorkId)).Name);
@@ -790,12 +790,137 @@ public class ResearchRepositoryTests
             Name = "Existing project"
         };
         await research.SaveProjectAsync(project);
-        await db.ExecuteAsync("DROP TABLE ResearchReadingItems; PRAGMA user_version=24;");
+        await db.ExecuteAsync("DROP TABLE ResearchFindingEvidence; DROP TABLE ResearchFindings; DROP TABLE ResearchReadingItems; PRAGMA user_version=24;");
 
         await SchemaInitializer.EnsureSchemaAsync();
 
         Assert.Equal("Existing project", Assert.Single(await research.GetProjectsForWorkAsync(project.WorkId)).Name);
         Assert.True(await db.TableExistsAsync("ResearchReadingItems"));
         Assert.Equal(SchemaInitializer.TargetSchemaVersion, await db.ScalarAsync<int>("PRAGMA user_version;"));
+    }
+
+    [Fact]
+    public async Task FindingsPersistHumanAndAiSynthesisSeparatelyWithEvidenceRoles()
+    {
+        using var db = await TempDatabase.CreateAsync();
+        await db.SeedEditionAsync("rhesus");
+        var research = new ResearchRepository();
+        var project = new ResearchProject
+        {
+            WorkId = await db.WorkIdForAsync("rhesus"), Name = "Rhesus attribution"
+        };
+        await research.SaveProjectAsync(project);
+        var evidence = new EvidenceItem
+        {
+            ResearchProjectId = project.ResearchProjectId, Title = "Stylometric distance",
+            Excerpt = "Rhesus is an outlier.", Judgment = EvidenceJudgment.Accepted
+        };
+        await research.SaveEvidenceAsync(evidence);
+        var repo = new ResearchFindingRepository();
+        var finding = new ResearchFinding
+        {
+            ResearchProjectId = project.ResearchProjectId,
+            Title = "Authorship remains contested",
+            Statement = "The current evidence does not securely support Euripidean authorship.",
+            Status = ResearchFindingStatus.Contested,
+            ResearcherConclusion = "The stylometry is suggestive but not independently decisive.",
+            AiCandidateSynthesis = "A provisional model-generated counterargument.",
+            AiModel = "test-model",
+            AiPrompt = "Exact test prompt",
+            AiGeneratedUtc = DateTime.UtcNow
+        };
+        await repo.SaveAsync(finding);
+        await repo.SaveLinksAsync(finding.ResearchFindingId,
+        [
+            new ResearchFindingEvidenceLink
+            {
+                ResearchFindingId = finding.ResearchFindingId,
+                EvidenceItemId = evidence.EvidenceItemId,
+                Relationship = EvidenceRelationship.Supports
+            }
+        ]);
+
+        var reopened = Assert.Single(await new ResearchFindingRepository().GetAsync(project.ResearchProjectId));
+        Assert.Equal(ResearchFindingStatus.Contested, reopened.Status);
+        Assert.Equal("The stylometry is suggestive but not independently decisive.", reopened.ResearcherConclusion);
+        Assert.Equal("A provisional model-generated counterargument.", reopened.AiCandidateSynthesis);
+        Assert.Equal("Exact test prompt", reopened.AiPrompt);
+        Assert.Equal(EvidenceRelationship.Supports,
+            Assert.Single(await repo.GetLinksAsync(finding.ResearchFindingId)).Relationship);
+
+        await research.DeleteEvidenceAsync(evidence.EvidenceItemId);
+        Assert.Empty(await repo.GetLinksAsync(finding.ResearchFindingId));
+        Assert.Single(await repo.GetAsync(project.ResearchProjectId));
+    }
+
+    [Fact]
+    public async Task FindingEvidenceCannotCrossProjectBoundaries()
+    {
+        using var db = await TempDatabase.CreateAsync();
+        await db.SeedEditionAsync();
+        var workId = await db.WorkIdForAsync("test1");
+        var research = new ResearchRepository();
+        var first = new ResearchProject { WorkId = workId, Name = "First" };
+        var second = new ResearchProject { WorkId = workId, Name = "Second" };
+        await research.SaveProjectAsync(first);
+        await research.SaveProjectAsync(second);
+        var foreignEvidence = new EvidenceItem { ResearchProjectId = second.ResearchProjectId, Title = "Foreign" };
+        await research.SaveEvidenceAsync(foreignEvidence);
+        var repo = new ResearchFindingRepository();
+        var finding = new ResearchFinding
+        {
+            ResearchProjectId = first.ResearchProjectId, Title = "Finding", Statement = "Proposition"
+        };
+        await repo.SaveAsync(finding);
+
+        await Assert.ThrowsAsync<ArgumentException>(() => repo.SaveLinksAsync(finding.ResearchFindingId,
+        [
+            new ResearchFindingEvidenceLink
+            {
+                ResearchFindingId = finding.ResearchFindingId,
+                EvidenceItemId = foreignEvidence.EvidenceItemId
+            }
+        ]));
+    }
+
+    [Fact]
+    public async Task MigrationFromTwentyFiveAddsFindingsWithoutChangingResearchData()
+    {
+        using var db = await TempDatabase.CreateAsync();
+        await db.SeedEditionAsync();
+        var research = new ResearchRepository();
+        var project = new ResearchProject
+        {
+            WorkId = await db.WorkIdForAsync("test1"), Name = "Existing project"
+        };
+        await research.SaveProjectAsync(project);
+        await db.ExecuteAsync("DROP TABLE ResearchFindingEvidence; DROP TABLE ResearchFindings; PRAGMA user_version=25;");
+
+        await SchemaInitializer.EnsureSchemaAsync();
+
+        Assert.Equal("Existing project", Assert.Single(await research.GetProjectsForWorkAsync(project.WorkId)).Name);
+        Assert.True(await db.TableExistsAsync("ResearchFindings"));
+        Assert.True(await db.TableExistsAsync("ResearchFindingEvidence"));
+        Assert.Equal(SchemaInitializer.TargetSchemaVersion, await db.ScalarAsync<int>("PRAGMA user_version;"));
+    }
+
+    [Fact]
+    public void ResearchDossierLabelsAiCandidateApartFromResearcherConclusion()
+    {
+        var project = new ResearchProject { Name = "Theory", Status = ResearchProjectStatus.Active };
+        var finding = new ResearchFinding
+        {
+            ResearchFindingId = 1, Title = "Finding", Statement = "A proposition",
+            ResearcherConclusion = "Human conclusion", AiCandidateSynthesis = "Machine candidate",
+            AiModel = "test-model", AiGeneratedUtc = DateTime.Parse("2026-01-01T00:00:00Z").ToUniversalTime()
+        };
+        var markdown = ResearchDossierExport.ToMarkdown(new ResearchDossierData(project, "Rhesus", "Euripides",
+            [], [], [], [finding], new Dictionary<long, IReadOnlyList<ResearchFindingEvidenceLink>>(), [], []));
+
+        Assert.Contains("Researcher conclusion", markdown);
+        Assert.Contains("Human conclusion", markdown);
+        Assert.Contains("AI candidate synthesis", markdown);
+        Assert.Contains("Machine candidate", markdown);
+        Assert.Contains("test-model", markdown);
     }
 }

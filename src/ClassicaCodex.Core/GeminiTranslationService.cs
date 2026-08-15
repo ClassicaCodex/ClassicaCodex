@@ -18,6 +18,8 @@ public sealed record GeminiResearchResult(
     string PromptProvenance,
     IReadOnlyList<ResearchEvidenceCandidate> Candidates);
 
+public sealed record GeminiSynthesisResult(string Model, string PromptProvenance, string CandidateText);
+
 /// <summary>
 /// Sends one passage to Google's Gemini API for translation - into English
 /// from the original pane, or into the work's original language (Ancient
@@ -380,6 +382,56 @@ public static class GeminiTranslationService
             modelUsed ?? PrimaryModel,
             promptProvenance,
             ParseResearchEvidenceCandidates(rawResponse));
+    }
+
+    /// <summary>
+    /// Drafts an explicitly provisional synthesis from researcher-selected evidence.
+    /// The caller stores it beside, never as, the researcher's conclusion.
+    /// </summary>
+    public static async Task<GeminiSynthesisResult> DraftResearchSynthesisAsync(
+        string projectTheory,
+        string findingStatement,
+        IReadOnlyList<string> linkedEvidence,
+        IReadOnlyList<string> scholarlyClaims,
+        string apiKey,
+        CancellationToken cancellationToken = default)
+    {
+        var evidence = linkedEvidence.Count == 0
+            ? "(No evidence is linked.)" : string.Join("\n", linkedEvidence.Select(e => $"- {e}"));
+        var claims = scholarlyClaims.Count == 0
+            ? "(No scholarly claims are recorded.)" : string.Join("\n", scholarlyClaims.Select(c => $"- {c}"));
+        var prompt = $"""
+            RESEARCH SYNTHESIS ACTION
+            Draft a provisional analytical synthesis for a human researcher. Use only the supplied project context,
+            evidence summaries, and scholarly claims. Distinguish what the evidence shows from interpretation.
+            Identify counterevidence, uncertainty, and the strongest rival explanation. Do not declare the proposition
+            proven, invent citations, or imply that unlisted scholarship was surveyed. Return concise scholarly prose
+            with three short sections headed Assessment, Counterevidence and Next test.
+
+            WORKING THEORY
+            {projectTheory}
+
+            PROPOSITION TO ASSESS
+            {findingStatement}
+
+            RESEARCHER-LINKED EVIDENCE
+            {evidence}
+
+            RECORDED SCHOLARLY CLAIMS
+            {claims}
+            """;
+        string? modelUsed = null;
+        try
+        {
+            var response = await TranslateWithModelAsync(PrimaryModel, true, prompt, apiKey,
+                cancellationToken, model => modelUsed = model);
+            return new GeminiSynthesisResult(modelUsed ?? PrimaryModel, prompt, response);
+        }
+        catch (QuotaExceededException)
+        {
+            throw new InvalidOperationException(
+                "Both Gemini models have hit today's free-tier usage limit. Try again after the daily reset.");
+        }
     }
 
     internal static List<ResearchEvidenceCandidate> ParseResearchEvidenceCandidates(string rawResponse)

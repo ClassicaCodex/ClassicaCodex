@@ -55,7 +55,7 @@ public static class SchemaInitializer
     /// 7 to 13 until version 3 was cut, at which point they all failed at
     /// once and said nothing about what had actually broken.
     /// </summary>
-    public const int TargetSchemaVersion = 25;
+    public const int TargetSchemaVersion = 26;
 
     public static async Task EnsureSchemaAsync(CancellationToken cancellationToken = default)
     {
@@ -859,6 +859,18 @@ public static class SchemaInitializer
             ResearchReadingItemsDdl,
             "CREATE INDEX IF NOT EXISTS IX_ResearchReadingItems_Project ON ResearchReadingItems (ResearchProjectId, Status, Priority, SortOrder, ResearchReadingItemId);",
             "CREATE INDEX IF NOT EXISTS IX_ResearchReadingItems_Question ON ResearchReadingItems (ResearchQuestionId);"
+        },
+
+        // v26: findings make synthesis an explicit researcher-owned layer.
+        // AI text is retained as a candidate beside, never in place of, the
+        // researcher's conclusion. Evidence links state their own role.
+        [26] = new[]
+        {
+            ResearchFindingsDdl,
+            ResearchFindingEvidenceDdl,
+            "CREATE INDEX IF NOT EXISTS IX_ResearchFindings_Project ON ResearchFindings (ResearchProjectId, SortOrder, ResearchFindingId);",
+            "CREATE INDEX IF NOT EXISTS IX_ResearchFindings_Question ON ResearchFindings (ResearchQuestionId);",
+            "CREATE INDEX IF NOT EXISTS IX_ResearchFindingEvidence_Evidence ON ResearchFindingEvidence (EvidenceItemId);"
         }
     };
 
@@ -1079,6 +1091,39 @@ public static class SchemaInitializer
             REFERENCES EvidenceItems(EvidenceItemId) ON DELETE SET NULL
     );";
 
+    private const string ResearchFindingsDdl = @"CREATE TABLE IF NOT EXISTS ResearchFindings (
+        ResearchFindingId INTEGER PRIMARY KEY,
+        ResearchProjectId INTEGER NOT NULL,
+        ResearchQuestionId INTEGER NULL,
+        Title TEXT NOT NULL,
+        Statement TEXT NOT NULL,
+        Status TEXT NOT NULL DEFAULT 'hypothesis',
+        ResearcherConclusion TEXT NULL,
+        AiCandidateSynthesis TEXT NULL,
+        AiModel TEXT NULL,
+        AiPrompt TEXT NULL,
+        AiGeneratedUtc TEXT NULL,
+        SortOrder INTEGER NOT NULL DEFAULT 0,
+        CreatedUtc TEXT NOT NULL,
+        UpdatedUtc TEXT NOT NULL,
+        CONSTRAINT FK_ResearchFindings_Projects FOREIGN KEY (ResearchProjectId)
+            REFERENCES ResearchProjects(ResearchProjectId) ON DELETE CASCADE,
+        CONSTRAINT FK_ResearchFindings_Questions FOREIGN KEY (ResearchQuestionId)
+            REFERENCES ResearchQuestions(ResearchQuestionId) ON DELETE SET NULL
+    );";
+
+    private const string ResearchFindingEvidenceDdl = @"CREATE TABLE IF NOT EXISTS ResearchFindingEvidence (
+        ResearchFindingId INTEGER NOT NULL,
+        EvidenceItemId INTEGER NOT NULL,
+        Relationship TEXT NOT NULL DEFAULT 'contextualizes',
+        Note TEXT NULL,
+        PRIMARY KEY (ResearchFindingId, EvidenceItemId),
+        CONSTRAINT FK_ResearchFindingEvidence_Findings FOREIGN KEY (ResearchFindingId)
+            REFERENCES ResearchFindings(ResearchFindingId) ON DELETE CASCADE,
+        CONSTRAINT FK_ResearchFindingEvidence_Evidence FOREIGN KEY (EvidenceItemId)
+            REFERENCES EvidenceItems(EvidenceItemId) ON DELETE CASCADE
+    );";
+
     private static readonly string[] SchemaStatements =
     {
         ResearchProjectsDdl,
@@ -1093,6 +1138,8 @@ public static class SchemaInitializer
         ResearchCorpusSnapshotsDdl,
         ResearchCorpusSnapshotEntriesDdl,
         ResearchReadingItemsDdl,
+        ResearchFindingsDdl,
+        ResearchFindingEvidenceDdl,
         "CREATE INDEX IF NOT EXISTS IX_ResearchProjects_Work ON ResearchProjects (WorkId, Status, UpdatedUtc);",
         "CREATE INDEX IF NOT EXISTS IX_ResearchQuestions_Project ON ResearchQuestions (ResearchProjectId, SortOrder);",
         "CREATE INDEX IF NOT EXISTS IX_EvidenceItems_Project ON EvidenceItems (ResearchProjectId, SortOrder);",
@@ -1108,6 +1155,9 @@ public static class SchemaInitializer
         "CREATE INDEX IF NOT EXISTS IX_ResearchCorpusSnapshotEntries_Snapshot ON ResearchCorpusSnapshotEntries (ResearchCorpusSnapshotId, WorkCtsUrn, EditionCtsUrn);",
         "CREATE INDEX IF NOT EXISTS IX_ResearchReadingItems_Project ON ResearchReadingItems (ResearchProjectId, Status, Priority, SortOrder, ResearchReadingItemId);",
         "CREATE INDEX IF NOT EXISTS IX_ResearchReadingItems_Question ON ResearchReadingItems (ResearchQuestionId);",
+        "CREATE INDEX IF NOT EXISTS IX_ResearchFindings_Project ON ResearchFindings (ResearchProjectId, SortOrder, ResearchFindingId);",
+        "CREATE INDEX IF NOT EXISTS IX_ResearchFindings_Question ON ResearchFindings (ResearchQuestionId);",
+        "CREATE INDEX IF NOT EXISTS IX_ResearchFindingEvidence_Evidence ON ResearchFindingEvidence (EvidenceItemId);",
 
         // The statements below are also created by migrations, and have to
         // be here as well because a NEW database never runs a migration - it

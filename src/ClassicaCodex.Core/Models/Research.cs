@@ -73,7 +73,13 @@ public enum ResearchLogEntryKind
     ReadingItemAdded,
     ReadingItemUpdated,
     ReadingItemRemoved,
-    ReadingItemPromoted
+    ReadingItemPromoted,
+    FindingAdded,
+    FindingUpdated,
+    FindingRemoved,
+    FindingEvidenceChanged,
+    FindingAiCandidateGenerated,
+    ResearchDossierExported
 }
 
 /// <summary>A persistent line of inquiry attached to one work.</summary>

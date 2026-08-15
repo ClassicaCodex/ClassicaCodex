@@ -202,6 +202,7 @@ public class ResearchBenchForm : Form
         projectMenu.Items.Add("Bibliography & Zotero export…", null, (_, _) => OpenBibliography());
         projectMenu.Items.Add("Corpus snapshots…", null, (_, _) => OpenCorpusSnapshots());
         projectMenu.Items.Add("Reading queue & passage notebook…", null, async (_, _) => await OpenReadingQueueAsync());
+        projectMenu.Items.Add("Synthesis & findings…", null, (_, _) => OpenSynthesis());
         projectMenu.Items.Add(new ToolStripSeparator());
         projectMenu.Items.Add("Project audit", null, async (_, _) => await OpenProjectAuditAsync());
         projectMenu.Items.Add("Research log", null, (_, _) => OpenResearchLog());
@@ -821,6 +822,13 @@ public class ResearchBenchForm : Form
         }
         if (form.PromotedEvidenceItemId is long evidenceId)
             await LoadEvidenceAsync(project.ResearchProjectId, evidenceId);
+    }
+
+    private void OpenSynthesis()
+    {
+        if (CurrentProject is not { } project) return;
+        using var form = new ResearchSynthesisForm(project, _work, _authorName);
+        form.ShowDialog(this);
     }
 
     private static long? GetStylometryRunId(EvidenceItem? item)
