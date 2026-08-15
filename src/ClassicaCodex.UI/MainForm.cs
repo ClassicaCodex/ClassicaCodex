@@ -1096,11 +1096,14 @@ public class MainForm : Form
         // describes the document in front of the reader rather than everything
         // the parser can produce.
         var showItem = new ToolStripMenuItem("Show");
-        showItem.Image = AppIcons.Get("Preface", 16);
+        showItem.Image = AppIcons.Get("Show", 16);
         menu.Items.Add(showItem);
         menu.Opening += (_, _) => BuildKindMenu(showItem, list);
 
-        _themedMenuItemIcons.Add((showItem, "Preface"));
+        // Registered so the icon is re-resolved when the theme changes: it
+        // ships both a dark and a light variant, and the cached image is per
+        // theme.
+        _themedMenuItemIcons.Add((showItem, "Show"));
 
         list.ContextMenuStrip = menu;
         _themedContextMenus.Add(menu);

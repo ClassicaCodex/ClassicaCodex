@@ -39,6 +39,7 @@ public class PerturbationForm : Form
     private readonly CheckBox _sameAuthorControl;
     private readonly ComboBox _levelPreset;
     private readonly ComboBox _mode;
+    private readonly ComboBox _donorScope;
     private readonly NumericUpDown _seed;
     private readonly NumericUpDown _iterations;
     private readonly NumericUpDown _sampleSize;
@@ -67,7 +68,42 @@ public class PerturbationForm : Form
     /// </summary>
     private readonly List<(string Work, string Donor, PerturbationLevel Level)> _rawLevels = new();
 
+    /// <summary>
+    /// Rows from a loaded experiment.
+    ///
+    /// A load cannot rebuild <see cref="_rawLevels"/>: those hold every
+    /// individual trial, and the database stores the aggregates rather than
+    /// thousands of per-mixture margins. So the export reads from here instead
+    /// when a run was loaded rather than computed - without it, exporting after
+    /// a load produced a file with a header, column names, and no data, in all
+    /// three formats at once.
+    /// </summary>
+    private readonly List<ExperimentRow> _loadedRows = new();
+
     private string _runNotes = string.Empty;
+
+    /// <summary>
+    /// The header written above an exported table, captured when the rows were
+    /// produced rather than read from the controls when the file is written.
+    ///
+    /// THIS IS THE THIRD TIME THIS FORM HAS GOT THIS WRONG. Anything describing
+    /// a run has to be captured with the run: the controls keep moving
+    /// afterwards, and a header taken from them at export time describes the
+    /// form rather than the data. The observed failure was a file headed
+    /// "Target author: Aelian, pool Aelian and Aelius Herodianus" whose every
+    /// row was Plato's Republic against Polybius - the settings had been
+    /// changed after loading an older experiment, and nothing had cleared it.
+    ///
+    /// A header that contradicts its own table is worse than no header, because
+    /// it will be believed.
+    /// </summary>
+    private IReadOnlyList<string> _exportNotes = Array.Empty<string>();
+
+    /// <summary>
+    /// Whose experiment the table currently holds - the form's own author after
+    /// a run, the saved experiment's after a load. Names the exported file.
+    /// </summary>
+    private string _exportAuthor;
     private string _powerNotes = string.Empty;
 
     private static readonly (string Label, double[] Levels)[] LevelPresets =
@@ -81,12 +117,13 @@ public class PerturbationForm : Form
     public PerturbationForm(string targetAuthor, IReadOnlyList<WorkTokens> pool)
     {
         _targetAuthor = targetAuthor;
+        _exportAuthor = targetAuthor;
         _pool = pool;
 
         Text = $"Perturbation - how much disturbance before the method stops recognising it? ({targetAuthor})";
         AppIcons.ApplyWindowIcon(this, "Stylometry");
         Width = 1400;
-        Height = 800;   // two more button rows than it started with
+        Height = 832;   // two more button rows than it started with
         StartPosition = FormStartPosition.CenterParent;
 
         const int LeftCol = 12;
@@ -138,7 +175,7 @@ public class PerturbationForm : Form
 
         var seriesGroup = new GroupBox
         {
-            Text = "Series", Left = LeftCol, Top = 288, Width = LeftWidth, Height = 176
+            Text = "Series", Left = LeftCol, Top = 288, Width = LeftWidth, Height = 208
         };
 
         _levelPreset = new ComboBox
@@ -148,29 +185,42 @@ public class PerturbationForm : Form
         foreach (var (label, _) in LevelPresets) _levelPreset.Items.Add(label);
         _levelPreset.SelectedIndex = 0;
 
-        var modeLabel = new Label { Text = "Mode:", Left = 12, Top = 56, Width = 100 };
-        _mode = new ComboBox
+        var scopeLabel = new Label { Text = "Donor draw:", Left = 12, Top = 56, Width = 100 };
+        _donorScope = new ComboBox
         {
             Left = 118, Top = 52, Width = 170, DropDownStyle = ComboBoxStyle.DropDownList
+        };
+        // Whole corpus first and default: it is what every result recorded so
+        // far used, and changing the default would silently make old and new
+        // runs incomparable.
+        _donorScope.Items.AddRange(new object[] { "Whole donor corpus", "One work per mixture" });
+        _donorScope.SelectedIndex = 0;
+
+        var modeLabel = new Label { Text = "Mode:", Left = 12, Top = 88, Width = 100 };
+        _mode = new ComboBox
+        {
+            Left = 118, Top = 84, Width = 170, DropDownStyle = ComboBoxStyle.DropDownList
         };
         // Replace first, and the default. It holds the token count constant, so
         // the length confound cannot move while the contamination does.
         _mode.Items.AddRange(new object[] { "Replace (length held)", "Add (length grows)" });
         _mode.SelectedIndex = 0;
 
-        var iterLabel = new Label { Text = "Iterations:", Left = 12, Top = 88, Width = 100 };
+        var iterLabel = new Label { Text = "Iterations:", Left = 12, Top = 120, Width = 100 };
         _iterations = new NumericUpDown
         {
-            Left = 118, Top = 84, Width = 80, Minimum = 1, Maximum = 200, Value = 25
+            Left = 118, Top = 116, Width = 80, Minimum = 1, Maximum = 200, Value = 25
         };
 
-        var seedLabel = new Label { Text = "Seed:", Left = 12, Top = 118, Width = 100 };
+        var seedLabel = new Label { Text = "Seed:", Left = 12, Top = 150, Width = 100 };
         _seed = new NumericUpDown
         {
-            Left = 118, Top = 114, Width = 80, Minimum = 0, Maximum = 999999, Value = 42
+            Left = 118, Top = 146, Width = 80, Minimum = 0, Maximum = 999999, Value = 42
         };
 
         seriesGroup.Controls.Add(_levelPreset);
+        seriesGroup.Controls.Add(scopeLabel);
+        seriesGroup.Controls.Add(_donorScope);
         seriesGroup.Controls.Add(modeLabel);
         seriesGroup.Controls.Add(_mode);
         seriesGroup.Controls.Add(iterLabel);
@@ -180,7 +230,7 @@ public class PerturbationForm : Form
 
         var settingsGroup = new GroupBox
         {
-            Text = "Delta settings", Left = LeftCol, Top = 472, Width = LeftWidth, Height = 92
+            Text = "Delta settings", Left = LeftCol, Top = 504, Width = LeftWidth, Height = 92
         };
 
         var sampleLabel = new Label { Text = "Sample size:", Left = 12, Top = 26, Width = 100 };
@@ -201,8 +251,8 @@ public class PerturbationForm : Form
         settingsGroup.Controls.Add(featureLabel);
         settingsGroup.Controls.Add(_featureCount);
 
-        _runButton = new Button { Text = "Run series", Left = LeftCol, Top = 576, Width = 160, Height = 32 };
-        _cancelButton = new Button { Text = "Stop", Left = LeftCol + 168, Top = 576, Width = 90, Height = 32, Enabled = false };
+        _runButton = new Button { Text = "Run series", Left = LeftCol, Top = 608, Width = 160, Height = 32 };
+        _cancelButton = new Button { Text = "Stop", Left = LeftCol + 168, Top = 608, Width = 90, Height = 32, Enabled = false };
 
         // Four plays showed that three of them lose the same 0.020 of margin
         // and one does not. Four points cannot say what the normal range IS -
@@ -211,7 +261,7 @@ public class PerturbationForm : Form
         _runAllButton = new Button
         {
             Text = "Run every work by this author...",
-            Left = LeftCol, Top = 614, Width = 258, Height = 32
+            Left = LeftCol, Top = 646, Width = 258, Height = 32
         };
         _runAllButton.Click += async (_, _) => await RunAllAsync();
 
@@ -221,13 +271,13 @@ public class PerturbationForm : Form
         // docs/stylometry-notes.md rest on runs that are gone.
         _saveButton = new Button
         {
-            Text = "Save experiment...", Left = LeftCol, Top = 652, Width = 126, Height = 30
+            Text = "Save experiment...", Left = LeftCol, Top = 684, Width = 126, Height = 30
         };
         _saveButton.Click += async (_, _) => await SaveAsync();
 
         _loadButton = new Button
         {
-            Text = "Load...", Left = LeftCol + 132, Top = 652, Width = 126, Height = 30
+            Text = "Load...", Left = LeftCol + 132, Top = 684, Width = 126, Height = 30
         };
         _loadButton.Click += async (_, _) => await LoadAsync();
 
@@ -240,7 +290,7 @@ public class PerturbationForm : Form
 
         _levels = new ListView
         {
-            Left = RightCol, Top = 112, Width = RightWidth, Height = 576,
+            Left = RightCol, Top = 112, Width = RightWidth, Height = 608,
             View = View.Details, FullRowSelect = true,
             Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right
         };
@@ -272,7 +322,7 @@ public class PerturbationForm : Form
 
         _status = new Label
         {
-            Left = LeftCol, Top = 700, Width = 1360, Height = 36,
+            Left = LeftCol, Top = 732, Width = 1360, Height = 36,
             Anchor = AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right
         };
 
@@ -289,7 +339,14 @@ public class PerturbationForm : Form
         Controls.Add(_levels);
         Controls.Add(_status);
 
-        ResultExport.AttachTo(_levels, $"perturbation-{targetAuthor}", ExportRows, ExportNotes);
+        // The name follows the DATA, not the window: loading another author's
+        // experiment into this form must not produce a file named after the
+        // author the form happens to be open on.
+        ResultExport.AttachTo(
+            _levels,
+            () => $"perturbation-{_exportAuthor}",
+            ExportRows,
+            () => _exportNotes);
 
         _runButton.Click += async (_, _) => await RunAsync();
         _cancelButton.Click += (_, _) => _cancellation?.Cancel();
@@ -320,6 +377,7 @@ public class PerturbationForm : Form
         var target = choice.Work;
         var levels = LevelPresets[_levelPreset.SelectedIndex].Levels;
         var mode = _mode.SelectedIndex == 0 ? InjectionMode.Replace : InjectionMode.Add;
+        var scope = _donorScope.SelectedIndex == 1 ? DonorScope.SingleWork : DonorScope.WholeCorpus;
         var settings = new DeltaSettings((int)_featureCount.Value, (int)_sampleSize.Value);
         var seed = (int)_seed.Value;
         var iterations = (int)_iterations.Value;
@@ -348,6 +406,7 @@ public class PerturbationForm : Form
         // one with no header at all.
         _runNotes = string.Empty;
         _powerNotes = string.Empty;
+        _exportNotes = Array.Empty<string>();
 
         try
         {
@@ -372,7 +431,7 @@ public class PerturbationForm : Form
             runs.Add((crossLabel, await Task.Run(() => PerturbationRunner.RunSeries(
                 _pool, target.WorkId, crossDonors, levels, mode, seed, iterations, settings,
                 (i, n, level) => report.Report($"{crossLabel}: level {i + 1} of {n} ({level:P0})..."),
-                token), token)));
+                token, scope), token)));
 
             if (_sameAuthorControl.Checked && controlDonors.Count > 0)
             {
@@ -382,10 +441,12 @@ public class PerturbationForm : Form
                 runs.Add(($"{_targetAuthor} (control)", await Task.Run(() => PerturbationRunner.RunSeries(
                     _pool, target.WorkId, controlDonors, levels, mode, seed, iterations, settings,
                     (i, n, level) => report.Report($"Control: level {i + 1} of {n} ({level:P0})..."),
-                    token), token)));
+                    token, scope), token)));
             }
 
             Show(target, runs, mode, seed, iterations);
+            _exportAuthor = _targetAuthor;
+            _exportNotes = CaptureNotes();
         }
         catch (OperationCanceledException)
         {
@@ -442,6 +503,38 @@ public class PerturbationForm : Form
 
         string N(double v) => v.ToString("R", CultureInfo.InvariantCulture);
 
+        // A loaded experiment has no PerturbationLevel objects behind it - the
+        // database stores aggregates, not individual mixtures - so its rows are
+        // formatted straight from what was stored.
+        if (_rawLevels.Count == 0 && _loadedRows.Count > 0)
+        {
+            foreach (var r in _loadedRows)
+            {
+                var se = r.Trials < 2 ? 0 : r.StdDev / Math.Sqrt(r.Trials);
+
+                rows.Add(new[]
+                {
+                    r.WorkTitle,
+                    r.Donor,
+                    N(r.Level),
+                    N(r.MeanMargin),
+                    N(r.StdDev),
+                    N(se),
+                    N(r.BaselineMargin),
+                    r.Level <= 0 || r.BaselineMargin == 0 ? "" : N(r.MeanMargin / r.BaselineMargin),
+                    r.Level <= 0 || r.StdDev < 1e-12 ? "" : N((r.MeanMargin - r.BaselineMargin) / r.StdDev),
+                    r.Level <= 0 || r.StdDev < 1e-12 ? "" : N(Math.Abs(r.BaselineMargin) / r.StdDev),
+                    r.Level <= 0 ? "" : N(r.MeanMargin - r.BaselineMargin),
+                    r.Recovered.ToString(CultureInfo.InvariantCulture),
+                    r.Trials.ToString(CultureInfo.InvariantCulture),
+                    r.NearestAuthor ?? "",
+                    r.TokenCount.ToString(CultureInfo.InvariantCulture)
+                });
+            }
+
+            return rows;
+        }
+
         foreach (var (work, donor, level) in _rawLevels)
         {
             var nearest = level.NearestAuthorCounts.OrderByDescending(kv => kv.Value).FirstOrDefault();
@@ -480,7 +573,11 @@ public class PerturbationForm : Form
     /// have. These go into the file so the numbers cannot be separated from
     /// what produced them.
     /// </summary>
-    private IReadOnlyList<string> ExportNotes()
+    /// <summary>
+    /// Builds the header for whatever has just been produced. Called when a run
+    /// finishes or an experiment is loaded - never at export time.
+    /// </summary>
+    private IReadOnlyList<string> CaptureNotes()
     {
         var notes = new List<string>
         {
@@ -489,6 +586,7 @@ public class PerturbationForm : Form
             $"Sample size: {_sampleSize.Value} tokens, {_featureCount.Value} most frequent words",
             $"Mode: {(_mode.SelectedIndex == 0 ? "Replace (length held)" : "Add (length grows)")}, " +
             $"seed {_seed.Value}, {_iterations.Value} iterations per level",
+            $"Donor draw: {(_donorScope.SelectedIndex == 1 ? "one work per mixture" : "whole donor corpus")}",
             $"Pool: {string.Join(", ", _pool.Select(w => w.AuthorName).Distinct().OrderBy(a => a))} " +
             $"({_pool.Count} works)"
         };
@@ -518,8 +616,12 @@ public class PerturbationForm : Form
     {
         if (_rawLevels.Count == 0)
         {
-            MessageBox.Show(this, "Run something first.", "Nothing to save",
-                MessageBoxButtons.OK, MessageBoxIcon.Information);
+            MessageBox.Show(this,
+                _loadedRows.Count > 0
+                    ? "This experiment was loaded from the library and is already saved. Run it again to " +
+                      "store a new copy."
+                    : "Run something first.",
+                "Nothing to save", MessageBoxButtons.OK, MessageBoxIcon.Information);
             return;
         }
 
@@ -539,6 +641,7 @@ public class PerturbationForm : Form
         var parameters = new Dictionary<string, string>
         {
             ["mode"] = _mode.SelectedIndex == 0 ? "replace" : "add",
+            ["donorScope"] = _donorScope.SelectedIndex == 1 ? "singleWork" : "wholeCorpus",
             ["levels"] = string.Join(",", LevelPresets[_levelPreset.SelectedIndex].Levels
                 .Select(l => l.ToString(CultureInfo.InvariantCulture))),
             ["donors"] = string.Join(", ", _donorAuthors.CheckedItems.Cast<string>()),
@@ -618,6 +721,8 @@ public class PerturbationForm : Form
 
         _levels.Items.Clear();
         _rawLevels.Clear();
+        _loadedRows.Clear();
+        _loadedRows.AddRange(rows);
 
         foreach (var r in rows)
         {
@@ -666,6 +771,9 @@ public class PerturbationForm : Form
             if (definition.Parameters.TryGetValue("mode", out var mode))
                 _mode.SelectedIndex = mode == "add" ? 1 : 0;
 
+            if (definition.Parameters.TryGetValue("donorScope", out var scope))
+                _donorScope.SelectedIndex = scope == "singleWork" ? 1 : 0;
+
             if (definition.Parameters.TryGetValue("control", out var control))
                 _sameAuthorControl.Checked = control == "yes";
 
@@ -713,6 +821,31 @@ public class PerturbationForm : Form
         _runNotes = chosen.Metrics.GetValueOrDefault("crossWork", string.Empty);
         _powerNotes = chosen.Metrics.GetValueOrDefault("detectionPower", string.Empty);
 
+        // Built from the SAVED experiment, not from the controls. The controls
+        // have just been set from it, so the two agree now - but the user is
+        // free to change them before exporting, and the file must describe the
+        // rows it contains.
+        var loadedNotes = new List<string>
+        {
+            $"Classica Codex perturbation series - loaded from experiment {chosen.ExperimentId}",
+            $"Originally run {chosen.CreatedUtc.ToLocalTime():yyyy-MM-dd HH:mm}",
+            $"Target author: {chosen.TargetAuthor}",
+            $"Sample size: {chosen.ChunkSize} tokens, {chosen.FeatureWordCount} most frequent words",
+            $"Seed {chosen.Seed}, {chosen.Iterations} iterations per level",
+            $"Pool: {chosen.PoolSummary}" +
+            (definition == null ? "" : $" ({definition.PoolWorkIds.Count} works)")
+        };
+
+        if (!string.IsNullOrEmpty(_runNotes)) loadedNotes.Add(_runNotes);
+        if (!string.IsNullOrEmpty(_powerNotes)) loadedNotes.Add("Detection power - " + _powerNotes);
+
+        loadedNotes.Add("Contamination is synthetic. This measures how much disturbance the method absorbs " +
+                        "on texts of known authorship - it is not an estimate of how much of any real text " +
+                        "somebody else wrote.");
+
+        _exportNotes = loadedNotes;
+        _exportAuthor = chosen.TargetAuthor;
+
         // A margin is a property of the comparison, not of the text: the same
         // work at the same settings gave +0.097 against a 34-work pool and
         // +0.140 against a 27-work one. So a pool that has changed since the
@@ -749,6 +882,7 @@ public class PerturbationForm : Form
 
         var levels = LevelPresets[_levelPreset.SelectedIndex].Levels;
         var mode = _mode.SelectedIndex == 0 ? InjectionMode.Replace : InjectionMode.Add;
+        var scope = _donorScope.SelectedIndex == 1 ? DonorScope.SingleWork : DonorScope.WholeCorpus;
         var settings = new DeltaSettings((int)_featureCount.Value, (int)_sampleSize.Value);
         var seed = (int)_seed.Value;
         var iterations = (int)_iterations.Value;
@@ -770,8 +904,10 @@ public class PerturbationForm : Form
         _cancelButton.Enabled = true;
         _levels.Items.Clear();
         _rawLevels.Clear();
+        _loadedRows.Clear();
         _runNotes = string.Empty;
         _powerNotes = string.Empty;
+        _exportNotes = Array.Empty<string>();
         _cancellation = new CancellationTokenSource();
 
         var finals = new List<(string Title, double Baseline, double Drop, double Shift)>();
@@ -783,6 +919,12 @@ public class PerturbationForm : Form
         // Length and uncontaminated margin per work, for the reference scatter
         // that every detection figure is divided by.
         var lengths = new List<(double Length, double Margin)>();
+
+        // Works too short to sample at this size. Named in the status line
+        // rather than silently dropped - a sweep that quietly measured fewer
+        // works than the author has is the kind of thing that looks like a
+        // result.
+        var skipped = new List<string>();
 
         try
         {
@@ -812,7 +954,7 @@ public class PerturbationForm : Form
                         _pool, work.WorkId, crossDonors, levels, mode, seed, iterations, settings,
                         (l, n, level) => report.Report(
                             $"{work.WorkTitle} ({i + 1}/{works.Count}): level {l + 1} of {n} ({level:P0})..."),
-                        token), token)));
+                        token, scope), token)));
 
                     if (runControl)
                     {
@@ -825,7 +967,7 @@ public class PerturbationForm : Form
                             _pool, work.WorkId, controlDonors, levels, mode, seed, iterations, settings,
                             (l, n, level) => report.Report(
                                 $"{work.WorkTitle} control ({i + 1}/{works.Count}): level {l + 1} of {n}..."),
-                            token), token)));
+                            token, scope), token)));
                     }
                 }
                 catch (OperationCanceledException) { throw; }
@@ -852,6 +994,22 @@ public class PerturbationForm : Form
                 }
 
                 var last = runs[0].Series.OrderBy(l => l.InjectionFraction).Last();
+
+                // A work shorter than one sample yields no trials at all, and
+                // RunSeries reports that as a level of zeros rather than
+                // throwing. Folding those into the cross-work statistics adds
+                // fake works at the origin: four short Platonic dialogues
+                // (Cleitophon, Definitiones, Hipparchus, Lovers) dragged the
+                // fitted line and inflated the reference scatter from 0.082 to
+                // 0.137, which pulled the detection AUC at 20% down from 0.94
+                // to 0.80 - turning a clean positive control into a marginal
+                // one.
+                if (last.Trials.Count == 0)
+                {
+                    skipped.Add(work.WorkTitle);
+                    continue;
+                }
+
                 finals.Add((work.WorkTitle, last.BaselineMargin, last.AbsoluteShift, last.ShiftInStdDevs));
                 lengths.Add((work.Tokens.Count, last.BaselineMargin));
             }
@@ -873,6 +1031,12 @@ public class PerturbationForm : Form
             _cancellation = null;
         }
 
+        if (skipped.Count > 0)
+        {
+            _runNotes = $"Skipped {skipped.Count} work(s) shorter than one {_sampleSize.Value:N0}-token " +
+                        $"sample: {string.Join(", ", skipped)}.";
+        }
+
         if (finals.Count >= 3)
         {
             ShowSpread(finals, string.Join(", ", donorAuthors), levels[^1], byLevel, lengths);
@@ -882,10 +1046,19 @@ public class PerturbationForm : Form
             var comparison = PerturbationRunner.CompareWorks(
                 finals.Select(f => (f.Title, f.Baseline, f.Drop)).ToList());
 
-            _runNotes =
+            _runNotes = (_runNotes.Length > 0 ? _runNotes + " " : "") +
                 $"Cross-work: rho(baseline, drop) {StatFormat.Signed(comparison.BaselineDropCorrelation)}; " +
                 $"residual MAD {comparison.ResidualMad:0.0000}; " +
                 $"{comparison.ExpectedFalseFlags():0.0} works expected to clear three MAD by chance.";
+        }
+
+        // Last, so the snapshot includes the cross-work reading and the
+        // detection power that ShowSpread has just computed. Capturing before
+        // them would have written a header describing less than the file holds.
+        if (_levels.Items.Count > 0)
+        {
+            _exportAuthor = _targetAuthor;
+            _exportNotes = CaptureNotes();
         }
     }
 
@@ -984,6 +1157,8 @@ public class PerturbationForm : Form
         {
             _levels.Items.Clear();
             _rawLevels.Clear();
+            _loadedRows.Clear();
+            _exportNotes = Array.Empty<string>();
         }
 
         var workTitle = target.WorkTitle;

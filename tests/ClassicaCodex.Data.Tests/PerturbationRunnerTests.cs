@@ -810,4 +810,172 @@ public class PerturbationRunnerTests
         Assert.Equal(0, PerturbationRunner.ReferenceScatter(
             new[] { (1000.0, 0.1), (2000.0, 0.2), (3000.0, 0.3) }));
     }
+
+    /// <summary>
+    /// Eight real Plato works and their uncontaminated margins, from the
+    /// positive-control sweep against Homer.
+    /// </summary>
+    private static List<(double Length, double Margin)> ThePlatoReference() => new()
+    {
+        (2827, 0.3741),   // Minos
+        (4177, 0.3306),   // Alcibiades 2
+        (5179, 0.3626),   // Euthyphro
+        (8321, 0.4115),   // Charmides
+        (10272, 0.3898),  // Alcibiades 1
+        (16618, 0.3159),  // Phaedrus
+        (17545, 0.3536),  // Protagoras
+        (22517, 0.4711)   // Theaetetus
+    };
+
+    /// <summary>
+    /// A work too short to yield a single sample must not enter the cross-work
+    /// statistics as a work of no length and no margin.
+    ///
+    /// THE POSITIVE CONTROL CAUGHT THIS. Four Platonic dialogues - Cleitophon,
+    /// Definitiones, Hipparchus, Lovers - are under 2,500 tokens, so a sweep at
+    /// that sample size measured nothing for them and reported zeros. Included
+    /// as real works they sit at the origin, far from a cluster of texts three
+    /// to twenty thousand tokens long, and drag the fitted line towards
+    /// themselves: the reference scatter went from 0.082 to 0.137 across the
+    /// full sweep.
+    ///
+    /// That pulled the detection AUC at 20% Homeric contamination down from
+    /// 0.94 to 0.80 - the difference between a positive control that plainly
+    /// passes and one that looks marginal, on a corpus where Delta ought to
+    /// separate prose from epic verse trivially.
+    ///
+    /// A bug that makes a method look WEAKER than it is may be the hardest kind
+    /// to notice in a project where every result so far has been negative. It
+    /// was found only by running a case where the answer was known in advance.
+    /// </summary>
+    [Fact]
+    public void WorksTooShortToSampleInflateTheReferenceScatter()
+    {
+        var measured = ThePlatoReference();
+
+        var withUnmeasurable = measured
+            .Concat(new[] { (0.0, 0.0), (0.0, 0.0) })
+            .ToList();
+
+        var clean = PerturbationRunner.ReferenceScatter(measured);
+        var polluted = PerturbationRunner.ReferenceScatter(withUnmeasurable);
+
+        Assert.True(polluted > clean * 1.5,
+            $"zero-length works should badly inflate the scatter: {polluted:F4} against {clean:F4}");
+    }
+
+    /// <summary>
+    /// And an inflated scatter makes real contamination look undetectable,
+    /// which is the consequence that matters.
+    /// </summary>
+    [Fact]
+    public void AnInflatedScatterUnderstatesDetectionPower()
+    {
+        var measured = ThePlatoReference();
+        var polluted = measured.Concat(new[] { (0.0, 0.0), (0.0, 0.0) }).ToList();
+
+        // The measured mean drop at 20% Homeric injection.
+        var shifts = new[] { (0.20, -0.1858) };
+
+        var honest = PerturbationRunner.MeasurePower(
+            PerturbationRunner.ReferenceScatter(measured), shifts)[0].Auc;
+
+        var understated = PerturbationRunner.MeasurePower(
+            PerturbationRunner.ReferenceScatter(polluted), shifts)[0].Auc;
+
+        Assert.True(honest > understated,
+            $"AUC should fall when the scatter is inflated: {honest:F2} against {understated:F2}");
+        Assert.True(honest > 0.9, $"the positive control should pass clearly, not marginally: {honest:F2}");
+    }
+
+    // ------------------------------------------------------ donor scope
+
+    /// <summary>
+    /// Whole-corpus draws pool every donor work; single-work draws use one.
+    ///
+    /// The point of the distinction is realism. A whole-corpus draw is an
+    /// IDEALISED donor - expected frequencies exactly matching that author's
+    /// overall profile. A real interpolation is one passage by one author on
+    /// one topic, and a single work's profile can sit some way from its
+    /// author's average, so the single-work mixtures should vary more between
+    /// iterations.
+    /// </summary>
+    [Fact]
+    public void SingleWorkScopeDrawsFromOneDonorAtATime()
+    {
+        var pool = Pool();
+
+        var whole = PerturbationRunner.RunLevel(
+            pool,
+            new PerturbationConfig(10, BetaDonors, 0.30, InjectionMode.Replace, 42, 12),
+            Settings, 0.2);
+
+        var single = PerturbationRunner.RunLevel(
+            pool,
+            new PerturbationConfig(10, BetaDonors, 0.30, InjectionMode.Replace, 42, 12,
+                DonorScope.SingleWork),
+            Settings, 0.2);
+
+        Assert.Equal(12, single.Trials.Count);
+
+        // Different material, so different mixtures - the two must not be the
+        // same run under another name.
+        Assert.NotEqual(whole.MeanMargin, single.MeanMargin, 6);
+    }
+
+    /// <summary>
+    /// Which work a mixture draws from is a function of the seed and the
+    /// iteration, so a single-work series is as reproducible as any other.
+    /// </summary>
+    [Fact]
+    public void SingleWorkScopeIsReproducibleFromItsSeed()
+    {
+        var pool = Pool();
+        var config = new PerturbationConfig(10, BetaDonors, 0.20, InjectionMode.Replace, 7, 8,
+            DonorScope.SingleWork);
+
+        var first = PerturbationRunner.RunLevel(pool, config, Settings, 0.2);
+        var again = PerturbationRunner.RunLevel(pool, config, Settings, 0.2);
+
+        Assert.Equal(
+            first.Trials.Select(t => t.Margin),
+            again.Trials.Select(t => t.Margin));
+    }
+
+    /// <summary>
+    /// Whole corpus stays the default, because every figure recorded so far was
+    /// measured that way and a changed default would quietly make old and new
+    /// runs incomparable.
+    /// </summary>
+    [Fact]
+    public void WholeCorpusRemainsTheDefault()
+    {
+        var config = new PerturbationConfig(10, BetaDonors, 0.1, InjectionMode.Replace, 42, 5);
+
+        Assert.Equal(DonorScope.WholeCorpus, config.Scope);
+        Assert.Contains("whole donor corpus", config.Describe());
+    }
+
+    /// <summary>
+    /// With one donor work available the two scopes coincide, and nothing
+    /// should break at that boundary.
+    /// </summary>
+    [Fact]
+    public void ASingleDonorWorkBehavesTheSameUnderBothScopes()
+    {
+        var pool = Pool();
+
+        var whole = PerturbationRunner.RunLevel(
+            pool,
+            new PerturbationConfig(10, new[] { 20 }, 0.2, InjectionMode.Replace, 42, 5),
+            Settings, 0.2);
+
+        var single = PerturbationRunner.RunLevel(
+            pool,
+            new PerturbationConfig(10, new[] { 20 }, 0.2, InjectionMode.Replace, 42, 5,
+                DonorScope.SingleWork),
+            Settings, 0.2);
+
+        Assert.Equal(whole.MeanMargin, single.MeanMargin, 9);
+    }
 }

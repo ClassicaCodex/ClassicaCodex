@@ -293,11 +293,93 @@ which text is which. Discrimination is the question.
 at **+0.48 deviations - the 56th percentile**, marginally more typical than the
 median rather than less.
 
-So the conclusion below stands, and now has a bound on it: not merely that no
-evidence was found, but that this method on this corpus could not have found
-a second hand contributing less than roughly a third of the play. Whether any
-real interpolation in a Greek tragedy is that large is a question for someone
-with a text in front of them.
+#### How much the idealised donor flatters the method: measured
+
+The contamination is not a spliced passage. Each injected word is drawn
+independently, with replacement, from the donor's entire surviving corpus, and
+the words land at random positions in the target.
+
+Contiguity is not what is given up - the engine shuffles token positions into
+bags before counting, so a spliced passage and the same words scattered reach
+Delta as nearly the same frequency profile. What is given up is that independent
+draws from a whole corpus are an IDEALISED donor: expected frequencies exactly
+matching that author's overall profile. A real interpolation is one passage by
+one author on one topic, and a single work's profile can sit some way from its
+author's average.
+
+This was recorded as an unquantified caveat and has since been measured. Both
+sweeps below are nineteen Euripides plays against Sophocles, 100 iterations,
+seed 42, differing only in whether each mixture drew from the whole donor corpus
+or from one donor work.
+
+| | whole corpus | one work per mixture |
+| --- | --- | --- |
+| AUC at 20% | 0.76 | 0.74 |
+| AUC at 10% | 0.63 | 0.62 |
+| median SD of the drop at 20% | - | **1.43x higher** |
+
+**The mean effect barely moves; the variance is where the idealisation was
+hiding.** Sophocles shifts a play by about the same amount however the words are
+drawn - the mean drop changed by around 6% - but each mixture varies far more
+from the next, because each is drawing on one play's topic and register rather
+than an average of seven.
+
+Most of that inflation is not about style. The same-author control inflates
+1.30x, and the control has no cross-author signal at all, so drawing from a
+smaller pool is itself most of the effect. The excess attributable to genuine
+heterogeneity between Sophocles' plays is **1.43 / 1.30 = 1.10x** - real, since
+cross-author exceeds control in 15 works of 19 (sign test p = 0.010), and small.
+
+**So the earlier caveat was half wrong.** It implied the idealisation inflated
+the mean effect and therefore the detection figures. It does not: it buys
+precision, not power. And the precision is worth little here, because detection
+is limited by how much genuine works differ from each other (0.029) rather than
+by how much one work's contamination varies between draws (0.012). Folding the
+second into the first gives 0.032 and moves the AUC at 20% from 0.74 to 0.73.
+
+That refinement was considered and not implemented: a parameter, its plumbing
+and its tests, to move a number by one hundredth. The figures in the table above
+stand as measured, and single-work draws are available on the form for anyone
+who wants the realistic version.
+---
+
+### 7. The positive control
+
+Everything above is negative, which is consistent with two different things:
+that Delta is weak on same-genre tragedy, or that the bench has a fault making
+every result come back null. Nothing in sections 1-6 distinguishes them.
+
+So: Plato against Homer. Prose against epic verse, four centuries apart, a case
+where the method should separate trivially. Same sweep, same settings, 33
+measurable works.
+
+| contamination | Plato vs Homer | Euripides vs Aeschylus and Sophocles |
+| --- | --- | --- |
+| 5% | 0.64 | 0.55 |
+| 10% | 0.77 | 0.61 |
+| 20% | **0.94** | 0.71 |
+
+Baseline margins run to a median of 0.354 against 0.130 for the tragedians.
+**The bench works.** The tragic-corpus result is a fact about Greek tragedy and
+not a broken instrument, and section 6 can be read as it stands.
+
+#### And the control found a bug, which is the other reason to run one
+
+Four Platonic dialogues - *Cleitophon*, *Definitiones*, *Hipparchus*, *Lovers* -
+are under 2,500 tokens, so a sweep at that sample size measures nothing for them
+and reports zeros. Those were being folded into the cross-work statistics as
+real works with no length and no margin. Sitting at the origin, far from a
+cluster of texts three to twenty thousand tokens long, they dragged the fitted
+line towards themselves and inflated the reference scatter from 0.082 to 0.137.
+
+Which pulled the AUC at 20% from 0.94 down to 0.80: the difference between a
+positive control that plainly passes and one that looks marginal.
+
+**A bug that makes a method look weaker than it is may be the hardest kind to
+notice in a project where every result so far has been negative.** It would have
+passed unremarked on the tragic corpus, where every Euripides play is long
+enough to sample and no zero rows appear. It was found only by running a case
+whose answer was known in advance - which is the whole argument for running one.
 
 ---
 

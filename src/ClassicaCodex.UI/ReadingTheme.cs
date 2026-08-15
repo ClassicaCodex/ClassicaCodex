@@ -247,11 +247,34 @@ public static class ReadingTheme
         menu.ForeColor = Text;
         menu.Renderer = new ToolStripProfessionalRenderer(new ThemedMenuColorTable());
 
-        foreach (ToolStripItem item in menu.Items)
-        {
-            item.ForeColor = Text;
-            item.BackColor = Surface;
-        }
+        foreach (ToolStripItem item in menu.Items) ApplyToMenuItem(item);
+    }
+
+    /// <summary>
+    /// Themes one menu item and anything hanging off it.
+    ///
+    /// RECURSIVE, because the top-level loop was not. A submenu's items are not
+    /// in menu.Items - they are in the parent item's DropDownItems, and a
+    /// separate ToolStripDropDown with its own BackColor and its own renderer.
+    /// So "Show" was themed and the Text / Speakers / Stage directions entries
+    /// inside it kept the system default: dark ink on a dark surface, invisible
+    /// in dark mode and only findable by knowing it was there.
+    ///
+    /// The renderer has to be set on each drop-down as well as on the menu:
+    /// ToolStripDropDown does not inherit its owner's.
+    /// </summary>
+    private static void ApplyToMenuItem(ToolStripItem item)
+    {
+        item.ForeColor = Text;
+        item.BackColor = Surface;
+
+        if (item is not ToolStripMenuItem parent || !parent.HasDropDownItems) return;
+
+        parent.DropDown.BackColor = Surface;
+        parent.DropDown.ForeColor = Text;
+        parent.DropDown.Renderer = new ToolStripProfessionalRenderer(new ThemedMenuColorTable());
+
+        foreach (ToolStripItem child in parent.DropDownItems) ApplyToMenuItem(child);
     }
 
     /// <summary>

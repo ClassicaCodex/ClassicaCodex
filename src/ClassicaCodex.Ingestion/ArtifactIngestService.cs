@@ -245,7 +245,9 @@ public class ArtifactIngestService
     /// of a grave near the Acharnian Gate"), and Contains-based matching
     /// already handles a known place name appearing inside a longer string.
     /// </summary>
-    private static string? MatchPlace(string? context, IReadOnlyList<(string Name, double Lat, double Lon)> knownPlaces)
+    private static string? MatchPlace(
+        string? context,
+        IReadOnlyList<(string Name, double Lat, double Lon, PlaceKind Kind)> knownPlaces)
     {
         if (string.IsNullOrWhiteSpace(context)) return null;
 

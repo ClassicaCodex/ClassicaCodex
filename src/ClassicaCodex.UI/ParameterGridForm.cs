@@ -174,7 +174,7 @@ public class ParameterGridForm : Form
         // are used rather than a raw provider: every value in it is already a
         // rounded summary of a whole validation sweep, so there is no fuller
         // precision behind them to lose.
-        ResultExport.AttachTo(_cells, $"stability-{targetAuthor}", notes: () => new[]
+        ResultExport.AttachTo(_cells, () => $"stability-{targetAuthor}", notes: () => new[]
         {
             $"Classica Codex parameter grid - {DateTime.Now:yyyy-MM-dd HH:mm}",
             $"Target author: {targetAuthor}",

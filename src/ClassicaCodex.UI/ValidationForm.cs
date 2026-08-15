@@ -334,7 +334,7 @@ public class ValidationForm : Form
             BeginInvoke(() => _poolPreset.SelectedIndex = CustomPresetIndex);
         };
         _targetAuthor.SelectedIndexChanged += (_, _) => ApplyPreset();
-        ResultExport.AttachTo(_results, "validation", notes: () => new[]
+        ResultExport.AttachTo(_results, () => $"validation-{_targetAuthor.SelectedItem}", notes: () => new[]
         {
             $"Classica Codex leave-one-out validation - {DateTime.Now:yyyy-MM-dd HH:mm}",
             $"Author: {_targetAuthor.SelectedItem}",

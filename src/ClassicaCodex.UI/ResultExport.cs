@@ -36,6 +36,13 @@ internal static class ResultExport
     /// Full-precision rows, header first. When null the ListView's own
     /// formatted cells are exported instead.
     /// </param>
+    /// <param name="suggestedName">
+    /// Evaluated when the file is written, not when the menu is attached. A
+    /// name fixed at attach time follows the form rather than the data: loading
+    /// an experiment into a window opened on a different author produced
+    /// "perturbation-Aelian.csv" containing Plato. The header was right by then
+    /// and the filename still lied, which is the same failure one layer out.
+    /// </param>
     /// <param name="notes">
     /// Lines written above the table - the run's settings, seed, pool. Without
     /// them an exported table is a set of numbers whose provenance has to be
@@ -43,7 +50,7 @@ internal static class ResultExport
     /// </param>
     public static void AttachTo(
         ListView list,
-        string suggestedName,
+        Func<string> suggestedName,
         Func<IReadOnlyList<IReadOnlyList<string>>>? rows = null,
         Func<IReadOnlyList<string>>? notes = null)
     {
@@ -52,9 +59,9 @@ internal static class ResultExport
         menu.Items.Add("Copy selected rows", null, (_, _) => Copy(list, rows, selectedOnly: true));
         menu.Items.Add("Copy all rows", null, (_, _) => Copy(list, rows, selectedOnly: false));
         menu.Items.Add(new ToolStripSeparator());
-        menu.Items.Add("Export to CSV...", null, (_, _) => Export(list, suggestedName, rows, notes, "csv"));
-        menu.Items.Add("Export to tab-separated text...", null, (_, _) => Export(list, suggestedName, rows, notes, "txt"));
-        menu.Items.Add("Export to Excel...", null, (_, _) => Export(list, suggestedName, rows, notes, "xlsx"));
+        menu.Items.Add("Export to CSV...", null, (_, _) => Export(list, suggestedName(), rows, notes, "csv"));
+        menu.Items.Add("Export to tab-separated text...", null, (_, _) => Export(list, suggestedName(), rows, notes, "txt"));
+        menu.Items.Add("Export to Excel...", null, (_, _) => Export(list, suggestedName(), rows, notes, "xlsx"));
 
         list.ContextMenuStrip = menu;
     }

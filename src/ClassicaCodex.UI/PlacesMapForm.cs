@@ -7,6 +7,13 @@ namespace ClassicaCodex.UI;
 public class PlacesMapForm : Form
 {
     private readonly MapCanvas _canvas;
+    private readonly FlowLayoutPanel _kindFilters;
+
+    /// <summary>
+    /// The legend swatches, so they can be recoloured after the theme pass has
+    /// repainted them.
+    /// </summary>
+    private readonly List<(PlaceKind Kind, Panel Swatch)> _kindSwatches = new();
     private readonly ListBox _passageList;
     private readonly Label _selectedPlaceLabel;
     private readonly TagRepository _tagRepo = new();
@@ -43,21 +50,93 @@ public class PlacesMapForm : Form
         var legend = new Label
         {
             Text = "Click any place to search the library for it. Passages you have tagged are marked in the " +
-                   "results. Scroll to zoom, drag to pan, double-click open sea to reset the view.",
+                   "results. Scroll to zoom, drag to pan, double-click open sea to reset the view. " +
+                   "Untick a kind below to thin the map out.",
             Left = 12,
             Top = 10,
             Width = 860
         };
 
+        // One checkbox per kind, drawn in its own pin colour so the legend is
+        // also the key. Sits between the instructions and the map rather than
+        // beside it: the map is the widest thing on the form and taking width
+        // from it to save 26 vertical pixels is a poor trade.
+        _kindFilters = new FlowLayoutPanel
+        {
+            Left = 12,
+            Top = 44,
+            Width = 860,
+            Height = 26,
+            FlowDirection = FlowDirection.LeftToRight,
+            WrapContents = false,
+            Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right
+        };
+
         _canvas = new MapCanvas
         {
             Left = 12,
-            Top = 48,
+            Top = 74,
             Width = 860,
-            Height = 696,
+            Height = 670,
             Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right,
             BorderStyle = BorderStyle.FixedSingle
         };
+
+        var showIcon = new PictureBox
+        {
+            Image = AppIcons.Get("Show", 18),
+            Width = 18,
+            Height = 18,
+            SizeMode = PictureBoxSizeMode.AutoSize,
+            Margin = new Padding(0, 4, 8, 0)
+        };
+
+        // Null when the Icons folder is absent, which AppIcons treats as normal
+        // - so the row degrades to plain checkboxes rather than a blank gap.
+        if (showIcon.Image != null) _kindFilters.Controls.Add(showIcon);
+
+        foreach (var kind in Enum.GetValues<PlaceKind>())
+        {
+            var count = PlaceData.All().Count(p => p.Kind == kind);
+
+            // A swatch in the pin colour, then the label in the theme's normal
+            // text colour.
+            //
+            // The label WAS drawn in the pin colour, which broke in dark mode:
+            // those colours are chosen to read against the map's parchment and
+            // sea, not against a form background, and ReadingTheme quite
+            // reasonably re-themed the control afterwards and put them back to
+            // black. Colour belongs on a swatch, where it only has to be itself;
+            // text belongs in whatever colour text is meant to be.
+            var swatch = new Panel
+            {
+                Width = 11,
+                Height = 11,
+                Margin = new Padding(0, 7, 4, 0),
+                BackColor = _canvas.LegendColorFor(kind)
+            };
+
+            var box = new CheckBox
+            {
+                // The count is here because "Sanctuaries" covers seven places
+                // and "Cities" covers a hundred and nineteen, and knowing that
+                // before clicking saves finding out by clicking.
+                Text = $"{KindLabel(kind)} ({count})",
+                Checked = true,
+                AutoSize = true,
+                Margin = new Padding(0, 3, 16, 0)
+            };
+
+            // The swatch keeps its colour whether the group is shown or not.
+            // Dimming it was the first attempt and it read as a second, weaker
+            // checkbox: the tick already says whether the group is on, and a
+            // key that changes colour is no longer a key.
+            box.CheckedChanged += (_, _) => _canvas.SetKindVisible(kind, box.Checked);
+
+            _kindSwatches.Add((kind, swatch));
+            _kindFilters.Controls.Add(swatch);
+            _kindFilters.Controls.Add(box);
+        }
         _canvas.PlaceClicked += async (name, _) =>
         {
             await LoadArtifactsAsync(name);
@@ -103,13 +182,33 @@ public class PlacesMapForm : Form
                 r.WorkId, r.TextNodeId, r.AuthorName, r.WorkTitle, r.CitationRef, r.Text)).ToList()), this);
 
         Controls.Add(legend);
+        Controls.Add(_kindFilters);
         Controls.Add(_canvas);
         Controls.Add(_artifactBrowser);
         Controls.Add(_selectedPlaceLabel);
         Controls.Add(_passageList);
 
         Load += (_, _) => LoadPlaces();
-        ReadingTheme.AttachTo(this);
+        // The swatch colours go in AttachTo's "extra" callback, not before or
+        // after the call.
+        //
+        // AttachTo does not theme anything immediately - it registers
+        // form.Load, and Apply walks the control tree then, repainting every
+        // Panel in the surface colour. So colouring these in the constructor
+        // set them and Load promptly wiped them; colouring them on the line
+        // after AttachTo did exactly the same thing, because that line still
+        // runs before Load. The first version only ever showed a colour once a
+        // CheckedChanged handler happened to fire later than Load, which is why
+        // the swatches appeared on the first click and not before.
+        //
+        // "extra" runs after every apply, which also keeps them right across a
+        // theme switch rather than only at startup.
+        ReadingTheme.AttachTo(this, () =>
+        {
+            foreach (var (kind, swatch) in _kindSwatches)
+                swatch.BackColor = _canvas.LegendColorFor(kind);
+        });
+
         WindowShortcuts.CloseOnEscape(this);
     }
 
@@ -124,6 +223,20 @@ public class PlacesMapForm : Form
     /// reasons the map couldn't show. Tags still surface, but where they mean
     /// something - against the passages themselves, in the list.
     /// </summary>
+    /// <summary>
+    /// Plural, readable label for a kind. Region covers islands and countries
+    /// as well, so it is worded for what it holds rather than named after the
+    /// enum.
+    /// </summary>
+    private static string KindLabel(PlaceKind kind) => kind switch
+    {
+        PlaceKind.City => "Cities",
+        PlaceKind.Sanctuary => "Sanctuaries",
+        PlaceKind.Battlefield => "Battlefields",
+        PlaceKind.Water => "Rivers and seas",
+        _ => "Regions and islands"
+    };
+
     private void LoadPlaces()
     {
         var markers = PlaceData.All()
@@ -132,7 +245,8 @@ public class PlacesMapForm : Form
                 Name = p.Name,
                 Lat = p.Lat,
                 Lon = p.Lon,
-                IsYourTag = true
+                IsYourTag = true,
+                Kind = p.Kind
             })
             .ToList();
 

@@ -34,6 +34,38 @@ public enum InjectionMode
 }
 
 /// <summary>
+/// Where each iteration's donor material comes from.
+/// </summary>
+public enum DonorScope
+{
+    /// <summary>
+    /// Every word drawn independently from the donor author's entire surviving
+    /// corpus. The original behaviour, and an IDEALISED donor: expected
+    /// frequencies exactly matching that author's overall profile, with only
+    /// multinomial noise around them.
+    /// </summary>
+    WholeCorpus,
+
+    /// <summary>
+    /// Each iteration draws from ONE donor work, chosen deterministically from
+    /// the seed and the iteration number.
+    ///
+    /// Closer to a real interpolation, which is one passage by one author on
+    /// one topic in one register rather than a sample of everything they wrote.
+    /// A single work's frequency profile can sit some way from its author's
+    /// average, so this should produce more variance between iterations - and
+    /// if the whole-corpus figures really are an upper bound on detection
+    /// power, a lower mean effect too.
+    ///
+    /// Contiguity is still not modelled and does not need to be: the engine
+    /// shuffles token positions into bags before counting, so a spliced passage
+    /// and the same words scattered arrive as nearly the same profile. What
+    /// changes here is WHICH words are available to draw, not where they land.
+    /// </summary>
+    SingleWork
+}
+
+/// <summary>
 /// One perturbation configuration, and everything needed to rebuild it.
 /// </summary>
 /// <param name="TargetWorkId">The work being contaminated.</param>
@@ -43,6 +75,10 @@ public enum InjectionMode
 /// <param name="Seed">
 /// The random seed. Stored because a synthetic text that cannot be regenerated
 /// cannot be checked by anyone, including its author six months later.
+/// </param>
+/// <param name="Scope">
+/// Whether each mixture draws from the donor's whole corpus or from a single
+/// work. See <see cref="DonorScope"/>.
 /// </param>
 /// <param name="Iterations">
 /// How many independent mixtures to draw at this level.
@@ -58,11 +94,13 @@ public sealed record PerturbationConfig(
     double InjectionFraction,
     InjectionMode Mode,
     int Seed,
-    int Iterations)
+    int Iterations,
+    DonorScope Scope = DonorScope.WholeCorpus)
 {
     public string Describe() =>
         $"{InjectionFraction:P0} {(Mode == InjectionMode.Replace ? "replaced" : "added")}, " +
-        $"{Iterations} iterations, seed {Seed}";
+        $"{Iterations} iterations, seed {Seed}, " +
+        $"{(Scope == DonorScope.SingleWork ? "one donor work per mixture" : "whole donor corpus")}";
 }
 
 /// <summary>One synthetic mixture, measured.</summary>
@@ -380,14 +418,34 @@ public sealed record CrossWorkSummary(
 /// Any reading of the number as "10% of Rhesus is by Sophocles" is unsupported
 /// by anything in this file.
 ///
-/// WHAT IS BEING SAMPLED. Tokens, not passages. That is not a simplification -
-/// it is what the architecture already does. DeltaEngine's comparison unit is a
-/// randomly drawn bag of words with word order destroyed, chosen over
-/// contiguous passages because a passage carries local subject matter that
-/// shows up as though it were style. Injecting tokens into that bag disturbs
-/// the frequency profile, which is the only thing Delta reads. Splicing
-/// passages would be a more vivid picture of interpolation and would change
-/// nothing the measure can see.
+/// WHAT IS BEING SAMPLED. Individual tokens, drawn independently and with
+/// replacement from the donor's entire corpus, landing at random positions.
+///
+/// Contiguity is not what is being given up. DeltaEngine's comparison unit is a
+/// randomly drawn bag of words with word order destroyed, so a spliced passage
+/// and the same words scattered reach it as nearly the same frequency profile.
+/// A vivid picture of interpolation would change almost nothing the measure can
+/// see.
+///
+/// WHAT IS GIVEN UP IS THAT THIS IS AN IDEALISED DONOR. Independent draws from
+/// a whole corpus have expected frequencies exactly matching that author's
+/// overall profile, with only multinomial noise around them. A real
+/// interpolation is one passage by one author on one topic in one register, and
+/// its profile can sit some way from that author's average. So the signal here
+/// is the cleanest version of the donor's style that could be built, and every
+/// detection figure derived from it is an UPPER BOUND on what the method could
+/// find in a real text.
+///
+/// MEASURED, not assumed. Nineteen Euripides plays against Sophocles, run both
+/// ways: the mean effect is the same to within about 6%, but the variance
+/// between mixtures is 1.43x higher when drawing from one work. Most of that is
+/// the smaller draw pool rather than style - the same-author control inflates
+/// 1.30x - leaving about 1.10x from genuine heterogeneity between the donor's
+/// plays, which is real (15 works of 19, sign test p = 0.010) and small.
+///
+/// The detection figures move from AUC 0.76 to 0.74 at 20% injection. So the
+/// idealisation buys precision rather than power, and a null result from it is
+/// not meaningfully flattered. See docs/stylometry-notes.md section 6.
 /// </summary>
 public static class PerturbationRunner
 {
@@ -484,12 +542,20 @@ public static class PerturbationRunner
         var target = distinct.FirstOrDefault(w => w.WorkId == config.TargetWorkId)
             ?? throw new InvalidOperationException("The target work is not in the pool.");
 
-        var donorTokens = distinct
+        // Kept per work, not flattened, so a single one can be chosen per
+        // iteration. Ordered by work id rather than by pool order, so which
+        // work a given seed and iteration selects does not depend on how the
+        // pool happened to be assembled.
+        var donorWorks = distinct
             .Where(w => config.DonorWorkIds.Contains(w.WorkId))
-            .SelectMany(w => w.Tokens)
+            .OrderBy(w => w.WorkId)
+            .Select(w => (IReadOnlyList<string>)w.Tokens)
+            .Where(t => t.Count > 0)
             .ToList();
 
-        if (donorTokens.Count == 0 && config.InjectionFraction > 0)
+        var wholeCorpus = donorWorks.SelectMany(t => t).ToList();
+
+        if (wholeCorpus.Count == 0 && config.InjectionFraction > 0)
             throw new InvalidOperationException("No donor material - pick at least one donor work.");
 
         var trials = new List<PerturbationTrial>(config.Iterations);
@@ -505,7 +571,14 @@ public static class PerturbationRunner
             cancellation.ThrowIfCancellationRequested();
             progress?.Invoke(i, iterations);
 
-            var mixed = Mix(target.Tokens, donorTokens, config.InjectionFraction,
+            // Which work this mixture draws from is a function of the seed and
+            // the iteration, like everything else here, so a series can be
+            // rebuilt exactly.
+            var donor = config.Scope == DonorScope.SingleWork && donorWorks.Count > 0
+                ? donorWorks[SeedFor(config.Seed, i) % donorWorks.Count]
+                : wholeCorpus;
+
+            var mixed = Mix(target.Tokens, donor, config.InjectionFraction,
                             config.Mode, config.Seed, i);
 
             var synthetic = target with { Tokens = mixed };
@@ -591,7 +664,8 @@ public static class PerturbationRunner
         int iterations,
         DeltaSettings settings,
         Action<int, int, double>? progress = null,
-        CancellationToken cancellation = default)
+        CancellationToken cancellation = default,
+        DonorScope scope = DonorScope.WholeCorpus)
     {
         // Chunk every work but the target once, and reuse it for every level
         // and every iteration. The target is deliberately absent - its tokens
@@ -608,7 +682,7 @@ public static class PerturbationRunner
             progress?.Invoke(i, levels.Count, levels[i]);
 
             var config = new PerturbationConfig(
-                targetWorkId, donorWorkIds, levels[i], mode, seed, iterations);
+                targetWorkId, donorWorkIds, levels[i], mode, seed, iterations, scope);
 
             results.Add(RunLevel(pool, config, settings, baseline, null, cancellation, cache));
         }

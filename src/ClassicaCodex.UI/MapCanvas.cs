@@ -26,6 +26,13 @@ public class MapCanvas : Panel
         /// data to search.
         /// </summary>
         public bool IsYourTag = true;
+
+        /// <summary>
+        /// What sort of place it is. Drives pin colour, and which toggle hides
+        /// it - a hundred pins on a Mediterranean-sized map is more than can be
+        /// read at once, and most of the time you want one kind of thing.
+        /// </summary>
+        public ClassicaCodex.Core.PlaceKind Kind = ClassicaCodex.Core.PlaceKind.City;
     }
 
     // MaxLat raised from 54 to 59 alongside PlaceData's Renaissance/Byzantine
@@ -60,6 +67,7 @@ public class MapCanvas : Panel
     public readonly Color KnownPlaceFillColor;
     public static readonly Color PinHoverFillColor = Color.Gold;
     private readonly Color _pinOutlineColor;
+    private readonly bool _darkTheme = ReadingTheme.IsDark;
 
     private List<PlaceMarker> _allPlaceMarkers = new();
 
@@ -72,6 +80,63 @@ public class MapCanvas : Panel
     private bool _showAllKnownPlaces;
 
     private List<PlaceMarker> _markers = new();
+
+    /// <summary>
+    /// Which kinds of place are drawn. Everything by default; the legend on
+    /// PlacesMapForm switches them.
+    ///
+    /// Filtering happens here rather than in the caller so hit-testing and
+    /// drawing can never disagree about what is on screen - a hidden pin that
+    /// still answers a click is worse than no filtering at all.
+    /// </summary>
+    private readonly HashSet<ClassicaCodex.Core.PlaceKind> _visibleKinds =
+        new(Enum.GetValues<ClassicaCodex.Core.PlaceKind>());
+
+    /// <summary>Shows or hides one kind of place.</summary>
+    public void SetKindVisible(ClassicaCodex.Core.PlaceKind kind, bool visible)
+    {
+        if (visible) _visibleKinds.Add(kind); else _visibleKinds.Remove(kind);
+        _hovered = null;
+        Invalidate();
+    }
+
+    public bool IsKindVisible(ClassicaCodex.Core.PlaceKind kind) => _visibleKinds.Contains(kind);
+
+    private bool Shown(PlaceMarker m) => _visibleKinds.Contains(m.Kind);
+
+    /// <summary>
+    /// Pin fill per kind.
+    ///
+    /// Chosen for separation at pin size against both the land and sea colours
+    /// rather than for prettiness: at eight pixels across, hue is nearly all
+    /// there is to read, so these are spaced around the wheel instead of being
+    /// shades of one colour.
+    ///
+    /// Cities keep the existing PinFillColor. They are 77 of the 100 entries,
+    /// so giving them a new colour would change how the map looks for everyone
+    /// in order to distinguish twenty-three pins. Battlefields would naturally
+    /// be red and cannot be - that terracotta is already the city colour - so
+    /// they take violet, which is the furthest thing on the wheel from all
+    /// three of the map's own colours.
+    /// </summary>
+    /// <summary>The colour a kind's pins are drawn in, for the legend to match.</summary>
+    public Color LegendColorFor(ClassicaCodex.Core.PlaceKind kind) => FillFor(kind, PinFillColor);
+
+    private Color FillFor(ClassicaCodex.Core.PlaceKind kind, Color fallback) => kind switch
+    {
+        ClassicaCodex.Core.PlaceKind.Sanctuary => _darkTheme
+            ? Color.FromArgb(214, 170, 74) : Color.FromArgb(176, 124, 18),
+        ClassicaCodex.Core.PlaceKind.Battlefield => _darkTheme
+            ? Color.FromArgb(168, 130, 205) : Color.FromArgb(104, 62, 148),
+        ClassicaCodex.Core.PlaceKind.Region => _darkTheme
+            ? Color.FromArgb(122, 166, 122) : Color.FromArgb(58, 106, 58),
+
+        // Turquoise rather than blue. Blue is the sea these mostly sit in, and a
+        // river pin the colour of the water under it is invisible.
+        ClassicaCodex.Core.PlaceKind.Water => _darkTheme
+            ? Color.FromArgb(96, 190, 196) : Color.FromArgb(20, 120, 130),
+        _ => fallback
+    };
     private PlaceMarker? _hovered;
     private readonly ToolTip _toolTip = new();
 
@@ -215,28 +280,96 @@ public class MapCanvas : Panel
 
         // Known-places pins drawn first, so a your-tags pin sitting near one
         // renders on top rather than being partly hidden underneath it.
-        if (showingAnyKnownPlaces) DrawMarkers(e.Graphics, _allPlaceMarkers, KnownPlaceFillColor);
-        DrawMarkers(e.Graphics, _markers, PinFillColor);
+        // Pins first, in the old order so tagged pins still sit on top of
+        // catalog ones, then labels across both sets in one contest. Doing
+        // labels per-pass instead would let a catalog label claim space a
+        // tagged one wanted, or force the pins to be drawn in the wrong order
+        // to prevent it.
+        if (showingAnyKnownPlaces) DrawPins(e.Graphics, _allPlaceMarkers, KnownPlaceFillColor);
+        DrawPins(e.Graphics, _markers, PinFillColor);
+
+        var labelled = new List<PlaceMarker>(_markers.Where(Shown));
+        if (showingAnyKnownPlaces) labelled.AddRange(_allPlaceMarkers.Where(Shown));
+
+        DrawLabels(e.Graphics, labelled);
     }
 
-    private void DrawMarkers(Graphics g, List<PlaceMarker> markers, Color fillColor)
+    /// <summary>
+    /// Draws the pins, in the order given, so the caller controls what sits on
+    /// top of what. Labels are a separate pass.
+    /// </summary>
+    private void DrawPins(Graphics g, List<PlaceMarker> markers, Color fillColor)
     {
         foreach (var marker in markers)
+        {
+            if (!Shown(marker)) continue;
+
+            var tip = LatLonToPoint(marker.Lat, marker.Lon);
+            var isHovered = marker == _hovered;
+
+            using var path = BuildPinPath(tip, PinSize(marker.UsageCount));
+            using var fillBrush = new SolidBrush(
+                isHovered ? PinHoverFillColor : FillFor(marker.Kind, fillColor));
+            g.FillPath(fillBrush, path);
+            using var pen = new Pen(_pinOutlineColor, isHovered ? 2 : 1);
+            g.DrawPath(pen, path);
+        }
+    }
+
+    /// <summary>
+    /// Draws a name beside every pin that has room for one.
+    ///
+    /// WITH THE FULL CATALOG THE MEDITERRANEAN IS UNREADABLE OTHERWISE. A
+    /// hundred and eighty places, most of them packed into the Aegean, drew a
+    /// hundred and eighty labels over each other - a black smear from Sicily to
+    /// Ionia with nothing legible in it.
+    ///
+    /// Hiding PINS would be the wrong fix: the pin is what you click, and a
+    /// place you cannot click is a place the map does not have. So every pin is
+    /// drawn and only the labels compete. Sorted by how often you have tagged
+    /// the place, so the contest is won by the places this library actually
+    /// uses; and because zooming spreads the pins out, more names appear as you
+    /// go in, which gives the zoom something to do beyond magnifying.
+    ///
+    /// Greedy and single-pass. Real label placement would try several positions
+    /// around each pin to find a gap, where this only ever goes up and to the
+    /// right, so a few names are lost that would have fitted elsewhere. Worth it
+    /// for a repaint that has to keep up with a drag.
+    /// </summary>
+    private void DrawLabels(Graphics g, List<PlaceMarker> markers)
+    {
+        var placed = new List<RectangleF>();
+        using var labelBrush = new SolidBrush(_markerLabelColor);
+
+        foreach (var marker in markers.OrderByDescending(m => m.UsageCount))
         {
             var tip = LatLonToPoint(marker.Lat, marker.Lon);
             var isHovered = marker == _hovered;
             var size = PinSize(marker.UsageCount);
 
-            using var path = BuildPinPath(tip, size);
-            using var fillBrush = new SolidBrush(isHovered ? PinHoverFillColor : fillColor);
-            g.FillPath(fillBrush, path);
-            using var pen = new Pen(_pinOutlineColor, isHovered ? 2 : 1);
-            g.DrawPath(pen, path);
-
             var labelFont = isHovered ? new Font(Font, FontStyle.Bold) : Font;
-            var headRadius = size * 0.62f;
-            using var labelBrush = new SolidBrush(_markerLabelColor);
-            g.DrawString(marker.Name, labelFont, labelBrush, tip.X + headRadius + 4, tip.Y - size - headRadius - 7);
+
+            try
+            {
+                var headRadius = size * 0.62f;
+                var at = new PointF(tip.X + headRadius + 4, tip.Y - size - headRadius - 7);
+                var extent = g.MeasureString(marker.Name, labelFont);
+
+                // A little padding, so two labels that clear each other by a
+                // hair still read as two words rather than one.
+                var bounds = new RectangleF(at.X - 2, at.Y - 1, extent.Width + 4, extent.Height + 2);
+
+                // The hovered pin's name is always drawn - it is the one being
+                // asked about.
+                if (!isHovered && placed.Any(r => r.IntersectsWith(bounds))) continue;
+
+                g.DrawString(marker.Name, labelFont, labelBrush, at.X, at.Y);
+                placed.Add(bounds);
+            }
+            finally
+            {
+                if (isHovered) labelFont.Dispose();
+            }
         }
     }
 
@@ -375,6 +508,8 @@ public class MapCanvas : Panel
     {
         foreach (var marker in _markers)
         {
+            if (!Shown(marker)) continue;
+
             var tip = LatLonToPoint(marker.Lat, marker.Lon);
             var size = PinSize(marker.UsageCount);
 
