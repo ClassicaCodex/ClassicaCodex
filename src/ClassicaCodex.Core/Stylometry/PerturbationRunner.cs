@@ -556,7 +556,16 @@ public static class PerturbationRunner
         var wholeCorpus = donorWorks.SelectMany(t => t).ToList();
 
         if (wholeCorpus.Count == 0 && config.InjectionFraction > 0)
-            throw new InvalidOperationException("No donor material - pick at least one donor work.");
+        {
+            // Names what was asked for, because the caller may have filtered a
+            // pool down until nothing qualified rather than simply forgetting
+            // to tick a donor. "Pick at least one donor work" was unhelpful
+            // advice when the donors had been removed by a pool setting two
+            // windows away.
+            throw new InvalidOperationException(
+                $"No donor material: {config.DonorWorkIds.Count} donor work(s) requested, " +
+                "none of them present in the pool with any text.");
+        }
 
         var trials = new List<PerturbationTrial>(config.Iterations);
 

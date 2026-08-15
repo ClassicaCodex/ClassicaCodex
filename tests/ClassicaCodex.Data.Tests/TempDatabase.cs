@@ -82,6 +82,29 @@ public sealed class TempDatabase : IDisposable
     /// beside each one.
     /// </summary>
     /// <summary>
+    /// Every column a migration adds, with the migration that adds it.
+    ///
+    /// Shared between two checks that need exactly the same list. RewindSchemaAsync
+    /// drops these to fake an older database; AFreshDatabaseHasEveryMigrationColumn
+    /// asserts a new one has them all. Keeping one list means a new ALTER
+    /// migration cannot satisfy one check and be forgotten by the other - which
+    /// is what happened with the Works attribution columns, added to the
+    /// migration and left out of the fresh-database CREATE.
+    /// </summary>
+    public static readonly (int Migration, string Table, string Column)[] MigrationAddedColumns =
+    {
+        (9,  "StylometryRuns", "TargetTokenCount"),
+        (10, "StylometryRuns", "ChunkSize"),
+        (11, "TextNodes",      "IsAthetized"),
+        (13, "Editions",       "Orthography"),
+        (14, "TextNodes",      "NodeKind"),
+        (16, "StylometryExperimentRows", "NearestCount"),
+        (17, "Works", "AttributionStatus"),
+        (17, "Works", "AttributionNote"),
+        (17, "Works", "AttributionSetByUser")
+    };
+
+    /// <summary>
     /// Makes a current database look like an older one.
     ///
     /// EVERY MIGRATION THAT ADDS A COLUMN NEEDS AN ENTRY BELOW. A fresh
@@ -99,17 +122,7 @@ public sealed class TempDatabase : IDisposable
     /// </summary>
     public async Task RewindSchemaAsync(int toVersion)
     {
-        var columns = new (int Migration, string Table, string Column)[]
-        {
-            (9,  "StylometryRuns", "TargetTokenCount"),
-            (10, "StylometryRuns", "ChunkSize"),
-            (11, "TextNodes",      "IsAthetized"),
-            (13, "Editions",       "Orthography"),
-            (14, "TextNodes",      "NodeKind"),
-            (16, "StylometryExperimentRows", "NearestCount")
-        };
-
-        foreach (var c in columns)
+        foreach (var c in MigrationAddedColumns)
         {
             if (c.Migration <= toVersion) continue;
             if (!await TableExistsAsync(c.Table)) continue;

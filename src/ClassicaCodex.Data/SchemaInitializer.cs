@@ -55,7 +55,7 @@ public static class SchemaInitializer
     /// 7 to 13 until version 3 was cut, at which point they all failed at
     /// once and said nothing about what had actually broken.
     /// </summary>
-    public const int TargetSchemaVersion = 16;
+    public const int TargetSchemaVersion = 17;
 
     public static async Task EnsureSchemaAsync(CancellationToken cancellationToken = default)
     {
@@ -759,6 +759,25 @@ public static class SchemaInitializer
         [16] = new[]
         {
             @"ALTER TABLE StylometryExperimentRows ADD COLUMN NearestCount INTEGER NOT NULL DEFAULT 0;"
+        },
+
+        // v17: how securely a work is attributed to the author it is filed under.
+        //
+        // Perseus and First1KGreek file the spuria under the author without
+        // comment - correctly, since their job is to transmit what the
+        // manuscripts say rather than to adjudicate - so the corpus offers no
+        // signal and the library was presenting Definitiones as flatly Platonic.
+        //
+        // AttributionSetByUser is the column that makes this safe to default
+        // from a built-in catalog. Without it, growing the catalog or
+        // re-ingesting a corpus would silently overwrite a judgement somebody
+        // made deliberately, and the person whose library it is would have no
+        // way to make a decision stick.
+        [17] = new[]
+        {
+            @"ALTER TABLE Works ADD COLUMN AttributionStatus TEXT NOT NULL DEFAULT 'accepted';",
+            @"ALTER TABLE Works ADD COLUMN AttributionNote TEXT NULL;",
+            @"ALTER TABLE Works ADD COLUMN AttributionSetByUser INTEGER NOT NULL DEFAULT 0;"
         }
     };
 
@@ -846,6 +865,9 @@ public static class SchemaInitializer
             CtsUrn          TEXT NOT NULL,
             Title           TEXT NOT NULL,
             CitationScheme  TEXT NULL,
+            AttributionStatus TEXT NOT NULL DEFAULT 'accepted',
+            AttributionNote TEXT NULL,
+            AttributionSetByUser INTEGER NOT NULL DEFAULT 0,
             CONSTRAINT UQ_Works_CtsUrn UNIQUE (CtsUrn),
             CONSTRAINT FK_Works_Authors FOREIGN KEY (AuthorId) REFERENCES Authors(AuthorId)
         );",

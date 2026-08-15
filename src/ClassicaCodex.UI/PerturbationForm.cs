@@ -433,6 +433,16 @@ public class PerturbationForm : Form
                 (i, n, level) => report.Report($"{crossLabel}: level {i + 1} of {n} ({level:P0})..."),
                 token, scope), token)));
 
+            if (_sameAuthorControl.Checked && controlDonors.Count == 0)
+            {
+                // The control needs other works by the same author, and the
+                // pool may not have any - an author with one work, or a pool
+                // filtered until only this work is left. Saying so beats
+                // throwing "No donor material" from inside the engine, which is
+                // what happened until the filter that caused it was removed.
+                _status.Text = $"No control: the pool has no other {_targetAuthor} work to draw from.";
+            }
+
             if (_sameAuthorControl.Checked && controlDonors.Count > 0)
             {
                 _status.Text = $"Control: contaminating with {_targetAuthor}...";
@@ -956,13 +966,17 @@ public class PerturbationForm : Form
                             $"{work.WorkTitle} ({i + 1}/{works.Count}): level {l + 1} of {n} ({level:P0})..."),
                         token, scope), token)));
 
-                    if (runControl)
-                    {
-                        var controlDonors = _pool
-                            .Where(w => w.AuthorName == _targetAuthor && w.WorkId != work.WorkId)
-                            .Select(w => w.WorkId)
-                            .ToList();
+                    var controlDonors = _pool
+                        .Where(w => w.AuthorName == _targetAuthor && w.WorkId != work.WorkId)
+                        .Select(w => w.WorkId)
+                        .ToList();
 
+                    // Skipped rather than attempted when there is nothing to
+                    // draw from: an author with a single work in the pool has
+                    // no same-author control available, and that is a fact
+                    // about the pool rather than an error.
+                    if (runControl && controlDonors.Count > 0)
+                    {
                         runs.Add(($"{_targetAuthor} (control)", await Task.Run(() => PerturbationRunner.RunSeries(
                             _pool, work.WorkId, controlDonors, levels, mode, seed, iterations, settings,
                             (l, n, level) => report.Report(

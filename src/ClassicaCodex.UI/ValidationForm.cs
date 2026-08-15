@@ -49,6 +49,7 @@ public class ValidationForm : Form
         public string AuthorName = string.Empty;
         public string WorkTitle = string.Empty;
         public string Language = string.Empty;
+        public AttributionStatus Attribution = AttributionStatus.Accepted;
     }
 
     private readonly ComboBox _targetAuthor;
@@ -57,6 +58,7 @@ public class ValidationForm : Form
     private readonly CheckBox _foldAccents;
     private readonly CheckBox _excludeHeldOut;
     private readonly CheckBox _excludeNonCompositions;
+    private readonly ComboBox _disputedHandling;
     private readonly NumericUpDown _sampleSize;
     private readonly NumericUpDown _featureCount;
     private readonly Button _runButton;
@@ -96,6 +98,7 @@ public class ValidationForm : Form
             w.WorkTitle.Contains(m, StringComparison.OrdinalIgnoreCase));
 
     private readonly EditionRepository _editionRepo = new();
+    private readonly WorkRepository _workRepo = new();
     private readonly TextNodeRepository _textNodeRepo = new();
 
     private List<WorkItem> _allWorks = new();
@@ -132,7 +135,7 @@ public class ValidationForm : Form
         Text = "Validation - can these settings recover known texts?";
         AppIcons.ApplyWindowIcon(this, "Stylometry");
         Width = 1180;
-        Height = 820;
+        Height = 852;
         StartPosition = FormStartPosition.CenterParent;
 
         const int LeftCol = 12;
@@ -196,7 +199,7 @@ public class ValidationForm : Form
         var settingsGroup = new GroupBox
         {
             Text = "Settings",
-            Left = LeftCol, Top = 418, Width = LeftWidth, Height = 180
+            Left = LeftCol, Top = 418, Width = LeftWidth, Height = 212
         };
 
         _foldAccents = new CheckBox
@@ -230,6 +233,39 @@ public class ValidationForm : Form
             Left = 12, Top = 110, Width = 290
         };
 
+        var disputedLabel = new Label
+        {
+            Text = "Doubted works:", Left = 12, Top = 178, Width = 110
+        };
+
+        _disputedHandling = new ComboBox
+        {
+            Left = 124, Top = 174, Width = 186, DropDownStyle = ComboBoxStyle.DropDownList
+        };
+        _disputedHandling.Items.AddRange(new object[]
+        {
+            "Include in the pool",
+            "Exclude from the pool"
+        });
+
+        // Excluding is the default for the LEAVE-ONE-OUT SWEEP, where every
+        // work in the pool contributes to every other work's own-author mean,
+        // so a doubted work quietly shapes the reference set it is meant to be
+        // tested against.
+        //
+        // There used to be a third option, "Only doubted works", and it was
+        // incoherent. It kept the target author's doubted works and dropped the
+        // accepted ones, which left the pool with a single Euripides play: the
+        // same-author control had nothing to draw from, and the margin had no
+        // same-author neighbours to be measured against either.
+        //
+        // The experiment it was meant to enable does not need it. DeltaEngine
+        // already excludes a target's own chunks from its neighbour list, so
+        // selecting Rhesus as a perturbation target measures it against the
+        // other plays whether or not it is in the pool. "Include" is the right
+        // setting there, and always was.
+        _disputedHandling.SelectedIndex = 1;
+
         _excludeNonCompositions = new CheckBox
         {
             Text = "Skip fragment collections and indices",
@@ -237,6 +273,8 @@ public class ValidationForm : Form
         };
 
         settingsGroup.Controls.Add(_excludeNonCompositions);
+        settingsGroup.Controls.Add(disputedLabel);
+        settingsGroup.Controls.Add(_disputedHandling);
         settingsGroup.Controls.Add(_foldAccents);
         settingsGroup.Controls.Add(sampleLabel);
         settingsGroup.Controls.Add(_sampleSize);
@@ -247,13 +285,13 @@ public class ValidationForm : Form
         _runButton = new Button
         {
             Text = "Run validation",
-            Left = LeftCol, Top = 608, Width = 200, Height = 32
+            Left = LeftCol, Top = 640, Width = 200, Height = 32
         };
 
         _cancelButton = new Button
         {
             Text = "Stop",
-            Left = LeftCol + 208, Top = 608, Width = 100, Height = 32,
+            Left = LeftCol + 208, Top = 640, Width = 100, Height = 32,
             Enabled = false
         };
 
@@ -264,14 +302,14 @@ public class ValidationForm : Form
         _gridButton = new Button
         {
             Text = "Test parameter stability...",
-            Left = LeftCol, Top = 648, Width = 320, Height = 32
+            Left = LeftCol, Top = 680, Width = 320, Height = 32
         };
         _gridButton.Click += (_, _) => OpenGrid();
 
         _perturbButton = new Button
         {
             Text = "Perturbation series...",
-            Left = LeftCol, Top = 686, Width = 320, Height = 32
+            Left = LeftCol, Top = 718, Width = 320, Height = 32
         };
         _perturbButton.Click += async (_, _) => await OpenPerturbationAsync();
 
@@ -306,7 +344,7 @@ public class ValidationForm : Form
 
         _status = new Label
         {
-            Left = LeftCol, Top = 726, Width = 1120, Height = 36,
+            Left = LeftCol, Top = 758, Width = 1120, Height = 36,
             Anchor = AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right
         };
 
@@ -371,6 +409,17 @@ public class ValidationForm : Form
                 Language = e.Language!
             })
             .ToList();
+
+        // Attribution comes from the works table, not the edition rows, so it
+        // is a second read. Worth it: a reference set that includes works its
+        // own editors reject is partly measuring the thing being tested.
+        var attributions = await _workRepo.GetAttributionsAsync(
+            _allWorks.Select(w => w.WorkId).ToList());
+
+        foreach (var work in _allWorks)
+        {
+            if (attributions.TryGetValue(work.WorkId, out var status)) work.Attribution = status;
+        }
 
         // Only authors with enough works to hold one out and still have
         // company. Two works means every run compares a work against one other,
@@ -455,6 +504,25 @@ public class ValidationForm : Form
         // validating against a compilation.
         if (_excludeNonCompositions.Checked)
             pool = pool.Where(w => !IsNonComposition(w)).ToList();
+
+        // EXCLUDING DOUBTED WORKS IS THE DEFAULT AND IT IS NOT A DETAIL. A
+        // pool is meant to establish what an author's own writing looks like,
+        // and in a leave-one-out sweep every work in it contributes to every
+        // other work's own-author mean. A work whose attribution its editors
+        // reject therefore shapes the reference set it is supposed to be tested
+        // against. The Plato runs in this project were done before this
+        // existed, with Definitiones, Hipparchus and Lovers in the baseline.
+        //
+        // Only the TARGET author's doubted works are dropped. A doubted work by
+        // another author is still a perfectly good example of that other author
+        // for the purpose of being unlike this one.
+        if (_disputedHandling.SelectedIndex == 1)
+        {
+            pool = pool
+                .Where(w => w.AuthorName != targetAuthor
+                            || w.Attribution == AttributionStatus.Accepted)
+                .ToList();
+        }
 
         return pool;
     }

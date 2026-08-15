@@ -310,4 +310,35 @@ public class SchemaMigrationTests
         Assert.Equal(SchemaInitializer.TargetSchemaVersion,
             await db.ScalarAsync<int>("PRAGMA user_version;"));
     }
+
+    /// <summary>
+    /// A fresh database must have every COLUMN the migrations add, not just
+    /// every table.
+    ///
+    /// The table-level guard written alongside this one did not catch the Works
+    /// attribution columns: they went into migration 17 and into the model, and
+    /// the edit meant to add them to the fresh-database CREATE silently did not
+    /// match. Works already existed, so the table check passed, and twelve
+    /// tests failed on "no such column" instead.
+    ///
+    /// Reads TempDatabase.MigrationAddedColumns, the same list RewindSchemaAsync
+    /// uses, so a new ALTER migration cannot satisfy one check and be forgotten
+    /// by the other.
+    /// </summary>
+    [Fact]
+    public async Task AFreshDatabaseHasEveryMigrationColumn()
+    {
+        using var db = await TempDatabase.CreateAsync();
+
+        var missing = new List<string>();
+
+        foreach (var (_, table, column) in TempDatabase.MigrationAddedColumns)
+        {
+            if (!(await db.ColumnNamesAsync(table)).Contains(column))
+                missing.Add($"{table}.{column}");
+        }
+
+        Assert.True(missing.Count == 0,
+            $"a fresh database is missing: {string.Join(", ", missing)}");
+    }
 }

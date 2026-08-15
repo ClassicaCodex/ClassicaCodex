@@ -48,6 +48,27 @@ public class PerseusIngestService
             cancellationToken.ThrowIfCancellationRequested();
             await IngestRepoAsync(dataPath, ns, progress, cancellationToken);
         }
+
+        // Seed attribution from the built-in catalog, and say so.
+        //
+        // Perseus files the spuria under the author without comment - correctly,
+        // since its job is to transmit what the manuscripts say - so a freshly
+        // ingested Plato presents Definitiones as flatly Platonic. This marks
+        // the well-known cases and leaves anything the reader has judged for
+        // themselves alone.
+        //
+        // Reported rather than silent: reclassifying works in somebody's library
+        // without telling them is not a courtesy.
+        var marked = await new WorkRepository().ApplyCatalogDefaultsAsync(cancellationToken);
+
+        if (marked > 0)
+        {
+            progress?.Report(new IngestProgress(
+                "Attribution",
+                $"Marked {marked} work(s) whose attribution is doubted",
+                0,
+                0));
+        }
     }
 
     private async Task IngestRepoAsync(

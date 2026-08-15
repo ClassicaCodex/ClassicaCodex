@@ -156,6 +156,13 @@ public class MainForm : Form
     // current, the same as it does for the menu's own colors above.
     private readonly List<(ToolStripItem Item, string IconName)> _themedMenuItemIcons = new();
 
+    /// <summary>
+    /// The open work's attribution, read when it opens and refreshed when the
+    /// reader changes it.
+    /// </summary>
+    private (AttributionStatus Status, string? Note, bool SetByUser) _currentWorkAttribution
+        = (AttributionStatus.Accepted, null, false);
+
     // Toolbar icons need the same treatment as the menu icons above, and for
     // a sharper reason now that each has a separate light and dark file: the
     // constructor runs before ReadingTheme.Load(), so every icon is first
@@ -382,6 +389,11 @@ public class MainForm : Form
         vocabularyItem.Click += async (_, _) => await ShowVocabularyForSelectedWorkAsync();
         _themedMenuItemIcons.Add((vocabularyItem, "CoreVocabulary"));
 
+        var attributionItem = libraryTreeMenu.Items.Add("Attribution...");
+        attributionItem.Image = AppIcons.Get("Show", 16);
+        attributionItem.Click += async (_, _) => await EditAttributionForSelectedWorkAsync();
+        _themedMenuItemIcons.Add((attributionItem, "Show"));
+
         var favoriteItem = libraryTreeMenu.Items.Add("Add to Favourites");
         favoriteItem.Image = AppIcons.Get("Bookmarks", 16);
         favoriteItem.Click += async (_, _) => await ToggleFavoriteForSelectedWorkAsync();
@@ -405,6 +417,15 @@ public class MainForm : Form
             favoriteItem.Text = _favoriteUrns.Contains(work.CtsUrn)
                 ? "Remove from Favourites"
                 : "Add to Favourites";
+
+            // Says the current answer, so the common case - checking what the
+            // library thinks - does not need the dialog opened at all.
+            attributionItem.Text = work.AttributionStatus switch
+            {
+                AttributionStatus.Disputed => "Attribution (disputed)...",
+                AttributionStatus.Spurious => "Attribution (not by this author)...",
+                _ => "Attribution..."
+            };
         };
         _libraryTree.MouseUp += (_, e) =>
         {
@@ -999,6 +1020,48 @@ public class MainForm : Form
     /// only the favourites set changed, and a full reload of a corpus-sized
     /// library to add one star would be felt.
     /// </summary>
+    /// <summary>
+    /// Opens the attribution editor for the selected work and applies whatever
+    /// the reader decided.
+    ///
+    /// Reloads the work afterwards rather than patching the tree node in place:
+    /// the header, the node's own Tag and the reader panes all carry the value,
+    /// and three copies updated by hand is three chances to leave one stale.
+    /// </summary>
+    private async Task EditAttributionForSelectedWorkAsync()
+    {
+        if (_libraryTree.SelectedNode?.Tag is not Work work) return;
+
+        var authorName = _libraryTree.SelectedNode.Parent?.Text ?? string.Empty;
+        var current = await _workRepo.GetAttributionAsync(work.WorkId);
+
+        using var form = new AttributionForm(
+            authorName, work.Title, current.Status, current.Note, current.SetByUser);
+
+        if (form.ShowDialog(this) != DialogResult.OK) return;
+
+        if (form.ClearOverride)
+        {
+            await _workRepo.ClearAttributionOverrideAsync(work.WorkId);
+        }
+        else if (form.Chosen is { } chosen)
+        {
+            await _workRepo.SetAttributionAsync(work.WorkId, chosen.Status, chosen.Note);
+        }
+        else
+        {
+            return;
+        }
+
+        var updated = await _workRepo.GetAttributionAsync(work.WorkId);
+        work.AttributionStatus = updated.Status;
+        work.AttributionNote = updated.Note;
+        work.AttributionSetByUser = updated.SetByUser;
+
+        // Only reload the reader when this is the work it is showing.
+        if (_openWork?.WorkId == work.WorkId) await LoadEditionSelectorsAsync(work.WorkId);
+    }
+
     private async Task ToggleFavoriteForSelectedWorkAsync()
     {
         if (_libraryTree.SelectedNode?.Tag is not Work work) return;
@@ -1940,7 +2003,7 @@ public class MainForm : Form
 
     private static string BuildEditionLabel(
         Edition edition, string? authorName, string? workTitle, bool disambiguate = false,
-        string? coverageNote = null)
+        string? coverageNote = null, AttributionStatus attribution = AttributionStatus.Accepted)
     {
         var descriptor = GetEditionDescriptor(edition);
         if (coverageNote != null) descriptor += $" \u2014 {coverageNote}";
@@ -1974,7 +2037,19 @@ public class MainForm : Form
             if (era != null) prefix += $" ({era})";
         }
 
-        return $"{prefix} \u2014 {descriptor}";
+        // Doubted attribution goes next to the author's name, where the claim
+        // it qualifies is. Perseus and First1KGreek file the spuria under the
+        // author without comment - correctly, since their job is to transmit
+        // what the manuscripts say - so without this the reader is told
+        // Definitiones is Plato and given no hint that nobody thinks so.
+        var doubt = attribution switch
+        {
+            AttributionStatus.Disputed => " [attribution disputed]",
+            AttributionStatus.Spurious => " [not by this author]",
+            _ => string.Empty
+        };
+
+        return $"{prefix}{doubt} \u2014 {descriptor}";
     }
 
     /// <summary>
@@ -1991,7 +2066,8 @@ public class MainForm : Form
     /// </summary>
     private static void PopulateEditionCombo(
         ComboBox combo, List<Edition> editions, string? authorName, string? workTitle,
-        IReadOnlyDictionary<int, string>? coverage = null)
+        IReadOnlyDictionary<int, string>? coverage = null,
+        AttributionStatus attribution = AttributionStatus.Accepted)
     {
         var coverageNotes = coverage ?? new Dictionary<int, string>();
 
@@ -2019,7 +2095,8 @@ public class MainForm : Form
             {
                 Edition = edition,
                 Label = BuildEditionLabel(
-                    edition, authorName, workTitle, collisions.Contains(edition), coverageNote)
+                    edition, authorName, workTitle, collisions.Contains(edition), coverageNote,
+                    attribution)
             });
         }
 
@@ -2560,9 +2637,17 @@ public class MainForm : Form
         var workTitle = workNode?.Text;
         var authorName = workNode?.Parent?.Text;
 
-        PopulateEditionCombo(_originalEditionCombo, originals, authorName, workTitle);
+        // Read fresh rather than cached on the node: the reader can change it
+        // from the work's own context menu, and a header still claiming a work
+        // is genuine after somebody has just marked it otherwise would be worse
+        // than not showing it at all.
+        _currentWorkAttribution = await _workRepo.GetAttributionAsync(workId);
+
+        PopulateEditionCombo(_originalEditionCombo, originals, authorName, workTitle,
+            attribution: _currentWorkAttribution.Status);
         PopulateEditionCombo(_translationEditionCombo, translations, authorName, workTitle,
-            await BuildCoverageNotesAsync(translations, workId));
+            await BuildCoverageNotesAsync(translations, workId),
+            _currentWorkAttribution.Status);
 
         // PopulateEditionCombo only triggers a pane load when it actually
         // has something to select - handle the "this work has none of this
