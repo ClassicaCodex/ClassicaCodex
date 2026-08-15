@@ -394,6 +394,11 @@ public class MainForm : Form
         attributionItem.Click += async (_, _) => await EditAttributionForSelectedWorkAsync();
         _themedMenuItemIcons.Add((attributionItem, "Show"));
 
+        var researchItem = libraryTreeMenu.Items.Add("Research...");
+        researchItem.Image = AppIcons.Get("WordStudy", 16);
+        researchItem.Click += async (_, _) => await OpenResearchBenchForSelectedWorkAsync();
+        _themedMenuItemIcons.Add((researchItem, "WordStudy"));
+
         var favoriteItem = libraryTreeMenu.Items.Add("Add to Favourites");
         favoriteItem.Image = AppIcons.Get("Bookmarks", 16);
         favoriteItem.Click += async (_, _) => await ToggleFavoriteForSelectedWorkAsync();
@@ -1060,6 +1065,15 @@ public class MainForm : Form
 
         // Only reload the reader when this is the work it is showing.
         if (_openWork?.WorkId == work.WorkId) await LoadEditionSelectorsAsync(work.WorkId);
+    }
+
+    /// <summary>Opens persistent research projects for the selected work.</summary>
+    private async Task OpenResearchBenchForSelectedWorkAsync()
+    {
+        if (_libraryTree.SelectedNode?.Tag is not Work work) return;
+        var author = await _authorRepo.GetByIdAsync(work.AuthorId);
+        using var bench = new ResearchBenchForm(work, author?.Name ?? "Unknown author");
+        bench.ShowDialog(this);
     }
 
     private async Task ToggleFavoriteForSelectedWorkAsync()

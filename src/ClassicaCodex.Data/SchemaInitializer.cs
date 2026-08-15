@@ -55,7 +55,7 @@ public static class SchemaInitializer
     /// 7 to 13 until version 3 was cut, at which point they all failed at
     /// once and said nothing about what had actually broken.
     /// </summary>
-    public const int TargetSchemaVersion = 17;
+    public const int TargetSchemaVersion = 18;
 
     public static async Task EnsureSchemaAsync(CancellationToken cancellationToken = default)
     {
@@ -778,11 +778,78 @@ public static class SchemaInitializer
             @"ALTER TABLE Works ADD COLUMN AttributionStatus TEXT NOT NULL DEFAULT 'accepted';",
             @"ALTER TABLE Works ADD COLUMN AttributionNote TEXT NULL;",
             @"ALTER TABLE Works ADD COLUMN AttributionSetByUser INTEGER NOT NULL DEFAULT 0;"
+        },
+
+        // v18: the offline-first Research Bench. Projects belong to stable
+        // Works rows; questions and evidence are wholly owned by a project.
+        // Evidence may outlive a deleted question, so that link becomes NULL.
+        [18] = new[]
+        {
+            ResearchProjectsDdl,
+            ResearchQuestionsDdl,
+            EvidenceItemsDdl,
+            "CREATE INDEX IF NOT EXISTS IX_ResearchProjects_Work ON ResearchProjects (WorkId, Status, UpdatedUtc);",
+            "CREATE INDEX IF NOT EXISTS IX_ResearchQuestions_Project ON ResearchQuestions (ResearchProjectId, SortOrder);",
+            "CREATE INDEX IF NOT EXISTS IX_EvidenceItems_Project ON EvidenceItems (ResearchProjectId, SortOrder);",
+            "CREATE INDEX IF NOT EXISTS IX_EvidenceItems_Question ON EvidenceItems (ResearchQuestionId);"
         }
     };
 
+    private const string ResearchProjectsDdl = @"CREATE TABLE IF NOT EXISTS ResearchProjects (
+        ResearchProjectId INTEGER PRIMARY KEY,
+        WorkId INTEGER NOT NULL,
+        Name TEXT NOT NULL,
+        Status TEXT NOT NULL DEFAULT 'active',
+        Notes TEXT NULL,
+        CreatedUtc TEXT NOT NULL,
+        UpdatedUtc TEXT NOT NULL,
+        CONSTRAINT FK_ResearchProjects_Works FOREIGN KEY (WorkId) REFERENCES Works(WorkId)
+    );";
+
+    private const string ResearchQuestionsDdl = @"CREATE TABLE IF NOT EXISTS ResearchQuestions (
+        ResearchQuestionId INTEGER PRIMARY KEY,
+        ResearchProjectId INTEGER NOT NULL,
+        Text TEXT NOT NULL,
+        Notes TEXT NULL,
+        SortOrder INTEGER NOT NULL DEFAULT 0,
+        CreatedUtc TEXT NOT NULL,
+        UpdatedUtc TEXT NOT NULL,
+        CONSTRAINT FK_ResearchQuestions_Projects FOREIGN KEY (ResearchProjectId)
+            REFERENCES ResearchProjects(ResearchProjectId) ON DELETE CASCADE
+    );";
+
+    private const string EvidenceItemsDdl = @"CREATE TABLE IF NOT EXISTS EvidenceItems (
+        EvidenceItemId INTEGER PRIMARY KEY,
+        ResearchProjectId INTEGER NOT NULL,
+        ResearchQuestionId INTEGER NULL,
+        Title TEXT NOT NULL,
+        EvidenceType TEXT NOT NULL,
+        SourceType TEXT NULL,
+        StableIdentifier TEXT NULL,
+        CanonicalReference TEXT NULL,
+        Provenance TEXT NULL,
+        Excerpt TEXT NULL,
+        Judgment TEXT NOT NULL DEFAULT 'uncertain',
+        Relationship TEXT NOT NULL DEFAULT 'contextualizes',
+        ResearcherNote TEXT NULL,
+        SortOrder INTEGER NOT NULL DEFAULT 0,
+        CreatedUtc TEXT NOT NULL,
+        UpdatedUtc TEXT NOT NULL,
+        CONSTRAINT FK_EvidenceItems_Projects FOREIGN KEY (ResearchProjectId)
+            REFERENCES ResearchProjects(ResearchProjectId) ON DELETE CASCADE,
+        CONSTRAINT FK_EvidenceItems_Questions FOREIGN KEY (ResearchQuestionId)
+            REFERENCES ResearchQuestions(ResearchQuestionId) ON DELETE SET NULL
+    );";
+
     private static readonly string[] SchemaStatements =
     {
+        ResearchProjectsDdl,
+        ResearchQuestionsDdl,
+        EvidenceItemsDdl,
+        "CREATE INDEX IF NOT EXISTS IX_ResearchProjects_Work ON ResearchProjects (WorkId, Status, UpdatedUtc);",
+        "CREATE INDEX IF NOT EXISTS IX_ResearchQuestions_Project ON ResearchQuestions (ResearchProjectId, SortOrder);",
+        "CREATE INDEX IF NOT EXISTS IX_EvidenceItems_Project ON EvidenceItems (ResearchProjectId, SortOrder);",
+        "CREATE INDEX IF NOT EXISTS IX_EvidenceItems_Question ON EvidenceItems (ResearchQuestionId);",
 
         // The statements below are also created by migrations, and have to
         // be here as well because a NEW database never runs a migration - it
