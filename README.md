@@ -62,7 +62,7 @@ security warning you'll hit on first run.
 - **Morphology search** — find every line matching a specific grammatical form (case, tense, mood, voice…), not just a specific word
 - **Tag** people, places, and themes across every author at once, and browse everything tagged with a given name (with **Auto-Tag** to suggest matches for a name automatically), and **bookmark** individual lines with your own notes
 - **Myth Network** — a graph of which figures and places co-occur, built from your own tags as you read, not a fixed dataset
-- **Places Map** — an actual map of the ancient world; click a place to see every passage that mentions it
+- **Places Map** — an actual map of the ancient world, 200 places filterable by kind; click one to see every passage that mentions it
 - **Word Study** — dictionary definitions (LSJ for Greek, Lewis & Short for Latin) and every attested form of a word
 - **Core Vocabulary** — every headword in a work ranked by how much of the text it accounts for, with a running total: learn the top N and you can read half of it. Counted from the text itself, and honest about the share it can't cover
 - **Where should I start?** — a short curated list of works that are reasonable to translate first, filtered to what's in your library, and a plain warning about the ones that aren't
@@ -192,15 +192,42 @@ the method itself — on this corpus Burrows's Delta cannot reliably detect a
 second hand contributing less than about a third of a play. A null result is
 worth little without that number, so the bench now computes it on every sweep.
 
+A positive control decides whether that null is about the method or about the
+bench: Plato against Homer separates at AUC 0.94, so the instrument works and
+the tragic result is a fact about Greek tragedy. It also caught a bug that made
+the method look weaker than it is — the hardest kind to notice in a project
+whose every result so far had been negative.
+
+The contamination is synthetic and drawn from a whole corpus, which is an
+idealised donor rather than a real interpolation. That was recorded as an
+unquantified caveat and is now measured: drawing each mixture from a single
+donor work leaves the mean effect the same and raises the variance 1.43 times,
+moving detection from AUC 0.76 to 0.74. The idealisation buys precision, not
+power. Both modes are on the form.
+
 Experiments save to the library with their seed, exact pool and settings, and
 reload complete enough to re-run. Any results table right-clicks to CSV,
 tab-separated text or Excel, at full precision and with the settings in the
 header.
 
-Two older bugs surfaced while testing it: saved searches were missing from
-databases created fresh rather than upgraded, and a schema-initialisation path
-no test covered. Both are fixed, and there is now a test that asks SQLite what
-a new database actually contains rather than trusting a list.
+The places map grew from 100 places to 200 — the second hundred harvested from
+the Getty records Perseus embeds in its English Herodotus — and gained a kind
+per place: cities, sanctuaries, battlefields, regions and islands, rivers and
+seas, each with its own pin colour and each switchable off. Two hundred names
+at Mediterranean scale is more than can be read at once, so labels are now
+placed only where they fit, in order of how often you have tagged the place.
+Every pin still draws: the pin is what you click.
+
+Submenus are themed properly for the first time. The theme walk stopped at the
+top level of a context menu, so every submenu in the app kept the system
+default — dark ink on a dark surface, invisible in dark mode and findable only
+by knowing it was there.
+
+Three older bugs surfaced while testing all this: saved searches were missing
+from databases created fresh rather than upgraded, a schema-initialisation path
+no test covered, and two copies of the place catalog resolving differently per
+project. All fixed, and there is now a test that asks SQLite what a new database
+actually contains rather than trusting a list.
 
 3.0.1 was a corpus-accuracy release. Speech attributions were being dropped from
 every play in the library — 42,448 of them in the Greek alone, and every Terence

@@ -335,6 +335,10 @@ Compare Translations
 Places Map
    A map of the ancient world built from your own place tags. Click a place to see every passage that mentions it. Tick "Show all known places" to see the places the app can locate even where you haven't tagged anything there yet.
 
+   The catalog holds two hundred places, sorted into cities, sanctuaries, battlefields, regions and islands, and rivers and seas. Each has its own pin colour, and the row of toggles above the map switches a kind off - two hundred names at Mediterranean scale is more than can be read at once, and most of the time you want one sort of thing. Names are drawn only where they fit, in order of how often you have tagged the place, so the ones you use win the space and more appear as you zoom in. Every pin is always drawn, whether or not it has room for a name.
+
+   The categories are the reason you would look a place up rather than a gazetteer's ontology, and a few are arguable: Salamis is an island and a battle, Rhodes an island and a city on it, Delphi a sanctuary and a polis. Each takes the sense a classical text most often points at. Nothing is ever hidden from the map by that choice - only its colour and which toggle hides it.
+
    Real coastlines come from the optional World Map Data setup step; without it the map still works, just with rougher built-in shapes. If the Art & Archaeology collection is loaded, objects found at a place appear alongside its passages - descriptions are stored locally, while the photographs load from Perseus's own server as you view them, so that part needs a connection.
 """),
 
