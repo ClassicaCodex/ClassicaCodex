@@ -66,7 +66,8 @@ public enum ResearchLogEntryKind
     SourceRemoved,
     PageAnnotationAdded,
     PageAnnotationUpdated,
-    PageAnnotationRemoved
+    PageAnnotationRemoved,
+    BibliographyExported
 }
 
 /// <summary>A persistent line of inquiry attached to one work.</summary>

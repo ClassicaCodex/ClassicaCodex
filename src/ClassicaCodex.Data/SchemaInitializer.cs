@@ -55,7 +55,7 @@ public static class SchemaInitializer
     /// 7 to 13 until version 3 was cut, at which point they all failed at
     /// once and said nothing about what had actually broken.
     /// </summary>
-    public const int TargetSchemaVersion = 22;
+    public const int TargetSchemaVersion = 23;
 
     public static async Task EnsureSchemaAsync(CancellationToken cancellationToken = default)
     {
@@ -832,6 +832,13 @@ public static class SchemaInitializer
             EvidencePageAnnotationsDdl,
             "CREATE UNIQUE INDEX IF NOT EXISTS UX_EvidenceAttachments_Path ON EvidenceAttachments (EvidenceItemId, FilePath);",
             "CREATE INDEX IF NOT EXISTS IX_EvidencePageAnnotations_Attachment ON EvidencePageAnnotations (EvidenceAttachmentId, PageNumber, EvidencePageAnnotationId);"
+        },
+
+        // v23: retain imported citation fields instead of flattening them
+        // irreversibly into display text, enabling offline RIS/BibTeX export.
+        [23] = new[]
+        {
+            EvidenceBibliographyMetadataDdl
         }
     };
 
@@ -959,6 +966,30 @@ public static class SchemaInitializer
             REFERENCES EvidenceAttachments(EvidenceAttachmentId) ON DELETE CASCADE
     );";
 
+    private const string EvidenceBibliographyMetadataDdl = @"CREATE TABLE IF NOT EXISTS EvidenceBibliographyMetadata (
+        EvidenceItemId INTEGER PRIMARY KEY,
+        ImportFormat TEXT NOT NULL DEFAULT 'Manual',
+        EntryType TEXT NOT NULL DEFAULT 'MISC',
+        CiteKey TEXT NULL,
+        Title TEXT NOT NULL,
+        AuthorsJson TEXT NOT NULL DEFAULT '[]',
+        Year TEXT NULL,
+        ContainerTitle TEXT NULL,
+        Volume TEXT NULL,
+        Issue TEXT NULL,
+        Pages TEXT NULL,
+        Publisher TEXT NULL,
+        Doi TEXT NULL,
+        Url TEXT NULL,
+        Isbn TEXT NULL,
+        Abstract TEXT NULL,
+        KeywordsJson TEXT NOT NULL DEFAULT '[]',
+        CreatedUtc TEXT NOT NULL,
+        UpdatedUtc TEXT NOT NULL,
+        CONSTRAINT FK_EvidenceBibliographyMetadata_Evidence FOREIGN KEY (EvidenceItemId)
+            REFERENCES EvidenceItems(EvidenceItemId) ON DELETE CASCADE
+    );";
+
     private static readonly string[] SchemaStatements =
     {
         ResearchProjectsDdl,
@@ -969,6 +1000,7 @@ public static class SchemaInitializer
         ScholarlyClaimsDdl,
         EvidenceAttachmentsDdl,
         EvidencePageAnnotationsDdl,
+        EvidenceBibliographyMetadataDdl,
         "CREATE INDEX IF NOT EXISTS IX_ResearchProjects_Work ON ResearchProjects (WorkId, Status, UpdatedUtc);",
         "CREATE INDEX IF NOT EXISTS IX_ResearchQuestions_Project ON ResearchQuestions (ResearchProjectId, SortOrder);",
         "CREATE INDEX IF NOT EXISTS IX_EvidenceItems_Project ON EvidenceItems (ResearchProjectId, SortOrder);",

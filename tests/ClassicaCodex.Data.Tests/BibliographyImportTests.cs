@@ -78,4 +78,41 @@ public class BibliographyImportTests
     [InlineData("http://dx.doi.org/10.1000/ABC", "10.1000/abc")]
     public void DoiNormalizationRemovesResolverNoise(string input, string expected) =>
         Assert.Equal(expected, BibliographyImport.NormalizeDoi(input));
+
+    [Fact]
+    public void BibTeXExportRoundTripsStructuredCitationMetadata()
+    {
+        var source = new BibliographyRecord("RIS", "JOUR", "smith2024rhesus",
+            "Rhesus and the Problem of Attribution", ["Smith, Jane", "Jones, Alex"],
+            "2024", "Classical Quarterly", "74", "2", "100-119", null,
+            "10.1234/TEST.1", "https://example.org/article", null, "A useful abstract.",
+            ["stylometry", "tragedy"]);
+
+        var text = BibliographyExport.ToBibTeX([source]);
+        var reopened = Assert.Single(BibliographyImport.Parse(text, "export.bib"));
+
+        Assert.Contains("@article{smith2024rhesus,", text);
+        Assert.DoesNotContain("keywords = {stylometry, tragedy},", text);
+        Assert.Equal(source.Title, reopened.Title);
+        Assert.Equal(source.Authors, reopened.Authors);
+        Assert.Equal("100-119", reopened.Pages);
+        Assert.Equal("https://doi.org/10.1234/test.1", reopened.StableIdentifier);
+    }
+
+    [Fact]
+    public void RisExportRoundTripsAndMakesGeneratedCiteKeysUnique()
+    {
+        var first = new BibliographyRecord("Manual", "ARTICLE", null, "Rhesus Reconsidered",
+            ["Smith, Jane"], "2024", "Classical Review", null, null, "12-18", null,
+            null, null, null, null, []);
+        var second = first with { Title = "Rhesus Reconsidered Again" };
+
+        var text = BibliographyExport.ToRis([first, second]);
+        var reopened = BibliographyImport.Parse(text, "export.ris");
+
+        Assert.Equal(2, reopened.Count);
+        Assert.NotEqual(reopened[0].CiteKey, reopened[1].CiteKey);
+        Assert.Equal("12-18", reopened[0].Pages);
+        Assert.Equal("Smith2024Rhesus", reopened[0].CiteKey);
+    }
 }

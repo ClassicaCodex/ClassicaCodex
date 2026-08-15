@@ -9,6 +9,7 @@ public sealed class BibliographyImportForm : Form
 {
     private readonly ResearchProject _project;
     private readonly ResearchRepository _repo = new();
+    private readonly ResearchBibliographyRepository _bibliography = new();
     private readonly DataGridView _records = new();
     private readonly ComboBox _question = new();
     private readonly TextBox _details = new();
@@ -180,7 +181,7 @@ public sealed class BibliographyImportForm : Form
             var record = row.Record;
             var citation = record.FormatCitation();
             var notes = record.Keywords.Count == 0 ? null : "Imported keywords: " + string.Join(", ", record.Keywords);
-            await _repo.SaveEvidenceAsync(new EvidenceItem
+            var evidence = new EvidenceItem
             {
                 ResearchProjectId = _project.ResearchProjectId,
                 ResearchQuestionId = questionId,
@@ -197,7 +198,10 @@ public sealed class BibliographyImportForm : Form
                 Relationship = EvidenceRelationship.Contextualizes,
                 Origin = EvidenceOrigin.Manual,
                 SortOrder = _existing.Count + added
-            });
+            };
+            await _repo.SaveEvidenceAsync(evidence);
+            await _bibliography.SaveAsync(EvidenceBibliographyMetadata.FromRecord(
+                evidence.EvidenceItemId, record));
             row.Include = false;
             row.Imported = true;
             added++;
