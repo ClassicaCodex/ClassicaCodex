@@ -55,7 +55,7 @@ public static class SchemaInitializer
     /// 7 to 13 until version 3 was cut, at which point they all failed at
     /// once and said nothing about what had actually broken.
     /// </summary>
-    public const int TargetSchemaVersion = 24;
+    public const int TargetSchemaVersion = 25;
 
     public static async Task EnsureSchemaAsync(CancellationToken cancellationToken = default)
     {
@@ -849,6 +849,16 @@ public static class SchemaInitializer
             ResearchCorpusSnapshotEntriesDdl,
             "CREATE INDEX IF NOT EXISTS IX_ResearchCorpusSnapshots_Project ON ResearchCorpusSnapshots (ResearchProjectId, CreatedUtc);",
             "CREATE INDEX IF NOT EXISTS IX_ResearchCorpusSnapshotEntries_Snapshot ON ResearchCorpusSnapshotEntries (ResearchCorpusSnapshotId, WorkCtsUrn, EditionCtsUrn);"
+        },
+
+        // v25: the reading queue is intentionally upstream of evidence.
+        // Stable passage/source references survive re-ingest; promotion is
+        // explicit and leaves an auditable link to the resulting evidence.
+        [25] = new[]
+        {
+            ResearchReadingItemsDdl,
+            "CREATE INDEX IF NOT EXISTS IX_ResearchReadingItems_Project ON ResearchReadingItems (ResearchProjectId, Status, Priority, SortOrder, ResearchReadingItemId);",
+            "CREATE INDEX IF NOT EXISTS IX_ResearchReadingItems_Question ON ResearchReadingItems (ResearchQuestionId);"
         }
     };
 
@@ -1038,6 +1048,37 @@ public static class SchemaInitializer
             REFERENCES ResearchCorpusSnapshots(ResearchCorpusSnapshotId) ON DELETE CASCADE
     );";
 
+    private const string ResearchReadingItemsDdl = @"CREATE TABLE IF NOT EXISTS ResearchReadingItems (
+        ResearchReadingItemId INTEGER PRIMARY KEY,
+        ResearchProjectId INTEGER NOT NULL,
+        ResearchQuestionId INTEGER NULL,
+        Kind TEXT NOT NULL,
+        Status TEXT NOT NULL DEFAULT 'queued',
+        Priority TEXT NOT NULL DEFAULT 'normal',
+        Title TEXT NOT NULL,
+        Purpose TEXT NULL,
+        WorkCtsUrn TEXT NULL,
+        EditionCtsUrn TEXT NULL,
+        CitationRef TEXT NULL,
+        LinkedEvidenceItemId INTEGER NULL,
+        StableIdentifier TEXT NULL,
+        Locator TEXT NULL,
+        Quotation TEXT NULL,
+        Notes TEXT NULL,
+        PromotedEvidenceItemId INTEGER NULL,
+        SortOrder INTEGER NOT NULL DEFAULT 0,
+        CreatedUtc TEXT NOT NULL,
+        UpdatedUtc TEXT NOT NULL,
+        CONSTRAINT FK_ResearchReadingItems_Projects FOREIGN KEY (ResearchProjectId)
+            REFERENCES ResearchProjects(ResearchProjectId) ON DELETE CASCADE,
+        CONSTRAINT FK_ResearchReadingItems_Questions FOREIGN KEY (ResearchQuestionId)
+            REFERENCES ResearchQuestions(ResearchQuestionId) ON DELETE SET NULL,
+        CONSTRAINT FK_ResearchReadingItems_LinkedEvidence FOREIGN KEY (LinkedEvidenceItemId)
+            REFERENCES EvidenceItems(EvidenceItemId) ON DELETE SET NULL,
+        CONSTRAINT FK_ResearchReadingItems_PromotedEvidence FOREIGN KEY (PromotedEvidenceItemId)
+            REFERENCES EvidenceItems(EvidenceItemId) ON DELETE SET NULL
+    );";
+
     private static readonly string[] SchemaStatements =
     {
         ResearchProjectsDdl,
@@ -1051,6 +1092,7 @@ public static class SchemaInitializer
         EvidenceBibliographyMetadataDdl,
         ResearchCorpusSnapshotsDdl,
         ResearchCorpusSnapshotEntriesDdl,
+        ResearchReadingItemsDdl,
         "CREATE INDEX IF NOT EXISTS IX_ResearchProjects_Work ON ResearchProjects (WorkId, Status, UpdatedUtc);",
         "CREATE INDEX IF NOT EXISTS IX_ResearchQuestions_Project ON ResearchQuestions (ResearchProjectId, SortOrder);",
         "CREATE INDEX IF NOT EXISTS IX_EvidenceItems_Project ON EvidenceItems (ResearchProjectId, SortOrder);",
@@ -1064,6 +1106,8 @@ public static class SchemaInitializer
         "CREATE INDEX IF NOT EXISTS IX_EvidencePageAnnotations_Attachment ON EvidencePageAnnotations (EvidenceAttachmentId, PageNumber, EvidencePageAnnotationId);",
         "CREATE INDEX IF NOT EXISTS IX_ResearchCorpusSnapshots_Project ON ResearchCorpusSnapshots (ResearchProjectId, CreatedUtc);",
         "CREATE INDEX IF NOT EXISTS IX_ResearchCorpusSnapshotEntries_Snapshot ON ResearchCorpusSnapshotEntries (ResearchCorpusSnapshotId, WorkCtsUrn, EditionCtsUrn);",
+        "CREATE INDEX IF NOT EXISTS IX_ResearchReadingItems_Project ON ResearchReadingItems (ResearchProjectId, Status, Priority, SortOrder, ResearchReadingItemId);",
+        "CREATE INDEX IF NOT EXISTS IX_ResearchReadingItems_Question ON ResearchReadingItems (ResearchQuestionId);",
 
         // The statements below are also created by migrations, and have to
         // be here as well because a NEW database never runs a migration - it

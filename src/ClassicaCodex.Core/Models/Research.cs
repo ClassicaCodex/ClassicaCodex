@@ -69,7 +69,11 @@ public enum ResearchLogEntryKind
     PageAnnotationRemoved,
     BibliographyExported,
     CorpusSnapshotCaptured,
-    CorpusSnapshotRemoved
+    CorpusSnapshotRemoved,
+    ReadingItemAdded,
+    ReadingItemUpdated,
+    ReadingItemRemoved,
+    ReadingItemPromoted
 }
 
 /// <summary>A persistent line of inquiry attached to one work.</summary>

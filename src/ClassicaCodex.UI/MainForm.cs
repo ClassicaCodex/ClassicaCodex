@@ -593,7 +593,7 @@ public class MainForm : Form
 
             _favoritesOnlyCheck.Visible = !_libraryTreeCollapsed;
             AppIcons.Apply(_treeToggleButton, _libraryTreeCollapsed ? "Expand" : "Collapse", 14);
-        RefreshSyncPanesIcon();
+            RefreshSyncPanesIcon();
             RelayoutReaderArea();
         };
         Controls.Add(concordanceButton);
@@ -1074,6 +1074,8 @@ public class MainForm : Form
         var author = await _authorRepo.GetByIdAsync(work.AuthorId);
         using var bench = new ResearchBenchForm(work, author?.Name ?? "Unknown author");
         bench.ShowDialog(this);
+        if (bench.NavigationTarget is { } target)
+            await NavigateToPassageAsync(target.WorkId, target.TextNodeId);
     }
 
     private async Task ToggleFavoriteForSelectedWorkAsync()

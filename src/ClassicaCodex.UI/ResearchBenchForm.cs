@@ -41,6 +41,8 @@ public class ResearchBenchForm : Form
     private SplitContainer? _rightSplit;
     private EvidenceItem? _editingEvidence;
 
+    public (int WorkId, long TextNodeId)? NavigationTarget { get; private set; }
+
     private ResearchProject? CurrentProject => _projects.SelectedItem as ResearchProject;
     private EvidenceItem? CurrentEvidence => _evidence.CurrentRow?.DataBoundItem as EvidenceItem;
 
@@ -96,7 +98,10 @@ public class ResearchBenchForm : Form
         var workLabel = new Label
         {
             Text = $"{_authorName}, {_work.Title}  •  {_work.CtsUrn}  •  {attribution}",
-            Left = 10, Top = 8, Width = 1100, Height = 22,
+            Left = 10,
+            Top = 8,
+            Width = 1100,
+            Height = 22,
             Font = new Font(Font, FontStyle.Bold)
         };
         _theory.SetBounds(10, 38, 770, 26);
@@ -121,7 +126,8 @@ public class ResearchBenchForm : Form
     {
         var outer = new SplitContainer
         {
-            Dock = DockStyle.Fill, FixedPanel = FixedPanel.Panel1
+            Dock = DockStyle.Fill,
+            FixedPanel = FixedPanel.Panel1
         };
         _outerSplit = outer;
         BuildLeft(outer.Panel1);
@@ -195,6 +201,7 @@ public class ResearchBenchForm : Form
         projectMenu.Items.Add("Import RIS / BibTeX bibliography…", null, async (_, _) => await OpenBibliographyImportAsync());
         projectMenu.Items.Add("Bibliography & Zotero export…", null, (_, _) => OpenBibliography());
         projectMenu.Items.Add("Corpus snapshots…", null, (_, _) => OpenCorpusSnapshots());
+        projectMenu.Items.Add("Reading queue & passage notebook…", null, async (_, _) => await OpenReadingQueueAsync());
         projectMenu.Items.Add(new ToolStripSeparator());
         projectMenu.Items.Add("Project audit", null, async (_, _) => await OpenProjectAuditAsync());
         projectMenu.Items.Add("Research log", null, (_, _) => OpenResearchLog());
@@ -663,7 +670,9 @@ public class ResearchBenchForm : Form
         if (text == null) return;
         await _repo.SaveQuestionAsync(new ResearchQuestion
         {
-            ResearchProjectId = project.ResearchProjectId, Text = text, SortOrder = _questions.Items.Count
+            ResearchProjectId = project.ResearchProjectId,
+            Text = text,
+            SortOrder = _questions.Items.Count
         });
         await ReloadQuestionsAsync();
     }
@@ -796,6 +805,22 @@ public class ResearchBenchForm : Form
         if (_editingEvidence?.EvidenceItemId is not > 0) return;
         using var form = new EvidenceSourcesForm(_editingEvidence);
         form.ShowDialog(this);
+    }
+
+    private async Task OpenReadingQueueAsync()
+    {
+        var project = CurrentProject;
+        if (project == null) return;
+        using var form = new ResearchReadingQueueForm(project, _work);
+        form.ShowDialog(this);
+        if (form.NavigationTarget is { } target)
+        {
+            NavigationTarget = target;
+            Close();
+            return;
+        }
+        if (form.PromotedEvidenceItemId is long evidenceId)
+            await LoadEvidenceAsync(project.ResearchProjectId, evidenceId);
     }
 
     private static long? GetStylometryRunId(EvidenceItem? item)
