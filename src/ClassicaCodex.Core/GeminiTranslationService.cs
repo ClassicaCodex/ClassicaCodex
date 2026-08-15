@@ -20,6 +20,11 @@ public sealed record GeminiResearchResult(
 
 public sealed record GeminiSynthesisResult(string Model, string PromptProvenance, string CandidateText);
 
+public sealed record GeminiEchoResult(
+    string Model,
+    string PromptProvenance,
+    IReadOnlyList<EchoCandidate> Candidates);
+
 /// <summary>
 /// Sends one passage to Google's Gemini API for translation - into English
 /// from the original pane, or into the work's original language (Ancient
@@ -221,6 +226,27 @@ public static class GeminiTranslationService
         string? comparisonLanguage,
         string taggedComparisonText,
         string apiKey,
+        CancellationToken cancellationToken = default) =>
+        (await FindEchoesWithProvenanceAsync(
+            sourcePassageText, sourceLanguage, sourceAuthorName, sourceWorkTitle, sourceCitationRef,
+            comparisonAuthorName, comparisonWorkTitle, comparisonLanguage, taggedComparisonText,
+            apiKey, cancellationToken)).Candidates.ToList();
+
+    /// <summary>
+    /// The provenance-preserving variant used when an echo search is saved
+    /// into the Research Bench for later human review.
+    /// </summary>
+    public static async Task<GeminiEchoResult> FindEchoesWithProvenanceAsync(
+        string sourcePassageText,
+        string? sourceLanguage,
+        string sourceAuthorName,
+        string sourceWorkTitle,
+        string sourceCitationRef,
+        string comparisonAuthorName,
+        string comparisonWorkTitle,
+        string? comparisonLanguage,
+        string taggedComparisonText,
+        string apiKey,
         CancellationToken cancellationToken = default)
     {
         var sourceLanguageName = TranslationLanguageNames.DisplayName(sourceLanguage);
@@ -251,9 +277,12 @@ public static class GeminiTranslationService
             "[{\"citationRef\": \"...\", \"confidence\": \"high|medium|low\", \"rationale\": \"...\"}]";
 
         string rawResponse;
+        string? modelUsed = null;
         try
         {
-            rawResponse = await TranslateWithModelAsync(PrimaryModel, allowFallback: true, prompt, apiKey, cancellationToken);
+            rawResponse = await TranslateWithModelAsync(
+                PrimaryModel, allowFallback: true, prompt, apiKey, cancellationToken,
+                model => modelUsed = model);
         }
         catch (QuotaExceededException)
         {
@@ -261,7 +290,7 @@ public static class GeminiTranslationService
                 "Both Gemini models have hit today's free-tier usage limit. Try again after the daily reset.");
         }
 
-        return ParseEchoCandidates(rawResponse);
+        return new GeminiEchoResult(modelUsed ?? PrimaryModel, prompt, ParseEchoCandidates(rawResponse));
     }
 
     /// <summary>

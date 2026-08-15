@@ -55,7 +55,7 @@ public static class SchemaInitializer
     /// 7 to 13 until version 3 was cut, at which point they all failed at
     /// once and said nothing about what had actually broken.
     /// </summary>
-    public const int TargetSchemaVersion = 26;
+    public const int TargetSchemaVersion = 27;
 
     public static async Task EnsureSchemaAsync(CancellationToken cancellationToken = default)
     {
@@ -871,6 +871,18 @@ public static class SchemaInitializer
             "CREATE INDEX IF NOT EXISTS IX_ResearchFindings_Project ON ResearchFindings (ResearchProjectId, SortOrder, ResearchFindingId);",
             "CREATE INDEX IF NOT EXISTS IX_ResearchFindings_Question ON ResearchFindings (ResearchQuestionId);",
             "CREATE INDEX IF NOT EXISTS IX_ResearchFindingEvidence_Evidence ON ResearchFindingEvidence (EvidenceItemId);"
+        },
+
+        // v27: preserve echo searches as auditable investigations. Passage
+        // CTS identities remain authoritative across re-ingest; transient
+        // row ids are retained only as navigation hints and are not FKs.
+        [27] = new[]
+        {
+            ResearchEchoInvestigationsDdl,
+            ResearchEchoResultsDdl,
+            "CREATE INDEX IF NOT EXISTS IX_ResearchEchoInvestigations_Project ON ResearchEchoInvestigations (ResearchProjectId, CreatedUtc, ResearchEchoInvestigationId);",
+            "CREATE INDEX IF NOT EXISTS IX_ResearchEchoResults_Investigation ON ResearchEchoResults (ResearchEchoInvestigationId, Disposition, SortOrder, ResearchEchoResultId);",
+            "CREATE INDEX IF NOT EXISTS IX_ResearchEchoResults_Evidence ON ResearchEchoResults (EvidenceItemId);"
         }
     };
 
@@ -1124,6 +1136,60 @@ public static class SchemaInitializer
             REFERENCES EvidenceItems(EvidenceItemId) ON DELETE CASCADE
     );";
 
+    private const string ResearchEchoInvestigationsDdl = @"CREATE TABLE IF NOT EXISTS ResearchEchoInvestigations (
+        ResearchEchoInvestigationId INTEGER PRIMARY KEY,
+        ResearchProjectId INTEGER NOT NULL,
+        ResearchQuestionId INTEGER NULL,
+        ResearchFindingId INTEGER NULL,
+        Method TEXT NOT NULL,
+        Title TEXT NOT NULL,
+        SourceWorkId INTEGER NOT NULL,
+        SourceTextNodeId INTEGER NOT NULL,
+        SourceWorkCtsUrn TEXT NOT NULL,
+        SourceEditionCtsUrn TEXT NOT NULL,
+        SourceCitationRef TEXT NOT NULL,
+        SourceText TEXT NOT NULL,
+        TargetScope TEXT NULL,
+        Settings TEXT NULL,
+        AiModel TEXT NULL,
+        AiPrompt TEXT NULL,
+        AiGeneratedUtc TEXT NULL,
+        CreatedUtc TEXT NOT NULL,
+        UpdatedUtc TEXT NOT NULL,
+        CONSTRAINT FK_ResearchEchoInvestigations_Projects FOREIGN KEY (ResearchProjectId)
+            REFERENCES ResearchProjects(ResearchProjectId) ON DELETE CASCADE,
+        CONSTRAINT FK_ResearchEchoInvestigations_Questions FOREIGN KEY (ResearchQuestionId)
+            REFERENCES ResearchQuestions(ResearchQuestionId) ON DELETE SET NULL,
+        CONSTRAINT FK_ResearchEchoInvestigations_Findings FOREIGN KEY (ResearchFindingId)
+            REFERENCES ResearchFindings(ResearchFindingId) ON DELETE SET NULL
+    );";
+
+    private const string ResearchEchoResultsDdl = @"CREATE TABLE IF NOT EXISTS ResearchEchoResults (
+        ResearchEchoResultId INTEGER PRIMARY KEY,
+        ResearchEchoInvestigationId INTEGER NOT NULL,
+        TargetWorkId INTEGER NOT NULL,
+        TargetTextNodeId INTEGER NOT NULL,
+        TargetAuthorName TEXT NOT NULL,
+        TargetWorkTitle TEXT NOT NULL,
+        TargetWorkCtsUrn TEXT NOT NULL,
+        TargetEditionCtsUrn TEXT NOT NULL,
+        TargetCitationRef TEXT NOT NULL,
+        TargetText TEXT NOT NULL,
+        Score REAL NULL,
+        ScoreLabel TEXT NULL,
+        Rationale TEXT NULL,
+        Disposition TEXT NOT NULL DEFAULT 'pending',
+        ResearcherNote TEXT NULL,
+        EvidenceItemId INTEGER NULL,
+        SortOrder INTEGER NOT NULL DEFAULT 0,
+        CreatedUtc TEXT NOT NULL,
+        UpdatedUtc TEXT NOT NULL,
+        CONSTRAINT FK_ResearchEchoResults_Investigations FOREIGN KEY (ResearchEchoInvestigationId)
+            REFERENCES ResearchEchoInvestigations(ResearchEchoInvestigationId) ON DELETE CASCADE,
+        CONSTRAINT FK_ResearchEchoResults_Evidence FOREIGN KEY (EvidenceItemId)
+            REFERENCES EvidenceItems(EvidenceItemId) ON DELETE SET NULL
+    );";
+
     private static readonly string[] SchemaStatements =
     {
         ResearchProjectsDdl,
@@ -1140,6 +1206,8 @@ public static class SchemaInitializer
         ResearchReadingItemsDdl,
         ResearchFindingsDdl,
         ResearchFindingEvidenceDdl,
+        ResearchEchoInvestigationsDdl,
+        ResearchEchoResultsDdl,
         "CREATE INDEX IF NOT EXISTS IX_ResearchProjects_Work ON ResearchProjects (WorkId, Status, UpdatedUtc);",
         "CREATE INDEX IF NOT EXISTS IX_ResearchQuestions_Project ON ResearchQuestions (ResearchProjectId, SortOrder);",
         "CREATE INDEX IF NOT EXISTS IX_EvidenceItems_Project ON EvidenceItems (ResearchProjectId, SortOrder);",
@@ -1158,6 +1226,9 @@ public static class SchemaInitializer
         "CREATE INDEX IF NOT EXISTS IX_ResearchFindings_Project ON ResearchFindings (ResearchProjectId, SortOrder, ResearchFindingId);",
         "CREATE INDEX IF NOT EXISTS IX_ResearchFindings_Question ON ResearchFindings (ResearchQuestionId);",
         "CREATE INDEX IF NOT EXISTS IX_ResearchFindingEvidence_Evidence ON ResearchFindingEvidence (EvidenceItemId);",
+        "CREATE INDEX IF NOT EXISTS IX_ResearchEchoInvestigations_Project ON ResearchEchoInvestigations (ResearchProjectId, CreatedUtc, ResearchEchoInvestigationId);",
+        "CREATE INDEX IF NOT EXISTS IX_ResearchEchoResults_Investigation ON ResearchEchoResults (ResearchEchoInvestigationId, Disposition, SortOrder, ResearchEchoResultId);",
+        "CREATE INDEX IF NOT EXISTS IX_ResearchEchoResults_Evidence ON ResearchEchoResults (EvidenceItemId);",
 
         // The statements below are also created by migrations, and have to
         // be here as well because a NEW database never runs a migration - it

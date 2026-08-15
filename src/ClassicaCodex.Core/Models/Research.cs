@@ -79,7 +79,10 @@ public enum ResearchLogEntryKind
     FindingRemoved,
     FindingEvidenceChanged,
     FindingAiCandidateGenerated,
-    ResearchDossierExported
+    ResearchDossierExported,
+    EchoInvestigationSaved,
+    EchoResultReviewed,
+    EchoResultPromoted
 }
 
 /// <summary>A persistent line of inquiry attached to one work.</summary>
