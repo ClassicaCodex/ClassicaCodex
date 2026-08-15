@@ -2,7 +2,7 @@ using ClassicaCodex.Core.Models;
 
 namespace ClassicaCodex.Core;
 
-public enum ResearchEchoMethod { RareWordOverlap, ReceptionChronology, AiCrossLanguage }
+public enum ResearchEchoMethod { RareWordOverlap, ReceptionChronology, AiCrossLanguage, AiCorpusInvestigation }
 public enum ResearchEchoDisposition { Pending, Accepted, Rejected }
 public enum ResearchEchoConnectionType { Unclassified, Verbal, Thematic, Imagistic, Narrative, Structural, GenericConvention, Reception, Coincidental }
 public enum ResearchEchoDirectionality { Unknown, SourceToTarget, TargetToSource, CommonSource, SharedTradition, ChronologicallyImpossible }
@@ -89,6 +89,13 @@ public sealed record GeminiParallelAnalysisResult(
     string ImportantDifferences, string LexicalObservations, string AlternativeExplanations,
     string VerificationTasks, string SuggestedMotifs, string SuggestedConnectionType,
     string SuggestedDirectionality);
+
+/// <summary>A model-proposed corpus hit whose opaque key must resolve against the exact local prompt corpus.</summary>
+public sealed record CorpusInvestigationCandidate(
+    string CandidateKey, string Role, string Confidence, string Rationale, string SuggestedMotifs);
+
+public sealed record GeminiCorpusInvestigationResult(
+    string Model, string PromptProvenance, IReadOnlyList<CorpusInvestigationCandidate> Candidates);
 
 /// <summary>One verified candidate exported by an existing echo result window.</summary>
 public sealed record EchoCaptureCandidate(

@@ -61,8 +61,9 @@ public sealed class IntertextualAtlasForm : Form
         _connections.CellDoubleClick += async (_, _) => await OpenStudioAsync();
         var bottom = new FlowLayoutPanel { Dock = DockStyle.Bottom, Height = 45, Padding = new Padding(6) };
         var studio = Button("Open Parallel Studio", 150); studio.Click += async (_, _) => await OpenStudioAsync();
+        var investigate = Button("Investigate selected…", 150); investigate.Click += (_, _) => OpenInvestigator();
         var clear = Button("Show all matching", 125); clear.Click += (_, _) => ShowConnections(_filtered, "All connections matching the current filters.");
-        bottom.Controls.AddRange([studio, clear]);
+        bottom.Controls.AddRange([studio, investigate, clear]);
         right.Controls.Add(_connections); right.Controls.Add(_selection); right.Controls.Add(bottom); split.Panel2.Controls.Add(right);
 
         _status.Dock = DockStyle.Bottom; _status.Height = 25; _status.Padding = new Padding(8, 4, 0, 0);
@@ -180,6 +181,13 @@ public sealed class IntertextualAtlasForm : Form
         studio.ShowDialog(this);
         if (studio.NavigationTarget is { } target) { NavigationTarget = target; DialogResult = DialogResult.OK; Close(); return; }
         await LoadAsync();
+    }
+
+    private void OpenInvestigator()
+    {
+        if (SelectedRow?.Connection is not { } connection) return;
+        using var investigator = new CorpusInvestigatorForm(connection.Project, connection);
+        investigator.ShowDialog(this);
     }
 
     private static Button Button(string text, int width) => new() { Text = text, Width = width, Height = 28 };

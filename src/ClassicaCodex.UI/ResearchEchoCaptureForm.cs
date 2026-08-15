@@ -9,6 +9,7 @@ namespace ClassicaCodex.UI;
 public sealed class ResearchEchoCaptureForm : Form
 {
     private readonly EchoCaptureRequest _capture;
+    private readonly long? _defaultProjectId;
     private readonly ResearchRepository _research = new();
     private readonly ResearchEchoRepository _echoes = new();
     private readonly ResearchFindingRepository _findings = new();
@@ -22,9 +23,10 @@ public sealed class ResearchEchoCaptureForm : Form
 
     public long? SavedInvestigationId { get; private set; }
 
-    public ResearchEchoCaptureForm(EchoCaptureRequest capture)
+    public ResearchEchoCaptureForm(EchoCaptureRequest capture, long? defaultProjectId = null)
     {
         _capture = capture;
+        _defaultProjectId = defaultProjectId;
         _rows = new BindingList<CandidateRow>(capture.Candidates.Select(c => new CandidateRow(c)).ToList());
         Text = "Save echo investigation";
         Width = 1050; Height = 650; MinimumSize = new Size(760, 480);
@@ -68,6 +70,11 @@ public sealed class ResearchEchoCaptureForm : Form
     {
         var projects = await _research.GetProjectsForWorkAsync(_capture.Source.WorkId);
         _project.DataSource = projects;
+        if (_defaultProjectId is { } id)
+        {
+            var preferred = projects.FirstOrDefault(p => p.ResearchProjectId == id);
+            if (preferred != null) _project.SelectedItem = preferred;
+        }
         _save.Enabled = projects.Count > 0;
         if (projects.Count == 0)
             MessageBox.Show(this, "Create a Research Bench project for this source work first, then save the search.", "No research project");
