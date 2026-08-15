@@ -66,8 +66,8 @@ public class ResearchBenchForm : Form
         WindowShortcuts.CloseOnEscape(this);
         Shown += async (_, _) =>
         {
-            SetSplitterDistance(_outerSplit, 285);
-            SetSplitterDistance(_rightSplit, 500);
+            ConfigureSplitter(_outerSplit, 285, 240, 700);
+            ConfigureSplitter(_rightSplit, 500, 360, 420);
             await LoadProjectsAsync();
         };
     }
@@ -109,14 +109,13 @@ public class ResearchBenchForm : Form
     {
         var outer = new SplitContainer
         {
-            Dock = DockStyle.Fill, FixedPanel = FixedPanel.Panel1,
-            Panel1MinSize = 240, Panel2MinSize = 700
+            Dock = DockStyle.Fill, FixedPanel = FixedPanel.Panel1
         };
         _outerSplit = outer;
         BuildLeft(outer.Panel1);
         var right = new SplitContainer
         {
-            Dock = DockStyle.Fill, Panel1MinSize = 360, Panel2MinSize = 420
+            Dock = DockStyle.Fill
         };
         _rightSplit = right;
         BuildEvidenceList(right.Panel1);
@@ -125,17 +124,25 @@ public class ResearchBenchForm : Form
         return outer;
     }
 
-    private static void SetSplitterDistance(SplitContainer? split, int preferredDistance)
+    private static void ConfigureSplitter(
+        SplitContainer? split,
+        int preferredDistance,
+        int panel1Minimum,
+        int panel2Minimum)
     {
         if (split is null)
             return;
 
         // SplitContainers still have their small default width while this form's
-        // control tree is being constructed. Wait until Shown, then clamp the
-        // preferred position to the actual laid-out width and panel minima.
-        var maximum = split.ClientSize.Width - split.Panel2MinSize - split.SplitterWidth;
-        if (maximum >= split.Panel1MinSize)
-            split.SplitterDistance = Math.Clamp(preferredDistance, split.Panel1MinSize, maximum);
+        // control tree is being constructed. Both minimum-size setters validate
+        // the current distance immediately, so defer the entire configuration.
+        var maximum = split.ClientSize.Width - panel2Minimum - split.SplitterWidth;
+        if (maximum < panel1Minimum)
+            return;
+
+        split.SplitterDistance = Math.Clamp(preferredDistance, panel1Minimum, maximum);
+        split.Panel1MinSize = panel1Minimum;
+        split.Panel2MinSize = panel2Minimum;
     }
 
     private void BuildLeft(Control host)
