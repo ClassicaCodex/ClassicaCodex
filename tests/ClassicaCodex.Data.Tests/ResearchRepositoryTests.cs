@@ -184,7 +184,7 @@ public class ResearchRepositoryTests
         var workRepo = new WorkRepository();
         await workRepo.SetAttributionAsync(workId, AttributionStatus.Disputed, "My considered view");
 
-        await db.ExecuteAsync("DROP TABLE ResearchLogEntries; DROP TABLE EvidenceItems; DROP TABLE ResearchQuestions; DROP TABLE ResearchProjects; PRAGMA user_version=17;");
+        await db.ExecuteAsync("DROP TABLE EvidenceGenerationMetadata; DROP TABLE ResearchLogEntries; DROP TABLE EvidenceItems; DROP TABLE ResearchQuestions; DROP TABLE ResearchProjects; PRAGMA user_version=17;");
         await SchemaInitializer.EnsureSchemaAsync();
 
         var attribution = await workRepo.GetAttributionAsync(workId);
@@ -193,7 +193,8 @@ public class ResearchRepositoryTests
         Assert.True(attribution.SetByUser);
         Assert.True(await db.TableExistsAsync("ResearchProjects"));
         Assert.True(await db.TableExistsAsync("ResearchLogEntries"));
-        Assert.Equal(19, await db.ScalarAsync<int>("PRAGMA user_version;"));
+        Assert.True(await db.TableExistsAsync("EvidenceGenerationMetadata"));
+        Assert.Equal(20, await db.ScalarAsync<int>("PRAGMA user_version;"));
     }
 
     [Fact]
@@ -214,7 +215,7 @@ public class ResearchRepositoryTests
         };
         await repo.SaveEvidenceAsync(evidence);
 
-        await db.ExecuteAsync("DROP TABLE ResearchLogEntries; PRAGMA user_version=18;");
+        await db.ExecuteAsync("DROP TABLE EvidenceGenerationMetadata; DROP TABLE ResearchLogEntries; PRAGMA user_version=18;");
         await SchemaInitializer.EnsureSchemaAsync();
 
         Assert.Equal("Existing project",
@@ -222,6 +223,43 @@ public class ResearchRepositoryTests
         Assert.Equal("urn:cts:test",
             Assert.Single(await repo.GetEvidenceAsync(project.ResearchProjectId)).StableIdentifier);
         Assert.True(await db.TableExistsAsync("ResearchLogEntries"));
-        Assert.Equal(19, await db.ScalarAsync<int>("PRAGMA user_version;"));
+        Assert.True(await db.TableExistsAsync("EvidenceGenerationMetadata"));
+        Assert.Equal(20, await db.ScalarAsync<int>("PRAGMA user_version;"));
+    }
+
+    [Fact]
+    public async Task GeneratedEvidenceKeepsRawTextInterpretationAndGeneratorProvenanceSeparate()
+    {
+        using var db = await TempDatabase.CreateAsync();
+        await db.SeedEditionAsync();
+        var repo = new ResearchRepository();
+        var project = new ResearchProject
+        {
+            WorkId = await db.WorkIdForAsync("test1"), Name = "Theory"
+        };
+        await repo.SaveProjectAsync(project);
+        var generated = DateTime.UtcNow;
+        var evidence = new EvidenceItem
+        {
+            ResearchProjectId = project.ResearchProjectId,
+            Title = "AI candidate: unusual diction",
+            Excerpt = "The exact locally verified corpus text.",
+            Judgment = EvidenceJudgment.Uncertain,
+            Origin = EvidenceOrigin.AiCandidate,
+            Interpretation = "Gemini's proposed significance, still unverified.",
+            InterpretationAuthor = "Gemini (test-model)",
+            GeneratorPrompt = "Theory, questions, corpus scope, and instructions.",
+            GeneratedUtc = generated
+        };
+        await repo.SaveEvidenceAsync(evidence);
+
+        var reopened = Assert.Single(await repo.GetEvidenceAsync(project.ResearchProjectId));
+        Assert.Equal(EvidenceOrigin.AiCandidate, reopened.Origin);
+        Assert.Equal("The exact locally verified corpus text.", reopened.Excerpt);
+        Assert.Equal("Gemini's proposed significance, still unverified.", reopened.Interpretation);
+        Assert.Equal("Gemini (test-model)", reopened.InterpretationAuthor);
+        Assert.Equal("Theory, questions, corpus scope, and instructions.", reopened.GeneratorPrompt);
+        Assert.Equal(generated.ToString("O"), reopened.GeneratedUtc?.ToString("O"));
+        Assert.Equal(EvidenceJudgment.Uncertain, reopened.Judgment);
     }
 }

@@ -1,3 +1,4 @@
+using ClassicaCodex.Core;
 using ClassicaCodex.Core.Models;
 using ClassicaCodex.Data.Repositories;
 
@@ -29,6 +30,9 @@ public class ResearchBenchForm : Form
     private readonly TextBox _reference = new();
     private readonly TextBox _provenance = new();
     private readonly TextBox _excerpt = new();
+    private readonly Label _originLine = new();
+    private readonly TextBox _interpretation = new();
+    private readonly TextBox _generatorPrompt = new();
     private readonly TextBox _researcherNote = new();
     private readonly Label _statusLine = new();
     private SplitContainer? _outerSplit;
@@ -175,12 +179,20 @@ public class ResearchBenchForm : Form
         var add = new Button { Text = "New evidence", Width = 105, Height = 28 };
         var remove = new Button { Text = "Remove", Width = 78, Height = 28 };
         var log = new Button { Text = "Research log", Width = 105, Height = 28 };
+        var gather = new Button { Text = "Gather evidence ▾", Width = 125, Height = 28 };
         add.Click += (_, _) => NewEvidence();
         remove.Click += async (_, _) => await RemoveEvidenceAsync();
         log.Click += (_, _) => OpenResearchLog();
+        var gatherMenu = new ContextMenuStrip();
+        gatherMenu.Items.Add("Attach saved stylometry run", null, async (_, _) => await AttachStylometryRunAsync());
+        gatherMenu.Items.Add(new ToolStripSeparator());
+        gatherMenu.Items.Add("AI: Find relevant corpus passages", null, async (_, _) => await GatherCorpusEvidenceAsync(false));
+        gatherMenu.Items.Add("AI: Challenge the working theory", null, async (_, _) => await GatherCorpusEvidenceAsync(true));
+        gather.Click += (_, _) => gatherMenu.Show(gather, new Point(0, gather.Height));
         strip.Controls.Add(add);
         strip.Controls.Add(remove);
         strip.Controls.Add(log);
+        strip.Controls.Add(gather);
 
         _evidence.Dock = DockStyle.Fill;
         _evidence.AutoGenerateColumns = false;
@@ -213,6 +225,15 @@ public class ResearchBenchForm : Form
         AddField(scroll, "Canonical reference / page / passage", _reference, ref y);
         AddArea(scroll, "Source and provenance details", _provenance, 62, ref y);
         AddArea(scroll, "Raw excerpt or factual summary", _excerpt, 105, ref y);
+        _originLine.SetBounds(10, y, 520, 22);
+        _originLine.Anchor = AnchorStyles.Left | AnchorStyles.Top | AnchorStyles.Right;
+        _originLine.Font = new Font(Font, FontStyle.Bold);
+        scroll.Controls.Add(_originLine);
+        y += 27;
+        _interpretation.ReadOnly = true;
+        AddArea(scroll, "App / AI interpretation (not raw evidence)", _interpretation, 80, ref y);
+        _generatorPrompt.ReadOnly = true;
+        AddArea(scroll, "Generation prompt and corpus scope", _generatorPrompt, 72, ref y);
         AddArea(scroll, "Researcher note / interpretation", _researcherNote, 90, ref y);
         var save = ButtonAt("Save evidence", 10, y + 4, 120);
         save.Click += async (_, _) => await SaveEvidenceAsync();
@@ -291,6 +312,217 @@ public class ResearchBenchForm : Form
 
         using var log = new ResearchLogForm(project);
         log.ShowDialog(this);
+    }
+
+    private async Task AttachStylometryRunAsync()
+    {
+        var project = CurrentProject;
+        if (project == null) return;
+        var runRepo = new StylometryRunRepository();
+        var runs = (await runRepo.GetAllRunsAsync())
+            .Where(r => r.TargetWorkId == _work.WorkId)
+            .ToList();
+        if (runs.Count == 0)
+        {
+            MessageBox.Show(this, "There are no saved stylometry runs targeting this work yet.");
+            return;
+        }
+
+        using var picker = new StylometryRunEvidencePickerForm(runs);
+        if (picker.ShowDialog(this) != DialogResult.OK || picker.SelectedRun is not { } run) return;
+
+        var stableId = $"classicacodex:stylometry-run:{run.RunId}";
+        var existing = await _repo.GetEvidenceAsync(project.ResearchProjectId);
+        if (existing.Any(e => string.Equals(e.StableIdentifier, stableId, StringComparison.OrdinalIgnoreCase)))
+        {
+            MessageBox.Show(this, "That saved run is already attached to this project.");
+            return;
+        }
+
+        var metrics = (await runRepo.GetRunMetricsAsync()).FirstOrDefault(m => m.RunId == run.RunId);
+        var neighbors = await runRepo.GetNeighborsAsync(run.RunId, 12);
+        var features = (await runRepo.GetFeaturesAsync(run.RunId)).Take(20).ToList();
+        var resultLines = new List<string>
+        {
+            $"Target: {run.TargetAuthorName}, {run.TargetWorkTitle}",
+            $"Nearest neighbour: {metrics?.NearestAuthor ?? "unknown"}, {metrics?.NearestTitle ?? "unknown"} (Δ {metrics?.DeltaFloor.ToString("0.0000") ?? "n/a"})",
+            $"Depth to first outsider: {metrics?.DepthToFirstOutsider?.ToString() ?? "none in pool"}",
+            $"Author purity among top 10: {(metrics == null ? "n/a" : metrics.AuthorPurityAt10.ToString("P1"))}",
+            "",
+            "Nearest works:"
+        };
+        resultLines.AddRange(neighbors.Select(
+            n => $"{n.Rank}. {n.AuthorName}, {n.WorkTitle} — Δ {n.Delta:0.0000}"));
+        resultLines.Add("");
+        resultLines.Add("Most frequent features:");
+        resultLines.AddRange(features.Select(
+            f => $"{f.Rank}. {f.Word} — {f.RelativeFrequency:P4}"));
+        var questionId = (_questions.SelectedItem as ResearchQuestion)?.ResearchQuestionId;
+        var item = new EvidenceItem
+        {
+            ResearchProjectId = project.ResearchProjectId,
+            ResearchQuestionId = questionId,
+            Title = string.IsNullOrWhiteSpace(run.Label)
+                ? $"Saved stylometry run #{run.RunId}" : $"Stylometry: {run.Label}",
+            Type = EvidenceType.Stylometric,
+            SourceType = "ClassicaCodex saved stylometry run",
+            StableIdentifier = stableId,
+            CanonicalReference = _work.CtsUrn,
+            Provenance = $"Saved {run.CreatedUtc:O}; {run.Settings.Describe()}; pool {run.PoolSize:N0}; " +
+                         $"target tokens {metrics?.TargetTokenCount?.ToString("N0") ?? "unknown"}. Exact run ID {run.RunId}.",
+            Excerpt = string.Join(Environment.NewLine, resultLines),
+            Judgment = EvidenceJudgment.Uncertain,
+            Relationship = EvidenceRelationship.Contextualizes,
+            Origin = EvidenceOrigin.ClassicaCodexAnalysis,
+            SortOrder = _evidence.Rows.Count
+        };
+        await _repo.SaveEvidenceAsync(item);
+        await LoadEvidenceAsync(project.ResearchProjectId, item.EvidenceItemId);
+        _statusLine.Text = $"Attached saved stylometry run #{run.RunId} as uncertain analysis evidence.";
+    }
+
+    private async Task GatherCorpusEvidenceAsync(bool challengeTheory)
+    {
+        var project = CurrentProject;
+        if (project == null) return;
+        if (string.IsNullOrWhiteSpace(TranslationSettings.GeminiApiKey))
+        {
+            using var settings = new TranslateApiSettingsForm();
+            settings.ShowDialog(this);
+            if (string.IsNullOrWhiteSpace(TranslationSettings.GeminiApiKey)) return;
+        }
+
+        var editions = await new EditionRepository().GetByWorkAsync(_work.WorkId);
+        var edition = editions.FirstOrDefault(e => e.Kind == EditionKind.Original
+            && (string.IsNullOrWhiteSpace(e.Orthography) || e.Orthography == "normalised"))
+            ?? editions.FirstOrDefault(e => e.Kind == EditionKind.Original);
+        if (edition == null)
+        {
+            MessageBox.Show(this, "This work has no original-language edition to search.");
+            return;
+        }
+
+        var nodes = await new TextNodeRepository().GetByEditionAsync(edition.EditionId, readingLinesOnly: true);
+        var (taggedCorpus, truncatedAtRef) = BuildTaggedCorpus(nodes);
+        if (string.IsNullOrWhiteSpace(taggedCorpus))
+        {
+            MessageBox.Show(this, "The selected edition contains no searchable reading text.");
+            return;
+        }
+
+        if (TranslationSettings.AlwaysConfirmBeforeSending)
+        {
+            var action = challengeTheory ? "challenge the working theory" : "find relevant passages";
+            if (MessageBox.Show(this,
+                    $"This will send the project theory, research questions, saved-evidence titles, and " +
+                    $"{taggedCorpus.Length:N0} characters from the local edition of {_work.Title} to Gemini " +
+                    $"to {action}. Returned citations will be checked against this edition before anything is saved.\n\nContinue?",
+                    "Send research context to Gemini?", MessageBoxButtons.YesNo,
+                    MessageBoxIcon.Warning) != DialogResult.Yes) return;
+        }
+
+        var questions = await _repo.GetQuestionsAsync(project.ResearchProjectId);
+        var existing = await _repo.GetEvidenceAsync(project.ResearchProjectId);
+        var hash = Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(
+            System.Text.Encoding.UTF8.GetBytes(taggedCorpus))).ToLowerInvariant();
+        _statusLine.Text = challengeTheory
+            ? "Gemini is looking for counterevidence and rival explanations…"
+            : "Gemini is looking for relevant passages in the local corpus…";
+        Enabled = false;
+        try
+        {
+            var generatedAt = DateTime.UtcNow;
+            var theoryContext = project.Name
+                + (string.IsNullOrWhiteSpace(project.Notes) ? "" : $"\nProject notes: {project.Notes}")
+                + $"\nLibrary attribution status: {_work.AttributionStatus}"
+                + (string.IsNullOrWhiteSpace(_work.AttributionNote) ? "" : $" — {_work.AttributionNote}");
+            var result = await GeminiTranslationService.FindResearchEvidenceAsync(
+                theoryContext,
+                questions.Select(q => q.Text).ToList(),
+                existing.Select(e => $"{e.Title} [{e.CanonicalReference ?? e.StableIdentifier ?? "no ref"}]").ToList(),
+                _authorName, _work.Title, edition.Language, edition.CtsUrn, hash, truncatedAtRef,
+                taggedCorpus, challengeTheory, TranslationSettings.GeminiApiKey!);
+
+            var textByRef = nodes
+                .Where(n => !string.IsNullOrWhiteSpace(n.CitationRef))
+                .GroupBy(n => n.CitationRef, StringComparer.OrdinalIgnoreCase)
+                .ToDictionary(g => g.Key, g => string.Join(" ", g.Select(n => n.Text)), StringComparer.OrdinalIgnoreCase);
+            var knownIds = existing.Select(e => e.StableIdentifier)
+                .Where(id => !string.IsNullOrWhiteSpace(id))
+                .ToHashSet(StringComparer.OrdinalIgnoreCase);
+            var added = 0;
+            var unresolved = 0;
+            foreach (var candidate in result.Candidates)
+            {
+                var citation = candidate.CitationRef.Trim().TrimStart('[').TrimEnd(']');
+                if (!textByRef.TryGetValue(citation, out var corpusText))
+                {
+                    unresolved++;
+                    continue;
+                }
+                var stableId = $"{edition.CtsUrn}:{citation}";
+                if (!knownIds.Add(stableId)) continue;
+                var relationship = Enum.TryParse<EvidenceRelationship>(candidate.Relationship, true, out var parsed)
+                    ? parsed : challengeTheory ? EvidenceRelationship.Contradicts : EvidenceRelationship.Contextualizes;
+                long? questionId = candidate.QuestionIndex is > 0
+                    && candidate.QuestionIndex <= questions.Count
+                    ? questions[candidate.QuestionIndex.Value - 1].ResearchQuestionId : null;
+                var item = new EvidenceItem
+                {
+                    ResearchProjectId = project.ResearchProjectId,
+                    ResearchQuestionId = questionId,
+                    Title = $"AI candidate: {candidate.Title}",
+                    Type = EvidenceType.PrimaryText,
+                    SourceType = "Local corpus passage; Gemini candidate",
+                    StableIdentifier = stableId,
+                    CanonicalReference = citation,
+                    Provenance = $"Verified against local edition {edition.CtsUrn}; corpus SHA-256 {hash}; " +
+                                 $"Gemini model {result.Model}; generated {generatedAt:O}; relevance confidence {candidate.Confidence}. " +
+                                 (truncatedAtRef == null ? "Complete edition searched." : $"Search truncated after {truncatedAtRef}."),
+                    Excerpt = corpusText,
+                    Judgment = EvidenceJudgment.Uncertain,
+                    Relationship = relationship,
+                    Origin = EvidenceOrigin.AiCandidate,
+                    Interpretation = candidate.Rationale,
+                    InterpretationAuthor = $"Gemini ({result.Model})",
+                    GeneratorPrompt = result.PromptProvenance,
+                    GeneratedUtc = generatedAt,
+                    SortOrder = _evidence.Rows.Count + added
+                };
+                await _repo.SaveEvidenceAsync(item);
+                added++;
+            }
+
+            await LoadEvidenceAsync(project.ResearchProjectId);
+            _statusLine.Text = added == 0
+                ? $"Gemini returned no new verified candidates ({unresolved} unresolved citation(s))."
+                : $"Added {added} uncertain AI candidate(s) for human review; rejected {unresolved} unresolved citation(s).";
+        }
+        catch (Exception ex)
+        {
+            _statusLine.Text = $"AI evidence gathering did not finish: {ex.Message}";
+        }
+        finally
+        {
+            Enabled = true;
+        }
+    }
+
+    private static (string Text, string? TruncatedAtRef) BuildTaggedCorpus(IEnumerable<TextNode> nodes)
+    {
+        const int maxCharacters = 220_000;
+        var builder = new System.Text.StringBuilder();
+        string? lastRef = null;
+        foreach (var node in nodes)
+        {
+            if (string.IsNullOrWhiteSpace(node.Text) || string.IsNullOrWhiteSpace(node.CitationRef)) continue;
+            var line = $"[{node.CitationRef}] {node.Text}\n";
+            if (builder.Length + line.Length > maxCharacters)
+                return (builder.ToString(), lastRef);
+            builder.Append(line);
+            lastRef = node.CitationRef;
+        }
+        return (builder.ToString(), null);
     }
 
     private async Task AddQuestionAsync()
@@ -410,6 +642,12 @@ public class ResearchBenchForm : Form
         _reference.Text = item?.CanonicalReference ?? "";
         _provenance.Text = item?.Provenance ?? "";
         _excerpt.Text = item?.Excerpt ?? "";
+        _originLine.Text = item == null
+            ? "Origin: manual evidence"
+            : $"Origin: {item.Origin}" + (string.IsNullOrWhiteSpace(item.InterpretationAuthor)
+                ? "" : $" — interpretation by {item.InterpretationAuthor}");
+        _interpretation.Text = item?.Interpretation ?? "";
+        _generatorPrompt.Text = item?.GeneratorPrompt ?? "";
         _researcherNote.Text = item?.ResearcherNote ?? "";
     }
 

@@ -39,6 +39,13 @@ public enum EvidenceRelationship
     Supersedes
 }
 
+public enum EvidenceOrigin
+{
+    Manual,
+    ClassicaCodexAnalysis,
+    AiCandidate
+}
+
 public enum ResearchLogEntryKind
 {
     ManualNote,
@@ -101,6 +108,11 @@ public class EvidenceItem
     public EvidenceJudgment Judgment { get; set; } = EvidenceJudgment.Uncertain;
     public EvidenceRelationship Relationship { get; set; } = EvidenceRelationship.Contextualizes;
     public string? ResearcherNote { get; set; }
+    public EvidenceOrigin Origin { get; set; } = EvidenceOrigin.Manual;
+    public string? Interpretation { get; set; }
+    public string? InterpretationAuthor { get; set; }
+    public string? GeneratorPrompt { get; set; }
+    public DateTime? GeneratedUtc { get; set; }
     public int SortOrder { get; set; }
     public DateTime CreatedUtc { get; set; }
     public DateTime UpdatedUtc { get; set; }

@@ -223,10 +223,14 @@ public class ResearchRepository
         var result = new List<EvidenceItem>();
         await using var conn = await DbConnectionFactory.OpenConnectionAsync(cancellationToken);
         await using var cmd = conn.CreateCommand();
-        cmd.CommandText = @"SELECT EvidenceItemId, ResearchProjectId, ResearchQuestionId, Title,
-            EvidenceType, SourceType, StableIdentifier, CanonicalReference, Provenance, Excerpt,
-            Judgment, Relationship, ResearcherNote, SortOrder, CreatedUtc, UpdatedUtc
-            FROM EvidenceItems WHERE ResearchProjectId=@ProjectId ORDER BY SortOrder, EvidenceItemId;";
+        cmd.CommandText = @"SELECT e.EvidenceItemId, e.ResearchProjectId, e.ResearchQuestionId, e.Title,
+            e.EvidenceType, e.SourceType, e.StableIdentifier, e.CanonicalReference, e.Provenance, e.Excerpt,
+            e.Judgment, e.Relationship, e.ResearcherNote, e.SortOrder, e.CreatedUtc, e.UpdatedUtc,
+            COALESCE(m.Origin, 'manual'), m.Interpretation, m.InterpretationAuthor,
+            m.GeneratorPrompt, m.GeneratedUtc
+            FROM EvidenceItems e
+            LEFT JOIN EvidenceGenerationMetadata m ON m.EvidenceItemId=e.EvidenceItemId
+            WHERE e.ResearchProjectId=@ProjectId ORDER BY e.SortOrder, e.EvidenceItemId;";
         cmd.Parameters.AddWithValue("@ProjectId", projectId);
         await using var reader = await cmd.ExecuteReaderAsync(cancellationToken);
         while (await reader.ReadAsync(cancellationToken)) result.Add(ReadEvidence(reader));
@@ -275,6 +279,7 @@ public class ResearchRepository
         cmd.Parameters.AddWithValue("@Now", now.ToString("O"));
         var id = Convert.ToInt64(await cmd.ExecuteScalarAsync(cancellationToken));
         item.EvidenceItemId = id;
+        await SaveEvidenceGenerationMetadataAsync(conn, item, cancellationToken);
         await TouchProjectAsync(conn, item.ResearchProjectId, cancellationToken);
         await AppendLogAsync(conn, new ResearchLogEntry
         {
@@ -374,7 +379,12 @@ public class ResearchRepository
         Judgment=Parse(reader.GetString(10), EvidenceJudgment.Uncertain),
         Relationship=Parse(reader.GetString(11), EvidenceRelationship.Contextualizes),
         ResearcherNote=reader.IsDBNull(12)?null:reader.GetString(12), SortOrder=reader.GetInt32(13),
-        CreatedUtc=ParseDate(reader.GetString(14)), UpdatedUtc=ParseDate(reader.GetString(15))
+        CreatedUtc=ParseDate(reader.GetString(14)), UpdatedUtc=ParseDate(reader.GetString(15)),
+        Origin=Parse(reader.GetString(16), EvidenceOrigin.Manual),
+        Interpretation=reader.IsDBNull(17)?null:reader.GetString(17),
+        InterpretationAuthor=reader.IsDBNull(18)?null:reader.GetString(18),
+        GeneratorPrompt=reader.IsDBNull(19)?null:reader.GetString(19),
+        GeneratedUtc=reader.IsDBNull(20)?null:ParseDate(reader.GetString(20))
     };
 
     private static object Db(string? value) => string.IsNullOrWhiteSpace(value) ? DBNull.Value : value.Trim();
@@ -414,5 +424,39 @@ public class ResearchRepository
         entry.ResearchLogEntryId = id;
         entry.CreatedUtc = created;
         return id;
+    }
+
+    private static async Task SaveEvidenceGenerationMetadataAsync(
+        SqliteConnection conn, EvidenceItem item, CancellationToken cancellationToken)
+    {
+        await using var cmd = conn.CreateCommand();
+        var hasMetadata = item.Origin != EvidenceOrigin.Manual
+            || !string.IsNullOrWhiteSpace(item.Interpretation)
+            || !string.IsNullOrWhiteSpace(item.InterpretationAuthor)
+            || !string.IsNullOrWhiteSpace(item.GeneratorPrompt)
+            || item.GeneratedUtc != null;
+        if (!hasMetadata)
+        {
+            cmd.CommandText = "DELETE FROM EvidenceGenerationMetadata WHERE EvidenceItemId=@Id;";
+            cmd.Parameters.AddWithValue("@Id", item.EvidenceItemId);
+            await cmd.ExecuteNonQueryAsync(cancellationToken);
+            return;
+        }
+
+        cmd.CommandText = @"INSERT INTO EvidenceGenerationMetadata
+            (EvidenceItemId,Origin,Interpretation,InterpretationAuthor,GeneratorPrompt,GeneratedUtc)
+            VALUES (@Id,@Origin,@Interpretation,@Author,@Prompt,@GeneratedUtc)
+            ON CONFLICT(EvidenceItemId) DO UPDATE SET
+                Origin=excluded.Origin, Interpretation=excluded.Interpretation,
+                InterpretationAuthor=excluded.InterpretationAuthor,
+                GeneratorPrompt=excluded.GeneratorPrompt, GeneratedUtc=excluded.GeneratedUtc;";
+        cmd.Parameters.AddWithValue("@Id", item.EvidenceItemId);
+        cmd.Parameters.AddWithValue("@Origin", Store(item.Origin));
+        cmd.Parameters.AddWithValue("@Interpretation", Db(item.Interpretation));
+        cmd.Parameters.AddWithValue("@Author", Db(item.InterpretationAuthor));
+        cmd.Parameters.AddWithValue("@Prompt", Db(item.GeneratorPrompt));
+        cmd.Parameters.AddWithValue("@GeneratedUtc",
+            item.GeneratedUtc is null ? DBNull.Value : item.GeneratedUtc.Value.ToString("O"));
+        await cmd.ExecuteNonQueryAsync(cancellationToken);
     }
 }

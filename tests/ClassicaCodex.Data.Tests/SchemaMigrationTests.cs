@@ -244,7 +244,8 @@ public class SchemaMigrationTests
             "ArtifactImages", "Lemmas", "Definitions",
             "StylometryRuns", "StylometryRunResults", "StylometryRunFeatures",
             "StylometryExperiments", "StylometryExperimentRows",
-            "ResearchProjects", "ResearchQuestions", "EvidenceItems", "ResearchLogEntries"
+            "ResearchProjects", "ResearchQuestions", "EvidenceItems",
+            "EvidenceGenerationMetadata", "ResearchLogEntries"
         };
 
         await using var conn = await DbConnectionFactory.OpenConnectionAsync();

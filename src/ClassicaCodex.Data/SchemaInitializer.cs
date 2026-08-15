@@ -55,7 +55,7 @@ public static class SchemaInitializer
     /// 7 to 13 until version 3 was cut, at which point they all failed at
     /// once and said nothing about what had actually broken.
     /// </summary>
-    public const int TargetSchemaVersion = 19;
+    public const int TargetSchemaVersion = 20;
 
     public static async Task EnsureSchemaAsync(CancellationToken cancellationToken = default)
     {
@@ -800,6 +800,16 @@ public static class SchemaInitializer
         {
             ResearchLogEntriesDdl,
             "CREATE INDEX IF NOT EXISTS IX_ResearchLogEntries_Project ON ResearchLogEntries (ResearchProjectId, CreatedUtc, ResearchLogEntryId);"
+        },
+
+        // v20: generated evidence keeps raw corpus material separate from an
+        // app/AI interpretation and records who/what produced that candidate.
+        // A companion table makes this additive and leaves every existing
+        // manual EvidenceItems row valid without a backfill.
+        [20] = new[]
+        {
+            EvidenceGenerationMetadataDdl,
+            "CREATE INDEX IF NOT EXISTS IX_EvidenceGenerationMetadata_Origin ON EvidenceGenerationMetadata (Origin);"
         }
     };
 
@@ -849,6 +859,17 @@ public static class SchemaInitializer
             REFERENCES ResearchQuestions(ResearchQuestionId) ON DELETE SET NULL
     );";
 
+    private const string EvidenceGenerationMetadataDdl = @"CREATE TABLE IF NOT EXISTS EvidenceGenerationMetadata (
+        EvidenceItemId INTEGER PRIMARY KEY,
+        Origin TEXT NOT NULL DEFAULT 'manual',
+        Interpretation TEXT NULL,
+        InterpretationAuthor TEXT NULL,
+        GeneratorPrompt TEXT NULL,
+        GeneratedUtc TEXT NULL,
+        CONSTRAINT FK_EvidenceGenerationMetadata_Evidence FOREIGN KEY (EvidenceItemId)
+            REFERENCES EvidenceItems(EvidenceItemId) ON DELETE CASCADE
+    );";
+
     private const string ResearchLogEntriesDdl = @"CREATE TABLE IF NOT EXISTS ResearchLogEntries (
         ResearchLogEntryId INTEGER PRIMARY KEY,
         ResearchProjectId INTEGER NOT NULL,
@@ -871,11 +892,13 @@ public static class SchemaInitializer
         ResearchProjectsDdl,
         ResearchQuestionsDdl,
         EvidenceItemsDdl,
+        EvidenceGenerationMetadataDdl,
         ResearchLogEntriesDdl,
         "CREATE INDEX IF NOT EXISTS IX_ResearchProjects_Work ON ResearchProjects (WorkId, Status, UpdatedUtc);",
         "CREATE INDEX IF NOT EXISTS IX_ResearchQuestions_Project ON ResearchQuestions (ResearchProjectId, SortOrder);",
         "CREATE INDEX IF NOT EXISTS IX_EvidenceItems_Project ON EvidenceItems (ResearchProjectId, SortOrder);",
         "CREATE INDEX IF NOT EXISTS IX_EvidenceItems_Question ON EvidenceItems (ResearchQuestionId);",
+        "CREATE INDEX IF NOT EXISTS IX_EvidenceGenerationMetadata_Origin ON EvidenceGenerationMetadata (Origin);",
         "CREATE INDEX IF NOT EXISTS IX_ResearchLogEntries_Project ON ResearchLogEntries (ResearchProjectId, CreatedUtc, ResearchLogEntryId);",
 
         // The statements below are also created by migrations, and have to
