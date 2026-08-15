@@ -458,7 +458,7 @@ internal sealed class ResearchPassagePickerForm : Form
     private readonly TextBox _filter = new();
     private readonly DataGridView _nodes = new();
     private List<TextNode> _allNodes = [];
-    public Edition? SelectedEdition => _editions.SelectedItem as Edition;
+    public Edition? SelectedEdition => (_editions.SelectedItem as EditionChoice)?.Edition;
     public TextNode? SelectedNode => _nodes.CurrentRow?.DataBoundItem as TextNode;
 
     public ResearchPassagePickerForm(Work work)
@@ -467,12 +467,6 @@ internal sealed class ResearchPassagePickerForm : Form
         MinimumSize = new Size(700, 500); StartPosition = FormStartPosition.CenterParent;
         var top = new Panel { Dock = DockStyle.Top, Height = 72, Padding = new Padding(8) };
         _editions.SetBounds(8, 8, 410, 26); _editions.DropDownStyle = ComboBoxStyle.DropDownList;
-        _editions.FormattingEnabled = true;
-        _editions.Format += (_, e) =>
-        {
-            if (e.ListItem is Edition edition)
-                e.Value = FormatEdition(edition);
-        };
         _filter.SetBounds(428, 8, 440, 26); _filter.PlaceholderText = "Filter citation or text";
         top.Controls.AddRange([_editions, _filter]);
         _nodes.Dock = DockStyle.Fill; _nodes.AutoGenerateColumns = false; _nodes.ReadOnly = true;
@@ -489,7 +483,7 @@ internal sealed class ResearchPassagePickerForm : Form
         Shown += async (_, _) =>
         {
             var editions = await new EditionRepository().GetByWorkAsync(_work.WorkId);
-            _editions.DataSource = editions;
+            _editions.DataSource = editions.Select(edition => new EditionChoice(edition)).ToList();
             if (editions.Count == 0) MessageBox.Show(this, "No ingested editions are available for this work.", "Choose passage");
         };
     }
@@ -509,14 +503,17 @@ internal sealed class ResearchPassagePickerForm : Form
                                    n.Text.Contains(query, StringComparison.OrdinalIgnoreCase)).ToList();
     }
 
-    private static string FormatEdition(Edition edition)
+    private sealed record EditionChoice(Edition Edition)
     {
-        var description = new List<string>();
-        if (!string.IsNullOrWhiteSpace(edition.Language))
-            description.Add(edition.Language);
-        description.Add(edition.Kind.ToString());
-        if (!string.IsNullOrWhiteSpace(edition.Translator))
-            description.Add($"trans. {edition.Translator}");
-        return $"{string.Join(" · ", description)} — {edition.CtsUrn}";
+        public override string ToString()
+        {
+            var description = new List<string>();
+            if (!string.IsNullOrWhiteSpace(Edition.Language))
+                description.Add(Edition.Language);
+            description.Add(Edition.Kind.ToString());
+            if (!string.IsNullOrWhiteSpace(Edition.Translator))
+                description.Add($"trans. {Edition.Translator}");
+            return $"{string.Join(" · ", description)} — {Edition.CtsUrn}";
+        }
     }
 }
