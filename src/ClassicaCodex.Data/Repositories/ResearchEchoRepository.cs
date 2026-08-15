@@ -6,6 +6,37 @@ namespace ClassicaCodex.Data.Repositories;
 
 public sealed class ResearchEchoRepository
 {
+    public async Task<List<IntertextualAtlasConnection>> GetAtlasConnectionsAsync(
+        long? projectId = null, CancellationToken cancellationToken = default)
+    {
+        var projects = new List<(ResearchProject Project, string Author, string Work)>();
+        await using (var conn = await DbConnectionFactory.OpenConnectionAsync(cancellationToken))
+        await using (var cmd = conn.CreateCommand())
+        {
+            cmd.CommandText = @"SELECT p.ResearchProjectId,p.WorkId,p.Name,p.Status,p.Notes,p.CreatedUtc,p.UpdatedUtc,
+                a.Name,w.Title FROM ResearchProjects p JOIN Works w ON w.WorkId=p.WorkId
+                JOIN Authors a ON a.AuthorId=w.AuthorId
+                WHERE (@Project IS NULL OR p.ResearchProjectId=@Project)
+                ORDER BY p.ResearchProjectId;";
+            cmd.Parameters.AddWithValue("@Project", projectId is null ? DBNull.Value : projectId.Value);
+            await using var reader = await cmd.ExecuteReaderAsync(cancellationToken);
+            while (await reader.ReadAsync(cancellationToken))
+                projects.Add((new ResearchProject
+                {
+                    ResearchProjectId = reader.GetInt64(0), WorkId = reader.GetInt32(1), Name = reader.GetString(2),
+                    Status = Parse(reader.GetString(3), ResearchProjectStatus.Active), Notes = Text(reader, 4),
+                    CreatedUtc = Date(reader, 5)!.Value, UpdatedUtc = Date(reader, 6)!.Value
+                }, reader.GetString(7), reader.GetString(8)));
+        }
+
+        var connections = new List<IntertextualAtlasConnection>();
+        foreach (var (project, author, work) in projects)
+        foreach (var investigation in await GetInvestigationsAsync(project.ResearchProjectId, cancellationToken))
+        foreach (var result in await GetResultsAsync(investigation.ResearchEchoInvestigationId, cancellationToken))
+            connections.Add(new IntertextualAtlasConnection(project, author, work, investigation, result));
+        return connections;
+    }
+
     public async Task<List<ResearchEchoInvestigation>> GetInvestigationsAsync(
         long projectId, CancellationToken cancellationToken = default)
     {

@@ -978,6 +978,10 @@ public class ResearchRepositoryTests
         Assert.Equal(analysisId, storedAnalysis.ResearchEchoParallelAnalysisId);
         Assert.Equal("Generic tragic convention", storedAnalysis.AlternativeExplanations);
         Assert.Equal(ResearchEchoConnectionType.Imagistic, storedAnalysis.SuggestedConnectionType);
+        var atlas = Assert.Single(await repo.GetAtlasConnectionsAsync(project.ResearchProjectId));
+        Assert.Equal("Euripides — Rhesus", atlas.SourceLabel);
+        Assert.Equal("Aeschylus — Agamemnon", atlas.TargetLabel);
+        Assert.Equal(["night watch", "deception"], atlas.Motifs);
 
         var evidence = new EvidenceItem { ResearchProjectId = project.ResearchProjectId, Title = "Paired passages" };
         var evidenceId = await research.SaveEvidenceAsync(evidence);

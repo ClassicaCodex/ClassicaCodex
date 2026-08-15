@@ -203,6 +203,7 @@ public class ResearchBenchForm : Form
         projectMenu.Items.Add("Corpus snapshots…", null, (_, _) => OpenCorpusSnapshots());
         projectMenu.Items.Add("Reading queue & passage notebook…", null, async (_, _) => await OpenReadingQueueAsync());
         projectMenu.Items.Add("Echo investigations…", null, (_, _) => OpenEchoInvestigations());
+        projectMenu.Items.Add("Intertextual Atlas…", null, (_, _) => OpenIntertextualAtlas());
         projectMenu.Items.Add("Synthesis & findings…", null, (_, _) => OpenSynthesis());
         projectMenu.Items.Add(new ToolStripSeparator());
         projectMenu.Items.Add("Project audit", null, async (_, _) => await OpenProjectAuditAsync());
@@ -837,6 +838,20 @@ public class ResearchBenchForm : Form
         var project = CurrentProject;
         if (project == null) { MessageBox.Show(this, "Select or create a research project first."); return; }
         using var form = new ResearchEchoInvestigationsForm(project, _work, _authorName);
+        form.ShowDialog(this);
+        if (form.NavigationTarget is { } target)
+        {
+            NavigationTarget = target;
+            DialogResult = DialogResult.OK;
+            Close();
+        }
+    }
+
+    private void OpenIntertextualAtlas()
+    {
+        var project = CurrentProject;
+        if (project == null) { MessageBox.Show(this, "Select or create a research project first."); return; }
+        using var form = new IntertextualAtlasForm(project);
         form.ShowDialog(this);
         if (form.NavigationTarget is { } target)
         {
