@@ -20,8 +20,8 @@ public sealed class ResearchReadingQueueForm : Form
     private readonly TextBox _purpose = new();
     private readonly TextBox _identifier = new();
     private readonly TextBox _locator = new();
-    private readonly TextBox _quotation = new();
-    private readonly TextBox _notes = new();
+    private readonly TextBox _quotation = new() { Name = "SourceQuotationTextBox" };
+    private readonly TextBox _notes = new() { Name = "ResearcherReadingNotesTextBox" };
     private readonly Label _kindLine = new();
     private readonly Label _promotionLine = new();
     private ResearchReadingItem? _editing;
@@ -119,8 +119,10 @@ public sealed class ResearchReadingQueueForm : Form
         AddArea(scroll, "Why read this?", _purpose, 65, ref y);
         AddField(scroll, "Stable identifier / URL", _identifier, ref y);
         AddField(scroll, "Locator", _locator, ref y);
-        AddArea(scroll, "Quotation or passage", _quotation, 105, ref y);
-        AddArea(scroll, "Reading notes", _notes, 125, ref y);
+        AddMemoGroup(scroll, "Source quotation or corpus passage", _quotation,
+            "Text from the source. Keep your interpretation in Reading notes below.", 115, ref y);
+        AddMemoGroup(scroll, "Your reading notes", _notes,
+            "Your observations and interpretation; saved separately from the source text.", 135, ref y);
         _promotionLine.SetBounds(10, y, 680, 40);
         _promotionLine.ForeColor = ReadingTheme.MutedText;
         scroll.Controls.Add(_promotionLine);
@@ -185,6 +187,7 @@ public sealed class ResearchReadingQueueForm : Form
             LinkedEvidenceItemId = source.EvidenceItemId,
             StableIdentifier = source.StableIdentifier,
             Locator = source.CanonicalReference,
+            Quotation = source.Excerpt,
             SortOrder = _items.Rows.Count
         };
         await _queueRepo.SaveAsync(item);
@@ -218,8 +221,13 @@ public sealed class ResearchReadingQueueForm : Form
         _editing.Purpose = Clean(_purpose.Text);
         _editing.StableIdentifier = Clean(_identifier.Text);
         _editing.Locator = Clean(_locator.Text);
-        _editing.Quotation = Clean(_quotation.Text);
-        _editing.Notes = Clean(_notes.Text);
+        // Capture both controls before awaiting persistence or rebinding the
+        // grid. They are deliberately separate: source text is never a
+        // substitute for the researcher's reading note.
+        var sourceQuotation = Clean(_quotation.Text);
+        var readingNotes = Clean(_notes.Text);
+        _editing.Quotation = sourceQuotation;
+        _editing.Notes = readingNotes;
         await _queueRepo.SaveAsync(_editing);
         await LoadAsync(_editing.ResearchReadingItemId);
     }
@@ -371,6 +379,38 @@ public sealed class ResearchReadingQueueForm : Form
         box.SetBounds(10, y, 680, height); box.Multiline = true; box.ScrollBars = ScrollBars.Vertical;
         box.Anchor = AnchorStyles.Left | AnchorStyles.Top | AnchorStyles.Right;
         host.Controls.Add(box); y += height + 10;
+    }
+
+    private static void AddMemoGroup(Control host, string title, TextBox box,
+        string explanation, int height, ref int y)
+    {
+        var group = new GroupBox
+        {
+            Text = title,
+            Left = 10,
+            Top = y,
+            Width = 680,
+            Height = height,
+            Anchor = AnchorStyles.Left | AnchorStyles.Top | AnchorStyles.Right
+        };
+        var help = new Label
+        {
+            Text = explanation,
+            Left = 9,
+            Top = 21,
+            Width = 650,
+            Height = 19,
+            ForeColor = ReadingTheme.MutedText,
+            Anchor = AnchorStyles.Left | AnchorStyles.Top | AnchorStyles.Right
+        };
+        box.SetBounds(9, 42, 660, height - 51);
+        box.Multiline = true;
+        box.ScrollBars = ScrollBars.Vertical;
+        box.Anchor = AnchorStyles.Left | AnchorStyles.Top | AnchorStyles.Right | AnchorStyles.Bottom;
+        group.Controls.Add(help);
+        group.Controls.Add(box);
+        host.Controls.Add(group);
+        y += height + 10;
     }
 
     private static void AddCombo(Control host, string label, ComboBox box, ref int y)

@@ -699,6 +699,7 @@ public class ResearchRepositoryTests
         await queue.SaveAsync(reading);
         var reopened = Assert.Single(await new ResearchReadingQueueRepository().GetAsync(project.ResearchProjectId));
         Assert.Equal(ResearchReadingPriority.High, reopened.Priority);
+        Assert.Equal("A citable passage", reopened.Quotation);
         Assert.Equal("Human reading note", reopened.Notes);
         Assert.Null(reopened.PromotedEvidenceItemId);
 
@@ -722,6 +723,34 @@ public class ResearchRepositoryTests
         await research.DeleteEvidenceAsync(evidence.EvidenceItemId);
         reopened = Assert.Single(await queue.GetAsync(project.ResearchProjectId));
         Assert.Null(reopened.PromotedEvidenceItemId);
+    }
+
+    [Fact]
+    public async Task ReadingNotesDoNotRoundTripIntoTheQuotationColumn()
+    {
+        using var db = await TempDatabase.CreateAsync();
+        await db.SeedEditionAsync();
+        var research = new ResearchRepository();
+        var project = new ResearchProject
+        {
+            WorkId = await db.WorkIdForAsync("test1"),
+            Name = "Field mapping"
+        };
+        await research.SaveProjectAsync(project);
+        var queue = new ResearchReadingQueueRepository();
+        var reading = new ResearchReadingItem
+        {
+            ResearchProjectId = project.ResearchProjectId,
+            Kind = ResearchReadingKind.ExternalSource,
+            Title = "Notes-only source",
+            Notes = "This belongs only in reading notes."
+        };
+
+        await queue.SaveAsync(reading);
+
+        var reopened = Assert.Single(await queue.GetAsync(project.ResearchProjectId));
+        Assert.Null(reopened.Quotation);
+        Assert.Equal("This belongs only in reading notes.", reopened.Notes);
     }
 
     [Fact]
