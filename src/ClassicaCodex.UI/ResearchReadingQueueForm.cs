@@ -467,6 +467,12 @@ internal sealed class ResearchPassagePickerForm : Form
         MinimumSize = new Size(700, 500); StartPosition = FormStartPosition.CenterParent;
         var top = new Panel { Dock = DockStyle.Top, Height = 72, Padding = new Padding(8) };
         _editions.SetBounds(8, 8, 410, 26); _editions.DropDownStyle = ComboBoxStyle.DropDownList;
+        _editions.FormattingEnabled = true;
+        _editions.Format += (_, e) =>
+        {
+            if (e.ListItem is Edition edition)
+                e.Value = FormatEdition(edition);
+        };
         _filter.SetBounds(428, 8, 440, 26); _filter.PlaceholderText = "Filter citation or text";
         top.Controls.AddRange([_editions, _filter]);
         _nodes.Dock = DockStyle.Fill; _nodes.AutoGenerateColumns = false; _nodes.ReadOnly = true;
@@ -483,7 +489,7 @@ internal sealed class ResearchPassagePickerForm : Form
         Shown += async (_, _) =>
         {
             var editions = await new EditionRepository().GetByWorkAsync(_work.WorkId);
-            _editions.DataSource = editions; _editions.DisplayMember = nameof(Edition.CtsUrn);
+            _editions.DataSource = editions;
             if (editions.Count == 0) MessageBox.Show(this, "No ingested editions are available for this work.", "Choose passage");
         };
     }
@@ -501,5 +507,16 @@ internal sealed class ResearchPassagePickerForm : Form
         _nodes.DataSource = string.IsNullOrEmpty(query) ? _allNodes
             : _allNodes.Where(n => n.CitationRef.Contains(query, StringComparison.OrdinalIgnoreCase) ||
                                    n.Text.Contains(query, StringComparison.OrdinalIgnoreCase)).ToList();
+    }
+
+    private static string FormatEdition(Edition edition)
+    {
+        var description = new List<string>();
+        if (!string.IsNullOrWhiteSpace(edition.Language))
+            description.Add(edition.Language);
+        description.Add(edition.Kind.ToString());
+        if (!string.IsNullOrWhiteSpace(edition.Translator))
+            description.Add($"trans. {edition.Translator}");
+        return $"{string.Join(" · ", description)} — {edition.CtsUrn}";
     }
 }
