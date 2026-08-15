@@ -189,6 +189,8 @@ public class ResearchBenchForm : Form
         remove.Click += async (_, _) => await RemoveEvidenceAsync();
         var projectMenu = new ContextMenuStrip();
         projectMenu.Items.Add("Scholarly claims matrix", null, (_, _) => OpenScholarlyClaims());
+        projectMenu.Items.Add("Import RIS / BibTeX bibliography…", null, async (_, _) => await OpenBibliographyImportAsync());
+        projectMenu.Items.Add(new ToolStripSeparator());
         projectMenu.Items.Add("Project audit", null, async (_, _) => await OpenProjectAuditAsync());
         projectMenu.Items.Add("Research log", null, (_, _) => OpenResearchLog());
         projectTools.Click += (_, _) => projectMenu.Show(projectTools, new Point(0, projectTools.Height));
@@ -353,6 +355,24 @@ public class ResearchBenchForm : Form
 
         using var claims = new ScholarlyClaimsForm(project);
         claims.ShowDialog(this);
+    }
+
+    private async Task OpenBibliographyImportAsync()
+    {
+        var project = CurrentProject;
+        if (project == null)
+        {
+            MessageBox.Show(this, "Open or create a research project first.");
+            return;
+        }
+
+        using var import = new BibliographyImportForm(project);
+        import.ShowDialog(this);
+        if (import.ImportedCount > 0)
+        {
+            await LoadEvidenceAsync(project.ResearchProjectId);
+            _statusLine.Text = $"Imported {import.ImportedCount} scholarship source(s); review remains uncertain.";
+        }
     }
 
     private async Task OpenProjectAuditAsync()
