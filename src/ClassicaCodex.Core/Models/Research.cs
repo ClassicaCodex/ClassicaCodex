@@ -58,7 +58,10 @@ public enum ResearchLogEntryKind
     QuestionsReordered,
     EvidenceAdded,
     EvidenceUpdated,
-    EvidenceRemoved
+    EvidenceRemoved,
+    ClaimAdded,
+    ClaimUpdated,
+    ClaimRemoved
 }
 
 /// <summary>A persistent line of inquiry attached to one work.</summary>
@@ -129,4 +132,25 @@ public class ResearchLogEntry
     public long? ResearchQuestionId { get; set; }
     public long? EvidenceItemId { get; set; }
     public DateTime CreatedUtc { get; set; }
+}
+
+/// <summary>
+/// A proposition attributed to a scholar or scholarly source. The claim is
+/// distinct from both the source evidence record and the researcher's review.
+/// </summary>
+public class ScholarlyClaim
+{
+    public long ScholarlyClaimId { get; set; }
+    public long ResearchProjectId { get; set; }
+    public long? ResearchQuestionId { get; set; }
+    public long? SourceEvidenceItemId { get; set; }
+    public string Claimant { get; set; } = string.Empty;
+    public string ClaimText { get; set; } = string.Empty;
+    public string? Locator { get; set; }
+    public EvidenceRelationship Relationship { get; set; } = EvidenceRelationship.Contextualizes;
+    public EvidenceJudgment Judgment { get; set; } = EvidenceJudgment.Uncertain;
+    public string? Notes { get; set; }
+    public int SortOrder { get; set; }
+    public DateTime CreatedUtc { get; set; }
+    public DateTime UpdatedUtc { get; set; }
 }

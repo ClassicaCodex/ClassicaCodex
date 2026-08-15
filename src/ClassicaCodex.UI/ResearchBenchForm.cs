@@ -183,13 +183,15 @@ public class ResearchBenchForm : Form
         var strip = new FlowLayoutPanel { Dock = DockStyle.Top, Height = 40, Padding = new Padding(4) };
         var add = new Button { Text = "New evidence", Width = 95, Height = 28 };
         var remove = new Button { Text = "Remove", Width = 70, Height = 28 };
-        var log = new Button { Text = "Research log", Width = 92, Height = 28 };
-        var audit = new Button { Text = "Audit", Width = 65, Height = 28 };
+        var projectTools = new Button { Text = "Project ▾", Width = 92, Height = 28 };
         var gather = new Button { Text = "Gather evidence ▾", Width = 120, Height = 28 };
         add.Click += (_, _) => NewEvidence();
         remove.Click += async (_, _) => await RemoveEvidenceAsync();
-        log.Click += (_, _) => OpenResearchLog();
-        audit.Click += async (_, _) => await OpenProjectAuditAsync();
+        var projectMenu = new ContextMenuStrip();
+        projectMenu.Items.Add("Scholarly claims matrix", null, (_, _) => OpenScholarlyClaims());
+        projectMenu.Items.Add("Project audit", null, async (_, _) => await OpenProjectAuditAsync());
+        projectMenu.Items.Add("Research log", null, (_, _) => OpenResearchLog());
+        projectTools.Click += (_, _) => projectMenu.Show(projectTools, new Point(0, projectTools.Height));
         var gatherMenu = new ContextMenuStrip();
         gatherMenu.Items.Add("Attach saved stylometry run", null, async (_, _) => await AttachStylometryRunAsync());
         gatherMenu.Items.Add(new ToolStripSeparator());
@@ -198,8 +200,7 @@ public class ResearchBenchForm : Form
         gather.Click += (_, _) => gatherMenu.Show(gather, new Point(0, gather.Height));
         strip.Controls.Add(add);
         strip.Controls.Add(remove);
-        strip.Controls.Add(log);
-        strip.Controls.Add(audit);
+        strip.Controls.Add(projectTools);
         strip.Controls.Add(gather);
 
         _evidence.Dock = DockStyle.Fill;
@@ -341,14 +342,35 @@ public class ResearchBenchForm : Form
         log.ShowDialog(this);
     }
 
+    private void OpenScholarlyClaims()
+    {
+        var project = CurrentProject;
+        if (project == null)
+        {
+            MessageBox.Show(this, "Open or create a research project first.");
+            return;
+        }
+
+        using var claims = new ScholarlyClaimsForm(project);
+        claims.ShowDialog(this);
+    }
+
     private async Task OpenProjectAuditAsync()
     {
         var project = CurrentProject;
         if (project == null) return;
         var questions = await _repo.GetQuestionsAsync(project.ResearchProjectId);
         var evidence = await _repo.GetEvidenceAsync(project.ResearchProjectId);
-        using var form = new ResearchAuditForm(project, questions, evidence);
+        var claims = await _repo.GetScholarlyClaimsAsync(project.ResearchProjectId);
+        using var form = new ResearchAuditForm(project, questions, evidence, claims);
         if (form.ShowDialog(this) != DialogResult.OK) return;
+
+        if (form.SelectedClaimId is long claimId)
+        {
+            using var claimsForm = new ScholarlyClaimsForm(project, claimId);
+            claimsForm.ShowDialog(this);
+            return;
+        }
 
         if (form.SelectedEvidenceId is long evidenceId)
         {

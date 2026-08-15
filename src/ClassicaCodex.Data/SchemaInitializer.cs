@@ -55,7 +55,7 @@ public static class SchemaInitializer
     /// 7 to 13 until version 3 was cut, at which point they all failed at
     /// once and said nothing about what had actually broken.
     /// </summary>
-    public const int TargetSchemaVersion = 20;
+    public const int TargetSchemaVersion = 21;
 
     public static async Task EnsureSchemaAsync(CancellationToken cancellationToken = default)
     {
@@ -810,6 +810,17 @@ public static class SchemaInitializer
         {
             EvidenceGenerationMetadataDdl,
             "CREATE INDEX IF NOT EXISTS IX_EvidenceGenerationMetadata_Origin ON EvidenceGenerationMetadata (Origin);"
+        },
+
+        // v21: propositions attributed to scholarship are not themselves raw
+        // evidence. Keeping them in a claims matrix preserves the source,
+        // stance, exact locator and the researcher's verification separately.
+        [21] = new[]
+        {
+            ScholarlyClaimsDdl,
+            "CREATE INDEX IF NOT EXISTS IX_ScholarlyClaims_Project ON ScholarlyClaims (ResearchProjectId, SortOrder, ScholarlyClaimId);",
+            "CREATE INDEX IF NOT EXISTS IX_ScholarlyClaims_Question ON ScholarlyClaims (ResearchQuestionId);",
+            "CREATE INDEX IF NOT EXISTS IX_ScholarlyClaims_Source ON ScholarlyClaims (SourceEvidenceItemId);"
         }
     };
 
@@ -887,6 +898,28 @@ public static class SchemaInitializer
             REFERENCES EvidenceItems(EvidenceItemId) ON DELETE SET NULL
     );";
 
+    private const string ScholarlyClaimsDdl = @"CREATE TABLE IF NOT EXISTS ScholarlyClaims (
+        ScholarlyClaimId INTEGER PRIMARY KEY,
+        ResearchProjectId INTEGER NOT NULL,
+        ResearchQuestionId INTEGER NULL,
+        SourceEvidenceItemId INTEGER NULL,
+        Claimant TEXT NOT NULL,
+        ClaimText TEXT NOT NULL,
+        Locator TEXT NULL,
+        Relationship TEXT NOT NULL DEFAULT 'contextualizes',
+        Judgment TEXT NOT NULL DEFAULT 'uncertain',
+        Notes TEXT NULL,
+        SortOrder INTEGER NOT NULL DEFAULT 0,
+        CreatedUtc TEXT NOT NULL,
+        UpdatedUtc TEXT NOT NULL,
+        CONSTRAINT FK_ScholarlyClaims_Projects FOREIGN KEY (ResearchProjectId)
+            REFERENCES ResearchProjects(ResearchProjectId) ON DELETE CASCADE,
+        CONSTRAINT FK_ScholarlyClaims_Questions FOREIGN KEY (ResearchQuestionId)
+            REFERENCES ResearchQuestions(ResearchQuestionId) ON DELETE SET NULL,
+        CONSTRAINT FK_ScholarlyClaims_Evidence FOREIGN KEY (SourceEvidenceItemId)
+            REFERENCES EvidenceItems(EvidenceItemId) ON DELETE SET NULL
+    );";
+
     private static readonly string[] SchemaStatements =
     {
         ResearchProjectsDdl,
@@ -894,12 +927,16 @@ public static class SchemaInitializer
         EvidenceItemsDdl,
         EvidenceGenerationMetadataDdl,
         ResearchLogEntriesDdl,
+        ScholarlyClaimsDdl,
         "CREATE INDEX IF NOT EXISTS IX_ResearchProjects_Work ON ResearchProjects (WorkId, Status, UpdatedUtc);",
         "CREATE INDEX IF NOT EXISTS IX_ResearchQuestions_Project ON ResearchQuestions (ResearchProjectId, SortOrder);",
         "CREATE INDEX IF NOT EXISTS IX_EvidenceItems_Project ON EvidenceItems (ResearchProjectId, SortOrder);",
         "CREATE INDEX IF NOT EXISTS IX_EvidenceItems_Question ON EvidenceItems (ResearchQuestionId);",
         "CREATE INDEX IF NOT EXISTS IX_EvidenceGenerationMetadata_Origin ON EvidenceGenerationMetadata (Origin);",
         "CREATE INDEX IF NOT EXISTS IX_ResearchLogEntries_Project ON ResearchLogEntries (ResearchProjectId, CreatedUtc, ResearchLogEntryId);",
+        "CREATE INDEX IF NOT EXISTS IX_ScholarlyClaims_Project ON ScholarlyClaims (ResearchProjectId, SortOrder, ScholarlyClaimId);",
+        "CREATE INDEX IF NOT EXISTS IX_ScholarlyClaims_Question ON ScholarlyClaims (ResearchQuestionId);",
+        "CREATE INDEX IF NOT EXISTS IX_ScholarlyClaims_Source ON ScholarlyClaims (SourceEvidenceItemId);",
 
         // The statements below are also created by migrations, and have to
         // be here as well because a NEW database never runs a migration - it

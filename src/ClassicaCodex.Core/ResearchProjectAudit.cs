@@ -16,12 +16,15 @@ public sealed record ResearchAuditFinding(
     string Subject,
     string Message,
     long? ResearchQuestionId = null,
-    long? EvidenceItemId = null);
+    long? EvidenceItemId = null,
+    long? ScholarlyClaimId = null);
 
 public sealed record ResearchAuditReport(
     int QuestionCount,
     int EvidenceCount,
     int UncertainEvidenceCount,
+    int ClaimCount,
+    int UncertainClaimCount,
     IReadOnlyList<ResearchAuditFinding> Findings);
 
 /// <summary>
@@ -33,8 +36,10 @@ public static class ResearchProjectAudit
 {
     public static ResearchAuditReport Evaluate(
         IReadOnlyCollection<ResearchQuestion> questions,
-        IReadOnlyCollection<EvidenceItem> evidence)
+        IReadOnlyCollection<EvidenceItem> evidence,
+        IReadOnlyCollection<ScholarlyClaim>? claims = null)
     {
+        claims ??= Array.Empty<ScholarlyClaim>();
         var findings = new List<ResearchAuditFinding>();
 
         if (questions.Count == 0)
@@ -119,6 +124,31 @@ public static class ResearchProjectAudit
             }
         }
 
+        foreach (var claim in claims)
+        {
+            if (claim.Judgment == EvidenceJudgment.Uncertain)
+            {
+                findings.Add(new ResearchAuditFinding(
+                    ResearchAuditSeverity.Review, "Claim review", claim.Claimant,
+                    "This scholarly claim has not been verified by the researcher.",
+                    claim.ResearchQuestionId, ScholarlyClaimId: claim.ScholarlyClaimId));
+            }
+            if (claim.SourceEvidenceItemId == null)
+            {
+                findings.Add(new ResearchAuditFinding(
+                    ResearchAuditSeverity.Warning, "Claim source", claim.Claimant,
+                    "Link the claim to its scholarly source evidence record.",
+                    claim.ResearchQuestionId, ScholarlyClaimId: claim.ScholarlyClaimId));
+            }
+            if (string.IsNullOrWhiteSpace(claim.Locator))
+            {
+                findings.Add(new ResearchAuditFinding(
+                    ResearchAuditSeverity.Warning, "Claim locator", claim.Claimant,
+                    "Add a page, section, or other exact locator for the claim.",
+                    claim.ResearchQuestionId, ScholarlyClaimId: claim.ScholarlyClaimId));
+            }
+        }
+
         var ordered = findings
             .OrderBy(f => f.Severity)
             .ThenBy(f => f.Category)
@@ -126,7 +156,8 @@ public static class ResearchProjectAudit
             .ToList();
         return new ResearchAuditReport(
             questions.Count, evidence.Count,
-            evidence.Count(e => e.Judgment == EvidenceJudgment.Uncertain), ordered);
+            evidence.Count(e => e.Judgment == EvidenceJudgment.Uncertain),
+            claims.Count, claims.Count(c => c.Judgment == EvidenceJudgment.Uncertain), ordered);
     }
 
     private static ResearchAuditFinding ForEvidence(

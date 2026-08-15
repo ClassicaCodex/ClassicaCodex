@@ -361,6 +361,161 @@ public class ResearchRepository
         return id;
     }
 
+    public async Task<List<ScholarlyClaim>> GetScholarlyClaimsAsync(
+        long projectId, CancellationToken cancellationToken = default)
+    {
+        var result = new List<ScholarlyClaim>();
+        await using var conn = await DbConnectionFactory.OpenConnectionAsync(cancellationToken);
+        await using var cmd = conn.CreateCommand();
+        cmd.CommandText = @"SELECT ScholarlyClaimId, ResearchProjectId, ResearchQuestionId,
+            SourceEvidenceItemId, Claimant, ClaimText, Locator, Relationship, Judgment,
+            Notes, SortOrder, CreatedUtc, UpdatedUtc
+            FROM ScholarlyClaims WHERE ResearchProjectId=@ProjectId
+            ORDER BY SortOrder, ScholarlyClaimId;";
+        cmd.Parameters.AddWithValue("@ProjectId", projectId);
+        await using var reader = await cmd.ExecuteReaderAsync(cancellationToken);
+        while (await reader.ReadAsync(cancellationToken))
+        {
+            result.Add(new ScholarlyClaim
+            {
+                ScholarlyClaimId = reader.GetInt64(0),
+                ResearchProjectId = reader.GetInt64(1),
+                ResearchQuestionId = reader.IsDBNull(2) ? null : reader.GetInt64(2),
+                SourceEvidenceItemId = reader.IsDBNull(3) ? null : reader.GetInt64(3),
+                Claimant = reader.GetString(4),
+                ClaimText = reader.GetString(5),
+                Locator = reader.IsDBNull(6) ? null : reader.GetString(6),
+                Relationship = Parse(reader.GetString(7), EvidenceRelationship.Contextualizes),
+                Judgment = Parse(reader.GetString(8), EvidenceJudgment.Uncertain),
+                Notes = reader.IsDBNull(9) ? null : reader.GetString(9),
+                SortOrder = reader.GetInt32(10),
+                CreatedUtc = ParseDate(reader.GetString(11)),
+                UpdatedUtc = ParseDate(reader.GetString(12))
+            });
+        }
+        return result;
+    }
+
+    public async Task<long> SaveScholarlyClaimAsync(
+        ScholarlyClaim claim, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(claim.Claimant))
+            throw new ArgumentException("A scholarly claim needs an attributed claimant.", nameof(claim));
+        if (string.IsNullOrWhiteSpace(claim.ClaimText))
+            throw new ArgumentException("A scholarly claim cannot be empty.", nameof(claim));
+
+        var now = DateTime.UtcNow;
+        await using var conn = await DbConnectionFactory.OpenConnectionAsync(cancellationToken);
+        await EnsureClaimLinksBelongToProjectAsync(conn, claim, cancellationToken);
+        await using var cmd = conn.CreateCommand();
+        var isNew = claim.ScholarlyClaimId == 0;
+        if (isNew)
+        {
+            cmd.CommandText = @"INSERT INTO ScholarlyClaims
+                (ResearchProjectId,ResearchQuestionId,SourceEvidenceItemId,Claimant,ClaimText,
+                 Locator,Relationship,Judgment,Notes,SortOrder,CreatedUtc,UpdatedUtc)
+                VALUES (@ProjectId,@QuestionId,@SourceId,@Claimant,@ClaimText,@Locator,@Relationship,
+                        @Judgment,@Notes,@Sort,@Now,@Now); SELECT last_insert_rowid();";
+        }
+        else
+        {
+            cmd.CommandText = @"UPDATE ScholarlyClaims SET ResearchQuestionId=@QuestionId,
+                SourceEvidenceItemId=@SourceId,Claimant=@Claimant,ClaimText=@ClaimText,Locator=@Locator,
+                Relationship=@Relationship,Judgment=@Judgment,Notes=@Notes,SortOrder=@Sort,UpdatedUtc=@Now
+                WHERE ScholarlyClaimId=@Id AND ResearchProjectId=@ProjectId; SELECT @Id;";
+            cmd.Parameters.AddWithValue("@Id", claim.ScholarlyClaimId);
+        }
+        cmd.Parameters.AddWithValue("@ProjectId", claim.ResearchProjectId);
+        cmd.Parameters.AddWithValue("@QuestionId", claim.ResearchQuestionId is null ? DBNull.Value : claim.ResearchQuestionId.Value);
+        cmd.Parameters.AddWithValue("@SourceId", claim.SourceEvidenceItemId is null ? DBNull.Value : claim.SourceEvidenceItemId.Value);
+        cmd.Parameters.AddWithValue("@Claimant", claim.Claimant.Trim());
+        cmd.Parameters.AddWithValue("@ClaimText", claim.ClaimText.Trim());
+        cmd.Parameters.AddWithValue("@Locator", Db(claim.Locator));
+        cmd.Parameters.AddWithValue("@Relationship", Store(claim.Relationship));
+        cmd.Parameters.AddWithValue("@Judgment", Store(claim.Judgment));
+        cmd.Parameters.AddWithValue("@Notes", Db(claim.Notes));
+        cmd.Parameters.AddWithValue("@Sort", claim.SortOrder);
+        cmd.Parameters.AddWithValue("@Now", now.ToString("O"));
+        var id = Convert.ToInt64(await cmd.ExecuteScalarAsync(cancellationToken));
+        claim.ScholarlyClaimId = id;
+        if (claim.CreatedUtc == default) claim.CreatedUtc = now;
+        claim.UpdatedUtc = now;
+        await TouchProjectAsync(conn, claim.ResearchProjectId, cancellationToken);
+        await AppendLogAsync(conn, new ResearchLogEntry
+        {
+            ResearchProjectId = claim.ResearchProjectId,
+            ResearchQuestionId = claim.ResearchQuestionId,
+            EvidenceItemId = claim.SourceEvidenceItemId,
+            Kind = isNew ? ResearchLogEntryKind.ClaimAdded : ResearchLogEntryKind.ClaimUpdated,
+            Summary = isNew ? $"Added claim by {claim.Claimant.Trim()}" : $"Updated claim by {claim.Claimant.Trim()}",
+            Details = claim.ClaimText.Trim()
+        }, cancellationToken);
+        return id;
+    }
+
+    public async Task DeleteScholarlyClaimAsync(
+        long claimId, CancellationToken cancellationToken = default)
+    {
+        await using var conn = await DbConnectionFactory.OpenConnectionAsync(cancellationToken);
+        long projectId;
+        string claimant;
+        string claimText;
+        await using (var read = conn.CreateCommand())
+        {
+            read.CommandText = "SELECT ResearchProjectId,Claimant,ClaimText FROM ScholarlyClaims WHERE ScholarlyClaimId=@Id;";
+            read.Parameters.AddWithValue("@Id", claimId);
+            await using var reader = await read.ExecuteReaderAsync(cancellationToken);
+            if (!await reader.ReadAsync(cancellationToken)) return;
+            projectId = reader.GetInt64(0);
+            claimant = reader.GetString(1);
+            claimText = reader.GetString(2);
+        }
+        await using var cmd = conn.CreateCommand();
+        cmd.CommandText = "DELETE FROM ScholarlyClaims WHERE ScholarlyClaimId=@Id;";
+        cmd.Parameters.AddWithValue("@Id", claimId);
+        await cmd.ExecuteNonQueryAsync(cancellationToken);
+        await TouchProjectAsync(conn, projectId, cancellationToken);
+        await AppendLogAsync(conn, new ResearchLogEntry
+        {
+            ResearchProjectId = projectId,
+            Kind = ResearchLogEntryKind.ClaimRemoved,
+            Summary = $"Removed claim by {claimant}",
+            Details = claimText
+        }, cancellationToken);
+    }
+
+    private static async Task EnsureClaimLinksBelongToProjectAsync(
+        SqliteConnection conn, ScholarlyClaim claim, CancellationToken cancellationToken)
+    {
+        if (claim.ScholarlyClaimId > 0)
+        {
+            await using var cmd = conn.CreateCommand();
+            cmd.CommandText = "SELECT COUNT(*) FROM ScholarlyClaims WHERE ScholarlyClaimId=@Id AND ResearchProjectId=@ProjectId;";
+            cmd.Parameters.AddWithValue("@Id", claim.ScholarlyClaimId);
+            cmd.Parameters.AddWithValue("@ProjectId", claim.ResearchProjectId);
+            if (Convert.ToInt32(await cmd.ExecuteScalarAsync(cancellationToken)) != 1)
+                throw new ArgumentException("The scholarly claim does not belong to this research project.", nameof(claim));
+        }
+        if (claim.ResearchQuestionId is long questionId)
+        {
+            await using var cmd = conn.CreateCommand();
+            cmd.CommandText = "SELECT COUNT(*) FROM ResearchQuestions WHERE ResearchQuestionId=@Id AND ResearchProjectId=@ProjectId;";
+            cmd.Parameters.AddWithValue("@Id", questionId);
+            cmd.Parameters.AddWithValue("@ProjectId", claim.ResearchProjectId);
+            if (Convert.ToInt32(await cmd.ExecuteScalarAsync(cancellationToken)) != 1)
+                throw new ArgumentException("The linked question does not belong to this research project.", nameof(claim));
+        }
+        if (claim.SourceEvidenceItemId is long evidenceId)
+        {
+            await using var cmd = conn.CreateCommand();
+            cmd.CommandText = "SELECT COUNT(*) FROM EvidenceItems WHERE EvidenceItemId=@Id AND ResearchProjectId=@ProjectId;";
+            cmd.Parameters.AddWithValue("@Id", evidenceId);
+            cmd.Parameters.AddWithValue("@ProjectId", claim.ResearchProjectId);
+            if (Convert.ToInt32(await cmd.ExecuteScalarAsync(cancellationToken)) != 1)
+                throw new ArgumentException("The linked source does not belong to this research project.", nameof(claim));
+        }
+    }
+
     private static ResearchProject ReadProject(SqliteDataReader reader) => new()
     {
         ResearchProjectId = reader.GetInt64(0), WorkId = reader.GetInt32(1), Name = reader.GetString(2),

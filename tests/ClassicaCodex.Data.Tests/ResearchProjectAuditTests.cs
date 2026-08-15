@@ -124,4 +124,24 @@ public class ResearchProjectAuditTests
             f.Message.Contains("human verification", StringComparison.OrdinalIgnoreCase));
         Assert.Contains(report.Findings, f => f.EvidenceItemId == 5 && f.Category == "AI provenance");
     }
+
+    [Fact]
+    public void UnverifiedUnlinkedClaimIsActionable()
+    {
+        var claim = new ScholarlyClaim
+        {
+            ScholarlyClaimId = 17,
+            Claimant = "Scholar",
+            ClaimText = "A disputed proposition",
+            Judgment = EvidenceJudgment.Uncertain
+        };
+
+        var report = ResearchProjectAudit.Evaluate([], [], [claim]);
+
+        Assert.Equal(1, report.ClaimCount);
+        Assert.Equal(1, report.UncertainClaimCount);
+        Assert.Contains(report.Findings, f => f.ScholarlyClaimId == 17 && f.Category == "Claim review");
+        Assert.Contains(report.Findings, f => f.ScholarlyClaimId == 17 && f.Category == "Claim source");
+        Assert.Contains(report.Findings, f => f.ScholarlyClaimId == 17 && f.Category == "Claim locator");
+    }
 }

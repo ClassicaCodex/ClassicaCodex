@@ -11,13 +11,15 @@ public sealed class ResearchAuditForm : Form
 
     public long? SelectedQuestionId { get; private set; }
     public long? SelectedEvidenceId { get; private set; }
+    public long? SelectedClaimId { get; private set; }
 
     public ResearchAuditForm(
         ResearchProject project,
         IReadOnlyCollection<ResearchQuestion> questions,
-        IReadOnlyCollection<EvidenceItem> evidence)
+        IReadOnlyCollection<EvidenceItem> evidence,
+        IReadOnlyCollection<ScholarlyClaim>? claims = null)
     {
-        var report = ResearchProjectAudit.Evaluate(questions, evidence);
+        var report = ResearchProjectAudit.Evaluate(questions, evidence, claims);
         Text = $"Project Audit — {project.Name}";
         Width = 1080;
         Height = 680;
@@ -32,7 +34,9 @@ public sealed class ResearchAuditForm : Form
             Padding = new Padding(10, 10, 8, 0),
             Font = new Font(Font, FontStyle.Bold),
             Text = $"{report.QuestionCount} question(s) • {report.EvidenceCount} evidence item(s) • " +
-                   $"{report.UncertainEvidenceCount} awaiting review • {report.Findings.Count} audit finding(s)"
+                   $"{report.ClaimCount} scholarly claim(s) • " +
+                   $"{report.UncertainEvidenceCount + report.UncertainClaimCount} awaiting review • " +
+                   $"{report.Findings.Count} audit finding(s)"
         };
         var scope = new Label
         {
@@ -100,15 +104,18 @@ public sealed class ResearchAuditForm : Form
     private void UpdateOpenButton()
     {
         var finding = CurrentFinding;
-        _open.Enabled = finding?.EvidenceItemId != null || finding?.ResearchQuestionId != null;
+        _open.Enabled = finding?.EvidenceItemId != null || finding?.ResearchQuestionId != null ||
+                        finding?.ScholarlyClaimId != null;
     }
 
     private void OpenSelected()
     {
         var finding = CurrentFinding;
-        if (finding?.EvidenceItemId == null && finding?.ResearchQuestionId == null) return;
+        if (finding?.EvidenceItemId == null && finding?.ResearchQuestionId == null &&
+            finding?.ScholarlyClaimId == null) return;
         SelectedEvidenceId = finding.EvidenceItemId;
         SelectedQuestionId = finding.ResearchQuestionId;
+        SelectedClaimId = finding.ScholarlyClaimId;
         DialogResult = DialogResult.OK;
         Close();
     }
