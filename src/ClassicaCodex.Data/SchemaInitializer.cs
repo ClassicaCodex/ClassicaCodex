@@ -55,7 +55,7 @@ public static class SchemaInitializer
     /// 7 to 13 until version 3 was cut, at which point they all failed at
     /// once and said nothing about what had actually broken.
     /// </summary>
-    public const int TargetSchemaVersion = 23;
+    public const int TargetSchemaVersion = 24;
 
     public static async Task EnsureSchemaAsync(CancellationToken cancellationToken = default)
     {
@@ -839,6 +839,16 @@ public static class SchemaInitializer
         [23] = new[]
         {
             EvidenceBibliographyMetadataDdl
+        },
+
+        // v24: reproducibility snapshots freeze stable corpus identities,
+        // attribution judgments, edition metadata and ordered-text hashes.
+        [24] = new[]
+        {
+            ResearchCorpusSnapshotsDdl,
+            ResearchCorpusSnapshotEntriesDdl,
+            "CREATE INDEX IF NOT EXISTS IX_ResearchCorpusSnapshots_Project ON ResearchCorpusSnapshots (ResearchProjectId, CreatedUtc);",
+            "CREATE INDEX IF NOT EXISTS IX_ResearchCorpusSnapshotEntries_Snapshot ON ResearchCorpusSnapshotEntries (ResearchCorpusSnapshotId, WorkCtsUrn, EditionCtsUrn);"
         }
     };
 
@@ -990,6 +1000,44 @@ public static class SchemaInitializer
             REFERENCES EvidenceItems(EvidenceItemId) ON DELETE CASCADE
     );";
 
+    private const string ResearchCorpusSnapshotsDdl = @"CREATE TABLE IF NOT EXISTS ResearchCorpusSnapshots (
+        ResearchCorpusSnapshotId INTEGER PRIMARY KEY,
+        ResearchProjectId INTEGER NOT NULL,
+        Name TEXT NOT NULL,
+        Scope TEXT NOT NULL,
+        AppVersion TEXT NOT NULL,
+        Notes TEXT NULL,
+        WorkCount INTEGER NOT NULL,
+        EditionCount INTEGER NOT NULL,
+        TextNodeCount INTEGER NOT NULL,
+        CreatedUtc TEXT NOT NULL,
+        CONSTRAINT FK_ResearchCorpusSnapshots_Projects FOREIGN KEY (ResearchProjectId)
+            REFERENCES ResearchProjects(ResearchProjectId) ON DELETE CASCADE
+    );";
+
+    private const string ResearchCorpusSnapshotEntriesDdl = @"CREATE TABLE IF NOT EXISTS ResearchCorpusSnapshotEntries (
+        ResearchCorpusSnapshotEntryId INTEGER PRIMARY KEY,
+        ResearchCorpusSnapshotId INTEGER NOT NULL,
+        AuthorCtsUrn TEXT NOT NULL,
+        AuthorName TEXT NOT NULL,
+        WorkCtsUrn TEXT NOT NULL,
+        WorkTitle TEXT NOT NULL,
+        CitationScheme TEXT NULL,
+        AttributionStatus TEXT NOT NULL,
+        AttributionNote TEXT NULL,
+        AttributionSetByUser INTEGER NOT NULL,
+        EditionCtsUrn TEXT NULL,
+        EditionKind TEXT NULL,
+        Language TEXT NULL,
+        Translator TEXT NULL,
+        SourcePath TEXT NULL,
+        Orthography TEXT NULL,
+        TextNodeCount INTEGER NOT NULL,
+        ContentSha256 TEXT NULL,
+        CONSTRAINT FK_ResearchCorpusSnapshotEntries_Snapshots FOREIGN KEY (ResearchCorpusSnapshotId)
+            REFERENCES ResearchCorpusSnapshots(ResearchCorpusSnapshotId) ON DELETE CASCADE
+    );";
+
     private static readonly string[] SchemaStatements =
     {
         ResearchProjectsDdl,
@@ -1001,6 +1049,8 @@ public static class SchemaInitializer
         EvidenceAttachmentsDdl,
         EvidencePageAnnotationsDdl,
         EvidenceBibliographyMetadataDdl,
+        ResearchCorpusSnapshotsDdl,
+        ResearchCorpusSnapshotEntriesDdl,
         "CREATE INDEX IF NOT EXISTS IX_ResearchProjects_Work ON ResearchProjects (WorkId, Status, UpdatedUtc);",
         "CREATE INDEX IF NOT EXISTS IX_ResearchQuestions_Project ON ResearchQuestions (ResearchProjectId, SortOrder);",
         "CREATE INDEX IF NOT EXISTS IX_EvidenceItems_Project ON EvidenceItems (ResearchProjectId, SortOrder);",
@@ -1012,6 +1062,8 @@ public static class SchemaInitializer
         "CREATE INDEX IF NOT EXISTS IX_ScholarlyClaims_Source ON ScholarlyClaims (SourceEvidenceItemId);",
         "CREATE UNIQUE INDEX IF NOT EXISTS UX_EvidenceAttachments_Path ON EvidenceAttachments (EvidenceItemId, FilePath);",
         "CREATE INDEX IF NOT EXISTS IX_EvidencePageAnnotations_Attachment ON EvidencePageAnnotations (EvidenceAttachmentId, PageNumber, EvidencePageAnnotationId);",
+        "CREATE INDEX IF NOT EXISTS IX_ResearchCorpusSnapshots_Project ON ResearchCorpusSnapshots (ResearchProjectId, CreatedUtc);",
+        "CREATE INDEX IF NOT EXISTS IX_ResearchCorpusSnapshotEntries_Snapshot ON ResearchCorpusSnapshotEntries (ResearchCorpusSnapshotId, WorkCtsUrn, EditionCtsUrn);",
 
         // The statements below are also created by migrations, and have to
         // be here as well because a NEW database never runs a migration - it

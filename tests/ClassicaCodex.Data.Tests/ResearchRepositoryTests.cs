@@ -184,7 +184,7 @@ public class ResearchRepositoryTests
         var workRepo = new WorkRepository();
         await workRepo.SetAttributionAsync(workId, AttributionStatus.Disputed, "My considered view");
 
-        await db.ExecuteAsync("DROP TABLE EvidenceBibliographyMetadata; DROP TABLE EvidencePageAnnotations; DROP TABLE EvidenceAttachments; DROP TABLE ScholarlyClaims; DROP TABLE EvidenceGenerationMetadata; DROP TABLE ResearchLogEntries; DROP TABLE EvidenceItems; DROP TABLE ResearchQuestions; DROP TABLE ResearchProjects; PRAGMA user_version=17;");
+        await db.ExecuteAsync("DROP TABLE ResearchCorpusSnapshotEntries; DROP TABLE ResearchCorpusSnapshots; DROP TABLE EvidenceBibliographyMetadata; DROP TABLE EvidencePageAnnotations; DROP TABLE EvidenceAttachments; DROP TABLE ScholarlyClaims; DROP TABLE EvidenceGenerationMetadata; DROP TABLE ResearchLogEntries; DROP TABLE EvidenceItems; DROP TABLE ResearchQuestions; DROP TABLE ResearchProjects; PRAGMA user_version=17;");
         await SchemaInitializer.EnsureSchemaAsync();
 
         var attribution = await workRepo.GetAttributionAsync(workId);
@@ -198,7 +198,9 @@ public class ResearchRepositoryTests
         Assert.True(await db.TableExistsAsync("EvidenceAttachments"));
         Assert.True(await db.TableExistsAsync("EvidencePageAnnotations"));
         Assert.True(await db.TableExistsAsync("EvidenceBibliographyMetadata"));
-        Assert.Equal(23, await db.ScalarAsync<int>("PRAGMA user_version;"));
+        Assert.True(await db.TableExistsAsync("ResearchCorpusSnapshots"));
+        Assert.True(await db.TableExistsAsync("ResearchCorpusSnapshotEntries"));
+        Assert.Equal(24, await db.ScalarAsync<int>("PRAGMA user_version;"));
     }
 
     [Fact]
@@ -219,7 +221,7 @@ public class ResearchRepositoryTests
         };
         await repo.SaveEvidenceAsync(evidence);
 
-        await db.ExecuteAsync("DROP TABLE EvidenceBibliographyMetadata; DROP TABLE EvidencePageAnnotations; DROP TABLE EvidenceAttachments; DROP TABLE ScholarlyClaims; DROP TABLE EvidenceGenerationMetadata; DROP TABLE ResearchLogEntries; PRAGMA user_version=18;");
+        await db.ExecuteAsync("DROP TABLE ResearchCorpusSnapshotEntries; DROP TABLE ResearchCorpusSnapshots; DROP TABLE EvidenceBibliographyMetadata; DROP TABLE EvidencePageAnnotations; DROP TABLE EvidenceAttachments; DROP TABLE ScholarlyClaims; DROP TABLE EvidenceGenerationMetadata; DROP TABLE ResearchLogEntries; PRAGMA user_version=18;");
         await SchemaInitializer.EnsureSchemaAsync();
 
         Assert.Equal("Existing project",
@@ -232,7 +234,9 @@ public class ResearchRepositoryTests
         Assert.True(await db.TableExistsAsync("EvidenceAttachments"));
         Assert.True(await db.TableExistsAsync("EvidencePageAnnotations"));
         Assert.True(await db.TableExistsAsync("EvidenceBibliographyMetadata"));
-        Assert.Equal(23, await db.ScalarAsync<int>("PRAGMA user_version;"));
+        Assert.True(await db.TableExistsAsync("ResearchCorpusSnapshots"));
+        Assert.True(await db.TableExistsAsync("ResearchCorpusSnapshotEntries"));
+        Assert.Equal(24, await db.ScalarAsync<int>("PRAGMA user_version;"));
     }
 
     [Fact]
@@ -406,7 +410,7 @@ public class ResearchRepositoryTests
         };
         await repo.SaveProjectAsync(project);
 
-        await db.ExecuteAsync("DROP TABLE EvidenceBibliographyMetadata; DROP TABLE EvidencePageAnnotations; DROP TABLE EvidenceAttachments; DROP TABLE ScholarlyClaims; PRAGMA user_version=20;");
+        await db.ExecuteAsync("DROP TABLE ResearchCorpusSnapshotEntries; DROP TABLE ResearchCorpusSnapshots; DROP TABLE EvidenceBibliographyMetadata; DROP TABLE EvidencePageAnnotations; DROP TABLE EvidenceAttachments; DROP TABLE ScholarlyClaims; PRAGMA user_version=20;");
         await SchemaInitializer.EnsureSchemaAsync();
 
         Assert.Equal("Existing project", Assert.Single(
@@ -415,7 +419,8 @@ public class ResearchRepositoryTests
         Assert.True(await db.TableExistsAsync("EvidenceAttachments"));
         Assert.True(await db.TableExistsAsync("EvidencePageAnnotations"));
         Assert.True(await db.TableExistsAsync("EvidenceBibliographyMetadata"));
-        Assert.Equal(23, await db.ScalarAsync<int>("PRAGMA user_version;"));
+        Assert.True(await db.TableExistsAsync("ResearchCorpusSnapshots"));
+        Assert.Equal(24, await db.ScalarAsync<int>("PRAGMA user_version;"));
     }
 
     [Fact]
@@ -493,7 +498,7 @@ public class ResearchRepositoryTests
         };
         await repo.SaveProjectAsync(project);
 
-        await db.ExecuteAsync("DROP TABLE EvidenceBibliographyMetadata; DROP TABLE EvidencePageAnnotations; DROP TABLE EvidenceAttachments; PRAGMA user_version=21;");
+        await db.ExecuteAsync("DROP TABLE ResearchCorpusSnapshotEntries; DROP TABLE ResearchCorpusSnapshots; DROP TABLE EvidenceBibliographyMetadata; DROP TABLE EvidencePageAnnotations; DROP TABLE EvidenceAttachments; PRAGMA user_version=21;");
         await SchemaInitializer.EnsureSchemaAsync();
 
         Assert.Equal("Existing project", Assert.Single(
@@ -501,7 +506,8 @@ public class ResearchRepositoryTests
         Assert.True(await db.TableExistsAsync("EvidenceAttachments"));
         Assert.True(await db.TableExistsAsync("EvidencePageAnnotations"));
         Assert.True(await db.TableExistsAsync("EvidenceBibliographyMetadata"));
-        Assert.Equal(23, await db.ScalarAsync<int>("PRAGMA user_version;"));
+        Assert.True(await db.TableExistsAsync("ResearchCorpusSnapshots"));
+        Assert.Equal(24, await db.ScalarAsync<int>("PRAGMA user_version;"));
     }
 
     [Fact]
@@ -541,12 +547,13 @@ public class ResearchRepositoryTests
         using var db=await TempDatabase.CreateAsync();await db.SeedEditionAsync();
         var repo=new ResearchRepository();var project=new ResearchProject{WorkId=await db.WorkIdForAsync("test1"),Name="Existing project"};
         await repo.SaveProjectAsync(project);
-        await db.ExecuteAsync("DROP TABLE EvidenceBibliographyMetadata; PRAGMA user_version=22;");
+        await db.ExecuteAsync("DROP TABLE ResearchCorpusSnapshotEntries; DROP TABLE ResearchCorpusSnapshots; DROP TABLE EvidenceBibliographyMetadata; PRAGMA user_version=22;");
         await SchemaInitializer.EnsureSchemaAsync();
 
         Assert.Equal("Existing project",Assert.Single(await repo.GetProjectsForWorkAsync(project.WorkId)).Name);
         Assert.True(await db.TableExistsAsync("EvidenceBibliographyMetadata"));
-        Assert.Equal(23,await db.ScalarAsync<int>("PRAGMA user_version;"));
+        Assert.True(await db.TableExistsAsync("ResearchCorpusSnapshots"));
+        Assert.Equal(24,await db.ScalarAsync<int>("PRAGMA user_version;"));
     }
 
     [Fact]
@@ -563,5 +570,68 @@ public class ResearchRepositoryTests
 
         Assert.False(recovered.IsStored);
         Assert.Equal("smith2024",recovered.CiteKey);
+    }
+
+    [Fact]
+    public async Task CorpusSnapshotDetectsTextAttributionAndEditionDrift()
+    {
+        using var db=await TempDatabase.CreateAsync();var editionId=await db.SeedEditionAsync("rhesus");
+        await db.InsertLinesAsync(editionId,("1","πρῶτον κείμενον"),("2","δεύτερον κείμενον"));
+        var workId=await db.WorkIdForAsync("rhesus");var research=new ResearchRepository();
+        var project=new ResearchProject{WorkId=workId,Name="Rhesus authorship"};await research.SaveProjectAsync(project);
+        var snapshots=new ResearchCorpusSnapshotRepository();
+
+        var snapshot=await snapshots.CaptureAsync(project.ResearchProjectId,"Baseline",CorpusSnapshotScope.ProjectWork,"4.2.0","Before re-ingest");
+        var unchanged=await snapshots.CompareAsync(snapshot);
+
+        Assert.Equal(1,snapshot.WorkCount);Assert.Equal(1,snapshot.EditionCount);Assert.Equal(2,snapshot.TextNodeCount);
+        Assert.Equal(1,unchanged.Unchanged);Assert.Empty(unchanged.Differences);
+        var frozen=Assert.Single(await snapshots.GetEntriesAsync(snapshot.ResearchCorpusSnapshotId));
+        Assert.Equal(64,frozen.ContentSha256!.Length);Assert.Equal("4.2.0",snapshot.AppVersion);
+
+        await db.ExecuteAsync($"UPDATE TextNodes SET Text='changed text' WHERE EditionId={editionId} AND CitationRef='2';");
+        await new WorkRepository().SetAttributionAsync(workId,AttributionStatus.Disputed,"Reconsidered");
+        await db.SeedSiblingEditionAsync("rhesus","rhesus-translation","Translation","eng","Tester");
+        var drift=await snapshots.CompareAsync(snapshot);
+
+        Assert.Equal(1,drift.Changed);Assert.Equal(1,drift.Added);Assert.Equal(0,drift.Missing);
+        Assert.Contains(drift.Differences,d=>d.Status=="Changed"&&d.Details.Contains("fingerprint changed"));
+        Assert.Contains(drift.Differences,d=>d.Status=="Changed"&&d.Details.Contains("attribution accepted → disputed"));
+        Assert.Contains(await research.GetResearchLogAsync(project.ResearchProjectId),e=>e.Kind==ResearchLogEntryKind.CorpusSnapshotCaptured);
+
+        await snapshots.DeleteAsync(snapshot.ResearchCorpusSnapshotId);
+        Assert.Empty(await snapshots.GetSnapshotsAsync(project.ResearchProjectId));
+        Assert.Equal(0,await db.CountAsync("ResearchCorpusSnapshotEntries"));
+        Assert.Contains(await research.GetResearchLogAsync(project.ResearchProjectId),e=>e.Kind==ResearchLogEntryKind.CorpusSnapshotRemoved);
+    }
+
+    [Fact]
+    public async Task SnapshotScopesStayWithinWorkAuthorOrEntireCorpus()
+    {
+        using var db=await TempDatabase.CreateAsync();await db.SeedEditionAsync("one");await db.SeedEditionAsync("other-author");
+        var firstWork=await db.WorkIdForAsync("one");
+        await db.ExecuteAsync($@"INSERT INTO Works(AuthorId,CtsUrn,Title) SELECT AuthorId,'urn:w:sibling','Sibling' FROM Works WHERE WorkId={firstWork};
+            INSERT INTO Editions(WorkId,CtsUrn,Kind,Language) VALUES((SELECT WorkId FROM Works WHERE CtsUrn='urn:w:sibling'),'urn:e:sibling','Original','grc');");
+        var research=new ResearchRepository();var project=new ResearchProject{WorkId=firstWork,Name="Scope"};await research.SaveProjectAsync(project);
+        var repo=new ResearchCorpusSnapshotRepository();
+
+        var work=await repo.CaptureAsync(project.ResearchProjectId,"Work",CorpusSnapshotScope.ProjectWork,"test");
+        var author=await repo.CaptureAsync(project.ResearchProjectId,"Author",CorpusSnapshotScope.SameAuthor,"test");
+        var corpus=await repo.CaptureAsync(project.ResearchProjectId,"Corpus",CorpusSnapshotScope.EntireCorpus,"test");
+
+        Assert.Equal(1,work.WorkCount);Assert.Equal(2,author.WorkCount);Assert.Equal(3,corpus.WorkCount);
+    }
+
+    [Fact]
+    public async Task MigrationFromTwentyThreeAddsCorpusSnapshotsWithoutChangingResearchData()
+    {
+        using var db=await TempDatabase.CreateAsync();await db.SeedEditionAsync();var repo=new ResearchRepository();
+        var project=new ResearchProject{WorkId=await db.WorkIdForAsync("test1"),Name="Existing project"};await repo.SaveProjectAsync(project);
+        await db.ExecuteAsync("DROP TABLE ResearchCorpusSnapshotEntries; DROP TABLE ResearchCorpusSnapshots; PRAGMA user_version=23;");
+        await SchemaInitializer.EnsureSchemaAsync();
+
+        Assert.Equal("Existing project",Assert.Single(await repo.GetProjectsForWorkAsync(project.WorkId)).Name);
+        Assert.True(await db.TableExistsAsync("ResearchCorpusSnapshots"));Assert.True(await db.TableExistsAsync("ResearchCorpusSnapshotEntries"));
+        Assert.Equal(24,await db.ScalarAsync<int>("PRAGMA user_version;"));
     }
 }

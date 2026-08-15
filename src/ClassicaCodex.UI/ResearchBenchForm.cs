@@ -194,6 +194,7 @@ public class ResearchBenchForm : Form
         projectMenu.Items.Add("Scholarly claims matrix", null, (_, _) => OpenScholarlyClaims());
         projectMenu.Items.Add("Import RIS / BibTeX bibliography…", null, async (_, _) => await OpenBibliographyImportAsync());
         projectMenu.Items.Add("Bibliography & Zotero export…", null, (_, _) => OpenBibliography());
+        projectMenu.Items.Add("Corpus snapshots…", null, (_, _) => OpenCorpusSnapshots());
         projectMenu.Items.Add(new ToolStripSeparator());
         projectMenu.Items.Add("Project audit", null, async (_, _) => await OpenProjectAuditAsync());
         projectMenu.Items.Add("Research log", null, (_, _) => OpenResearchLog());
@@ -394,6 +395,18 @@ public class ResearchBenchForm : Form
             return;
         }
         using var form = new ResearchBibliographyForm(project);
+        form.ShowDialog(this);
+    }
+
+    private void OpenCorpusSnapshots()
+    {
+        var project = CurrentProject;
+        if (project == null)
+        {
+            MessageBox.Show(this, "Select or create a research project first.");
+            return;
+        }
+        using var form = new ResearchCorpusSnapshotsForm(project);
         form.ShowDialog(this);
     }
 
