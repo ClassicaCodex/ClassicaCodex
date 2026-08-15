@@ -61,7 +61,12 @@ public enum ResearchLogEntryKind
     EvidenceRemoved,
     ClaimAdded,
     ClaimUpdated,
-    ClaimRemoved
+    ClaimRemoved,
+    SourceAttached,
+    SourceRemoved,
+    PageAnnotationAdded,
+    PageAnnotationUpdated,
+    PageAnnotationRemoved
 }
 
 /// <summary>A persistent line of inquiry attached to one work.</summary>
@@ -151,6 +156,35 @@ public class ScholarlyClaim
     public EvidenceJudgment Judgment { get; set; } = EvidenceJudgment.Uncertain;
     public string? Notes { get; set; }
     public int SortOrder { get; set; }
+    public DateTime CreatedUtc { get; set; }
+    public DateTime UpdatedUtc { get; set; }
+}
+
+/// <summary>A fingerprinted local file linked to an evidence source; file bytes remain outside SQLite.</summary>
+public class EvidenceAttachment
+{
+    public long EvidenceAttachmentId { get; set; }
+    public long EvidenceItemId { get; set; }
+    public string FilePath { get; set; } = string.Empty;
+    public string FileName { get; set; } = string.Empty;
+    public string MediaType { get; set; } = "application/pdf";
+    public string Sha256 { get; set; } = string.Empty;
+    public long FileSize { get; set; }
+    public DateTime FileModifiedUtc { get; set; }
+    public DateTime CreatedUtc { get; set; }
+    public DateTime UpdatedUtc { get; set; }
+    public override string ToString() => FileName;
+}
+
+/// <summary>A page-addressed quotation or note on a local source file.</summary>
+public class EvidencePageAnnotation
+{
+    public long EvidencePageAnnotationId { get; set; }
+    public long EvidenceAttachmentId { get; set; }
+    public int PageNumber { get; set; } = 1;
+    public string? QuotedText { get; set; }
+    public string? Note { get; set; }
+    public EvidenceJudgment Judgment { get; set; } = EvidenceJudgment.Uncertain;
     public DateTime CreatedUtc { get; set; }
     public DateTime UpdatedUtc { get; set; }
 }

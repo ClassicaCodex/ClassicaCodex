@@ -55,7 +55,7 @@ public static class SchemaInitializer
     /// 7 to 13 until version 3 was cut, at which point they all failed at
     /// once and said nothing about what had actually broken.
     /// </summary>
-    public const int TargetSchemaVersion = 21;
+    public const int TargetSchemaVersion = 22;
 
     public static async Task EnsureSchemaAsync(CancellationToken cancellationToken = default)
     {
@@ -821,6 +821,17 @@ public static class SchemaInitializer
             "CREATE INDEX IF NOT EXISTS IX_ScholarlyClaims_Project ON ScholarlyClaims (ResearchProjectId, SortOrder, ScholarlyClaimId);",
             "CREATE INDEX IF NOT EXISTS IX_ScholarlyClaims_Question ON ScholarlyClaims (ResearchQuestionId);",
             "CREATE INDEX IF NOT EXISTS IX_ScholarlyClaims_Source ON ScholarlyClaims (SourceEvidenceItemId);"
+        },
+
+        // v22: local source files stay outside SQLite, while their absolute
+        // path, size and SHA-256 fingerprint make replacement or disappearance
+        // visible. Page annotations belong to that exact fingerprinted file.
+        [22] = new[]
+        {
+            EvidenceAttachmentsDdl,
+            EvidencePageAnnotationsDdl,
+            "CREATE UNIQUE INDEX IF NOT EXISTS UX_EvidenceAttachments_Path ON EvidenceAttachments (EvidenceItemId, FilePath);",
+            "CREATE INDEX IF NOT EXISTS IX_EvidencePageAnnotations_Attachment ON EvidencePageAnnotations (EvidenceAttachmentId, PageNumber, EvidencePageAnnotationId);"
         }
     };
 
@@ -920,6 +931,34 @@ public static class SchemaInitializer
             REFERENCES EvidenceItems(EvidenceItemId) ON DELETE SET NULL
     );";
 
+    private const string EvidenceAttachmentsDdl = @"CREATE TABLE IF NOT EXISTS EvidenceAttachments (
+        EvidenceAttachmentId INTEGER PRIMARY KEY,
+        EvidenceItemId INTEGER NOT NULL,
+        FilePath TEXT NOT NULL,
+        FileName TEXT NOT NULL,
+        MediaType TEXT NOT NULL DEFAULT 'application/pdf',
+        Sha256 TEXT NOT NULL,
+        FileSize INTEGER NOT NULL,
+        FileModifiedUtc TEXT NOT NULL,
+        CreatedUtc TEXT NOT NULL,
+        UpdatedUtc TEXT NOT NULL,
+        CONSTRAINT FK_EvidenceAttachments_Evidence FOREIGN KEY (EvidenceItemId)
+            REFERENCES EvidenceItems(EvidenceItemId) ON DELETE CASCADE
+    );";
+
+    private const string EvidencePageAnnotationsDdl = @"CREATE TABLE IF NOT EXISTS EvidencePageAnnotations (
+        EvidencePageAnnotationId INTEGER PRIMARY KEY,
+        EvidenceAttachmentId INTEGER NOT NULL,
+        PageNumber INTEGER NOT NULL CHECK (PageNumber > 0),
+        QuotedText TEXT NULL,
+        Note TEXT NULL,
+        Judgment TEXT NOT NULL DEFAULT 'uncertain',
+        CreatedUtc TEXT NOT NULL,
+        UpdatedUtc TEXT NOT NULL,
+        CONSTRAINT FK_EvidencePageAnnotations_Attachments FOREIGN KEY (EvidenceAttachmentId)
+            REFERENCES EvidenceAttachments(EvidenceAttachmentId) ON DELETE CASCADE
+    );";
+
     private static readonly string[] SchemaStatements =
     {
         ResearchProjectsDdl,
@@ -928,6 +967,8 @@ public static class SchemaInitializer
         EvidenceGenerationMetadataDdl,
         ResearchLogEntriesDdl,
         ScholarlyClaimsDdl,
+        EvidenceAttachmentsDdl,
+        EvidencePageAnnotationsDdl,
         "CREATE INDEX IF NOT EXISTS IX_ResearchProjects_Work ON ResearchProjects (WorkId, Status, UpdatedUtc);",
         "CREATE INDEX IF NOT EXISTS IX_ResearchQuestions_Project ON ResearchQuestions (ResearchProjectId, SortOrder);",
         "CREATE INDEX IF NOT EXISTS IX_EvidenceItems_Project ON EvidenceItems (ResearchProjectId, SortOrder);",
@@ -937,6 +978,8 @@ public static class SchemaInitializer
         "CREATE INDEX IF NOT EXISTS IX_ScholarlyClaims_Project ON ScholarlyClaims (ResearchProjectId, SortOrder, ScholarlyClaimId);",
         "CREATE INDEX IF NOT EXISTS IX_ScholarlyClaims_Question ON ScholarlyClaims (ResearchQuestionId);",
         "CREATE INDEX IF NOT EXISTS IX_ScholarlyClaims_Source ON ScholarlyClaims (SourceEvidenceItemId);",
+        "CREATE UNIQUE INDEX IF NOT EXISTS UX_EvidenceAttachments_Path ON EvidenceAttachments (EvidenceItemId, FilePath);",
+        "CREATE INDEX IF NOT EXISTS IX_EvidencePageAnnotations_Attachment ON EvidencePageAnnotations (EvidenceAttachmentId, PageNumber, EvidencePageAnnotationId);",
 
         // The statements below are also created by migrations, and have to
         // be here as well because a NEW database never runs a migration - it

@@ -361,6 +361,17 @@ public class ResearchRepository
         return id;
     }
 
+    public async Task<long> AddSystemResearchLogEntryAsync(
+        ResearchLogEntry entry, CancellationToken cancellationToken = default)
+    {
+        if (entry.Kind == ResearchLogEntryKind.ManualNote)
+            throw new ArgumentException("Use AddResearchLogEntryAsync for manual notes.", nameof(entry));
+        await using var conn = await DbConnectionFactory.OpenConnectionAsync(cancellationToken);
+        var id = await AppendLogAsync(conn, entry, cancellationToken);
+        await TouchProjectAsync(conn, entry.ResearchProjectId, cancellationToken);
+        return id;
+    }
+
     public async Task<List<ScholarlyClaim>> GetScholarlyClaimsAsync(
         long projectId, CancellationToken cancellationToken = default)
     {

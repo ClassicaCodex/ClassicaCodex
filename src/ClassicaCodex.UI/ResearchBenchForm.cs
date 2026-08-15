@@ -32,6 +32,7 @@ public class ResearchBenchForm : Form
     private readonly TextBox _excerpt = new();
     private readonly Label _originLine = new();
     private readonly LinkLabel _openAnalysis = new();
+    private readonly LinkLabel _sourceFiles = new();
     private readonly TextBox _interpretation = new();
     private readonly TextBox _generatorPrompt = new();
     private readonly TextBox _researcherNote = new();
@@ -71,6 +72,8 @@ public class ResearchBenchForm : Form
                 ? Color.FromArgb(115, 180, 245)
                 : Color.FromArgb(0, 70, 140);
             _openAnalysis.ActiveLinkColor = ReadingTheme.SelectionText;
+            _sourceFiles.LinkColor = _openAnalysis.LinkColor;
+            _sourceFiles.ActiveLinkColor = ReadingTheme.SelectionText;
         });
         WindowShortcuts.CloseOnEscape(this);
         Shown += async (_, _) =>
@@ -253,6 +256,12 @@ public class ResearchBenchForm : Form
         _originLine.Anchor = AnchorStyles.Left | AnchorStyles.Top | AnchorStyles.Right;
         _originLine.Font = new Font(Font, FontStyle.Bold);
         scroll.Controls.Add(_originLine);
+        y += 27;
+        _sourceFiles.SetBounds(10, y, 520, 22);
+        _sourceFiles.Text = "Source files & page notes →";
+        _sourceFiles.Visible = false;
+        _sourceFiles.LinkClicked += (_, _) => OpenEvidenceSources();
+        scroll.Controls.Add(_sourceFiles);
         y += 27;
         _openAnalysis.SetBounds(10, y, 520, 22);
         _openAnalysis.Text = "Open this saved run in Stylometry →";
@@ -743,6 +752,7 @@ public class ResearchBenchForm : Form
                 ? "" : $" — interpretation by {item.InterpretationAuthor}");
         _openAnalysis.Tag = GetStylometryRunId(item);
         _openAnalysis.Visible = _openAnalysis.Tag is long;
+        _sourceFiles.Visible = item?.EvidenceItemId > 0;
         _interpretation.Text = item?.Interpretation ?? "";
         _generatorPrompt.Text = item?.GeneratorPrompt ?? "";
         _researcherNote.Text = item?.ResearcherNote ?? "";
@@ -752,6 +762,13 @@ public class ResearchBenchForm : Form
     {
         if (_openAnalysis.Tag is not long runId) return;
         using var form = new StylometryAnalysisForm(runId);
+        form.ShowDialog(this);
+    }
+
+    private void OpenEvidenceSources()
+    {
+        if (_editingEvidence?.EvidenceItemId is not > 0) return;
+        using var form = new EvidenceSourcesForm(_editingEvidence);
         form.ShowDialog(this);
     }
 
