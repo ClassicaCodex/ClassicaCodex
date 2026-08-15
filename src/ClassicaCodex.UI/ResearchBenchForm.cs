@@ -31,6 +31,7 @@ public class ResearchBenchForm : Form
     private readonly TextBox _provenance = new();
     private readonly TextBox _excerpt = new();
     private readonly Label _originLine = new();
+    private readonly LinkLabel _openAnalysis = new();
     private readonly TextBox _interpretation = new();
     private readonly TextBox _generatorPrompt = new();
     private readonly TextBox _researcherNote = new();
@@ -66,6 +67,10 @@ public class ResearchBenchForm : Form
         ReadingTheme.AttachTo(this, () =>
         {
             _statusLine.ForeColor = ReadingTheme.MutedText;
+            _openAnalysis.LinkColor = ReadingTheme.IsDark
+                ? Color.FromArgb(115, 180, 245)
+                : Color.FromArgb(0, 70, 140);
+            _openAnalysis.ActiveLinkColor = ReadingTheme.SelectionText;
         });
         WindowShortcuts.CloseOnEscape(this);
         Shown += async (_, _) =>
@@ -204,8 +209,21 @@ public class ResearchBenchForm : Form
         _evidence.RowHeadersVisible = false;
         _evidence.Columns.Add(new DataGridViewTextBoxColumn { DataPropertyName = "Judgment", HeaderText = "Review", Width = 78 });
         _evidence.Columns.Add(new DataGridViewTextBoxColumn { DataPropertyName = "Title", HeaderText = "Evidence", AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill });
+        _evidence.Columns.Add(new DataGridViewTextBoxColumn { DataPropertyName = "Origin", HeaderText = "Origin", Width = 96 });
         _evidence.Columns.Add(new DataGridViewTextBoxColumn { DataPropertyName = "Type", HeaderText = "Type", Width = 95 });
         _evidence.Columns.Add(new DataGridViewTextBoxColumn { DataPropertyName = "CanonicalReference", HeaderText = "Reference", Width = 110 });
+        _evidence.CellFormatting += (_, e) =>
+        {
+            if (_evidence.Columns[e.ColumnIndex].DataPropertyName != "Origin" || e.Value is not EvidenceOrigin origin)
+                return;
+            e.Value = origin switch
+            {
+                EvidenceOrigin.ClassicaCodexAnalysis => "App analysis",
+                EvidenceOrigin.AiCandidate => "AI candidate",
+                _ => "Manual"
+            };
+            e.FormattingApplied = true;
+        };
         _evidence.SelectionChanged += (_, _) => ShowEvidence(CurrentEvidence);
         host.Controls.Add(_evidence);
         host.Controls.Add(strip);
@@ -229,6 +247,12 @@ public class ResearchBenchForm : Form
         _originLine.Anchor = AnchorStyles.Left | AnchorStyles.Top | AnchorStyles.Right;
         _originLine.Font = new Font(Font, FontStyle.Bold);
         scroll.Controls.Add(_originLine);
+        y += 27;
+        _openAnalysis.SetBounds(10, y, 520, 22);
+        _openAnalysis.Text = "Open this saved run in Stylometry →";
+        _openAnalysis.Visible = false;
+        _openAnalysis.LinkClicked += (_, _) => OpenAttachedStylometryRun();
+        scroll.Controls.Add(_openAnalysis);
         y += 27;
         _interpretation.ReadOnly = true;
         AddArea(scroll, "App / AI interpretation (not raw evidence)", _interpretation, 80, ref y);
@@ -646,9 +670,28 @@ public class ResearchBenchForm : Form
             ? "Origin: manual evidence"
             : $"Origin: {item.Origin}" + (string.IsNullOrWhiteSpace(item.InterpretationAuthor)
                 ? "" : $" — interpretation by {item.InterpretationAuthor}");
+        _openAnalysis.Tag = GetStylometryRunId(item);
+        _openAnalysis.Visible = _openAnalysis.Tag is long;
         _interpretation.Text = item?.Interpretation ?? "";
         _generatorPrompt.Text = item?.GeneratorPrompt ?? "";
         _researcherNote.Text = item?.ResearcherNote ?? "";
+    }
+
+    private void OpenAttachedStylometryRun()
+    {
+        if (_openAnalysis.Tag is not long runId) return;
+        using var form = new StylometryAnalysisForm(runId);
+        form.ShowDialog(this);
+    }
+
+    private static long? GetStylometryRunId(EvidenceItem? item)
+    {
+        const string prefix = "classicacodex:stylometry-run:";
+        if (item?.Origin != EvidenceOrigin.ClassicaCodexAnalysis ||
+            item.StableIdentifier?.StartsWith(prefix, StringComparison.OrdinalIgnoreCase) != true)
+            return null;
+
+        return long.TryParse(item.StableIdentifier[prefix.Length..], out var runId) ? runId : null;
     }
 
     private void RefreshQuestionChoices(IEnumerable<ResearchQuestion> questions)

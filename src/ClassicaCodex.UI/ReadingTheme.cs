@@ -422,6 +422,39 @@ public static class ReadingTheme
                 ApplyNativeScrollbarTheme(tree);
                 break;
 
+            case DataGridView grid:
+                // DataGridView does not inherit useful colours from its
+                // parent. Its cells and headers each keep separate system
+                // defaults, which otherwise leaves a white table inside an
+                // entirely dark form.
+                grid.BackgroundColor = Surface;
+                grid.GridColor = Border;
+                grid.EnableHeadersVisualStyles = false;
+                grid.ColumnHeadersDefaultCellStyle.BackColor = HeaderBackground;
+                grid.ColumnHeadersDefaultCellStyle.ForeColor = Text;
+                grid.ColumnHeadersDefaultCellStyle.SelectionBackColor = HeaderBackground;
+                grid.ColumnHeadersDefaultCellStyle.SelectionForeColor = Text;
+                grid.RowHeadersDefaultCellStyle.BackColor = HeaderBackground;
+                grid.RowHeadersDefaultCellStyle.ForeColor = Text;
+                grid.RowHeadersDefaultCellStyle.SelectionBackColor = SelectionBackground;
+                grid.RowHeadersDefaultCellStyle.SelectionForeColor = SelectionText;
+                grid.DefaultCellStyle.BackColor = Surface;
+                grid.DefaultCellStyle.ForeColor = Text;
+                grid.DefaultCellStyle.SelectionBackColor = SelectionBackground;
+                grid.DefaultCellStyle.SelectionForeColor = SelectionText;
+                grid.RowsDefaultCellStyle.BackColor = Surface;
+                grid.RowsDefaultCellStyle.ForeColor = Text;
+                grid.RowsDefaultCellStyle.SelectionBackColor = SelectionBackground;
+                grid.RowsDefaultCellStyle.SelectionForeColor = SelectionText;
+                grid.AlternatingRowsDefaultCellStyle.BackColor = IsDark
+                    ? Color.FromArgb(29, 29, 32)
+                    : Color.FromArgb(245, 241, 232);
+                grid.AlternatingRowsDefaultCellStyle.ForeColor = Text;
+                grid.AlternatingRowsDefaultCellStyle.SelectionBackColor = SelectionBackground;
+                grid.AlternatingRowsDefaultCellStyle.SelectionForeColor = SelectionText;
+                ApplyNativeScrollbarTheme(grid);
+                break;
+
             case ListView listView:
                 // A results grid is a content surface like the lists above.
                 listView.BackColor = Surface;

@@ -47,12 +47,16 @@ public class StylometryAnalysisForm : Form
     private readonly ListView _lengthList;
     private readonly Label _lengthSummary;
     private readonly ThemedTabControl _tabs;
+    private readonly long? _focusRunId;
 
     private List<StylometrySettings> _profiles = new();
     private List<StylometryRunMetrics> _currentMetrics = new();
+    private StylometryRunMetrics? _focusRun;
+    private bool _loadingProfiles;
 
-    public StylometryAnalysisForm()
+    public StylometryAnalysisForm(long? focusRunId = null)
     {
+        _focusRunId = focusRunId;
         Text = "Stylometry - Compare Saved Runs";
         AppIcons.ApplyWindowIcon(this, "Stylometry");
         Width = 1120;
@@ -67,7 +71,10 @@ public class StylometryAnalysisForm : Form
             Width = 320,
             DropDownStyle = ComboBoxStyle.DropDownList
         };
-        _profileCombo.SelectedIndexChanged += async (_, _) => await RefreshAsync();
+        _profileCombo.SelectedIndexChanged += async (_, _) =>
+        {
+            if (!_loadingProfiles) await RefreshAsync();
+        };
 
         var authorLabel = new Label { Text = "Author:", Left = 452, Top = 14, Width = 50 };
         _authorCombo = new ComboBox
@@ -225,9 +232,20 @@ public class StylometryAnalysisForm : Form
 
         foreach (var p in _profiles) _profileCombo.Items.Add(p.Describe());
 
+        if (_focusRunId.HasValue)
+        {
+            _focusRun = (await _runRepo.GetRunMetricsAsync())
+                .FirstOrDefault(m => m.RunId == _focusRunId.Value);
+            Text += $" — Saved run #{_focusRunId.Value}";
+        }
+
         if (_profileCombo.Items.Count > 0)
         {
-            _profileCombo.SelectedIndex = 0;
+            var profileIndex = _focusRun == null ? -1 : _profiles.IndexOf(_focusRun.Settings);
+            _loadingProfiles = true;
+            _profileCombo.SelectedIndex = profileIndex >= 0 ? profileIndex : 0;
+            _loadingProfiles = false;
+            await RefreshAsync();
         }
         else
         {
@@ -236,6 +254,10 @@ public class StylometryAnalysisForm : Form
         }
 
         await BuildStabilityMatrixAsync();
+
+        if (_focusRunId.HasValue && _focusRun == null)
+            _summaryLabel.Text = $"Saved run #{_focusRunId.Value} is no longer available. " +
+                                 "The remaining saved runs are shown instead.";
     }
 
     private async Task RefreshAsync()
@@ -251,7 +273,9 @@ public class StylometryAnalysisForm : Form
             .OrderBy(a => a)
             .ToList();
 
-        var previous = _authorCombo.SelectedItem as string;
+        var previous = _focusRun != null && _currentMetrics.Any(m => m.RunId == _focusRun.RunId)
+            ? _focusRun.TargetAuthorName
+            : _authorCombo.SelectedItem as string;
         _authorCombo.Items.Clear();
         _authorCombo.Items.Add("(all authors)");
         foreach (var a in authors) _authorCombo.Items.Add(a);
@@ -314,6 +338,7 @@ public class StylometryAnalysisForm : Form
             }
 
             var item = new ListViewItem($"{m.TargetAuthorName}, {m.TargetWorkTitle}");
+            item.Tag = m.RunId;
             item.SubItems.Add(m.DepthToFirstOutsider?.ToString() ?? "(all same author)");
             item.SubItems.Add(z.HasValue ? z.Value.ToString("F2") : "-");
             item.SubItems.Add(m.DeltaFloor.ToString("F3"));
@@ -323,9 +348,19 @@ public class StylometryAnalysisForm : Form
             // Two standard deviations below the leave-one-out mean is a
             // conventional flag, not a verdict. It marks a work worth looking
             // at, and with a dozen or so works one flag is expected by chance.
-            if (z.HasValue && z.Value <= -2.0) item.BackColor = Color.FromArgb(255, 235, 235);
+            if (z.HasValue && z.Value <= -2.0)
+                item.BackColor = ReadingTheme.IsDark
+                    ? Color.FromArgb(74, 42, 46)
+                    : Color.FromArgb(255, 235, 235);
 
             _metricsList.Items.Add(item);
+
+            if (_focusRunId == m.RunId)
+            {
+                item.Selected = true;
+                item.Focused = true;
+                item.EnsureVisible();
+            }
         }
 
         if (depths.Count >= 3)
