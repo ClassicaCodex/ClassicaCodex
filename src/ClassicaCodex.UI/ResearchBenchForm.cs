@@ -181,13 +181,15 @@ public class ResearchBenchForm : Form
     private void BuildEvidenceList(Control host)
     {
         var strip = new FlowLayoutPanel { Dock = DockStyle.Top, Height = 40, Padding = new Padding(4) };
-        var add = new Button { Text = "New evidence", Width = 105, Height = 28 };
-        var remove = new Button { Text = "Remove", Width = 78, Height = 28 };
-        var log = new Button { Text = "Research log", Width = 105, Height = 28 };
-        var gather = new Button { Text = "Gather evidence ▾", Width = 125, Height = 28 };
+        var add = new Button { Text = "New evidence", Width = 95, Height = 28 };
+        var remove = new Button { Text = "Remove", Width = 70, Height = 28 };
+        var log = new Button { Text = "Research log", Width = 92, Height = 28 };
+        var audit = new Button { Text = "Audit", Width = 65, Height = 28 };
+        var gather = new Button { Text = "Gather evidence ▾", Width = 120, Height = 28 };
         add.Click += (_, _) => NewEvidence();
         remove.Click += async (_, _) => await RemoveEvidenceAsync();
         log.Click += (_, _) => OpenResearchLog();
+        audit.Click += async (_, _) => await OpenProjectAuditAsync();
         var gatherMenu = new ContextMenuStrip();
         gatherMenu.Items.Add("Attach saved stylometry run", null, async (_, _) => await AttachStylometryRunAsync());
         gatherMenu.Items.Add(new ToolStripSeparator());
@@ -197,6 +199,7 @@ public class ResearchBenchForm : Form
         strip.Controls.Add(add);
         strip.Controls.Add(remove);
         strip.Controls.Add(log);
+        strip.Controls.Add(audit);
         strip.Controls.Add(gather);
 
         _evidence.Dock = DockStyle.Fill;
@@ -336,6 +339,32 @@ public class ResearchBenchForm : Form
 
         using var log = new ResearchLogForm(project);
         log.ShowDialog(this);
+    }
+
+    private async Task OpenProjectAuditAsync()
+    {
+        var project = CurrentProject;
+        if (project == null) return;
+        var questions = await _repo.GetQuestionsAsync(project.ResearchProjectId);
+        var evidence = await _repo.GetEvidenceAsync(project.ResearchProjectId);
+        using var form = new ResearchAuditForm(project, questions, evidence);
+        if (form.ShowDialog(this) != DialogResult.OK) return;
+
+        if (form.SelectedEvidenceId is long evidenceId)
+        {
+            foreach (DataGridViewRow row in _evidence.Rows)
+            {
+                if (row.DataBoundItem is not EvidenceItem item || item.EvidenceItemId != evidenceId) continue;
+                row.Selected = true;
+                _evidence.CurrentCell = row.Cells[0];
+                _evidence.FirstDisplayedScrollingRowIndex = row.Index;
+                return;
+            }
+        }
+
+        if (form.SelectedQuestionId is long questionId)
+            _questions.SelectedItem = _questions.Items.Cast<ResearchQuestion>()
+                .FirstOrDefault(q => q.ResearchQuestionId == questionId);
     }
 
     private async Task AttachStylometryRunAsync()
