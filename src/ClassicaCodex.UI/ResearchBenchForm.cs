@@ -31,6 +31,8 @@ public class ResearchBenchForm : Form
     private readonly TextBox _excerpt = new();
     private readonly TextBox _researcherNote = new();
     private readonly Label _statusLine = new();
+    private SplitContainer? _outerSplit;
+    private SplitContainer? _rightSplit;
     private EvidenceItem? _editingEvidence;
 
     private ResearchProject? CurrentProject => _projects.SelectedItem as ResearchProject;
@@ -62,7 +64,12 @@ public class ResearchBenchForm : Form
             _statusLine.ForeColor = ReadingTheme.MutedText;
         });
         WindowShortcuts.CloseOnEscape(this);
-        Shown += async (_, _) => await LoadProjectsAsync();
+        Shown += async (_, _) =>
+        {
+            SetSplitterDistance(_outerSplit, 285);
+            SetSplitterDistance(_rightSplit, 500);
+            await LoadProjectsAsync();
+        };
     }
 
     private Control BuildHeader()
@@ -102,18 +109,33 @@ public class ResearchBenchForm : Form
     {
         var outer = new SplitContainer
         {
-            Dock = DockStyle.Fill, SplitterDistance = 285, FixedPanel = FixedPanel.Panel1,
+            Dock = DockStyle.Fill, FixedPanel = FixedPanel.Panel1,
             Panel1MinSize = 240, Panel2MinSize = 700
         };
+        _outerSplit = outer;
         BuildLeft(outer.Panel1);
         var right = new SplitContainer
         {
-            Dock = DockStyle.Fill, SplitterDistance = 500, Panel1MinSize = 360, Panel2MinSize = 420
+            Dock = DockStyle.Fill, Panel1MinSize = 360, Panel2MinSize = 420
         };
+        _rightSplit = right;
         BuildEvidenceList(right.Panel1);
         BuildInspector(right.Panel2);
         outer.Panel2.Controls.Add(right);
         return outer;
+    }
+
+    private static void SetSplitterDistance(SplitContainer? split, int preferredDistance)
+    {
+        if (split is null)
+            return;
+
+        // SplitContainers still have their small default width while this form's
+        // control tree is being constructed. Wait until Shown, then clamp the
+        // preferred position to the actual laid-out width and panel minima.
+        var maximum = split.ClientSize.Width - split.Panel2MinSize - split.SplitterWidth;
+        if (maximum >= split.Panel1MinSize)
+            split.SplitterDistance = Math.Clamp(preferredDistance, split.Panel1MinSize, maximum);
     }
 
     private void BuildLeft(Control host)
