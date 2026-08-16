@@ -1,3 +1,4 @@
+using System.ComponentModel;
 using ClassicaCodex.Core;
 using ClassicaCodex.Core.Models;
 using ClassicaCodex.Data.Repositories;
@@ -690,7 +691,7 @@ public class ResearchBenchForm : Form
             var knownIds = existing.Select(e => e.StableIdentifier)
                 .Where(id => !string.IsNullOrWhiteSpace(id))
                 .ToHashSet(StringComparer.OrdinalIgnoreCase);
-            var added = 0;
+            var offered = new List<EvidenceCandidatePreview>();
             var unresolved = 0;
             foreach (var candidate in result.Candidates)
             {
@@ -707,23 +708,57 @@ public class ResearchBenchForm : Form
                 long? questionId = candidate.QuestionIndex is > 0
                     && candidate.QuestionIndex <= questions.Count
                     ? questions[candidate.QuestionIndex.Value - 1].ResearchQuestionId : null;
+                offered.Add(new EvidenceCandidatePreview(candidate.Title, citation, stableId, corpusText,
+                    relationship, questionId, candidate.Confidence, candidate.Rationale));
+            }
+
+            if (offered.Count == 0)
+            {
+                _statusLine.Text = $"Gemini returned no new verified candidates ({unresolved} unresolved citation(s)).";
+                return;
+            }
+
+            // Nothing is written until the researcher accepts it. This was the only AI
+            // surface in the Bench that wrote straight into the evidence register and the
+            // append-only research log - no cap and no accept step - while the Hypothesis
+            // Lab, the Corpus Investigator, the echo investigations and the synthesis all
+            // require a human to choose. The prompt asks for at most 12 candidates and
+            // nothing enforces it; the review is where that stops mattering, because an
+            // over-long list is now something the researcher sees rather than something
+            // that silently lands in the register.
+            Enabled = true; // the review is the researcher's turn, not the model's
+            List<EvidenceCandidatePreview> accepted;
+            using (var review = new ResearchEvidenceReviewForm(offered, result.Model, unresolved, challengeTheory))
+            {
+                if (review.ShowDialog(this) != DialogResult.OK)
+                {
+                    _statusLine.Text = $"Discarded {offered.Count} AI candidate(s). Nothing was saved.";
+                    return;
+                }
+                accepted = review.Accepted.ToList();
+            }
+
+            var added = 0;
+            foreach (var chosen in accepted)
+            {
                 var item = new EvidenceItem
                 {
                     ResearchProjectId = project.ResearchProjectId,
-                    ResearchQuestionId = questionId,
-                    Title = $"AI candidate: {candidate.Title}",
+                    ResearchQuestionId = chosen.QuestionId,
+                    Title = $"AI candidate: {chosen.Title}",
                     Type = EvidenceType.PrimaryText,
                     SourceType = "Local corpus passage; Gemini candidate",
-                    StableIdentifier = stableId,
-                    CanonicalReference = citation,
+                    StableIdentifier = chosen.StableId,
+                    CanonicalReference = chosen.Citation,
                     Provenance = $"Verified against local edition {edition.CtsUrn}; corpus SHA-256 {hash}; " +
-                                 $"Gemini model {result.Model}; generated {generatedAt:O}; relevance confidence {candidate.Confidence}. " +
-                                 (truncatedAtRef == null ? "Complete edition searched." : $"Search truncated after {truncatedAtRef}."),
-                    Excerpt = corpusText,
+                                 $"Gemini model {result.Model}; generated {generatedAt:O}; relevance confidence {chosen.Confidence}. " +
+                                 (truncatedAtRef == null ? "Complete edition searched." : $"Search truncated after {truncatedAtRef}.") +
+                                 " Accepted for review by the researcher.",
+                    Excerpt = chosen.Excerpt,
                     Judgment = EvidenceJudgment.Uncertain,
-                    Relationship = relationship,
+                    Relationship = chosen.Relationship,
                     Origin = EvidenceOrigin.AiCandidate,
-                    Interpretation = candidate.Rationale,
+                    Interpretation = chosen.Rationale,
                     InterpretationAuthor = $"Gemini ({result.Model})",
                     GeneratorPrompt = result.PromptProvenance,
                     GeneratedUtc = generatedAt,
@@ -735,8 +770,9 @@ public class ResearchBenchForm : Form
 
             await LoadEvidenceAsync(project.ResearchProjectId);
             _statusLine.Text = added == 0
-                ? $"Gemini returned no new verified candidates ({unresolved} unresolved citation(s))."
-                : $"Added {added} uncertain AI candidate(s) for human review; rejected {unresolved} unresolved citation(s).";
+                ? $"None of the {offered.Count} candidate(s) were accepted. Nothing was saved."
+                : $"Saved {added} of {offered.Count} candidate(s) as uncertain AI evidence; " +
+                  $"{offered.Count - added} declined, {unresolved} unresolved citation(s) rejected.";
         }
         catch (Exception ex)
         {
@@ -1022,4 +1058,76 @@ public class ResearchBenchForm : Form
     private static Label LabelAt(string text, int x, int y, int width) => new() { Text = text, Left = x, Top = y, Width = width, Height = 20 };
     private static string? EmptyToNull(string text) => string.IsNullOrWhiteSpace(text) ? null : text.Trim();
     private sealed record QuestionChoice(long? Id, string Text) { public override string ToString() => Text; }
+
+}
+
+/// <summary>
+/// One resolved candidate, held in memory only until the researcher accepts it. Every
+/// field has already been checked against the local edition - the citation resolved, and
+/// the excerpt is the corpus text rather than anything the model wrote - so accepting is
+/// a decision about relevance, not about whether the passage exists.
+/// </summary>
+internal sealed record EvidenceCandidatePreview(
+    string Title, string Citation, string StableId, string Excerpt,
+    EvidenceRelationship Relationship, long? QuestionId, string Confidence, string Rationale);
+
+/// <summary>
+/// The human accept step for AI-gathered corpus evidence. Candidates are shown with the
+/// local corpus text they resolved to, and only checked rows are saved.
+/// </summary>
+internal sealed class ResearchEvidenceReviewForm : Form
+{
+    private readonly DataGridView _grid = new();
+    private readonly BindingList<Row> _rows;
+
+    public IReadOnlyList<EvidenceCandidatePreview> Accepted =>
+        _rows.Where(r => r.Include).Select(r => r.Candidate).ToList();
+
+    internal ResearchEvidenceReviewForm(IReadOnlyList<EvidenceCandidatePreview> candidates,
+        string model, int unresolved, bool challengeTheory)
+    {
+        Text = challengeTheory ? "Review AI counterevidence candidates" : "Review AI corpus evidence candidates";
+        Width = 1150; Height = 650; MinimumSize = new Size(820, 480);
+        StartPosition = FormStartPosition.CenterParent;
+        _rows = new BindingList<Row>(candidates.Select(c => new Row(c)).ToList());
+        var note = new Label
+        {
+            Dock = DockStyle.Top, Height = 58, Padding = new Padding(9, 7, 5, 0),
+            Text = $"{candidates.Count} candidate(s) from {model}, each resolved against this edition" +
+                   (unresolved == 0 ? "" : $"; {unresolved} more were rejected because their citation did not resolve") +
+                   ". Check the ones worth keeping. Accepted rows are saved as uncertain AI candidates for you to judge; " +
+                   "nothing is written to the project until you accept."
+        };
+        _grid.Dock = DockStyle.Fill; _grid.AutoGenerateColumns = false; _grid.AllowUserToAddRows = false;
+        _grid.RowHeadersVisible = false; _grid.DataSource = _rows;
+        _grid.Columns.Add(new DataGridViewCheckBoxColumn { DataPropertyName = nameof(Row.Include), HeaderText = "Keep", Width = 48 });
+        _grid.Columns.Add(new DataGridViewTextBoxColumn { DataPropertyName = nameof(Row.Citation), HeaderText = "Reference", Width = 95, ReadOnly = true });
+        _grid.Columns.Add(new DataGridViewTextBoxColumn { DataPropertyName = nameof(Row.Title), HeaderText = "Candidate", Width = 215, ReadOnly = true });
+        _grid.Columns.Add(new DataGridViewTextBoxColumn { DataPropertyName = nameof(Row.Relationship), HeaderText = "Relationship", Width = 105, ReadOnly = true });
+        _grid.Columns.Add(new DataGridViewTextBoxColumn { DataPropertyName = nameof(Row.Confidence), HeaderText = "Confidence", Width = 85, ReadOnly = true });
+        _grid.Columns.Add(new DataGridViewTextBoxColumn { DataPropertyName = nameof(Row.Detail), HeaderText = "Corpus text — model's rationale", AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill, ReadOnly = true });
+        var bottom = new FlowLayoutPanel { Dock = DockStyle.Bottom, Height = 48, Padding = new Padding(8), FlowDirection = FlowDirection.RightToLeft };
+        var cancel = new Button { Text = "Discard all", Width = 90, DialogResult = DialogResult.Cancel };
+        var accept = new Button { Text = "Save checked", Width = 110 };
+        var all = new Button { Text = "Check all", Width = 90 };
+        all.Click += (_, _) => { foreach (var r in _rows) r.Include = true; _grid.Refresh(); };
+        accept.Click += (_, _) => { _grid.EndEdit(); DialogResult = DialogResult.OK; Close(); };
+        bottom.Controls.AddRange([cancel, accept, all]);
+        Controls.Add(_grid); Controls.Add(note); Controls.Add(bottom);
+        ReadingTheme.AttachTo(this, () => note.ForeColor = ReadingTheme.MutedText);
+        WindowShortcuts.CloseOnEscape(this);
+    }
+
+    private sealed class Row
+    {
+        public Row(EvidenceCandidatePreview candidate) => Candidate = candidate;
+        public EvidenceCandidatePreview Candidate { get; }
+        public bool Include { get; set; }
+        public string Citation => Candidate.Citation;
+        public string Title => Candidate.Title;
+        public string Relationship => Candidate.Relationship.ToString();
+        public string Confidence => Candidate.Confidence;
+        public string Detail => $"{Trim(Candidate.Excerpt)} — {Candidate.Rationale}";
+        private static string Trim(string text) => text.Length <= 220 ? text : text[..220] + "…";
+    }
 }
