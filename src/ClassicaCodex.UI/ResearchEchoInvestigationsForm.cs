@@ -5,7 +5,7 @@ using ClassicaCodex.Data.Repositories;
 namespace ClassicaCodex.UI;
 
 /// <summary>A human-review inbox for saved offline and AI intertextual candidates.</summary>
-public sealed class ResearchEchoInvestigationsForm : Form
+public sealed class ResearchEchoInvestigationsForm : ScaledForm
 {
     private readonly ResearchProject _project;
     private readonly Work _work;

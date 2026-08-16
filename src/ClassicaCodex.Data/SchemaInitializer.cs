@@ -55,7 +55,7 @@ public static class SchemaInitializer
     /// 7 to 13 until version 3 was cut, at which point they all failed at
     /// once and said nothing about what had actually broken.
     /// </summary>
-    public const int TargetSchemaVersion = 32;
+    public const int TargetSchemaVersion = 33;
 
     public static async Task EnsureSchemaAsync(CancellationToken cancellationToken = default)
     {
@@ -1020,6 +1020,11 @@ public static class SchemaInitializer
             "CREATE INDEX IF NOT EXISTS IX_ResearchQuestions_Project ON ResearchQuestions (ResearchProjectId, SortOrder);"
         },
 
+        // Out of numerical order below: 33 was written as 32 on a branch, and became
+        // 33 when the assessments migration reached main first. ApplyMigrationsAsync
+        // walks the version numbers rather than this literal's order, so the sequence
+        // is still 32 then 33 - but do not read the file expecting otherwise.
+
         // Which collection an edition came from, recorded on the edition itself.
         //
         // The search window needs to tell CSEL from the classical Latin texts, and
@@ -1038,11 +1043,11 @@ public static class SchemaInitializer
         // table keeps its current shape, and the second run dies on "duplicate
         // column name". An index on the new column makes it worse still, since the
         // rewind's DROP COLUMN then fails against the index that depends on it.
-        // Selecting only the pre-32 columns makes this idempotent whatever shape it
+        // Selecting only the pre-33 columns makes this idempotent whatever shape it
         // meets.
-        [32] = new[]
+        [33] = new[]
         {
-            @"CREATE TABLE Editions_v32 (
+            @"CREATE TABLE Editions_v33 (
                 EditionId   INTEGER PRIMARY KEY,
                 WorkId      INTEGER NOT NULL,
                 CtsUrn      TEXT NOT NULL,
@@ -1055,12 +1060,12 @@ public static class SchemaInitializer
                 CONSTRAINT UQ_Editions_CtsUrn UNIQUE (CtsUrn),
                 CONSTRAINT FK_Editions_Works FOREIGN KEY (WorkId) REFERENCES Works(WorkId)
             );",
-            @"INSERT INTO Editions_v32
+            @"INSERT INTO Editions_v33
                 (EditionId, WorkId, CtsUrn, Kind, Language, Translator, SourcePath, Orthography)
               SELECT EditionId, WorkId, CtsUrn, Kind, Language, Translator, SourcePath, Orthography
               FROM Editions;",
             "DROP TABLE Editions;",
-            "ALTER TABLE Editions_v32 RENAME TO Editions;",
+            "ALTER TABLE Editions_v33 RENAME TO Editions;",
             "CREATE INDEX IF NOT EXISTS IX_Editions_WorkId ON Editions (WorkId);",
 
             // Best effort for libraries that already exist, from the only signal
@@ -1081,6 +1086,82 @@ public static class SchemaInitializer
               WHERE Collection IS NULL AND SourcePath LIKE '%\menota\%';",
 
             "CREATE INDEX IF NOT EXISTS IX_Editions_Collection ON Editions (Collection);"
+        },
+
+        // An assessment belongs to the source it assesses.
+        //
+        // (SourceKind, SourceId) named a row without referencing it. SQLite reuses
+        // rowids, so deleting the highest-numbered evidence item and adding another gave
+        // the new one the old number, and an assessment written about the first silently
+        // became an assessment of the second - a researcher's judgment reattributed to a
+        // passage they had never read. Nothing corrected it short of re-saving that
+        // hypothesis's matrix.
+        //
+        // Four typed columns with real foreign keys and ON DELETE CASCADE: removing a
+        // source now removes what was said about it. A CHECK keeps exactly one set.
+        //
+        // SourceKind stays, and SourceId stays as a generated column over the four. That
+        // is what makes this replayable: run against a database already in this shape,
+        // the SELECT below still resolves both names and rebuilds the same rows.
+        [32] = new[]
+        {
+            @"CREATE TABLE ResearchHypothesisAssessments_v32 (
+                ResearchHypothesisAssessmentId INTEGER PRIMARY KEY,
+                ResearchHypothesisId INTEGER NOT NULL,
+                SourceKind TEXT NOT NULL,
+                EvidenceItemId INTEGER NULL,
+                ResearchFindingId INTEGER NULL,
+                ScholarlyClaimId INTEGER NULL,
+                ResearchEchoResultId INTEGER NULL,
+                SourceId INTEGER GENERATED ALWAYS AS (COALESCE(EvidenceItemId, ResearchFindingId,
+                    ScholarlyClaimId, ResearchEchoResultId)) VIRTUAL,
+                Relationship TEXT NOT NULL DEFAULT 'contextualizes',
+                Strength TEXT NOT NULL DEFAULT 'moderate',
+                ResearcherNote TEXT NULL,
+                CreatedUtc TEXT NOT NULL,
+                UpdatedUtc TEXT NOT NULL,
+                CONSTRAINT CK_ResearchHypothesisAssessments_OneSource CHECK (
+                    (EvidenceItemId IS NOT NULL) + (ResearchFindingId IS NOT NULL)
+                  + (ScholarlyClaimId IS NOT NULL) + (ResearchEchoResultId IS NOT NULL) = 1),
+                CONSTRAINT FK_ResearchHypothesisAssessments_Hypotheses FOREIGN KEY (ResearchHypothesisId)
+                    REFERENCES ResearchHypotheses(ResearchHypothesisId) ON DELETE CASCADE,
+                CONSTRAINT FK_ResearchHypothesisAssessments_Evidence FOREIGN KEY (EvidenceItemId)
+                    REFERENCES EvidenceItems(EvidenceItemId) ON DELETE CASCADE,
+                CONSTRAINT FK_ResearchHypothesisAssessments_Findings FOREIGN KEY (ResearchFindingId)
+                    REFERENCES ResearchFindings(ResearchFindingId) ON DELETE CASCADE,
+                CONSTRAINT FK_ResearchHypothesisAssessments_Claims FOREIGN KEY (ScholarlyClaimId)
+                    REFERENCES ScholarlyClaims(ScholarlyClaimId) ON DELETE CASCADE,
+                CONSTRAINT FK_ResearchHypothesisAssessments_EchoResults FOREIGN KEY (ResearchEchoResultId)
+                    REFERENCES ResearchEchoResults(ResearchEchoResultId) ON DELETE CASCADE
+            );",
+
+            // Rows whose source no longer exists are dropped rather than carried across.
+            // They are the ones this migration exists to prevent: already detached, and
+            // one rowid reuse away from being silently reattached to something else.
+            @"INSERT INTO ResearchHypothesisAssessments_v32
+                (ResearchHypothesisAssessmentId, ResearchHypothesisId, SourceKind,
+                 EvidenceItemId, ResearchFindingId, ScholarlyClaimId, ResearchEchoResultId,
+                 Relationship, Strength, ResearcherNote, CreatedUtc, UpdatedUtc)
+              SELECT a.ResearchHypothesisAssessmentId, a.ResearchHypothesisId, a.SourceKind,
+                     CASE WHEN a.SourceKind = 'evidence' THEN a.SourceId END,
+                     CASE WHEN a.SourceKind = 'finding' THEN a.SourceId END,
+                     CASE WHEN a.SourceKind = 'scholarlyclaim' THEN a.SourceId END,
+                     CASE WHEN a.SourceKind = 'echoresult' THEN a.SourceId END,
+                     a.Relationship, a.Strength, a.ResearcherNote, a.CreatedUtc, a.UpdatedUtc
+              FROM ResearchHypothesisAssessments a
+              WHERE (a.SourceKind = 'evidence'
+                     AND EXISTS (SELECT 1 FROM EvidenceItems t WHERE t.EvidenceItemId = a.SourceId))
+                 OR (a.SourceKind = 'finding'
+                     AND EXISTS (SELECT 1 FROM ResearchFindings t WHERE t.ResearchFindingId = a.SourceId))
+                 OR (a.SourceKind = 'scholarlyclaim'
+                     AND EXISTS (SELECT 1 FROM ScholarlyClaims t WHERE t.ScholarlyClaimId = a.SourceId))
+                 OR (a.SourceKind = 'echoresult'
+                     AND EXISTS (SELECT 1 FROM ResearchEchoResults t WHERE t.ResearchEchoResultId = a.SourceId));",
+
+            "DROP TABLE ResearchHypothesisAssessments;",
+            "ALTER TABLE ResearchHypothesisAssessments_v32 RENAME TO ResearchHypothesisAssessments;",
+            "CREATE INDEX IF NOT EXISTS IX_ResearchHypothesisAssessments_Hypothesis ON ResearchHypothesisAssessments (ResearchHypothesisId, SourceKind, SourceId);",
+            "CREATE UNIQUE INDEX IF NOT EXISTS UX_ResearchHypothesisAssessments_Source ON ResearchHypothesisAssessments (ResearchHypothesisId, SourceKind, SourceId);"
         }
     };
 
@@ -1442,19 +1523,48 @@ public static class SchemaInitializer
             REFERENCES ResearchProjects(ResearchProjectId) ON DELETE CASCADE
     );";
 
+    /// <summary>
+    /// One typed, enforced link per source kind, rather than a loose (SourceKind,
+    /// SourceId) pair pointing at whatever now holds that rowid.
+    ///
+    /// SQLite reuses rowids: delete the highest-numbered evidence item and the next one
+    /// inserted takes its number back. An assessment recorded against the old row then
+    /// described a passage the researcher had never assessed, silently, and only a
+    /// re-save of that hypothesis would have corrected it. The typed columns carry real
+    /// foreign keys, so deleting a source now takes its assessments with it.
+    ///
+    /// SourceKind stays as the discriminator the reads order by, and SourceId stays as a
+    /// generated column over the four - which is also what lets migration 32 be replayed
+    /// against a database already in this shape, since both names still resolve.
+    /// </summary>
     private const string ResearchHypothesisAssessmentsDdl = @"CREATE TABLE IF NOT EXISTS ResearchHypothesisAssessments (
         ResearchHypothesisAssessmentId INTEGER PRIMARY KEY,
         ResearchHypothesisId INTEGER NOT NULL,
         SourceKind TEXT NOT NULL,
-        SourceId INTEGER NOT NULL,
+        EvidenceItemId INTEGER NULL,
+        ResearchFindingId INTEGER NULL,
+        ScholarlyClaimId INTEGER NULL,
+        ResearchEchoResultId INTEGER NULL,
+        SourceId INTEGER GENERATED ALWAYS AS (COALESCE(EvidenceItemId, ResearchFindingId,
+            ScholarlyClaimId, ResearchEchoResultId)) VIRTUAL,
         Relationship TEXT NOT NULL DEFAULT 'contextualizes',
         Strength TEXT NOT NULL DEFAULT 'moderate',
         ResearcherNote TEXT NULL,
         CreatedUtc TEXT NOT NULL,
         UpdatedUtc TEXT NOT NULL,
-        CONSTRAINT UQ_ResearchHypothesisAssessments_Source UNIQUE (ResearchHypothesisId, SourceKind, SourceId),
+        CONSTRAINT CK_ResearchHypothesisAssessments_OneSource CHECK (
+            (EvidenceItemId IS NOT NULL) + (ResearchFindingId IS NOT NULL)
+          + (ScholarlyClaimId IS NOT NULL) + (ResearchEchoResultId IS NOT NULL) = 1),
         CONSTRAINT FK_ResearchHypothesisAssessments_Hypotheses FOREIGN KEY (ResearchHypothesisId)
-            REFERENCES ResearchHypotheses(ResearchHypothesisId) ON DELETE CASCADE
+            REFERENCES ResearchHypotheses(ResearchHypothesisId) ON DELETE CASCADE,
+        CONSTRAINT FK_ResearchHypothesisAssessments_Evidence FOREIGN KEY (EvidenceItemId)
+            REFERENCES EvidenceItems(EvidenceItemId) ON DELETE CASCADE,
+        CONSTRAINT FK_ResearchHypothesisAssessments_Findings FOREIGN KEY (ResearchFindingId)
+            REFERENCES ResearchFindings(ResearchFindingId) ON DELETE CASCADE,
+        CONSTRAINT FK_ResearchHypothesisAssessments_Claims FOREIGN KEY (ScholarlyClaimId)
+            REFERENCES ScholarlyClaims(ScholarlyClaimId) ON DELETE CASCADE,
+        CONSTRAINT FK_ResearchHypothesisAssessments_EchoResults FOREIGN KEY (ResearchEchoResultId)
+            REFERENCES ResearchEchoResults(ResearchEchoResultId) ON DELETE CASCADE
     );";
 
     private const string ResearchExperimentsDdl = @"CREATE TABLE IF NOT EXISTS ResearchExperiments (
@@ -1545,6 +1655,9 @@ public static class SchemaInitializer
         "CREATE INDEX IF NOT EXISTS IX_ResearchEchoParallelAnalyses_Result ON ResearchEchoParallelAnalyses (ResearchEchoResultId, CreatedUtc, ResearchEchoParallelAnalysisId);",
         "CREATE INDEX IF NOT EXISTS IX_ResearchHypotheses_Project ON ResearchHypotheses (ResearchProjectId, SortOrder, ResearchHypothesisId);",
         "CREATE INDEX IF NOT EXISTS IX_ResearchHypothesisAssessments_Hypothesis ON ResearchHypothesisAssessments (ResearchHypothesisId, SourceKind, SourceId);",
+        // Replaces the UNIQUE table constraint the pre-32 shape carried. It has to be an
+        // index now, because SourceId became a generated column.
+        "CREATE UNIQUE INDEX IF NOT EXISTS UX_ResearchHypothesisAssessments_Source ON ResearchHypothesisAssessments (ResearchHypothesisId, SourceKind, SourceId);",
         "CREATE INDEX IF NOT EXISTS IX_ResearchExperiments_Project ON ResearchExperiments (ResearchProjectId, Status, SortOrder, ResearchExperimentId);",
         "CREATE UNIQUE INDEX IF NOT EXISTS UX_PassageInquiries_Passage ON PassageInquiries (EditionCtsUrn, CitationRef);",
         "CREATE INDEX IF NOT EXISTS IX_PassageInquiries_Project ON PassageInquiries (ResearchProjectId);",

@@ -11,7 +11,7 @@ namespace ClassicaCodex.UI;
 /// up the passage you actually want, previews exactly what will be written,
 /// then saves it as .txt, .docx, or .pdf.
 /// </summary>
-public class PassageExportForm : Form
+public class PassageExportForm : ScaledForm
 {
     private readonly TextNode _startNode;
     private readonly int _editionId;

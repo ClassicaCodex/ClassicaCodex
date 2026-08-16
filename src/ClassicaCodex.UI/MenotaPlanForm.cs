@@ -17,7 +17,7 @@ namespace ClassicaCodex.UI;
 /// still readable, which is worth keeping - it is a record of what was
 /// confirmed, and it survives a reinstall - but it is no longer the interface.
 /// </summary>
-public class MenotaPlanForm : Form
+public class MenotaPlanForm : ScaledForm
 {
     private readonly MenotaIngestPlan _plan;
     private readonly XElement? _body;

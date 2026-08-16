@@ -2,7 +2,7 @@ using ClassicaCodex.Ingestion;
 
 namespace ClassicaCodex.UI;
 
-public class IngestForm : Form
+public class IngestForm : ScaledForm
 {
     private readonly TextBox _greekPathBox;
     private readonly TextBox _latinPathBox;

@@ -11,7 +11,7 @@ namespace ClassicaCodex.UI;
 /// Expands one reviewed parallel into a bounded, researcher-chosen local corpus. Gemini can rank
 /// candidates, but opaque prompt keys must resolve locally before anything can be displayed or saved.
 /// </summary>
-public sealed class CorpusInvestigatorForm : Form
+public sealed class CorpusInvestigatorForm : ScaledForm
 {
     private const int MaxWorks = 8;
     private const int MaxCorpusChars = 220_000;

@@ -2,7 +2,7 @@ using ClassicaCodex.Data.Repositories;
 
 namespace ClassicaCodex.UI;
 
-public class TimelineForm : Form
+public class TimelineForm : ScaledForm
 {
     private readonly Panel _scrollHost;
     private readonly TimelineCanvas _canvas;

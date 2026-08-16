@@ -6,11 +6,31 @@ namespace ClassicaCodex.Data.Repositories;
 
 public sealed class ResearchEchoRepository
 {
+    /// <summary>
+    /// Every saved echo candidate in scope, with the project and work it belongs to.
+    /// </summary>
+    /// <param name="projectId">
+    /// One project, or null for all of them. A project named here is always included,
+    /// archived or not - it was opened deliberately, the same principle the Bench uses.
+    /// </param>
+    /// <param name="includeArchived">
+    /// Whether the all-projects scope reaches into archived projects. Off by default:
+    /// archiving is how a researcher says a line of inquiry is closed, and a
+    /// cross-project view that ignores that fills up with work they have set aside.
+    /// </param>
     public async Task<List<IntertextualAtlasConnection>> GetAtlasConnectionsAsync(
-        long? projectId = null, CancellationToken cancellationToken = default)
+        long? projectId = null, bool includeArchived = false,
+        CancellationToken cancellationToken = default)
     {
+        // One connection and three queries, not one per project and one per
+        // investigation. The old shape opened 1 + P + (P x I) of them in sequence on the
+        // UI thread - Microsoft.Data.Sqlite has no true async, so every one of those
+        // blocked the message pump rather than yielding to it.
         var projects = new List<(ResearchProject Project, string Author, string Work)>();
-        await using (var conn = await DbConnectionFactory.OpenConnectionAsync(cancellationToken))
+        var investigations = new List<ResearchEchoInvestigation>();
+        var resultsByInvestigation = new Dictionary<long, List<ResearchEchoResult>>();
+        await using var conn = await DbConnectionFactory.OpenConnectionAsync(cancellationToken);
+
         await using (var cmd = conn.CreateCommand())
         {
             // LEFT JOIN, not JOIN. Since schema 31 a project outlives its work, and the
@@ -22,8 +42,10 @@ public sealed class ResearchEchoRepository
                 a.Name,w.Title FROM ResearchProjects p LEFT JOIN Works w ON w.WorkId=p.WorkId
                 LEFT JOIN Authors a ON a.AuthorId=w.AuthorId
                 WHERE (@Project IS NULL OR p.ResearchProjectId=@Project)
+                  AND (@Project IS NOT NULL OR @IncludeArchived = 1 OR p.Status <> 'archived')
                 ORDER BY p.ResearchProjectId;";
             cmd.Parameters.AddWithValue("@Project", projectId is null ? DBNull.Value : projectId.Value);
+            cmd.Parameters.AddWithValue("@IncludeArchived", includeArchived ? 1 : 0);
             await using var reader = await cmd.ExecuteReaderAsync(cancellationToken);
             while (await reader.ReadAsync(cancellationToken))
                 projects.Add((new ResearchProject
@@ -35,11 +57,54 @@ public sealed class ResearchEchoRepository
                 }, Text(reader, 7) ?? "—", Text(reader, 8) ?? "(work no longer in the library)"));
         }
 
+        if (projects.Count == 0) return [];
+        var inScope = projects.Select(p => p.Project.ResearchProjectId).ToHashSet();
+
+        await using (var cmd = conn.CreateCommand())
+        {
+            cmd.CommandText = @"SELECT ResearchEchoInvestigationId,ResearchProjectId,ResearchQuestionId,
+                ResearchFindingId,Method,Title,SourceWorkId,SourceTextNodeId,SourceWorkCtsUrn,
+                SourceEditionCtsUrn,SourceCitationRef,SourceText,SourceLanguage,TargetScope,Settings,AiModel,AiPrompt,
+                AiGeneratedUtc,CreatedUtc,UpdatedUtc FROM ResearchEchoInvestigations
+                ORDER BY CreatedUtc DESC,ResearchEchoInvestigationId DESC;";
+            await using var reader = await cmd.ExecuteReaderAsync(cancellationToken);
+            while (await reader.ReadAsync(cancellationToken))
+            {
+                var investigation = ReadInvestigation(reader);
+                if (inScope.Contains(investigation.ResearchProjectId)) investigations.Add(investigation);
+            }
+        }
+        if (investigations.Count == 0) return [];
+        var investigationIds = investigations.Select(i => i.ResearchEchoInvestigationId).ToHashSet();
+
+        await using (var cmd = conn.CreateCommand())
+        {
+            cmd.CommandText = @"SELECT ResearchEchoResultId,ResearchEchoInvestigationId,TargetWorkId,
+                TargetTextNodeId,TargetAuthorName,TargetWorkTitle,TargetWorkCtsUrn,TargetEditionCtsUrn,
+                TargetCitationRef,TargetText,TargetLanguage,Score,ScoreLabel,Rationale,Disposition,ResearcherNote,
+                ConnectionType,Directionality,MotifTags,ParallelNote,EvidenceItemId,SortOrder,CreatedUtc,UpdatedUtc
+                FROM ResearchEchoResults ORDER BY SortOrder,ResearchEchoResultId;";
+            await using var reader = await cmd.ExecuteReaderAsync(cancellationToken);
+            while (await reader.ReadAsync(cancellationToken))
+            {
+                var result = ReadResult(reader);
+                if (!investigationIds.Contains(result.ResearchEchoInvestigationId)) continue;
+                if (!resultsByInvestigation.TryGetValue(result.ResearchEchoInvestigationId, out var bucket))
+                    resultsByInvestigation[result.ResearchEchoInvestigationId] = bucket = [];
+                bucket.Add(result);
+            }
+        }
+
+        // Assembled in the order the old nested loops produced: projects by id, their
+        // investigations newest first, each investigation's results by sort order.
         var connections = new List<IntertextualAtlasConnection>();
         foreach (var (project, author, work) in projects)
-        foreach (var investigation in await GetInvestigationsAsync(project.ResearchProjectId, cancellationToken))
-        foreach (var result in await GetResultsAsync(investigation.ResearchEchoInvestigationId, cancellationToken))
-            connections.Add(new IntertextualAtlasConnection(project, author, work, investigation, result));
+        foreach (var investigation in investigations.Where(i => i.ResearchProjectId == project.ResearchProjectId))
+        {
+            if (!resultsByInvestigation.TryGetValue(investigation.ResearchEchoInvestigationId, out var results)) continue;
+            foreach (var result in results)
+                connections.Add(new IntertextualAtlasConnection(project, author, work, investigation, result));
+        }
         return connections;
     }
 

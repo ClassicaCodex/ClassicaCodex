@@ -66,7 +66,7 @@ public class ResearchRepository
                 UPDATE ResearchProjects
                 SET Name=@Name, Status=@Status, Notes=@Notes, WorkCtsUrn=@WorkCtsUrn, UpdatedUtc=@Now
                 WHERE ResearchProjectId=@Id;
-                SELECT @Id;";
+                SELECT changes();";
             cmd.Parameters.AddWithValue("@Id", project.ResearchProjectId);
         }
 
@@ -78,7 +78,14 @@ public class ResearchRepository
         cmd.Parameters.AddWithValue("@Status", Store(project.Status));
         cmd.Parameters.AddWithValue("@Notes", Db(project.Notes));
         cmd.Parameters.AddWithValue("@Now", now.ToString("O"));
-        var id = Convert.ToInt64(await cmd.ExecuteScalarAsync(cancellationToken));
+        // An UPDATE that matched nothing used to hand back the id it was given, which
+        // reported success for a write that never happened - and made every scope
+        // condition in a WHERE clause a guard that could not fail. The update branch
+        // now returns its row count instead, and an id only when a row really moved.
+        var scalar = Convert.ToInt64(await cmd.ExecuteScalarAsync(cancellationToken));
+        if (!isNew && scalar != 1)
+            throw new ArgumentException("This research project no longer exists.");
+        var id = isNew ? scalar : project.ResearchProjectId;
 
         project.ResearchProjectId = id;
         if (project.CreatedUtc == default) project.CreatedUtc = now;
@@ -177,7 +184,7 @@ public class ResearchRepository
         else
         {
             cmd.CommandText = @"UPDATE ResearchQuestions SET Text=@Text, Notes=@Notes,
-                SortOrder=@Sort, UpdatedUtc=@Now WHERE ResearchQuestionId=@Id; SELECT @Id;";
+                SortOrder=@Sort, UpdatedUtc=@Now WHERE ResearchQuestionId=@Id; SELECT changes();";
             cmd.Parameters.AddWithValue("@Id", question.ResearchQuestionId);
         }
         cmd.Parameters.AddWithValue("@ProjectId", question.ResearchProjectId);
@@ -192,7 +199,10 @@ public class ResearchRepository
         cmd.Parameters.AddWithValue("@AiModel", Db(question.AiModel));
         cmd.Parameters.AddWithValue("@AiPrompt", Db(question.AiPrompt));
         cmd.Parameters.AddWithValue("@AiGeneratedUtc", Db(question.AiGeneratedUtc?.ToString("O")));
-        var id = Convert.ToInt64(await cmd.ExecuteScalarAsync(cancellationToken));
+        var scalar = Convert.ToInt64(await cmd.ExecuteScalarAsync(cancellationToken));
+        if (!isNew && scalar != 1)
+            throw new ArgumentException("This research question no longer exists.");
+        var id = isNew ? scalar : question.ResearchQuestionId;
         question.ResearchQuestionId = id;
         await TouchProjectAsync(conn, question.ResearchProjectId, cancellationToken);
         await AppendLogAsync(conn, new ResearchLogEntry
@@ -247,7 +257,12 @@ public class ResearchRepository
         {
             read.CommandText = "SELECT ResearchProjectId FROM ResearchQuestions WHERE ResearchQuestionId=@Id;";
             read.Parameters.AddWithValue("@Id", ids[0]);
-            projectId = Convert.ToInt64(await read.ExecuteScalarAsync(cancellationToken));
+            var owner = await read.ExecuteScalarAsync(cancellationToken);
+            // Convert.ToInt64(null) is 0, not an error. That zero used to travel all the
+            // way to the log, where it failed a foreign key - a raw constraint message
+            // for a reorder that had already committed successfully.
+            if (owner is null or DBNull) return;
+            projectId = Convert.ToInt64(owner);
         }
         await using var tx = await conn.BeginTransactionAsync(cancellationToken);
         for (var i = 0; i < ids.Count; i++)
@@ -297,7 +312,16 @@ public class ResearchRepository
             throw new ArgumentException("Evidence needs a title.", nameof(item));
         var now = DateTime.UtcNow;
         await using var conn = await DbConnectionFactory.OpenConnectionAsync(cancellationToken);
+
+        // The row and its provenance are one fact, so they are written as one. Two
+        // autocommitted statements left a gap in which the evidence existed and its
+        // origin did not, and GetEvidenceAsync reads a missing metadata row as
+        // COALESCE(m.Origin,'manual') - so a hard kill in that gap would turn an AI
+        // candidate into the researcher's own work, silently, in the direction that
+        // matters most.
+        await using var tx = (SqliteTransaction)await conn.BeginTransactionAsync(cancellationToken);
         await using var cmd = conn.CreateCommand();
+        cmd.Transaction = tx;
         var isNew = item.EvidenceItemId == 0;
         if (isNew)
             cmd.CommandText = @"INSERT INTO EvidenceItems
@@ -313,7 +337,7 @@ public class ResearchRepository
                 EvidenceType=@Type,SourceType=@SourceType,StableIdentifier=@StableId,
                 CanonicalReference=@Reference,Provenance=@Provenance,Excerpt=@Excerpt,
                 Judgment=@Judgment,Relationship=@Relationship,ResearcherNote=@Note,
-                SortOrder=@Sort,UpdatedUtc=@Now WHERE EvidenceItemId=@Id; SELECT @Id;";
+                SortOrder=@Sort,UpdatedUtc=@Now WHERE EvidenceItemId=@Id; SELECT changes();";
             cmd.Parameters.AddWithValue("@Id", item.EvidenceItemId);
         }
         cmd.Parameters.AddWithValue("@ProjectId", item.ResearchProjectId);
@@ -330,9 +354,16 @@ public class ResearchRepository
         cmd.Parameters.AddWithValue("@Note", Db(item.ResearcherNote));
         cmd.Parameters.AddWithValue("@Sort", item.SortOrder);
         cmd.Parameters.AddWithValue("@Now", now.ToString("O"));
-        var id = Convert.ToInt64(await cmd.ExecuteScalarAsync(cancellationToken));
+        var scalar = Convert.ToInt64(await cmd.ExecuteScalarAsync(cancellationToken));
+        if (!isNew && scalar != 1)
+            throw new ArgumentException("This evidence item no longer exists.");
+        var id = isNew ? scalar : item.EvidenceItemId;
         item.EvidenceItemId = id;
-        await SaveEvidenceGenerationMetadataAsync(conn, item, cancellationToken);
+        await SaveEvidenceGenerationMetadataAsync(conn, item, tx, cancellationToken);
+        await tx.CommitAsync(cancellationToken);
+
+        // Outside the transaction: the log is an append-only record of what happened,
+        // and it should describe a save that has actually landed.
         await TouchProjectAsync(conn, item.ResearchProjectId, cancellationToken);
         await AppendLogAsync(conn, new ResearchLogEntry
         {
@@ -488,7 +519,7 @@ public class ResearchRepository
             cmd.CommandText = @"UPDATE ScholarlyClaims SET ResearchQuestionId=@QuestionId,
                 SourceEvidenceItemId=@SourceId,Claimant=@Claimant,ClaimText=@ClaimText,Locator=@Locator,
                 Relationship=@Relationship,Judgment=@Judgment,Notes=@Notes,SortOrder=@Sort,UpdatedUtc=@Now
-                WHERE ScholarlyClaimId=@Id AND ResearchProjectId=@ProjectId; SELECT @Id;";
+                WHERE ScholarlyClaimId=@Id AND ResearchProjectId=@ProjectId; SELECT changes();";
             cmd.Parameters.AddWithValue("@Id", claim.ScholarlyClaimId);
         }
         cmd.Parameters.AddWithValue("@ProjectId", claim.ResearchProjectId);
@@ -502,7 +533,10 @@ public class ResearchRepository
         cmd.Parameters.AddWithValue("@Notes", Db(claim.Notes));
         cmd.Parameters.AddWithValue("@Sort", claim.SortOrder);
         cmd.Parameters.AddWithValue("@Now", now.ToString("O"));
-        var id = Convert.ToInt64(await cmd.ExecuteScalarAsync(cancellationToken));
+        var scalar = Convert.ToInt64(await cmd.ExecuteScalarAsync(cancellationToken));
+        if (!isNew && scalar != 1)
+            throw new ArgumentException("This scholarly claim no longer exists, or belongs to another project.");
+        var id = isNew ? scalar : claim.ScholarlyClaimId;
         claim.ScholarlyClaimId = id;
         if (claim.CreatedUtc == default) claim.CreatedUtc = now;
         claim.UpdatedUtc = now;
@@ -653,9 +687,11 @@ public class ResearchRepository
     }
 
     private static async Task SaveEvidenceGenerationMetadataAsync(
-        SqliteConnection conn, EvidenceItem item, CancellationToken cancellationToken)
+        SqliteConnection conn, EvidenceItem item, SqliteTransaction? transaction,
+        CancellationToken cancellationToken)
     {
         await using var cmd = conn.CreateCommand();
+        cmd.Transaction = transaction;
         var hasMetadata = item.Origin != EvidenceOrigin.Manual
             || !string.IsNullOrWhiteSpace(item.Interpretation)
             || !string.IsNullOrWhiteSpace(item.InterpretationAuthor)

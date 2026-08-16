@@ -4,7 +4,7 @@ using ClassicaCodex.Data.Repositories;
 
 namespace ClassicaCodex.UI;
 
-public class PlacesMapForm : Form
+public class PlacesMapForm : ScaledForm
 {
     private readonly MapCanvas _canvas;
     private readonly FlowLayoutPanel _kindFilters;

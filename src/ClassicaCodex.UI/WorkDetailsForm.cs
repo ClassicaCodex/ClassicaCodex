@@ -16,7 +16,7 @@ namespace ClassicaCodex.UI;
 /// the body of each file and ignores the header entirely. The information was
 /// always sitting on disk, just never surfaced.
 /// </summary>
-public class WorkDetailsForm : Form
+public class WorkDetailsForm : ScaledForm
 {
     private readonly Work _work;
     private readonly TextBox _detailsBox;

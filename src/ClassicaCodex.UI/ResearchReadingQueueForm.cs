@@ -6,7 +6,7 @@ using ClassicaCodex.Data.Repositories;
 namespace ClassicaCodex.UI;
 
 /// <summary>A staging area for sources and passages that have not yet become evidence.</summary>
-public sealed class ResearchReadingQueueForm : Form
+public sealed class ResearchReadingQueueForm : ScaledForm
 {
     private readonly ResearchProject _project;
     private readonly Work _work;
@@ -474,7 +474,7 @@ public sealed class ResearchReadingQueueForm : Form
     private sealed record QuestionChoice(long? Id, string Text) { public override string ToString() => Text; }
 }
 
-internal sealed class ReadingEvidencePickerForm : Form
+internal sealed class ReadingEvidencePickerForm : ScaledForm
 {
     private readonly ListBox _list = new() { Dock = DockStyle.Fill };
     public EvidenceItem? SelectedEvidence => _list.SelectedItem as EvidenceItem;
@@ -490,7 +490,7 @@ internal sealed class ReadingEvidencePickerForm : Form
     }
 }
 
-internal sealed class ResearchPassagePickerForm : Form
+internal sealed class ResearchPassagePickerForm : ScaledForm
 {
     private readonly Work _work;
     private readonly ComboBox _editions = new();

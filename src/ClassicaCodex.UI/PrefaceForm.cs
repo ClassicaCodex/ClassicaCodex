@@ -12,7 +12,7 @@ namespace ClassicaCodex.UI;
 /// this is the same kind of content (a block of prose someone is reading,
 /// not a small form to fill in), so it gets the same treatment.
 /// </summary>
-public class PrefaceForm : Form
+public class PrefaceForm : ScaledForm
 {
     public PrefaceForm(string title, string prefaceText)
     {

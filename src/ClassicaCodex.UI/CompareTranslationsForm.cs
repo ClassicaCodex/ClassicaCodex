@@ -12,7 +12,7 @@ namespace ClassicaCodex.UI;
 /// is that translation's full running text, independently scrollable; there's
 /// no "nothing tagged" case here, since an ingested edition always has text.
 /// </summary>
-public class CompareTranslationsForm : Form
+public class CompareTranslationsForm : ScaledForm
 {
     private readonly ListBox _workList;
     private readonly CheckedListBox _translationCheckList;

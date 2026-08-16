@@ -15,7 +15,7 @@ namespace ClassicaCodex.UI;
 /// catalog update and no re-ingest will revise it. "Use the library's answer"
 /// hands it back.
 /// </summary>
-public class AttributionForm : Form
+public class AttributionForm : ScaledForm
 {
     private readonly RadioButton _accepted;
     private readonly RadioButton _disputed;

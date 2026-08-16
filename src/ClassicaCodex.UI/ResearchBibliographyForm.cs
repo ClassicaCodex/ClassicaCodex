@@ -7,7 +7,7 @@ using ClassicaCodex.Data.Repositories;
 namespace ClassicaCodex.UI;
 
 /// <summary>Project bibliography, citekey editor, and offline Zotero-compatible export.</summary>
-public sealed partial class ResearchBibliographyForm : Form
+public sealed partial class ResearchBibliographyForm : ScaledForm
 {
     private readonly ResearchProject _project;
     private readonly ResearchBibliographyRepository _repo = new();

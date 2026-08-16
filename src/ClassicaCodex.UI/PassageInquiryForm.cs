@@ -8,7 +8,7 @@ namespace ClassicaCodex.UI;
 /// A small, human-first bridge between noticing a passage and constructing a
 /// formal research project. AI is absent until Research is deliberately chosen.
 /// </summary>
-public sealed class PassageInquiryForm : Form
+public sealed class PassageInquiryForm : ScaledForm
 {
     private readonly PassageResearchIdentity _passage;
     private readonly PassageInquiryRepository _inquiries = new();
@@ -483,6 +483,11 @@ public sealed class PassageInquiryForm : Form
     private static string ProjectName(string question)
     {
         var trimmed = question.Trim().TrimEnd('?');
+        // A draft question made only of question marks trims away to nothing, and an
+        // empty name then fails the save - repeatedly, with a message about a missing
+        // name, for a question the researcher can plainly see they wrote. Keep what
+        // they typed rather than refusing it.
+        if (trimmed.Length == 0) trimmed = question.Trim();
         return trimmed.Length <= 180 ? trimmed : trimmed[..177] + "…";
     }
 

@@ -5,7 +5,7 @@ using ClassicaCodex.Data.Repositories;
 namespace ClassicaCodex.UI;
 
 /// <summary>Human-previewed import of offline RIS and BibTeX exports.</summary>
-public sealed class BibliographyImportForm : Form
+public sealed class BibliographyImportForm : ScaledForm
 {
     private readonly ResearchProject _project;
     private readonly ResearchRepository _repo = new();

@@ -4,7 +4,7 @@ using ClassicaCodex.Data.Repositories;
 
 namespace ClassicaCodex.UI;
 
-public sealed class ResearchCorpusSnapshotsForm : Form
+public sealed class ResearchCorpusSnapshotsForm : ScaledForm
 {
     private readonly ResearchProject _project;
     private readonly ResearchCorpusSnapshotRepository _repo=new();

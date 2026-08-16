@@ -14,7 +14,7 @@ namespace ClassicaCodex.UI;
 /// nobody had asked for. Moving it behind a button means the cost is only
 /// paid by someone who actually wants to know.
 /// </summary>
-public class WordIndexForm : Form
+public class WordIndexForm : ScaledForm
 {
     private readonly WordIndexRepository _wordIndexRepo = new();
 

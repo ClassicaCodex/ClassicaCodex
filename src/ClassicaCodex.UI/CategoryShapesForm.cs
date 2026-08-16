@@ -9,7 +9,7 @@ namespace ClassicaCodex.UI;
 /// The category list is read from the tags actually in use rather than
 /// being fixed, since categories are free text typed during tagging.
 /// </summary>
-public class CategoryShapesForm : Form
+public class CategoryShapesForm : ScaledForm
 {
     private readonly TagRepository _tagRepo = new();
     private readonly TableLayoutPanel _rows;

@@ -11,7 +11,7 @@ namespace ClassicaCodex.UI;
 /// are not comparable at all. The profile key puts that difference on screen
 /// instead of leaving it to be remembered.
 /// </summary>
-public class ExperimentPickerForm : Form
+public class ExperimentPickerForm : ScaledForm
 {
     private readonly ListView _list;
 

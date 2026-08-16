@@ -6,7 +6,7 @@ using ClassicaCodex.Data.Repositories;
 namespace ClassicaCodex.UI;
 
 /// <summary>Compares rival explanations against the saved record and turns uncertainty into explicit tests.</summary>
-public sealed class HypothesisLabForm : Form
+public sealed class HypothesisLabForm : ScaledForm
 {
     private readonly ResearchProject _project; private readonly Work _work; private readonly string _author;
     private readonly ResearchHypothesisRepository _repo=new(); private readonly ResearchRepository _research=new();
@@ -158,7 +158,7 @@ public sealed class HypothesisLabForm : Form
     private sealed class MatrixRow{public MatrixRow(HypothesisSource s,ResearchHypothesisAssessment? a){Source=s;Linked=a!=null;Relationship=a?.Relationship??HypothesisRelationship.Contextualizes;Strength=a?.Strength??HypothesisStrength.Moderate;Note=a?.ResearcherNote??"";}public HypothesisSource Source{get;}public bool Linked{get;set;}public string Kind=>Source.Kind.ToString();public string Title=>Source.Title;public string Review=>Source.ReviewState;public string Detail=>Source.Detail;public HypothesisRelationship Relationship{get;set;}public HypothesisStrength Strength{get;set;}public string Note{get;set;}}
 }
 
-internal sealed class HypothesisChallengeReviewForm:Form
+internal sealed class HypothesisChallengeReviewForm:ScaledForm
 {
     private readonly DataGridView _grid=new();private readonly BindingList<Row> _rows;public IReadOnlyList<HypothesisChallengeProposal> Accepted=>_rows.Where(r=>r.Include).Select(r=>r.Proposal).ToList();
     public HypothesisChallengeReviewForm(GeminiHypothesisChallengeResult result){Text="Review AI challenge proposals";Width=1150;Height=650;MinimumSize=new Size(800,500);StartPosition=FormStartPosition.CenterParent;_rows=new BindingList<Row>(result.Proposals.Select(p=>new Row(p)).ToList());var note=new Label{Dock=DockStyle.Top,Height=54,Padding=new Padding(9,7,5,0),Text=$"Candidate proposals from {result.Model}. Check only rivals or tests worth adding; acceptance preserves AI provenance but does not mark the proposal true."};_grid.Dock=DockStyle.Fill;_grid.AutoGenerateColumns=false;_grid.AllowUserToAddRows=false;_grid.RowHeadersVisible=false;_grid.DataSource=_rows;_grid.Columns.Add(new DataGridViewCheckBoxColumn{DataPropertyName=nameof(Row.Include),HeaderText="Add",Width=48});_grid.Columns.Add(new DataGridViewTextBoxColumn{DataPropertyName=nameof(Row.Kind),HeaderText="Kind",Width=110,ReadOnly=true});_grid.Columns.Add(new DataGridViewTextBoxColumn{DataPropertyName=nameof(Row.Title),HeaderText="Proposal",Width=210,ReadOnly=true});_grid.Columns.Add(new DataGridViewTextBoxColumn{DataPropertyName=nameof(Row.Method),HeaderText="Method",Width=115,ReadOnly=true});_grid.Columns.Add(new DataGridViewTextBoxColumn{DataPropertyName=nameof(Row.Detail),HeaderText="Statement / rationale / falsification",AutoSizeMode=DataGridViewAutoSizeColumnMode.Fill,ReadOnly=true});var bottom=new FlowLayoutPanel{Dock=DockStyle.Bottom,Height=48,Padding=new Padding(8),FlowDirection=FlowDirection.RightToLeft};var cancel=new Button{Text="Cancel",Width=80,DialogResult=DialogResult.Cancel};var accept=new Button{Text="Accept checked",Width=120};accept.Click+=(_,_)=>{_grid.EndEdit();DialogResult=DialogResult.OK;Close();};bottom.Controls.AddRange([cancel,accept]);Controls.Add(_grid);Controls.Add(note);Controls.Add(bottom);ReadingTheme.AttachTo(this,()=>note.ForeColor=ReadingTheme.MutedText);WindowShortcuts.CloseOnEscape(this);}

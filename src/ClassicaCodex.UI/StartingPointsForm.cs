@@ -11,7 +11,7 @@ namespace ClassicaCodex.UI;
 /// moment the choice is made and the moment it goes wrong. See StartingPoints
 /// for why the recommendations exist at all.
 /// </summary>
-public class StartingPointsForm : Form
+public class StartingPointsForm : ScaledForm
 {
     private readonly ListView _list;
     private readonly Label _whyLabel;

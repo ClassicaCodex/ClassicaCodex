@@ -59,7 +59,7 @@ public sealed class ResearchFindingRepository
             : @"UPDATE ResearchFindings SET ResearchQuestionId=@Question,Title=@Title,Statement=@Statement,
                 Status=@Status,ResearcherConclusion=@Conclusion,AiCandidateSynthesis=@AiCandidate,AiModel=@AiModel,
                 AiPrompt=@AiPrompt,AiGeneratedUtc=@AiGenerated,SortOrder=@Sort,UpdatedUtc=@Now
-                WHERE ResearchFindingId=@Id AND ResearchProjectId=@Project; SELECT @Id;";
+                WHERE ResearchFindingId=@Id AND ResearchProjectId=@Project; SELECT changes();";
         if (!isNew) cmd.Parameters.AddWithValue("@Id", finding.ResearchFindingId);
         cmd.Parameters.AddWithValue("@Project", finding.ResearchProjectId);
         cmd.Parameters.AddWithValue("@Question", Db(finding.ResearchQuestionId));
@@ -73,7 +73,13 @@ public sealed class ResearchFindingRepository
         cmd.Parameters.AddWithValue("@AiGenerated", finding.AiGeneratedUtc is null ? DBNull.Value : finding.AiGeneratedUtc.Value.ToString("O"));
         cmd.Parameters.AddWithValue("@Sort", finding.SortOrder);
         cmd.Parameters.AddWithValue("@Now", now.ToString("O"));
-        finding.ResearchFindingId = Convert.ToInt64(await cmd.ExecuteScalarAsync(cancellationToken));
+        // The update returns its row count, not the id it was handed: without that, an
+        // update matching nothing reported success and the "AND ResearchProjectId"
+        // scope in the WHERE clause was a guard that could never fire.
+        var scalar = Convert.ToInt64(await cmd.ExecuteScalarAsync(cancellationToken));
+        if (!isNew && scalar != 1)
+            throw new ArgumentException("This finding no longer exists, or belongs to another project.");
+        finding.ResearchFindingId = isNew ? scalar : finding.ResearchFindingId;
         if (finding.CreatedUtc == default) finding.CreatedUtc = now;
         finding.UpdatedUtc = now;
         await LogAsync(finding.ResearchProjectId,

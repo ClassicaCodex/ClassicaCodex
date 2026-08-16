@@ -15,7 +15,7 @@ namespace ClassicaCodex.UI;
 /// between a slider and a sample is the whole task; making it modal on a
 /// confirmation would mean guessing, confirming, and reopening.
 /// </summary>
-public class ReadingFontSizeForm : Form
+public class ReadingFontSizeForm : ScaledForm
 {
     private readonly TrackBar _sourceSlider;
     private readonly TrackBar _translationSlider;

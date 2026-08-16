@@ -8,7 +8,7 @@ namespace ClassicaCodex.UI;
 /// the researcher's verification remain separate rather than collapsing into
 /// a single note.
 /// </summary>
-public sealed class ScholarlyClaimsForm : Form
+public sealed class ScholarlyClaimsForm : ScaledForm
 {
     private readonly ResearchProject _project;
     private readonly ResearchRepository _repo = new();

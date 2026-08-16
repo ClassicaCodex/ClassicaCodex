@@ -12,7 +12,7 @@ namespace ClassicaCodex.UI;
 /// work already done keyed to a scheme the new source doesn't use, which is
 /// the misalignment this whole approach exists to avoid.
 /// </summary>
-public class EditionChoiceForm : Form
+public class EditionChoiceForm : ScaledForm
 {
     private readonly ListBox _list;
     private readonly List<Edition> _editions;

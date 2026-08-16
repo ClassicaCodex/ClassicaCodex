@@ -25,6 +25,27 @@ public class ResearchHypothesisTests
     }
 
     [Fact]
+    public async Task DeletingAnAssessedSourceTakesItsAssessmentWithIt()
+    {
+        using var db=await TempDatabase.CreateAsync();await db.SeedEditionAsync("rhesus");
+        var research=new ResearchRepository();var project=new ResearchProject{WorkId=await db.WorkIdForAsync("rhesus"),Name="Rowid reuse"};await research.SaveProjectAsync(project);
+        var first=new EvidenceItem{ResearchProjectId=project.ResearchProjectId,Title="The assessed passage"};await research.SaveEvidenceAsync(first);
+        var repo=new ResearchHypothesisRepository();var hypothesis=new ResearchHypothesis{ResearchProjectId=project.ResearchProjectId,Title="Non-Euripidean author",Statement="A different tragedian composed it."};await repo.SaveHypothesisAsync(hypothesis);
+        await repo.SaveAssessmentsAsync(hypothesis.ResearchHypothesisId,[new ResearchHypothesisAssessment{SourceKind=HypothesisSourceKind.Evidence,SourceId=first.EvidenceItemId,Relationship=HypothesisRelationship.Supports,Strength=HypothesisStrength.Strong,ResearcherNote="Decisive for the diction argument."}]);
+        Assert.Single(await repo.GetAssessmentsAsync(hypothesis.ResearchHypothesisId));
+
+        // Delete the highest-numbered evidence item and add another: SQLite hands the
+        // new row the vacated rowid. While the link was a bare (SourceKind, SourceId)
+        // pair the assessment stayed behind and silently became a strong judgment about
+        // a passage the researcher had never assessed. The typed foreign key takes it.
+        await research.DeleteEvidenceAsync(first.EvidenceItemId);
+        var second=new EvidenceItem{ResearchProjectId=project.ResearchProjectId,Title="An unrelated passage"};await research.SaveEvidenceAsync(second);
+        Assert.Equal(first.EvidenceItemId,second.EvidenceItemId);
+
+        Assert.Empty(await repo.GetAssessmentsAsync(hypothesis.ResearchHypothesisId));
+    }
+
+    [Fact]
     public async Task AssessmentCannotLinkAResearchSourceFromAnotherProject()
     {
         using var db=await TempDatabase.CreateAsync();await db.SeedEditionAsync();var research=new ResearchRepository();var work=await db.WorkIdForAsync("test1");

@@ -2,7 +2,7 @@ using ClassicaCodex.Data.Repositories;
 
 namespace ClassicaCodex.UI;
 
-public class BookmarksForm : Form
+public class BookmarksForm : ScaledForm
 {
     private readonly ListBox _bookmarkList;
 

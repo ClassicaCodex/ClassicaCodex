@@ -3,7 +3,7 @@ using ClassicaCodex.Data.Repositories;
 
 namespace ClassicaCodex.UI;
 
-public class TagBrowserForm : Form
+public class TagBrowserForm : ScaledForm
 {
     private readonly ListBox _tagList;
     private readonly ListBox _resultsList;

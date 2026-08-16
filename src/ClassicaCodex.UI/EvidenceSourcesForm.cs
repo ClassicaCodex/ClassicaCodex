@@ -5,7 +5,7 @@ using ClassicaCodex.Data.Repositories;
 
 namespace ClassicaCodex.UI;
 
-public sealed class EvidenceSourcesForm : Form
+public sealed class EvidenceSourcesForm : ScaledForm
 {
     private readonly EvidenceItem _evidence;
     private readonly ResearchSourceRepository _repo = new();
