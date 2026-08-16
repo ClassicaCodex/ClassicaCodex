@@ -99,6 +99,14 @@ public class ResearchRepositoryTests
         Assert.Equal(2, includingArchived.Count);
         Assert.Equal(ResearchProjectStatus.Archived,
             includingArchived.Single(p => p.ResearchProjectId == a.ResearchProjectId).Status);
+
+        // Archiving is meant to be reversible, and the Bench's Restore button is this
+        // call. Without it "retained, not deleted" is only true of the database.
+        await repo.SetProjectStatusAsync(a.ResearchProjectId, ResearchProjectStatus.Active);
+        var restored = await repo.GetProjectsForWorkAsync(first);
+        Assert.Equal(2, restored.Count);
+        Assert.Equal(ResearchProjectStatus.Active,
+            restored.Single(p => p.ResearchProjectId == a.ResearchProjectId).Status);
     }
 
     [Fact]

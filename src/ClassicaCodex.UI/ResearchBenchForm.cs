@@ -18,6 +18,8 @@ public class ResearchBenchForm : Form
     private readonly TextBox _theory = new();
     private readonly ComboBox _projectStatus = new();
     private readonly TextBox _projectNotes = new();
+    private readonly CheckBox _showArchived = new();
+    private Button? _archiveToggle;
     private readonly ListBox _questions = new();
     private readonly DataGridView _evidence = new();
     private readonly TextBox _title = new();
@@ -118,8 +120,12 @@ public class ResearchBenchForm : Form
         save.Click += async (_, _) => await SaveProjectAsync();
         var create = ButtonAt("New project", 1053, 37, 110);
         create.Click += async (_, _) => await NewProjectAsync();
+        // One button, reflecting the state it would change. Archiving used to be a
+        // one-way door: nothing in the Bench listed an archived project afterwards, so
+        // "retained, not deleted" was true of the database and false of the interface.
         var archive = ButtonAt("Archive", 1171, 37, 90);
-        archive.Click += async (_, _) => await ArchiveProjectAsync();
+        _archiveToggle = archive;
+        archive.Click += async (_, _) => await ToggleArchiveAsync();
         var suggest = ButtonAt("Let AI Suggest a New Project", 1270, 37, 200);
         suggest.Click += async (_, _) => await SuggestProjectAsync();
         _projectNotes.SetBounds(10, 72, 1251, 30);
@@ -180,10 +186,30 @@ public class ResearchBenchForm : Form
 
     private void BuildLeft(Control host)
     {
-        var projectLabel = LabelAt("Projects for this work", 8, 8, 250);
+        var projectLabel = LabelAt("Projects for this work", 8, 8, 150);
+        _showArchived.SetBounds(162, 6, 114, 22);
+        _showArchived.Text = "Show archived";
+        _showArchived.Anchor = AnchorStyles.Top | AnchorStyles.Right;
+        _showArchived.CheckedChanged += async (_, _) =>
+        {
+            // Drop the selection when hiding the archived project that is currently
+            // open, or LoadProjectsAsync would widen the list again to honour it and
+            // unticking the box would appear to do nothing.
+            var open = CurrentProject;
+            var keep = _showArchived.Checked || open?.Status != ResearchProjectStatus.Archived;
+            await LoadProjectsAsync(keep ? open?.ResearchProjectId ?? 0 : 0);
+        };
         _projects.SetBounds(8, 32, 268, 170);
         _projects.Anchor = AnchorStyles.Left | AnchorStyles.Top | AnchorStyles.Right;
         _projects.SelectedIndexChanged += async (_, _) => await ProjectChangedAsync();
+        // Mark archived entries at display time rather than in ResearchProject.ToString,
+        // which the dossier export and several combo boxes also render.
+        _projects.FormattingEnabled = true;
+        _projects.Format += (_, e) =>
+        {
+            if (e.ListItem is ResearchProject { Status: ResearchProjectStatus.Archived } p)
+                e.Value = $"{p.Name}  (archived)";
+        };
         var questionLabel = LabelAt("Research questions", 8, 218, 250);
         _questions.SetBounds(8, 242, 268, 340);
         _questions.Anchor = AnchorStyles.Left | AnchorStyles.Top | AnchorStyles.Right | AnchorStyles.Bottom;
@@ -199,7 +225,7 @@ public class ResearchBenchForm : Form
         remove.Click += async (_, _) => await RemoveQuestionAsync();
         up.Click += async (_, _) => await MoveQuestionAsync(-1);
         down.Click += async (_, _) => await MoveQuestionAsync(1);
-        host.Controls.AddRange(new Control[] { projectLabel, _projects, questionLabel, _questions, add, edit, remove, up, down });
+        host.Controls.AddRange(new Control[] { projectLabel, _showArchived, _projects, questionLabel, _questions, add, edit, remove, up, down });
     }
 
     private void BuildEvidenceList(Control host)
@@ -328,11 +354,12 @@ public class ResearchBenchForm : Form
 
     private async Task LoadProjectsAsync(long selectId = 0)
     {
-        var items = await _repo.GetProjectsForWorkAsync(_work.WorkId, workCtsUrn: _work.CtsUrn);
+        var items = await _repo.GetProjectsForWorkAsync(
+            _work.WorkId, includeArchived: _showArchived.Checked, workCtsUrn: _work.CtsUrn);
         // Archiving is retention, not deletion, so a caller that names a project - a
         // passage inquiry opening the project it was promoted into - must still be able
-        // to reach it. Widen the list only in that case, so ordinary browsing still
-        // hides archived work.
+        // to reach it. Widen the list in that case too, so ordinary browsing stays
+        // uncluttered without the named project going missing.
         if (selectId != 0 && items.All(p => p.ResearchProjectId != selectId))
             items = await _repo.GetProjectsForWorkAsync(_work.WorkId, includeArchived: true, workCtsUrn: _work.CtsUrn);
         _projects.DataSource = null;
@@ -341,7 +368,7 @@ public class ResearchBenchForm : Form
         {
             var wanted = items.FirstOrDefault(p => p.ResearchProjectId == selectId);
             _projects.SelectedItem = wanted;
-            if (wanted is { Status: ResearchProjectStatus.Archived })
+            if (wanted is { Status: ResearchProjectStatus.Archived } && !_showArchived.Checked)
                 _statusLine.Text = $"\u201c{wanted.Name}\u201d is archived. It is shown because it was opened directly.";
         }
         if (items.Count == 0)
@@ -357,6 +384,7 @@ public class ResearchBenchForm : Form
         if (project == null) { ClearProject(); return; }
         _theory.Text = project.Name;
         _projectStatus.SelectedItem = project.Status;
+        UpdateArchiveButton(project);
         _projectNotes.Text = project.Notes ?? "";
         var questions = await _repo.GetQuestionsAsync(project.ResearchProjectId);
         _questions.DataSource = questions;
@@ -384,17 +412,43 @@ public class ResearchBenchForm : Form
         project.Notes = EmptyToNull(_projectNotes.Text);
         await _repo.SaveProjectAsync(project);
         await LoadProjectsAsync(project.ResearchProjectId);
-        _statusLine.Text = "Project saved.";
+        // Setting the status to Archived and saving is the other way to archive, and it
+        // used to report a bare "Project saved." while the project quietly left the
+        // list - which reads as the dropdown having done nothing at all.
+        _statusLine.Text = project.Status == ResearchProjectStatus.Archived && !_showArchived.Checked
+            ? $"Project saved. “{project.Name}” is archived — tick “Show archived” to find it again."
+            : "Project saved.";
     }
 
-    private async Task ArchiveProjectAsync()
+    private async Task ToggleArchiveAsync()
     {
         var project = CurrentProject;
         if (project == null) return;
+
+        if (project.Status == ResearchProjectStatus.Archived)
+        {
+            await _repo.SetProjectStatusAsync(project.ResearchProjectId, ResearchProjectStatus.Active);
+            await LoadProjectsAsync(project.ResearchProjectId);
+            _statusLine.Text = $"“{project.Name}” is active again.";
+            return;
+        }
+
         if (MessageBox.Show(this, $"Archive “{project.Name}”? Its questions and evidence will be retained.",
                 "Archive project", MessageBoxButtons.YesNo, MessageBoxIcon.Question) != DialogResult.Yes) return;
         await _repo.ArchiveProjectAsync(project.ResearchProjectId);
-        await LoadProjectsAsync();
+        // Keep it selected rather than reloading to nothing. The researcher can see what
+        // happened, press Restore straight away if it was a mistake, and read where to
+        // find it later - none of which was true when it simply vanished.
+        await LoadProjectsAsync(project.ResearchProjectId);
+        _statusLine.Text = _showArchived.Checked
+            ? $"“{project.Name}” is archived. Press Restore to make it active again."
+            : $"“{project.Name}” is archived. Press Restore to undo, or tick “Show archived” to find it later.";
+    }
+
+    private void UpdateArchiveButton(ResearchProject? project)
+    {
+        if (_archiveToggle == null) return;
+        _archiveToggle.Text = project?.Status == ResearchProjectStatus.Archived ? "Restore" : "Archive";
     }
 
     private void OpenResearchLog()
@@ -937,6 +991,7 @@ public class ResearchBenchForm : Form
     {
         _theory.Clear(); _projectNotes.Clear(); _questions.DataSource = null; _evidence.DataSource = null;
         RefreshQuestionChoices(Array.Empty<ResearchQuestion>()); ShowEvidence(null);
+        UpdateArchiveButton(null);
     }
 
     private static void AddField(Control host, string label, TextBox box, ref int y)
