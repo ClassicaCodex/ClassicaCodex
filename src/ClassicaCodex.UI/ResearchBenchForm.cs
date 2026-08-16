@@ -21,6 +21,10 @@ public class ResearchBenchForm : Form
     private readonly TextBox _projectNotes = new();
     private readonly CheckBox _showArchived = new();
     private Button? _archiveToggle;
+    // Set while the project pane is being filled from a list reload, so that binding
+    // the status dropdown is not mistaken for the researcher choosing a status.
+    private bool _bindingProject;
+    private bool _suspendArchivedReload;
     private readonly ListBox _questions = new();
     private readonly DataGridView _evidence = new();
     private readonly TextBox _title = new();
@@ -117,6 +121,11 @@ public class ResearchBenchForm : Form
         _projectStatus.SetBounds(790, 38, 135, 26);
         _projectStatus.DropDownStyle = ComboBoxStyle.DropDownList;
         _projectStatus.DataSource = Enum.GetValues<ResearchProjectStatus>();
+        // The dropdown applies the status itself. It reads as a control that acts, and
+        // requiring "Save project" afterwards made choosing Archived look like it did
+        // nothing at all - the project left the list and the status line said only that
+        // the project had saved.
+        _projectStatus.SelectedIndexChanged += async (_, _) => await ProjectStatusChosenAsync();
         var save = ButtonAt("Save project", 935, 37, 110);
         save.Click += async (_, _) => await SaveProjectAsync();
         var create = ButtonAt("New project", 1053, 37, 110);
@@ -193,6 +202,7 @@ public class ResearchBenchForm : Form
         _showArchived.Anchor = AnchorStyles.Top | AnchorStyles.Right;
         _showArchived.CheckedChanged += async (_, _) =>
         {
+            if (_suspendArchivedReload) return;
             // Drop the selection when hiding the archived project that is currently
             // open, or LoadProjectsAsync would widen the list again to honour it and
             // unticking the box would appear to do nothing.
@@ -361,16 +371,26 @@ public class ResearchBenchForm : Form
         // passage inquiry opening the project it was promoted into - must still be able
         // to reach it. Widen the list in that case too, so ordinary browsing stays
         // uncluttered without the named project going missing.
+        var widened = false;
         if (selectId != 0 && items.All(p => p.ResearchProjectId != selectId))
+        {
             items = await _repo.GetProjectsForWorkAsync(_work.WorkId, includeArchived: true, workCtsUrn: _work.CtsUrn);
+            // The widened query returns every archived project, not only the one asked
+            // for, so the checkbox has to agree with what is on screen. Leaving it clear
+            // showed archived work under a control claiming to hide it, and left no way
+            // back: unticking a box that is already clear does nothing.
+            widened = !_showArchived.Checked;
+            SetShowArchivedSilently(true);
+        }
         _projects.DataSource = null;
         _projects.DataSource = items;
         if (selectId != 0)
         {
             var wanted = items.FirstOrDefault(p => p.ResearchProjectId == selectId);
             _projects.SelectedItem = wanted;
-            if (wanted is { Status: ResearchProjectStatus.Archived } && !_showArchived.Checked)
-                _statusLine.Text = $"\u201c{wanted.Name}\u201d is archived. It is shown because it was opened directly.";
+            if (widened && wanted is { Status: ResearchProjectStatus.Archived })
+                _statusLine.Text = $"\u201c{wanted.Name}\u201d is archived. " +
+                                   "\u201cShow archived\u201d has been ticked so it is visible; untick it to hide archived projects again.";
         }
         if (items.Count == 0)
         {
@@ -384,7 +404,11 @@ public class ResearchBenchForm : Form
         var project = CurrentProject;
         if (project == null) { ClearProject(); return; }
         _theory.Text = project.Name;
-        _projectStatus.SelectedItem = project.Status;
+        // Tightly scoped, with no await inside: this assignment must not be read as the
+        // researcher picking a status and trigger a save of its own.
+        _bindingProject = true;
+        try { _projectStatus.SelectedItem = project.Status; }
+        finally { _bindingProject = false; }
         UpdateArchiveButton(project);
         _projectNotes.Text = project.Notes ?? "";
         var questions = await _repo.GetQuestionsAsync(project.ResearchProjectId);
@@ -413,12 +437,39 @@ public class ResearchBenchForm : Form
         project.Notes = EmptyToNull(_projectNotes.Text);
         await _repo.SaveProjectAsync(project);
         await LoadProjectsAsync(project.ResearchProjectId);
-        // Setting the status to Archived and saving is the other way to archive, and it
-        // used to report a bare "Project saved." while the project quietly left the
-        // list - which reads as the dropdown having done nothing at all.
-        _statusLine.Text = project.Status == ResearchProjectStatus.Archived && !_showArchived.Checked
-            ? $"Project saved. “{project.Name}” is archived — tick “Show archived” to find it again."
-            : "Project saved.";
+        _statusLine.Text = "Project saved.";
+    }
+
+    /// <summary>
+    /// Applies a status the researcher picked from the dropdown, immediately. Archiving
+    /// also ticks "Show archived", so the project stays where they can see it rather
+    /// than vanishing at the moment they act on it.
+    /// </summary>
+    private async Task ProjectStatusChosenAsync()
+    {
+        if (_bindingProject) return;
+        var project = CurrentProject;
+        if (project == null || _projectStatus.SelectedItem is not ResearchProjectStatus chosen) return;
+        if (chosen == project.Status) return;
+
+        await _repo.SetProjectStatusAsync(project.ResearchProjectId, chosen);
+        if (chosen == ResearchProjectStatus.Archived) SetShowArchivedSilently(true);
+        await LoadProjectsAsync(project.ResearchProjectId);
+        _statusLine.Text = chosen == ResearchProjectStatus.Archived
+            ? $"“{project.Name}” is archived. Press Restore to undo, or untick “Show archived” to hide it."
+            : $"“{project.Name}” is now {chosen.ToString().ToLowerInvariant()}.";
+    }
+
+    /// <summary>
+    /// Moves the checkbox to match what the list is actually showing, without setting
+    /// off the reload its own CheckedChanged handler would run.
+    /// </summary>
+    private void SetShowArchivedSilently(bool value)
+    {
+        if (_showArchived.Checked == value) return;
+        _suspendArchivedReload = true;
+        try { _showArchived.Checked = value; }
+        finally { _suspendArchivedReload = false; }
     }
 
     private async Task ToggleArchiveAsync()
@@ -441,9 +492,7 @@ public class ResearchBenchForm : Form
         // happened, press Restore straight away if it was a mistake, and read where to
         // find it later - none of which was true when it simply vanished.
         await LoadProjectsAsync(project.ResearchProjectId);
-        _statusLine.Text = _showArchived.Checked
-            ? $"“{project.Name}” is archived. Press Restore to make it active again."
-            : $"“{project.Name}” is archived. Press Restore to undo, or tick “Show archived” to find it later.";
+        _statusLine.Text = $"“{project.Name}” is archived. Press Restore to undo, or untick “Show archived” to hide it.";
     }
 
     private void UpdateArchiveButton(ResearchProject? project)
