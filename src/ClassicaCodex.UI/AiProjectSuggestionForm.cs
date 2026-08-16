@@ -64,9 +64,10 @@ public sealed class AiProjectSuggestionForm : Form
     {
         if(_result==null||(_suggestions.SelectedItem as SuggestionRow)?.Suggestion is not{}s)return;
         _create.Enabled=false;
+        ResearchProject? project=null;
         try
         {
-        var project=new ResearchProject{WorkId=_work.WorkId,Name=s.Title,Notes=$"AI-proposed project ({s.Category}); human-selected.\r\n\r\n{s.Rationale}\r\n\r\nGrounding claimed by proposal: {s.Grounding}"};await _research.SaveProjectAsync(project);
+        project=new ResearchProject{WorkId=_work.WorkId,Name=s.Title,Notes=$"AI-proposed project ({s.Category}); human-selected.\r\n\r\n{s.Rationale}\r\n\r\nGrounding claimed by proposal: {s.Grounding}"};await _research.SaveProjectAsync(project);
         var questions=new[]{s.CentralQuestion}.Concat(s.ResearchQuestions).Where(q=>!string.IsNullOrWhiteSpace(q)).Distinct(StringComparer.OrdinalIgnoreCase).ToList();for(var i=0;i<questions.Count;i++)await _research.SaveQuestionAsync(new ResearchQuestion{ResearchProjectId=project.ResearchProjectId,Text=questions[i],SortOrder=i});
         var hypotheses=new ResearchHypothesisRepository();for(var i=0;i<s.Hypotheses.Count;i++)await hypotheses.SaveHypothesisAsync(new ResearchHypothesis{ResearchProjectId=project.ResearchProjectId,Title=s.Hypotheses[i].Title,Statement=s.Hypotheses[i].Statement,Origin=EvidenceOrigin.AiCandidate,AiModel=_result.Model,AiPrompt=_result.PromptProvenance,AiGeneratedUtc=DateTime.UtcNow,SortOrder=i});
         for(var i=0;i<s.Experiments.Count;i++){var e=s.Experiments[i];await hypotheses.SaveExperimentAsync(new ResearchExperiment{ResearchProjectId=project.ResearchProjectId,Title=e.Title,Method=Enum.TryParse<ResearchExperimentMethod>(e.Method,true,out var m)?m:ResearchExperimentMethod.Manual,PredictedOutcome=Clean(e.PredictedOutcome),FalsificationCriterion=Clean(e.FalsificationCriterion),Origin=EvidenceOrigin.AiCandidate,AiModel=_result.Model,AiPrompt=_result.PromptProvenance,AiGeneratedUtc=DateTime.UtcNow,SortOrder=i});}
@@ -76,7 +77,14 @@ public sealed class AiProjectSuggestionForm : Form
         }
         catch(Exception ex)
         {
-            _status.Text="Could not finish creating the project: "+ex.Message;
+            var rollback=" The incomplete project was removed.";
+            if(project?.ResearchProjectId is>0)
+            {
+                try{await _research.DeleteIncompleteProjectAsync(project.ResearchProjectId);}
+                catch(Exception cleanup){rollback=" Cleanup also failed, so inspect the project list for a partial project: "+cleanup.Message;}
+            }
+            else rollback=" No project was created.";
+            _status.Text="Could not finish creating the project: "+ex.Message+rollback;
             _create.Enabled=true;
         }
     }

@@ -102,6 +102,30 @@ public class ResearchRepositoryTests
     }
 
     [Fact]
+    public async Task IncompleteProjectRollbackRemovesTheWholeAggregate()
+    {
+        using var db = await TempDatabase.CreateAsync();
+        await db.SeedEditionAsync();
+        var workId = await db.WorkIdForAsync("test1");
+        var repo = new ResearchRepository();
+        var project = new ResearchProject { WorkId = workId, Name = "Interrupted blueprint" };
+        await repo.SaveProjectAsync(project);
+        await repo.SaveQuestionAsync(new ResearchQuestion
+        {
+            ResearchProjectId = project.ResearchProjectId,
+            Text = "A partially created question"
+        });
+
+        await repo.DeleteIncompleteProjectAsync(project.ResearchProjectId);
+
+        Assert.Empty(await repo.GetProjectsForWorkAsync(workId, includeArchived: true));
+        Assert.Equal(0, await db.ScalarAsync<int>(
+            $"SELECT COUNT(*) FROM ResearchQuestions WHERE ResearchProjectId={project.ResearchProjectId};"));
+        Assert.Equal(0, await db.ScalarAsync<int>(
+            $"SELECT COUNT(*) FROM ResearchLogEntries WHERE ResearchProjectId={project.ResearchProjectId};"));
+    }
+
+    [Fact]
     public async Task QuestionsCanBeEditedReorderedAndRemovedWithoutLosingEvidence()
     {
         using var db = await TempDatabase.CreateAsync();

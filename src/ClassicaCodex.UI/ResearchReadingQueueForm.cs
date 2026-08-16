@@ -206,13 +206,13 @@ public sealed class ResearchReadingQueueForm : Form
         _title.Focus();
     }
 
-    private async Task SaveAsync()
+    private async Task<bool> SaveAsync()
     {
-        if (_editing == null) return;
+        if (_editing == null) return false;
         if (string.IsNullOrWhiteSpace(_title.Text))
         {
             MessageBox.Show(this, "A reading item needs a title.", "Reading queue");
-            return;
+            return false;
         }
         _editing.Title = _title.Text.Trim();
         _editing.Status = (ResearchReadingStatus)_status.SelectedItem!;
@@ -230,6 +230,7 @@ public sealed class ResearchReadingQueueForm : Form
         _editing.Notes = readingNotes;
         await _queueRepo.SaveAsync(_editing);
         await LoadAsync(_editing.ResearchReadingItemId);
+        return true;
     }
 
     private async Task RemoveAsync()
@@ -268,19 +269,18 @@ public sealed class ResearchReadingQueueForm : Form
                 return;
             }
         }
-        if (Uri.TryCreate(_editing.StableIdentifier, UriKind.Absolute, out var uri) &&
-            (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps))
+        if (TryGetOpenUri(_editing.StableIdentifier, _editing.Locator, out var uri))
         {
             Process.Start(new ProcessStartInfo(uri.AbsoluteUri) { UseShellExecute = true });
             return;
         }
-        MessageBox.Show(this, "Add an http(s) identifier or link this reading to an evidence source first.", "Open source");
+        MessageBox.Show(this, "Add an http(s) identifier or locator, or link this reading to an evidence source first.", "Open source");
     }
 
     private async Task PromoteAsync()
     {
         if (_editing?.ResearchReadingItemId is not > 0) return;
-        await SaveAsync();
+        if (!await SaveAsync()) return;
         if (_editing.PromotedEvidenceItemId != null)
         {
             MessageBox.Show(this, "This reading has already been promoted to evidence.", "Promote reading");
@@ -365,6 +365,28 @@ public sealed class ResearchReadingQueueForm : Form
         _ => "external source"
     };
     private static string? Clean(string value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+
+    internal static bool TryGetOpenUri(string? identifier, string? locator, out Uri uri)
+    {
+        foreach (var candidate in new[] { identifier, locator })
+            if (Uri.TryCreate(candidate, UriKind.Absolute, out var parsed) &&
+                (parsed.Scheme == Uri.UriSchemeHttp || parsed.Scheme == Uri.UriSchemeHttps))
+            {
+                uri = parsed;
+                return true;
+            }
+
+        if (!string.IsNullOrWhiteSpace(identifier) &&
+            identifier.StartsWith("doi:", StringComparison.OrdinalIgnoreCase) &&
+            Uri.TryCreate("https://doi.org/" + identifier[4..].Trim(), UriKind.Absolute, out var doi))
+        {
+            uri = doi;
+            return true;
+        }
+
+        uri = null!;
+        return false;
+    }
 
     private static void AddField(Control host, string label, TextBox box, ref int y)
     {

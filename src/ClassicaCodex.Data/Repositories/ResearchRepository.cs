@@ -76,6 +76,21 @@ public class ResearchRepository
     public Task ArchiveProjectAsync(long projectId, CancellationToken cancellationToken = default) =>
         SetProjectStatusAsync(projectId, ResearchProjectStatus.Archived, cancellationToken);
 
+    /// <summary>
+    /// Removes a project that failed while its initial aggregate was being assembled.
+    /// Normal researcher deletion remains recoverable archiving; this method exists only
+    /// so a failed multi-step creation does not leave a misleading partial project behind.
+    /// </summary>
+    public async Task DeleteIncompleteProjectAsync(long projectId,
+        CancellationToken cancellationToken = default)
+    {
+        await using var conn = await DbConnectionFactory.OpenConnectionAsync(cancellationToken);
+        await using var cmd = conn.CreateCommand();
+        cmd.CommandText = "DELETE FROM ResearchProjects WHERE ResearchProjectId=@Id;";
+        cmd.Parameters.AddWithValue("@Id", projectId);
+        await cmd.ExecuteNonQueryAsync(cancellationToken);
+    }
+
     public async Task SetProjectStatusAsync(long projectId, ResearchProjectStatus status,
         CancellationToken cancellationToken = default)
     {
