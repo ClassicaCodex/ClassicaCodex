@@ -25,6 +25,35 @@ public class ResearchHypothesisTests
     }
 
     [Fact]
+    public async Task ResavingTheMatrixKeepsWhenEachJudgmentWasFirstRecorded()
+    {
+        using var db=await TempDatabase.CreateAsync();await db.SeedEditionAsync("rhesus");
+        var research=new ResearchRepository();var project=new ResearchProject{WorkId=await db.WorkIdForAsync("rhesus"),Name="Provenance"};await research.SaveProjectAsync(project);
+        var first=new EvidenceItem{ResearchProjectId=project.ResearchProjectId,Title="Weighed months ago"};await research.SaveEvidenceAsync(first);
+        var second=new EvidenceItem{ResearchProjectId=project.ResearchProjectId,Title="Weighed today"};await research.SaveEvidenceAsync(second);
+        var repo=new ResearchHypothesisRepository();var hypothesis=new ResearchHypothesis{ResearchProjectId=project.ResearchProjectId,Title="Non-Euripidean author",Statement="A different tragedian composed it."};await repo.SaveHypothesisAsync(hypothesis);
+
+        await repo.SaveAssessmentsAsync(hypothesis.ResearchHypothesisId,[new ResearchHypothesisAssessment{SourceKind=HypothesisSourceKind.Evidence,SourceId=first.EvidenceItemId,Relationship=HypothesisRelationship.Supports,Strength=HypothesisStrength.Moderate}]);
+        var originallyRecorded=Assert.Single(await repo.GetAssessmentsAsync(hypothesis.ResearchHypothesisId)).CreatedUtc;
+        await db.ExecuteAsync($"UPDATE ResearchHypothesisAssessments SET CreatedUtc='2026-01-05T09:00:00.0000000Z' WHERE ResearchHypothesisId={hypothesis.ResearchHypothesisId};");
+        Assert.NotEqual(originallyRecorded,DateTime.Parse("2026-08-16T00:00:00Z").ToUniversalTime());
+
+        // Adding a second assessment rewrites the whole matrix, which used to restamp
+        // the first one as though the researcher had weighed that evidence today.
+        await repo.SaveAssessmentsAsync(hypothesis.ResearchHypothesisId,[
+            new ResearchHypothesisAssessment{SourceKind=HypothesisSourceKind.Evidence,SourceId=first.EvidenceItemId,Relationship=HypothesisRelationship.Supports,Strength=HypothesisStrength.Strong},
+            new ResearchHypothesisAssessment{SourceKind=HypothesisSourceKind.Evidence,SourceId=second.EvidenceItemId,Relationship=HypothesisRelationship.Contradicts,Strength=HypothesisStrength.Weak}]);
+
+        var reopened=await repo.GetAssessmentsAsync(hypothesis.ResearchHypothesisId);
+        var carried=reopened.Single(a=>a.SourceId==first.EvidenceItemId);
+        var fresh=reopened.Single(a=>a.SourceId==second.EvidenceItemId);
+
+        Assert.Equal(DateTime.Parse("2026-01-05T09:00:00Z").ToUniversalTime(),carried.CreatedUtc.ToUniversalTime());
+        Assert.Equal(HypothesisStrength.Strong,carried.Strength);   // the judgment itself still updates
+        Assert.True(fresh.CreatedUtc>carried.CreatedUtc);           // and a new one is dated now
+    }
+
+    [Fact]
     public async Task DeletingAnAssessedSourceTakesItsAssessmentWithIt()
     {
         using var db=await TempDatabase.CreateAsync();await db.SeedEditionAsync("rhesus");

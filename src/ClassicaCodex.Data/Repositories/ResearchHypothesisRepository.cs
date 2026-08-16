@@ -120,6 +120,22 @@ public sealed class ResearchHypothesisRepository
         await using var conn = await DbConnectionFactory.OpenConnectionAsync(ct); var projectId = await HypothesisProjectAsync(conn,hypothesisId,ct);
         var valid = (await GetSourcesAsync(projectId,ct)).Select(s=>(s.Kind,s.Id)).ToHashSet();
         if (assessments.Any(a=>!valid.Contains((a.SourceKind,a.SourceId)))) throw new ArgumentException("Every assessed source must belong to this project.",nameof(assessments));
+        // When this judgment was first recorded, keyed by the source it is about.
+        //
+        // Saving the matrix rewrites every row of it, which was giving each surviving
+        // assessment a fresh CreatedUtc - so an assessment formed months ago read as
+        // formed today, and re-reading a hypothesis was enough to erase when its
+        // evidence had actually been weighed. The dossier prints these dates.
+        var firstRecorded = new Dictionary<(HypothesisSourceKind Kind, long Id), string>();
+        await using(var read=conn.CreateCommand())
+        {
+            read.CommandText="SELECT SourceKind,SourceId,CreatedUtc FROM ResearchHypothesisAssessments WHERE ResearchHypothesisId=@Id;";
+            read.Parameters.AddWithValue("@Id",hypothesisId);
+            await using var reader=await read.ExecuteReaderAsync(ct);
+            while(await reader.ReadAsync(ct))
+                firstRecorded[(Parse(reader.GetString(0),HypothesisSourceKind.Evidence),reader.GetInt64(1))]=reader.GetString(2);
+        }
+
         await using var tx = await conn.BeginTransactionAsync(ct); await using(var del=conn.CreateCommand())
         { del.Transaction=(SqliteTransaction)tx;del.CommandText="DELETE FROM ResearchHypothesisAssessments WHERE ResearchHypothesisId=@Id;";del.Parameters.AddWithValue("@Id",hypothesisId);await del.ExecuteNonQueryAsync(ct); }
         var now=DateTime.UtcNow.ToString("O"); foreach(var a in assessments){await using var ins=conn.CreateCommand();ins.Transaction=(SqliteTransaction)tx;
@@ -134,9 +150,11 @@ public sealed class ResearchHypothesisRepository
                     CASE WHEN @Kind='finding' THEN @Source END,
                     CASE WHEN @Kind='scholarlyclaim' THEN @Source END,
                     CASE WHEN @Kind='echoresult' THEN @Source END,
-                    @Relationship,@Strength,@Note,@Now,@Now);";
+                    @Relationship,@Strength,@Note,@Created,@Now);";
             ins.Parameters.AddWithValue("@Hypothesis",hypothesisId);ins.Parameters.AddWithValue("@Kind",Store(a.SourceKind));ins.Parameters.AddWithValue("@Source",a.SourceId);
-            ins.Parameters.AddWithValue("@Relationship",Store(a.Relationship));ins.Parameters.AddWithValue("@Strength",Store(a.Strength));ins.Parameters.AddWithValue("@Note",Db(a.ResearcherNote));ins.Parameters.AddWithValue("@Now",now);await ins.ExecuteNonQueryAsync(ct);}
+            ins.Parameters.AddWithValue("@Relationship",Store(a.Relationship));ins.Parameters.AddWithValue("@Strength",Store(a.Strength));ins.Parameters.AddWithValue("@Note",Db(a.ResearcherNote));
+            ins.Parameters.AddWithValue("@Created",firstRecorded.TryGetValue((a.SourceKind,a.SourceId),out var created)?created:now);
+            ins.Parameters.AddWithValue("@Now",now);await ins.ExecuteNonQueryAsync(ct);}
         await tx.CommitAsync(ct); await LogAsync(projectId,ResearchLogEntryKind.HypothesisAssessmentsChanged,$"Updated hypothesis source assessments ({assessments.Count})",null,ct);
     }
 
