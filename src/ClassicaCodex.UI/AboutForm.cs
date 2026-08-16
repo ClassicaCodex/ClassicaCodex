@@ -19,6 +19,7 @@ public class AboutForm : Form
 {
     public AboutForm()
     {
+        DpiScaling.UseDesignFontScaling(this);
         Text = "About Classica Codex";
         AppIcons.ApplyWindowIcon(this, "About");
         // ClientSize, not Width/Height - those set the OUTER window bounds

@@ -173,6 +173,7 @@ public class MainForm : Form
 
     public MainForm()
     {
+        DpiScaling.UseDesignFontScaling(this);
         Text = "Classica Codex";
         AppIcons.ApplyWindowIcon(this, "AppIcon");
         Width = 1840;

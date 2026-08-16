@@ -118,6 +118,7 @@ public class TranslationWorkbenchForm : Form
         List<(Edition Edition, string Label)> comparisons,
         Func<int, Task<PassageAligner>> loadAligner)
     {
+        DpiScaling.UseDesignFontScaling(this);
         _comparisons = comparisons;
         _loadAligner = loadAligner;
         _citationPrefix = CommonCitationPrefix(sourcePassages);
