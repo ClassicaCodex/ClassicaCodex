@@ -115,11 +115,21 @@ public class ResearchBenchForm : Form
         create.Click += async (_, _) => await NewProjectAsync();
         var archive = ButtonAt("Archive", 1171, 37, 90);
         archive.Click += async (_, _) => await ArchiveProjectAsync();
+        var suggest = ButtonAt("Let AI Suggest a New Project", 1270, 37, 200);
+        suggest.Click += async (_, _) => await SuggestProjectAsync();
         _projectNotes.SetBounds(10, 72, 1251, 30);
         _projectNotes.PlaceholderText = "Project-level notes, scope, or current judgment";
         _projectNotes.Anchor = AnchorStyles.Left | AnchorStyles.Top | AnchorStyles.Right;
-        panel.Controls.AddRange(new Control[] { workLabel, _theory, _projectStatus, save, create, archive, _projectNotes });
+        panel.Controls.AddRange(new Control[] { workLabel, _theory, _projectStatus, save, create, archive, suggest, _projectNotes });
         return panel;
+    }
+
+    private async Task SuggestProjectAsync()
+    {
+        using var form = new AiProjectSuggestionForm(_work, _authorName);
+        if (form.ShowDialog(this) != DialogResult.OK || form.CreatedProjectId is not { } id) return;
+        await LoadProjectsAsync(id);
+        _statusLine.Text = "Created the selected AI-proposed project with reviewable questions, hypotheses, experiments, and reading leads.";
     }
 
     private Control BuildBody()
