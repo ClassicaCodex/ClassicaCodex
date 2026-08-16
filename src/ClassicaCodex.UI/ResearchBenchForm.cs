@@ -116,9 +116,13 @@ public class ResearchBenchForm : Form
             Height = 22,
             Font = new Font(Font, FontStyle.Bold)
         };
-        _theory.SetBounds(10, 38, 770, 26);
+        _theory.SetBounds(10, 38, 700, 26);
         _theory.PlaceholderText = "Working theory or research question";
-        _projectStatus.SetBounds(790, 38, 135, 26);
+        // Labelled, because unlabelled it reads as a filter on the project list rather
+        // than the open project's own status - which is what it is, and which is why
+        // choosing Archived here removes one project rather than showing several.
+        var statusLabel = LabelAt("This project:", 718, 42, 74);
+        _projectStatus.SetBounds(796, 38, 129, 26);
         _projectStatus.DropDownStyle = ComboBoxStyle.DropDownList;
         _projectStatus.DataSource = Enum.GetValues<ResearchProjectStatus>();
         // The dropdown applies the status itself. It reads as a control that acts, and
@@ -141,7 +145,7 @@ public class ResearchBenchForm : Form
         _projectNotes.SetBounds(10, 72, 1251, 30);
         _projectNotes.PlaceholderText = "Project-level notes, scope, or current judgment";
         _projectNotes.Anchor = AnchorStyles.Left | AnchorStyles.Top | AnchorStyles.Right;
-        panel.Controls.AddRange(new Control[] { workLabel, _theory, _projectStatus, save, create, archive, suggest, _projectNotes });
+        panel.Controls.AddRange(new Control[] { workLabel, _theory, statusLabel, _projectStatus, save, create, archive, suggest, _projectNotes });
         return panel;
     }
 
