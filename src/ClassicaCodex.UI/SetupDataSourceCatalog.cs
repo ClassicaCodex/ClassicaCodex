@@ -22,6 +22,7 @@ public static class SetupDataSourceCatalog
         // Named once, so the step's download location and its "is this
         // already loaded?" check can't drift apart.
         var first1kDestination = Path.Combine(dataRoot, "first1k-greek");
+        var cselDestination = Path.Combine(dataRoot, "csel");
 
         return new List<SetupDataSource>
         {
@@ -531,6 +532,56 @@ public static class SetupDataSourceCatalog
                 // which is the right direction for a step whose whole failure
                 // mode was silently skipping.
                 CheckComplete = async () => await editionRepo.CountBySourcePathPrefixAsync(first1kDestination) > 0
+            },
+
+            new SetupDataSource
+            {
+                Title = "Latin Church Fathers (CSEL, optional)",
+                RepoUrl = "https://github.com/OpenGreekAndLatin/csel-dev",
+                DisplayNote = "extends the Ancient Latin Texts above into late antiquity - same library, not a separate one",
+                DefaultDestination = cselDestination,
+                PlainLanguageDescription =
+                    "The Corpus Scriptorum Ecclesiasticorum Latinorum - the critical editions of the Latin " +
+                    "Church Fathers, from the volumes old enough to be out of copyright. Augustine, Ambrose, " +
+                    "Jerome, Cyprian and their contemporaries, in the editions scholars actually cite. " +
+                    "Authors already in your library gain works and editions rather than duplicates. " +
+                    "Around 400 megabytes.",
+                RunIngest = async (root, progress, ct) =>
+                {
+                    // Verified against the repository itself before writing this, not
+                    // inferred from the fact that it is an Open Greek and Latin repo:
+                    // data/<textgroup>/<work>/__cts__.xml in the same CTS layout as
+                    // canonical-latinLit, textgroup URNs already in the latinLit
+                    // namespace (urn:cts:latinLit:stoa0007), and a TEI-P5/EpiDoc body -
+                    // no DOCTYPE, no entity references beyond the five XML built-ins,
+                    // div[@type='edition'] over div[@type='textpart'] to <p> leaves.
+                    // So this is the same service the Greek and Latin steps use, with
+                    // the namespace it declares for itself, rather than a new importer.
+                    //
+                    // The apparatus is the reason this needed checking rather than
+                    // assuming: these files carry <note type="footnote"> inside the
+                    // reading text, and TeiParser already excludes note from the text
+                    // and captures it as an apparatus entry instead. Had it not, every
+                    // page of Augustine would have arrived with its footnotes spliced
+                    // into the sentences.
+                    //
+                    // Volumes/ holds the same texts unsplit, one file per CSEL volume,
+                    // and is left alone: IngestRepoAsync walks data/ only, so the
+                    // volume-level files cannot produce a second copy of anything.
+                    var service = new PerseusIngestService();
+                    var wrapped = new Progress<IngestProgress>(p =>
+                        progress.Report($"{p.CurrentAuthor}: {p.CurrentWork} ({p.WorksProcessed}/{p.TotalWorks})"));
+                    await service.IngestAsync(
+                        new[] { (Path.Combine(root, "data"), "latinLit") }, wrapped, ct);
+
+                    return IngestOutcome.From(service.FailedFiles);
+                },
+
+                // Same reasoning as First1KGreek above: Authors.Namespace="latinLit" is
+                // already non-zero from the classical Latin corpus, so it cannot tell
+                // "loaded" from "this step has not run". Editions record the file they
+                // were built from, and this corpus downloads to a folder of its own.
+                CheckComplete = async () => await editionRepo.CountBySourcePathPrefixAsync(cselDestination) > 0
             }
         };
     }

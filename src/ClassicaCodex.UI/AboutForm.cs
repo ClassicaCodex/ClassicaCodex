@@ -185,6 +185,19 @@ public class AboutForm : Form
 
         AddSourceSection(
             scrollHost, ref y,
+            "Latin Church Fathers (CSEL)",
+            "The Corpus Scriptorum Ecclesiasticorum Latinorum - critical editions of Augustine, Ambrose, " +
+            "Jerome, Cyprian and their contemporaries, from the volumes old enough to be out of copyright.",
+            "Open Greek and Latin Project (OpenGreekAndLatin/csel-dev)",
+            "Creative Commons Attribution-ShareAlike 4.0 International",
+            "https://github.com/OpenGreekAndLatin/csel-dev",
+            "The repository declares no licence at its top level; each text file declares CC BY-SA 4.0 in " +
+            "its own TEI header, which is the same licence Perseus applies across its canonical collections. " +
+            "The underlying CSEL volumes are 19th and early 20th-century editions in the public domain; the " +
+            "OCR correction and EpiDoc encoding are the Leipzig project's own work.");
+
+        AddSourceSection(
+            scrollHost, ref y,
             "Medieval Nordic Manuscripts",
             "Old Norse, Old Icelandic, Old Swedish and Old Danish manuscripts, transcribed word by word " +
             "from the parchment - Heimskringla, Laxdœla saga, the Codex Wormianus, the Old Norwegian " +
