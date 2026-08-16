@@ -17,14 +17,12 @@ public class ResearchBenchForm : Form
     private readonly ResearchRepository _repo = new();
     private readonly ListBox _projects = new();
     private readonly TextBox _theory = new();
-    private readonly ComboBox _projectStatus = new();
     private readonly TextBox _projectNotes = new();
-    private readonly CheckBox _showArchived = new();
+    private readonly ComboBox _statusFilter = new();
     private Button? _archiveToggle;
-    // Set while the project pane is being filled from a list reload, so that binding
-    // the status dropdown is not mistaken for the researcher choosing a status.
-    private bool _bindingProject;
-    private bool _suspendArchivedReload;
+    private bool _suspendFilterReload;
+
+    private StatusFilter CurrentFilter => _statusFilter.SelectedItem as StatusFilter ?? StatusFilter.Current;
     private readonly ListBox _questions = new();
     private readonly DataGridView _evidence = new();
     private readonly TextBox _title = new();
@@ -116,20 +114,8 @@ public class ResearchBenchForm : Form
             Height = 22,
             Font = new Font(Font, FontStyle.Bold)
         };
-        _theory.SetBounds(10, 38, 700, 26);
+        _theory.SetBounds(10, 38, 915, 26);
         _theory.PlaceholderText = "Working theory or research question";
-        // Labelled, because unlabelled it reads as a filter on the project list rather
-        // than the open project's own status - which is what it is, and which is why
-        // choosing Archived here removes one project rather than showing several.
-        var statusLabel = LabelAt("This project:", 718, 42, 74);
-        _projectStatus.SetBounds(796, 38, 129, 26);
-        _projectStatus.DropDownStyle = ComboBoxStyle.DropDownList;
-        _projectStatus.DataSource = Enum.GetValues<ResearchProjectStatus>();
-        // The dropdown applies the status itself. It reads as a control that acts, and
-        // requiring "Save project" afterwards made choosing Archived look like it did
-        // nothing at all - the project left the list and the status line said only that
-        // the project had saved.
-        _projectStatus.SelectedIndexChanged += async (_, _) => await ProjectStatusChosenAsync();
         var save = ButtonAt("Save project", 935, 37, 110);
         save.Click += async (_, _) => await SaveProjectAsync();
         var create = ButtonAt("New project", 1053, 37, 110);
@@ -145,7 +131,7 @@ public class ResearchBenchForm : Form
         _projectNotes.SetBounds(10, 72, 1251, 30);
         _projectNotes.PlaceholderText = "Project-level notes, scope, or current judgment";
         _projectNotes.Anchor = AnchorStyles.Left | AnchorStyles.Top | AnchorStyles.Right;
-        panel.Controls.AddRange(new Control[] { workLabel, _theory, statusLabel, _projectStatus, save, create, archive, suggest, _projectNotes });
+        panel.Controls.AddRange(new Control[] { workLabel, _theory, save, create, archive, suggest, _projectNotes });
         return panel;
     }
 
@@ -200,30 +186,37 @@ public class ResearchBenchForm : Form
 
     private void BuildLeft(Control host)
     {
-        var projectLabel = LabelAt("Projects for this work", 8, 8, 150);
-        _showArchived.SetBounds(162, 6, 114, 22);
-        _showArchived.Text = "Show archived";
-        _showArchived.Anchor = AnchorStyles.Top | AnchorStyles.Right;
-        _showArchived.CheckedChanged += async (_, _) =>
+        var projectLabel = LabelAt("Projects for this work", 8, 8, 130);
+        // Left-anchored, deliberately. This panel is built while the SplitContainer
+        // still has its small default width, so a Top|Right anchor records a negative
+        // distance from an edge that is not there yet and puts the control off-screen
+        // once the panel grows - which is exactly what happened to its predecessor.
+        var showLabel = LabelAt("Show:", 8, 34, 40);
+        _statusFilter.SetBounds(50, 30, 130, 26);
+        _statusFilter.DropDownStyle = ComboBoxStyle.DropDownList;
+        _statusFilter.Anchor = AnchorStyles.Left | AnchorStyles.Top;
+        _statusFilter.DataSource = StatusFilter.Choices;
+        _statusFilter.SelectedIndexChanged += async (_, _) =>
         {
-            if (_suspendArchivedReload) return;
-            // Drop the selection when hiding the archived project that is currently
-            // open, or LoadProjectsAsync would widen the list again to honour it and
-            // unticking the box would appear to do nothing.
+            if (_suspendFilterReload) return;
+            // Keep the open project selected only if the new filter still admits it,
+            // or LoadProjectsAsync would widen the list straight back to honour it and
+            // choosing a filter would appear to do nothing.
             var open = CurrentProject;
-            var keep = _showArchived.Checked || open?.Status != ResearchProjectStatus.Archived;
-            await LoadProjectsAsync(keep ? open?.ResearchProjectId ?? 0 : 0);
+            var keep = open != null && CurrentFilter.Admits(open.Status);
+            await LoadProjectsAsync(keep ? open!.ResearchProjectId : 0);
         };
-        _projects.SetBounds(8, 32, 268, 170);
+        _projects.SetBounds(8, 62, 268, 140);
         _projects.Anchor = AnchorStyles.Left | AnchorStyles.Top | AnchorStyles.Right;
         _projects.SelectedIndexChanged += async (_, _) => await ProjectChangedAsync();
-        // Mark archived entries at display time rather than in ResearchProject.ToString,
-        // which the dossier export and several combo boxes also render.
+        // Mark anything not active at display time rather than in
+        // ResearchProject.ToString, which the dossier export and several combo boxes
+        // also render.
         _projects.FormattingEnabled = true;
         _projects.Format += (_, e) =>
         {
-            if (e.ListItem is ResearchProject { Status: ResearchProjectStatus.Archived } p)
-                e.Value = $"{p.Name}  (archived)";
+            if (e.ListItem is ResearchProject p && p.Status != ResearchProjectStatus.Active)
+                e.Value = $"{p.Name}  ({StatusFilter.Describe(p.Status)})";
         };
         var questionLabel = LabelAt("Research questions", 8, 218, 250);
         _questions.SetBounds(8, 242, 268, 340);
@@ -240,7 +233,7 @@ public class ResearchBenchForm : Form
         remove.Click += async (_, _) => await RemoveQuestionAsync();
         up.Click += async (_, _) => await MoveQuestionAsync(-1);
         down.Click += async (_, _) => await MoveQuestionAsync(1);
-        host.Controls.AddRange(new Control[] { projectLabel, _showArchived, _projects, questionLabel, _questions, add, edit, remove, up, down });
+        host.Controls.AddRange(new Control[] { projectLabel, showLabel, _statusFilter, _projects, questionLabel, _questions, add, edit, remove, up, down });
     }
 
     private void BuildEvidenceList(Control host)
@@ -263,6 +256,14 @@ public class ResearchBenchForm : Form
         projectMenu.Items.Add("Hypothesis Lab…", null, (_, _) => OpenHypothesisLab());
         projectMenu.Items.Add("Synthesis & findings…", null, (_, _) => OpenSynthesis());
         projectMenu.Items.Add(new ToolStripSeparator());
+        // Archive has a button of its own because it is the common case. On hold and
+        // concluded need somewhere to live too - they used to be set from the header
+        // dropdown, which is now the list filter.
+        var statusMenu = new ToolStripMenuItem("Set project status");
+        foreach (var status in Enum.GetValues<ResearchProjectStatus>())
+            statusMenu.DropDownItems.Add(StatusFilter.Title(status), null,
+                async (_, _) => await SetProjectStatusAsync(status));
+        projectMenu.Items.Add(statusMenu);
         projectMenu.Items.Add("Project audit", null, async (_, _) => await OpenProjectAuditAsync());
         projectMenu.Items.Add("Research log", null, (_, _) => OpenResearchLog());
         projectTools.Click += (_, _) => projectMenu.Show(projectTools, new Point(0, projectTools.Height));
@@ -369,22 +370,20 @@ public class ResearchBenchForm : Form
 
     private async Task LoadProjectsAsync(long selectId = 0)
     {
-        var items = await _repo.GetProjectsForWorkAsync(
-            _work.WorkId, includeArchived: _showArchived.Checked, workCtsUrn: _work.CtsUrn);
+        var all = await _repo.GetProjectsForWorkAsync(
+            _work.WorkId, includeArchived: true, workCtsUrn: _work.CtsUrn);
+        var items = all.Where(p => CurrentFilter.Admits(p.Status)).ToList();
         // Archiving is retention, not deletion, so a caller that names a project - a
         // passage inquiry opening the project it was promoted into - must still be able
-        // to reach it. Widen the list in that case too, so ordinary browsing stays
-        // uncluttered without the named project going missing.
+        // to reach it. Widening the filter rather than quietly ignoring it keeps the
+        // dropdown honest about what the list is showing.
         var widened = false;
-        if (selectId != 0 && items.All(p => p.ResearchProjectId != selectId))
+        if (selectId != 0 && items.All(p => p.ResearchProjectId != selectId)
+            && all.Any(p => p.ResearchProjectId == selectId))
         {
-            items = await _repo.GetProjectsForWorkAsync(_work.WorkId, includeArchived: true, workCtsUrn: _work.CtsUrn);
-            // The widened query returns every archived project, not only the one asked
-            // for, so the checkbox has to agree with what is on screen. Leaving it clear
-            // showed archived work under a control claiming to hide it, and left no way
-            // back: unticking a box that is already clear does nothing.
-            widened = !_showArchived.Checked;
-            SetShowArchivedSilently(true);
+            items = all;
+            SetFilterSilently(StatusFilter.Everything);
+            widened = true;
         }
         _projects.DataSource = null;
         _projects.DataSource = items;
@@ -392,9 +391,9 @@ public class ResearchBenchForm : Form
         {
             var wanted = items.FirstOrDefault(p => p.ResearchProjectId == selectId);
             _projects.SelectedItem = wanted;
-            if (widened && wanted is { Status: ResearchProjectStatus.Archived })
-                _statusLine.Text = $"\u201c{wanted.Name}\u201d is archived. " +
-                                   "\u201cShow archived\u201d has been ticked so it is visible; untick it to hide archived projects again.";
+            if (widened && wanted != null)
+                _statusLine.Text = $"\u201c{wanted.Name}\u201d is {StatusFilter.Describe(wanted.Status)}. " +
+                                   "The filter has been set to All so it is visible.";
         }
         if (items.Count == 0)
         {
@@ -408,11 +407,6 @@ public class ResearchBenchForm : Form
         var project = CurrentProject;
         if (project == null) { ClearProject(); return; }
         _theory.Text = project.Name;
-        // Tightly scoped, with no await inside: this assignment must not be read as the
-        // researcher picking a status and trigger a save of its own.
-        _bindingProject = true;
-        try { _projectStatus.SelectedItem = project.Status; }
-        finally { _bindingProject = false; }
         UpdateArchiveButton(project);
         _projectNotes.Text = project.Notes ?? "";
         var questions = await _repo.GetQuestionsAsync(project.ResearchProjectId);
@@ -437,7 +431,6 @@ public class ResearchBenchForm : Form
         if (project == null) { await NewProjectAsync(); return; }
         if (string.IsNullOrWhiteSpace(_theory.Text)) { MessageBox.Show(this, "Enter a working theory."); return; }
         project.Name = _theory.Text.Trim();
-        project.Status = (ResearchProjectStatus)_projectStatus.SelectedItem!;
         project.Notes = EmptyToNull(_projectNotes.Text);
         await _repo.SaveProjectAsync(project);
         await LoadProjectsAsync(project.ResearchProjectId);
@@ -445,35 +438,30 @@ public class ResearchBenchForm : Form
     }
 
     /// <summary>
-    /// Applies a status the researcher picked from the dropdown, immediately. Archiving
-    /// also ticks "Show archived", so the project stays where they can see it rather
-    /// than vanishing at the moment they act on it.
+    /// Sets the open project's status. The Archive button is the shortcut for the
+    /// common case; the Project menu reaches the rest.
     /// </summary>
-    private async Task ProjectStatusChosenAsync()
+    private async Task SetProjectStatusAsync(ResearchProjectStatus status)
     {
-        if (_bindingProject) return;
         var project = CurrentProject;
-        if (project == null || _projectStatus.SelectedItem is not ResearchProjectStatus chosen) return;
-        if (chosen == project.Status) return;
-
-        await _repo.SetProjectStatusAsync(project.ResearchProjectId, chosen);
-        if (chosen == ResearchProjectStatus.Archived) SetShowArchivedSilently(true);
+        if (project == null || project.Status == status) return;
+        await _repo.SetProjectStatusAsync(project.ResearchProjectId, status);
         await LoadProjectsAsync(project.ResearchProjectId);
-        _statusLine.Text = chosen == ResearchProjectStatus.Archived
-            ? $"“{project.Name}” is archived. Press Restore to undo, or untick “Show archived” to hide it."
-            : $"“{project.Name}” is now {chosen.ToString().ToLowerInvariant()}.";
+        _statusLine.Text = status == ResearchProjectStatus.Archived
+            ? $"“{project.Name}” is archived. Press Restore to undo."
+            : $"“{project.Name}” is now {StatusFilter.Describe(status)}.";
     }
 
     /// <summary>
-    /// Moves the checkbox to match what the list is actually showing, without setting
-    /// off the reload its own CheckedChanged handler would run.
+    /// Moves the filter to match what the list is actually showing, without setting off
+    /// the reload its own SelectedIndexChanged handler would run.
     /// </summary>
-    private void SetShowArchivedSilently(bool value)
+    private void SetFilterSilently(StatusFilter filter)
     {
-        if (_showArchived.Checked == value) return;
-        _suspendArchivedReload = true;
-        try { _showArchived.Checked = value; }
-        finally { _suspendArchivedReload = false; }
+        if (ReferenceEquals(CurrentFilter, filter)) return;
+        _suspendFilterReload = true;
+        try { _statusFilter.SelectedItem = filter; }
+        finally { _suspendFilterReload = false; }
     }
 
     private async Task ToggleArchiveAsync()
@@ -483,20 +471,15 @@ public class ResearchBenchForm : Form
 
         if (project.Status == ResearchProjectStatus.Archived)
         {
-            await _repo.SetProjectStatusAsync(project.ResearchProjectId, ResearchProjectStatus.Active);
-            await LoadProjectsAsync(project.ResearchProjectId);
-            _statusLine.Text = $"“{project.Name}” is active again.";
+            await SetProjectStatusAsync(ResearchProjectStatus.Active);
             return;
         }
 
         if (MessageBox.Show(this, $"Archive “{project.Name}”? Its questions and evidence will be retained.",
                 "Archive project", MessageBoxButtons.YesNo, MessageBoxIcon.Question) != DialogResult.Yes) return;
-        await _repo.ArchiveProjectAsync(project.ResearchProjectId);
-        // Keep it selected rather than reloading to nothing. The researcher can see what
-        // happened, press Restore straight away if it was a mistake, and read where to
-        // find it later - none of which was true when it simply vanished.
-        await LoadProjectsAsync(project.ResearchProjectId);
-        _statusLine.Text = $"“{project.Name}” is archived. Press Restore to undo, or untick “Show archived” to hide it.";
+        // Keep it selected rather than reloading to nothing, so the researcher can see
+        // what happened and press Restore straight away if it was a mistake.
+        await SetProjectStatusAsync(ResearchProjectStatus.Archived);
     }
 
     private void UpdateArchiveButton(ResearchProject? project)
@@ -1112,6 +1095,57 @@ public class ResearchBenchForm : Form
     private static string? EmptyToNull(string text) => string.IsNullOrWhiteSpace(text) ? null : text.Trim();
     private sealed record QuestionChoice(long? Id, string Text) { public override string ToString() => Text; }
 
+}
+
+/// <summary>
+/// A choice in the project list's "Show" dropdown. Statuses are a property of a
+/// project, but which of them the list shows is a property of the view, so the two are
+/// kept apart: this type names the view's choices, and never writes anything.
+/// </summary>
+internal sealed class StatusFilter
+{
+    private readonly Func<ResearchProjectStatus, bool> _admits;
+
+    private StatusFilter(string label, Func<ResearchProjectStatus, bool> admits)
+    {
+        Label = label;
+        _admits = admits;
+    }
+
+    public string Label { get; }
+    public bool Admits(ResearchProjectStatus status) => _admits(status);
+    public override string ToString() => Label;
+
+    /// <summary>Everything still in play - the default, and what the Bench used to show.</summary>
+    public static readonly StatusFilter Current = new("Current", s => s != ResearchProjectStatus.Archived);
+    public static readonly StatusFilter Everything = new("All", _ => true);
+    private static StatusFilter Only(string label, ResearchProjectStatus only) => new(label, s => s == only);
+
+    public static readonly StatusFilter[] Choices =
+    [
+        Current,
+        Only("Active", ResearchProjectStatus.Active),
+        Only("On hold", ResearchProjectStatus.OnHold),
+        Only("Concluded", ResearchProjectStatus.Concluded),
+        Only("Archived", ResearchProjectStatus.Archived),
+        Everything
+    ];
+
+    /// <summary>Lowercase, for reading inside a sentence.</summary>
+    public static string Describe(ResearchProjectStatus status) => status switch
+    {
+        ResearchProjectStatus.OnHold => "on hold",
+        ResearchProjectStatus.Concluded => "concluded",
+        ResearchProjectStatus.Archived => "archived",
+        _ => "active"
+    };
+
+    /// <summary>Capitalised, for a menu item.</summary>
+    public static string Title(ResearchProjectStatus status)
+    {
+        var described = Describe(status);
+        return char.ToUpperInvariant(described[0]) + described[1..];
+    }
 }
 
 /// <summary>
