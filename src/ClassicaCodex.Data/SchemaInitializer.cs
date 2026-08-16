@@ -55,7 +55,7 @@ public static class SchemaInitializer
     /// 7 to 13 until version 3 was cut, at which point they all failed at
     /// once and said nothing about what had actually broken.
     /// </summary>
-    public const int TargetSchemaVersion = 29;
+    public const int TargetSchemaVersion = 30;
 
     public static async Task EnsureSchemaAsync(CancellationToken cancellationToken = default)
     {
@@ -916,6 +916,17 @@ public static class SchemaInitializer
             "CREATE INDEX IF NOT EXISTS IX_ResearchHypotheses_Project ON ResearchHypotheses (ResearchProjectId, SortOrder, ResearchHypothesisId);",
             "CREATE INDEX IF NOT EXISTS IX_ResearchHypothesisAssessments_Hypothesis ON ResearchHypothesisAssessments (ResearchHypothesisId, SourceKind, SourceId);",
             "CREATE INDEX IF NOT EXISTS IX_ResearchExperiments_Project ON ResearchExperiments (ResearchProjectId, Status, SortOrder, ResearchExperimentId);"
+        },
+
+        // v30: a passage-first inquiry is intentionally smaller than a
+        // Research Bench project. It preserves the reader's own observation
+        // and question by stable CTS identity, then optionally records the
+        // project into which that note was promoted.
+        [30] = new[]
+        {
+            PassageInquiriesDdl,
+            "CREATE UNIQUE INDEX IF NOT EXISTS UX_PassageInquiries_Passage ON PassageInquiries (EditionCtsUrn, CitationRef);",
+            "CREATE INDEX IF NOT EXISTS IX_PassageInquiries_Project ON PassageInquiries (ResearchProjectId);"
         }
     };
 
@@ -1304,6 +1315,24 @@ public static class SchemaInitializer
             REFERENCES ResearchHypotheses(ResearchHypothesisId) ON DELETE SET NULL
     );";
 
+    private const string PassageInquiriesDdl = @"CREATE TABLE IF NOT EXISTS PassageInquiries (
+        PassageInquiryId INTEGER PRIMARY KEY,
+        WorkCtsUrn TEXT NOT NULL,
+        EditionCtsUrn TEXT NOT NULL,
+        CitationRef TEXT NOT NULL,
+        AuthorName TEXT NOT NULL,
+        WorkTitle TEXT NOT NULL,
+        Excerpt TEXT NOT NULL,
+        AttentionNote TEXT NOT NULL,
+        DraftQuestion TEXT NOT NULL,
+        Direction TEXT NOT NULL DEFAULT 'none',
+        ResearchProjectId INTEGER NULL,
+        CreatedUtc TEXT NOT NULL,
+        UpdatedUtc TEXT NOT NULL,
+        CONSTRAINT FK_PassageInquiries_Projects FOREIGN KEY (ResearchProjectId)
+            REFERENCES ResearchProjects(ResearchProjectId) ON DELETE SET NULL
+    );";
+
     private static readonly string[] SchemaStatements =
     {
         ResearchProjectsDdl,
@@ -1326,6 +1355,7 @@ public static class SchemaInitializer
         ResearchHypothesesDdl,
         ResearchHypothesisAssessmentsDdl,
         ResearchExperimentsDdl,
+        PassageInquiriesDdl,
         "CREATE INDEX IF NOT EXISTS IX_ResearchProjects_Work ON ResearchProjects (WorkId, Status, UpdatedUtc);",
         "CREATE INDEX IF NOT EXISTS IX_ResearchQuestions_Project ON ResearchQuestions (ResearchProjectId, SortOrder);",
         "CREATE INDEX IF NOT EXISTS IX_EvidenceItems_Project ON EvidenceItems (ResearchProjectId, SortOrder);",
@@ -1351,6 +1381,8 @@ public static class SchemaInitializer
         "CREATE INDEX IF NOT EXISTS IX_ResearchHypotheses_Project ON ResearchHypotheses (ResearchProjectId, SortOrder, ResearchHypothesisId);",
         "CREATE INDEX IF NOT EXISTS IX_ResearchHypothesisAssessments_Hypothesis ON ResearchHypothesisAssessments (ResearchHypothesisId, SourceKind, SourceId);",
         "CREATE INDEX IF NOT EXISTS IX_ResearchExperiments_Project ON ResearchExperiments (ResearchProjectId, Status, SortOrder, ResearchExperimentId);",
+        "CREATE UNIQUE INDEX IF NOT EXISTS UX_PassageInquiries_Passage ON PassageInquiries (EditionCtsUrn, CitationRef);",
+        "CREATE INDEX IF NOT EXISTS IX_PassageInquiries_Project ON PassageInquiries (ResearchProjectId);",
 
         // The statements below are also created by migrations, and have to
         // be here as well because a NEW database never runs a migration - it

@@ -1127,6 +1127,10 @@ public class MainForm : Form
         var copyItem = menu.Items.Add("Copy to Clipboard");
         copyItem.Image = AppIcons.Get("CopyToClipboard", 16);
         copyItem.Click += (_, _) => CopySelectedLineToClipboard(list);
+        var inquiryItem = menu.Items.Add("Start inquiry from this passage...");
+        inquiryItem.Image = AppIcons.Get("WordStudy", 16);
+        inquiryItem.Click += async (_, _) => await StartInquiryForSelectedLineAsync(list);
+        menu.Items.Add(new ToolStripSeparator());
         var tagItem = menu.Items.Add("Tag this line...");
         tagItem.Image = AppIcons.Get("AutoTag", 16);
         tagItem.Click += async (_, _) => await TagSelectedLineAsync(list);
@@ -1187,6 +1191,7 @@ public class MainForm : Form
         list.ContextMenuStrip = menu;
         _themedContextMenus.Add(menu);
         _themedMenuItemIcons.Add((copyItem, "CopyToClipboard"));
+        _themedMenuItemIcons.Add((inquiryItem, "WordStudy"));
         _themedMenuItemIcons.Add((tagItem, "AutoTag"));
         _themedMenuItemIcons.Add((bookmarkItem, "Bookmarks"));
         _themedMenuItemIcons.Add((echoItem, "SimilarWorks"));
@@ -1455,6 +1460,39 @@ public class MainForm : Form
 
         MessageBox.Show(this, $"Bookmarked [{node.CitationRef}].", "Bookmarked",
             MessageBoxButtons.OK, MessageBoxIcon.Information);
+    }
+
+    private async Task StartInquiryForSelectedLineAsync(SyncListView list)
+    {
+        if (list.SelectedIndex < 0 || list.Items[list.SelectedIndex] is not TextNode node)
+        {
+            MessageBox.Show(this, "Select a passage first.", "Nothing selected",
+                MessageBoxButtons.OK, MessageBoxIcon.Information);
+            return;
+        }
+
+        var passage = await _textNodeRepo.GetPassageResearchIdentityAsync(node.TextNodeId);
+        if (passage == null)
+        {
+            MessageBox.Show(this, "That passage is no longer present in the local corpus.", "Inquiry",
+                MessageBoxButtons.OK, MessageBoxIcon.Information);
+            return;
+        }
+
+        using var inquiry = new PassageInquiryForm(passage);
+        if (inquiry.ShowDialog(this) != DialogResult.OK || inquiry.OpenProjectId is not { } projectId)
+            return;
+
+        var work = _openWork?.WorkId == passage.WorkId
+            ? _openWork
+            : _worksByAuthor.Values.SelectMany(works => works)
+                .FirstOrDefault(candidate => candidate.WorkId == passage.WorkId);
+        if (work == null) return;
+
+        using var bench = new ResearchBenchForm(work, passage.AuthorName, projectId);
+        bench.ShowDialog(this);
+        if (bench.NavigationTarget is { } target)
+            await NavigateToPassageAsync(target.WorkId, target.TextNodeId);
     }
 
     /// <summary>

@@ -45,6 +45,7 @@ Hover any line to see its citation reference.
 
 Right-click a line for:
    Copy to Clipboard - the line's text on its own
+   Start inquiry from this passage - begin with your own observation and a small question
    Tag this line - file it under a name you choose
    Bookmark this line - save it with a note
    Find Echoes - look for passages elsewhere that share rare wording
@@ -351,6 +352,15 @@ The basic structure
    Questions break the project into things that can actually be answered. Evidence may be linked to one question or kept at project level. Reorder questions to match the investigation rather than the order in which they occurred to you.
 
    Evidence records what you have, where it came from, and what you currently think it does. Source text, provenance, canonical reference, stable identifier, relationship, review judgment, and your interpretation are separate fields deliberately. A quotation is not an argument, and an AI interpretation is not your judgment.
+
+Starting from one passage
+   Right-click a passage in either reader pane and choose Start inquiry from this passage. The first screen stays deliberately small: the excerpt and citation are fixed in view, while you write what caught your attention and draft a question in your own words.
+
+   Read closely, Compare, and Research are directions rather than conclusions. Read closely keeps attention on language and form; Compare suggests placing the passage beside another text, translation, genre, or reception; Research opens a larger path. The note is saved by the edition's CTS identity and citation, so it survives a corpus re-ingest.
+
+   AI appears only after you choose Research. If requested, Gemini receives this one passage, its author/work/citation, and the two notes visible in the form - not the rest of the corpus, the Research Bench, or the database. Suggestions remain outside your draft until you select one, and anything copied into the question box stays editable.
+
+   Turn this into a Research Bench project appears only after your observation and question have been saved. Promotion creates a normal project, an initial research question, and a manual primary-text evidence record carrying the excerpt, CTS references, and your note. The original inquiry remains linked to the project so reopening the passage can take you back to it.
 
 Starting without a question
    Let AI Suggest a New Project is for the point where a work interests you but you do not yet know what to ask about it. It combines the work's attribution record, existing project titles, a bounded sample of its locally ingested original-language text, and optional Crossref publication metadata. Gemini proposes several established-debate, corpus-question, or explicitly novel-theory blueprints.

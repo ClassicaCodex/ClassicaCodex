@@ -40,16 +40,18 @@ public class ResearchBenchForm : Form
     private SplitContainer? _outerSplit;
     private SplitContainer? _rightSplit;
     private EvidenceItem? _editingEvidence;
+    private readonly long _initialProjectId;
 
     public (int WorkId, long TextNodeId)? NavigationTarget { get; private set; }
 
     private ResearchProject? CurrentProject => _projects.SelectedItem as ResearchProject;
     private EvidenceItem? CurrentEvidence => _evidence.CurrentRow?.DataBoundItem as EvidenceItem;
 
-    public ResearchBenchForm(Work work, string authorName)
+    public ResearchBenchForm(Work work, string authorName, long initialProjectId = 0)
     {
         _work = work;
         _authorName = authorName;
+        _initialProjectId = initialProjectId;
         Text = $"Research Bench — {work.Title}";
         AppIcons.ApplyWindowIcon(this, "WordStudy");
         Width = 1500;
@@ -82,7 +84,7 @@ public class ResearchBenchForm : Form
         {
             ConfigureSplitter(_outerSplit, 285, 240, 700);
             ConfigureSplitter(_rightSplit, 500, 360, 420);
-            await LoadProjectsAsync();
+            await LoadProjectsAsync(_initialProjectId);
         };
     }
 
