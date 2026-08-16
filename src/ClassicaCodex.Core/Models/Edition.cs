@@ -35,6 +35,17 @@ public class Edition
     public string? SourcePath { get; set; }
 
     /// <summary>
+    /// Which downloaded collection this edition came from - "csel",
+    /// "perseus-latin", and so on. Null for anything the app made itself, such
+    /// as a translation written in the workbench.
+    ///
+    /// Deliberately a key rather than the folder it was downloaded to: the
+    /// library file is portable and the folder is not, so a path stops being
+    /// true the moment the data moves or the database is opened elsewhere.
+    /// </summary>
+    public string? Collection { get; set; }
+
+    /// <summary>
     /// The orthographic level this edition's text is transcribed at:
     /// "normalised", "diplomatic", or null for a printed edition where the
     /// question doesn't arise.

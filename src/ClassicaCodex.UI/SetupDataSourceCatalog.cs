@@ -16,24 +16,42 @@ public static class SetupDataSourceCatalog
         Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "ClassicaCodexData");
 
     /// <summary>
-    /// The collections that carry readable text, with the folder each downloads
-    /// to - the same folder its setup step counts editions under to decide
-    /// whether it is installed, and the same one the search window filters by.
+    /// The stored identity of each collection that carries readable text.
     ///
-    /// Here rather than beside each entry below so that a folder name cannot be
-    /// changed in one place and left behind in the other. The lemma, lexicon,
-    /// map and artifact sources are deliberately absent: they hold no passages,
-    /// so there is nothing in them to search.
+    /// Written onto every edition as it is imported, so a library can say which
+    /// collection a text belongs to without consulting the folder it arrived in -
+    /// which stops being true the moment the data is moved, installed somewhere
+    /// custom, or opened on another machine.
+    ///
+    /// The lemma, lexicon, map and artifact sources have no keys: they hold no
+    /// passages, so there is nothing in them to search.
     /// </summary>
-    public static IReadOnlyList<(string Title, string Folder)> TextCollections =>
-    [
-        ("Ancient Greek (Perseus)", Path.Combine(DataRoot, "greek-texts")),
-        ("Ancient Latin (Perseus)", Path.Combine(DataRoot, "latin-texts")),
-        ("Post-Classical Greek (First1KGreek)", Path.Combine(DataRoot, "first1k-greek")),
-        ("Latin Church Fathers (CSEL)", Path.Combine(DataRoot, "csel")),
-        ("English Literature (Renaissance)", Path.Combine(DataRoot, "english-texts")),
-        ("Medieval Nordic (Menota)", Path.Combine(DataRoot, "menota"))
-    ];
+    public static class CollectionKeys
+    {
+        public const string PerseusGreek = "perseus-greek";
+        public const string PerseusLatin = "perseus-latin";
+        public const string First1KGreek = "first1k-greek";
+        public const string Csel = "csel";
+        public const string Renaissance = "renaissance";
+        public const string Menota = "menota";
+    }
+
+    /// <summary>
+    /// How each collection key should be named to a person. Anything not listed -
+    /// a library predating this, or a collection installed to a custom folder the
+    /// backfill could not recognise - is shown under its own key rather than
+    /// hidden, so an unfamiliar name is at least a name.
+    /// </summary>
+    public static string DescribeCollection(string key) => key switch
+    {
+        CollectionKeys.PerseusGreek => "Ancient Greek (Perseus)",
+        CollectionKeys.PerseusLatin => "Ancient Latin (Perseus)",
+        CollectionKeys.First1KGreek => "Post-Classical Greek (First1KGreek)",
+        CollectionKeys.Csel => "Latin Church Fathers (CSEL)",
+        CollectionKeys.Renaissance => "English Literature (Renaissance)",
+        CollectionKeys.Menota => "Medieval Nordic (Menota)",
+        _ => key
+    };
 
     public static List<SetupDataSource> Build(
         AuthorRepository authorRepo, LemmaRepository lemmaRepo, DefinitionRepository definitionRepo,
@@ -63,6 +81,7 @@ public static class SetupDataSourceCatalog
                         progress.Report($"{p.CurrentAuthor}: {p.CurrentWork} ({p.WorksProcessed}/{p.TotalWorks})"));
                     await service.IngestAsync(
                         new[] { (Path.Combine(root, "data"), "greekLit") }, wrapped, ct);
+                    await editionRepo.StampCollectionAsync(root, CollectionKeys.PerseusGreek, ct);
                     return IngestOutcome.From(service.FailedFiles);
                 },
                 // Checked by corpus (Authors.Namespace), not by edition
@@ -87,6 +106,7 @@ public static class SetupDataSourceCatalog
                         progress.Report($"{p.CurrentAuthor}: {p.CurrentWork} ({p.WorksProcessed}/{p.TotalWorks})"));
                     await service.IngestAsync(
                         new[] { (Path.Combine(root, "data"), "latinLit") }, wrapped, ct);
+                    await editionRepo.StampCollectionAsync(root, CollectionKeys.PerseusLatin, ct);
                     return IngestOutcome.From(service.FailedFiles);
                 },
                 // Same reasoning as the Greek row above, inverted - and this
@@ -273,10 +293,18 @@ public static class SetupDataSourceCatalog
                     // Runs second so its name-based de-dup can fold Sidney and
                     // James I into the author rows the CTS pass just created.
                     var renaissance = Path.Combine(root, "Renaissance");
-                    if (!Directory.Exists(renaissance)) return IngestOutcome.From(cts.FailedFiles);
+                    if (!Directory.Exists(renaissance))
+                    {
+                        await editionRepo.StampCollectionAsync(root, CollectionKeys.Renaissance, ct);
+                        return IngestOutcome.From(cts.FailedFiles);
+                    }
 
                     var preCts = new RenaissanceIngestService();
                     await preCts.IngestAsync(renaissance, wrapped, ct);
+
+                    // Both passes land under the same download folder, so one stamp
+                    // covers the CTS works and the pre-CTS ones alike.
+                    await editionRepo.StampCollectionAsync(root, CollectionKeys.Renaissance, ct);
 
                     return IngestOutcome.Combine(
                         IngestOutcome.From(cts.FailedFiles),
@@ -428,6 +456,7 @@ public static class SetupDataSourceCatalog
 
                     var service = new MenotaIngestService();
                     var outcome = await service.IngestAsync(root, progress, ct);
+                    await editionRepo.StampCollectionAsync(root, CollectionKeys.Menota, ct);
 
                     // Reaching this branch means a manuscript arrived in the folder
                     // after the review dialogs ran, or its review was skipped. The
@@ -524,6 +553,7 @@ public static class SetupDataSourceCatalog
                         Namespace = "hebrewLit"
                     }, ct);
 
+                    await editionRepo.StampCollectionAsync(root, CollectionKeys.First1KGreek, ct);
                     return IngestOutcome.From(service.FailedFiles);
                 },
                 // Authors.Namespace="greekLit" is already >0 from the
@@ -596,6 +626,7 @@ public static class SetupDataSourceCatalog
                     await service.IngestAsync(
                         new[] { (Path.Combine(root, "data"), "latinLit") }, wrapped, ct);
 
+                    await editionRepo.StampCollectionAsync(root, CollectionKeys.Csel, ct);
                     return IngestOutcome.From(service.FailedFiles);
                 },
 

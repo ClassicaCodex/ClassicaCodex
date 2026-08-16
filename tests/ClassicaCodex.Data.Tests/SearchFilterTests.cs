@@ -83,9 +83,14 @@ public class SearchFilterTests
         var fathers = await db.SeedFullEditionAsync("augustine", "Augustine", "latinLit", "Confessiones", "Original", "lat");
         await db.InsertLinesAsync(fathers, ("1.1", "arma spiritalia sumenda sunt"));
 
+        // Stamped the way a setup step stamps them: by the folder it just
+        // imported from, recording a key that does not mention the folder.
+        var editions = new EditionRepository();
         await db.ExecuteAsync(
             $@"UPDATE Editions SET SourcePath = 'C:\Data\latin-texts\data\vergil\x.xml' WHERE EditionId = {classical};
                UPDATE Editions SET SourcePath = 'C:\Data\csel\data\augustine\y.xml' WHERE EditionId = {fathers};");
+        await editions.StampCollectionAsync(@"C:\Data\latin-texts", "perseus-latin");
+        await editions.StampCollectionAsync(@"C:\Data\csel", "csel");
 
         var repo = new TextNodeRepository();
 
@@ -94,15 +99,26 @@ public class SearchFilterTests
         Assert.Equal(2, (await repo.SearchFilteredAsync(byNamespace)).Rows.Count);
 
         var cselOnly = new SearchFilters { Query = "arma" };
-        cselOnly.Collections.Add(@"C:\Data\csel");
+        cselOnly.Collections.Add("csel");
         Assert.Equal("arma spiritalia sumenda sunt",
             Assert.Single((await repo.SearchFilteredAsync(cselOnly)).Rows).Text);
 
         // Any number of them, which is what makes it a set rather than a dropdown.
         var both = new SearchFilters { Query = "arma" };
-        both.Collections.Add(@"C:\Data\csel");
-        both.Collections.Add(@"C:\Data\latin-texts");
+        both.Collections.Add("csel");
+        both.Collections.Add("perseus-latin");
         Assert.Equal(2, (await repo.SearchFilteredAsync(both)).Rows.Count);
+
+        // The library knows what it holds without being told where it came from.
+        Assert.Equal(["csel", "perseus-latin"], await editions.GetCollectionsAsync());
+
+        // And the whole point of storing a key rather than a path: the downloads
+        // are gone, the paths are meaningless, and the filter still works.
+        await db.ExecuteAsync("UPDATE Editions SET SourcePath = NULL;");
+        var afterCleanup = new SearchFilters { Query = "arma" };
+        afterCleanup.Collections.Add("csel");
+        Assert.Equal("arma spiritalia sumenda sunt",
+            Assert.Single((await repo.SearchFilteredAsync(afterCleanup)).Rows).Text);
 
         // And unset still means everything, so the default search is unchanged.
         Assert.Equal(2, (await repo.SearchFilteredAsync(Query("arma"))).Rows.Count);

@@ -40,7 +40,7 @@ public class EditionRepository
         var results = new List<Edition>();
         await using var conn = await DbConnectionFactory.OpenConnectionAsync(cancellationToken);
 
-        const string sql = @"SELECT EditionId, WorkId, CtsUrn, Kind, Language, Translator, SourcePath, Orthography
+        const string sql = @"SELECT EditionId, WorkId, CtsUrn, Kind, Language, Translator, SourcePath, Orthography, Collection
                              FROM Editions WHERE WorkId = @WorkId;";
         await using var cmd = conn.CreateCommand();
         cmd.CommandText = sql;
@@ -58,7 +58,8 @@ public class EditionRepository
                 Language = reader.IsDBNull(4) ? null : reader.GetString(4),
                 Translator = reader.IsDBNull(5) ? null : reader.GetString(5),
                 SourcePath = reader.IsDBNull(6) ? null : reader.GetString(6),
-                Orthography = reader.IsDBNull(7) ? null : reader.GetString(7)
+                Orthography = reader.IsDBNull(7) ? null : reader.GetString(7),
+                Collection = reader.IsDBNull(8) ? null : reader.GetString(8)
             });
         }
 
@@ -264,6 +265,53 @@ public class EditionRepository
 
         await tx.CommitAsync(cancellationToken);
     }
+
+    /// <summary>
+    /// Records which collection the editions under a folder belong to, run by a
+    /// setup step once its ingest has finished.
+    ///
+    /// The folder is how the step recognises what it just imported; the key is
+    /// what gets stored, because the folder is where the files were and the key
+    /// is what the text is. Stamping here rather than inside the ingest services
+    /// means a step that installs to a custom folder still labels its editions
+    /// correctly - it passes the folder it actually used.
+    /// </summary>
+    public async Task<int> StampCollectionAsync(
+        string folder, string collection, CancellationToken cancellationToken = default)
+    {
+        await using var conn = await DbConnectionFactory.OpenConnectionAsync(cancellationToken);
+        await using var cmd = conn.CreateCommand();
+
+        cmd.CommandText = "UPDATE Editions SET Collection = @Collection WHERE SourcePath LIKE @Prefix ESCAPE '\\';";
+        cmd.Parameters.AddWithValue("@Collection", collection);
+        cmd.Parameters.AddWithValue("@Prefix", $"{EscapeForLike(folder)}%");
+        cmd.CommandTimeout = 120;
+
+        return await cmd.ExecuteNonQueryAsync(cancellationToken);
+    }
+
+    /// <summary>
+    /// The collections actually present in this library, asked of the editions
+    /// themselves. Nothing here consults the filesystem, so it answers correctly
+    /// for a library whose downloads have been deleted or moved.
+    /// </summary>
+    public async Task<List<string>> GetCollectionsAsync(CancellationToken cancellationToken = default)
+    {
+        var result = new List<string>();
+        await using var conn = await DbConnectionFactory.OpenConnectionAsync(cancellationToken);
+        await using var cmd = conn.CreateCommand();
+        cmd.CommandText =
+            "SELECT DISTINCT Collection FROM Editions WHERE Collection IS NOT NULL ORDER BY Collection;";
+
+        await using var reader = await cmd.ExecuteReaderAsync(cancellationToken);
+        while (await reader.ReadAsync(cancellationToken)) result.Add(reader.GetString(0));
+        return result;
+    }
+
+    private static string EscapeForLike(string value) => value
+        .Replace("\\", "\\\\")
+        .Replace("%", "\\%")
+        .Replace("_", "\\_");
 
     public async Task<int> CountBySourcePathPrefixAsync(
         string folder, CancellationToken cancellationToken = default)

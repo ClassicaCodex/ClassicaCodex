@@ -55,7 +55,7 @@ public static class SchemaInitializer
     /// 7 to 13 until version 3 was cut, at which point they all failed at
     /// once and said nothing about what had actually broken.
     /// </summary>
-    public const int TargetSchemaVersion = 31;
+    public const int TargetSchemaVersion = 32;
 
     public static async Task EnsureSchemaAsync(CancellationToken cancellationToken = default)
     {
@@ -1018,6 +1018,69 @@ public static class SchemaInitializer
             "DROP TABLE ResearchQuestions;",
             "ALTER TABLE ResearchQuestions_v31 RENAME TO ResearchQuestions;",
             "CREATE INDEX IF NOT EXISTS IX_ResearchQuestions_Project ON ResearchQuestions (ResearchProjectId, SortOrder);"
+        },
+
+        // Which collection an edition came from, recorded on the edition itself.
+        //
+        // The search window needs to tell CSEL from the classical Latin texts, and
+        // the namespace cannot: both are latinLit, as both Greek collections are
+        // greekLit. The download folder can, and was the first answer - but a
+        // folder is where the file was, not what the text is. Install somewhere
+        // custom, move the data folder, or open the same library on another
+        // machine or Windows account, and every path stops matching while the
+        // texts sit there unchanged. The database is portable; a path is not.
+        //
+        // So the collection is stamped onto the edition at ingest and travels with
+        // the library. Nothing here reads the XML: the files can be deleted once
+        // imported, which was already true and stays true.
+        // Rebuilt rather than ALTERed. ADD COLUMN is not replayable - the migration
+        // tests fake an older database by rewinding the version stamp while the
+        // table keeps its current shape, and the second run dies on "duplicate
+        // column name". An index on the new column makes it worse still, since the
+        // rewind's DROP COLUMN then fails against the index that depends on it.
+        // Selecting only the pre-32 columns makes this idempotent whatever shape it
+        // meets.
+        [32] = new[]
+        {
+            @"CREATE TABLE Editions_v32 (
+                EditionId   INTEGER PRIMARY KEY,
+                WorkId      INTEGER NOT NULL,
+                CtsUrn      TEXT NOT NULL,
+                Kind        TEXT NOT NULL,
+                Language    TEXT NULL,
+                Translator  TEXT NULL,
+                SourcePath  TEXT NULL,
+                Orthography TEXT NULL,
+                Collection  TEXT NULL,
+                CONSTRAINT UQ_Editions_CtsUrn UNIQUE (CtsUrn),
+                CONSTRAINT FK_Editions_Works FOREIGN KEY (WorkId) REFERENCES Works(WorkId)
+            );",
+            @"INSERT INTO Editions_v32
+                (EditionId, WorkId, CtsUrn, Kind, Language, Translator, SourcePath, Orthography)
+              SELECT EditionId, WorkId, CtsUrn, Kind, Language, Translator, SourcePath, Orthography
+              FROM Editions;",
+            "DROP TABLE Editions;",
+            "ALTER TABLE Editions_v32 RENAME TO Editions;",
+            "CREATE INDEX IF NOT EXISTS IX_Editions_WorkId ON Editions (WorkId);",
+
+            // Best effort for libraries that already exist, from the only signal
+            // they carry. A collection installed to a custom folder will not match
+            // and stays NULL - it shows as "Other" in the filter until that step is
+            // run again, which stamps it properly.
+            @"UPDATE Editions SET Collection = 'perseus-greek'
+              WHERE Collection IS NULL AND SourcePath LIKE '%\greek-texts\%';",
+            @"UPDATE Editions SET Collection = 'perseus-latin'
+              WHERE Collection IS NULL AND SourcePath LIKE '%\latin-texts\%';",
+            @"UPDATE Editions SET Collection = 'first1k-greek'
+              WHERE Collection IS NULL AND SourcePath LIKE '%\first1k-greek\%';",
+            @"UPDATE Editions SET Collection = 'csel'
+              WHERE Collection IS NULL AND SourcePath LIKE '%\csel\%';",
+            @"UPDATE Editions SET Collection = 'renaissance'
+              WHERE Collection IS NULL AND SourcePath LIKE '%\english-texts\%';",
+            @"UPDATE Editions SET Collection = 'menota'
+              WHERE Collection IS NULL AND SourcePath LIKE '%\menota\%';",
+
+            "CREATE INDEX IF NOT EXISTS IX_Editions_Collection ON Editions (Collection);"
         }
     };
 
@@ -1583,6 +1646,7 @@ public static class SchemaInitializer
             Translator  TEXT NULL,
             SourcePath  TEXT NULL,
             Orthography TEXT NULL,   -- normalised / diplomatic / NULL; see migration 13
+            Collection  TEXT NULL,   -- which downloaded collection this came from; see migration 32
             CONSTRAINT UQ_Editions_CtsUrn UNIQUE (CtsUrn),
             CONSTRAINT FK_Editions_Works FOREIGN KEY (WorkId) REFERENCES Works(WorkId)
         );",
@@ -1599,6 +1663,7 @@ public static class SchemaInitializer
         // at the cost of a one-time build and a little index upkeep on
         // writes, which ingestion already pays for the indexes above.
         @"CREATE INDEX IF NOT EXISTS IX_Editions_WorkId ON Editions (WorkId);",
+        @"CREATE INDEX IF NOT EXISTS IX_Editions_Collection ON Editions (Collection);",
         @"CREATE INDEX IF NOT EXISTS IX_Works_AuthorId ON Works (AuthorId);",
 
         // CitationRef is plain TEXT - most works cite by simple numbers

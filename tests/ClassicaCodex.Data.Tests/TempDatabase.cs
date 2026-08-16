@@ -108,6 +108,9 @@ public sealed class TempDatabase : IDisposable
         (28, "ResearchEchoResults", "Directionality"),
         (28, "ResearchEchoResults", "MotifTags"),
         (28, "ResearchEchoResults", "ParallelNote")
+        // Migration 32 adds Editions.Collection by rebuilding the table, not by
+        // ALTER, so it does not belong here: a rebuild replaces the whole table on
+        // replay and has no "duplicate column name" for a rewind to avoid.
         // Migration 31 adds columns to ResearchProjects and ResearchQuestions by
         // rebuilding both tables, not by ALTER, so neither belongs here: a rebuild
         // replaces the whole table on replay and has no "duplicate column name" for a

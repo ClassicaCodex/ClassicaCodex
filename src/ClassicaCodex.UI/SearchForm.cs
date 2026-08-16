@@ -69,8 +69,8 @@ public class SearchForm : Form
     private string _displayCount = "0";
     private bool _narrowed;
 
-    /// <summary>The collections that are installed, so the menu offers only real ones.</summary>
-    private List<(string Title, string Folder)> _collections = new();
+    /// <summary>The collections present in the library, so the menu offers only real ones.</summary>
+    private List<(string Title, string Key)> _collections = new();
 
     private bool DocumentView => _viewBox.SelectedIndex == 1 && _openDocumentWorkId == null;
 
@@ -676,12 +676,10 @@ public class SearchForm : Form
     /// </summary>
     private async Task LoadCollectionsAsync()
     {
-        _collections.Clear();
-        foreach (var (title, folder) in SetupDataSourceCatalog.TextCollections)
-        {
-            if (await _editionRepo.CountBySourcePathPrefixAsync(folder) > 0)
-                _collections.Add((title, folder));
-        }
+        _collections = (await _editionRepo.GetCollectionsAsync())
+            .Select(key => (Title: SetupDataSourceCatalog.DescribeCollection(key), Key: key))
+            .OrderBy(c => c.Title, StringComparer.CurrentCultureIgnoreCase)
+            .ToList();
 
         _collectionsMenu.Items.Clear();
 
@@ -690,9 +688,9 @@ public class SearchForm : Form
         _collectionsButton.Visible = _collections.Count > 1;
         if (!_collectionsButton.Visible) return;
 
-        foreach (var (title, folder) in _collections)
+        foreach (var (title, key) in _collections)
         {
-            var item = new ToolStripMenuItem(title) { CheckOnClick = true, Tag = folder };
+            var item = new ToolStripMenuItem(title) { CheckOnClick = true, Tag = key };
             item.CheckedChanged += (_, _) => UpdateCollectionsButton();
             _collectionsMenu.Items.Add(item);
         }

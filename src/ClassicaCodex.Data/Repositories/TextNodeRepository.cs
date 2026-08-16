@@ -257,18 +257,7 @@ public class TextNodeRepository
 
         if (filters.Collections.Count > 0)
         {
-            // A prefix match on the folder each edition was ingested from, rather
-            // than IN over exact paths: the stored path names the file, several
-            // directories below the folder that identifies the collection.
-            var clauses = new List<string>();
-            var n = 0;
-            foreach (var folder in filters.Collections)
-            {
-                var name = $"@coll{n++}";
-                cmd.Parameters.AddWithValue(name, folder);
-                clauses.Add($"e.SourcePath LIKE {name} || '%'");
-            }
-            where.Add($"({string.Join(" OR ", clauses)})");
+            where.Add($"e.Collection IN ({AddParameters(cmd, "coll", filters.Collections)})");
         }
 
         if (filters.OriginalsOnly != null)
