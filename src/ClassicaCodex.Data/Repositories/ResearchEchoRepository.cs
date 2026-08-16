@@ -13,9 +13,14 @@ public sealed class ResearchEchoRepository
         await using (var conn = await DbConnectionFactory.OpenConnectionAsync(cancellationToken))
         await using (var cmd = conn.CreateCommand())
         {
+            // LEFT JOIN, not JOIN. Since schema 31 a project outlives its work, and the
+            // Bench lists projects by WorkId, so it cannot show a detached one at all -
+            // the Atlas is the only place that research stays visible until a re-import
+            // reattaches it. An inner join here would quietly finish the deletion that
+            // migration 31 exists to prevent.
             cmd.CommandText = @"SELECT p.ResearchProjectId,p.WorkId,p.Name,p.Status,p.Notes,p.CreatedUtc,p.UpdatedUtc,
-                a.Name,w.Title FROM ResearchProjects p JOIN Works w ON w.WorkId=p.WorkId
-                JOIN Authors a ON a.AuthorId=w.AuthorId
+                a.Name,w.Title FROM ResearchProjects p LEFT JOIN Works w ON w.WorkId=p.WorkId
+                LEFT JOIN Authors a ON a.AuthorId=w.AuthorId
                 WHERE (@Project IS NULL OR p.ResearchProjectId=@Project)
                 ORDER BY p.ResearchProjectId;";
             cmd.Parameters.AddWithValue("@Project", projectId is null ? DBNull.Value : projectId.Value);
@@ -23,10 +28,11 @@ public sealed class ResearchEchoRepository
             while (await reader.ReadAsync(cancellationToken))
                 projects.Add((new ResearchProject
                 {
-                    ResearchProjectId = reader.GetInt64(0), WorkId = reader.GetInt32(1), Name = reader.GetString(2),
+                    ResearchProjectId = reader.GetInt64(0),
+                    WorkId = reader.IsDBNull(1) ? null : reader.GetInt32(1), Name = reader.GetString(2),
                     Status = Parse(reader.GetString(3), ResearchProjectStatus.Active), Notes = Text(reader, 4),
                     CreatedUtc = Date(reader, 5)!.Value, UpdatedUtc = Date(reader, 6)!.Value
-                }, reader.GetString(7), reader.GetString(8)));
+                }, Text(reader, 7) ?? "—", Text(reader, 8) ?? "(work no longer in the library)"));
         }
 
         var connections = new List<IntertextualAtlasConnection>();

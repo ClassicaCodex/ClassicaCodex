@@ -1066,4 +1066,121 @@ public class ResearchRepositoryTests
         Assert.Equal("Imagistic", parsed.SuggestedConnectionType);
         Assert.Equal("prompt", parsed.PromptProvenance);
     }
+
+    [Fact]
+    public async Task DeletingAWorkDetachesItsProjectsRatherThanFailing()
+    {
+        using var db = await TempDatabase.CreateAsync();
+        var editionId = await db.SeedEditionAsync("rhesus");
+        var workId = await db.WorkIdForAsync("rhesus");
+        var repo = new ResearchRepository();
+        var project = new ResearchProject
+        {
+            WorkId = workId, WorkCtsUrn = "urn:w:rhesus", Name = "Was Rhesus written by Euripides?"
+        };
+        await repo.SaveProjectAsync(project);
+
+        // Exactly what a Menota re-ingest does when it replaces the last edition of a
+        // work. Before schema 31 this threw a raw constraint error, aborted the import
+        // part-way, and left the researcher no way to clear it.
+        await db.ExecuteAsync($"DELETE FROM Editions WHERE EditionId = {editionId};");
+        await db.ExecuteAsync($"DELETE FROM Works WHERE WorkId = {workId};");
+
+        Assert.Equal(1L, await db.CountAsync("ResearchProjects"));
+        Assert.Equal(0L, await db.ScalarAsync<long>(
+            "SELECT COUNT(*) FROM ResearchProjects WHERE WorkId IS NOT NULL;"));
+        Assert.Empty(await repo.GetProjectsForWorkAsync(workId));
+    }
+
+    [Fact]
+    public async Task AReimportedWorkReadoptsTheProjectsItLeftBehind()
+    {
+        using var db = await TempDatabase.CreateAsync();
+        var editionId = await db.SeedEditionAsync("rhesus");
+        await db.SeedEditionAsync("alcestis"); // so the re-import cannot reuse the vacated row id
+        var workId = await db.WorkIdForAsync("rhesus");
+        var repo = new ResearchRepository();
+        var project = new ResearchProject
+        {
+            WorkId = workId, WorkCtsUrn = "urn:w:rhesus", Name = "Rhesus diction"
+        };
+        await repo.SaveProjectAsync(project);
+
+        await db.ExecuteAsync($"DELETE FROM Editions WHERE EditionId = {editionId};");
+        await db.ExecuteAsync($"DELETE FROM Works WHERE WorkId = {workId};");
+        await db.ExecuteAsync(@"INSERT INTO Works (AuthorId, CtsUrn, Title)
+            VALUES ((SELECT AuthorId FROM Authors WHERE CtsUrn = 'urn:a:rhesus'), 'urn:w:rhesus', 'Iliad');");
+        var reimportedWorkId = await db.WorkIdForAsync("rhesus");
+        Assert.NotEqual(workId, reimportedWorkId);
+
+        // The row id is new, so the CTS identity is the only thing that can reconnect
+        // the two - which is the whole reason WorkCtsUrn is stored on the project.
+        var reattached = Assert.Single(
+            await repo.GetProjectsForWorkAsync(reimportedWorkId, workCtsUrn: "urn:w:rhesus"));
+        Assert.Equal(project.ResearchProjectId, reattached.ResearchProjectId);
+        Assert.Equal(reimportedWorkId, reattached.WorkId);
+    }
+
+    [Fact]
+    public async Task ADetachedProjectSaysItsWorkIsGoneRatherThanThatItDoesNotExist()
+    {
+        using var db = await TempDatabase.CreateAsync();
+        var editionId = await db.SeedEditionAsync("rhesus");
+        var workId = await db.WorkIdForAsync("rhesus");
+        var repo = new ResearchRepository();
+        var project = new ResearchProject
+        {
+            WorkId = workId, WorkCtsUrn = "urn:w:rhesus", Name = "Rhesus diction"
+        };
+        await repo.SaveProjectAsync(project);
+        await db.ExecuteAsync($"DELETE FROM Editions WHERE EditionId = {editionId};");
+        await db.ExecuteAsync($"DELETE FROM Works WHERE WorkId = {workId};");
+
+        // A NULL WorkId used to be read as "no such project", which sends the
+        // researcher looking for something that is sitting right there.
+        var snapshots = new ResearchCorpusSnapshotRepository();
+        var error = await Assert.ThrowsAsync<ArgumentException>(() => snapshots.CaptureAsync(
+            project.ResearchProjectId, "Baseline", CorpusSnapshotScope.ProjectWork, "test"));
+        Assert.Contains("not attached to a work", error.Message);
+    }
+
+    [Fact]
+    public async Task TheAtlasStillShowsAProjectWhoseWorkHasLeftTheLibrary()
+    {
+        using var db = await TempDatabase.CreateAsync();
+        var sourceEdition = await db.SeedFullEditionAsync("source", "Euripides", "greekLit", "Rhesus", "Original", "grc");
+        var targetEdition = await db.SeedFullEditionAsync("target", "Aeschylus", "greekLit", "Agamemnon", "Original", "grc");
+        await db.InsertLinesAsync(sourceEdition, ("1", "source passage"));
+        await db.InsertLinesAsync(targetEdition, ("2", "target passage"));
+        var sourceNode = await db.TextNodeIdAsync(sourceEdition, "1");
+        var targetNode = await db.TextNodeIdAsync(targetEdition, "2");
+        var source = Assert.IsType<PassageResearchIdentity>(
+            await new TextNodeRepository().GetPassageResearchIdentityAsync(sourceNode));
+        var sourceWorkId = await db.WorkIdForAsync("source");
+        var project = new ResearchProject
+        {
+            WorkId = sourceWorkId, WorkCtsUrn = "urn:w:source", Name = "Authorship and reception"
+        };
+        await new ResearchRepository().SaveProjectAsync(project);
+
+        var repo = new ResearchEchoRepository();
+        await repo.SaveCaptureAsync(project.ResearchProjectId, null, null,
+            new EchoCaptureRequest(ResearchEchoMethod.AiCrossLanguage, source, "Possible tragic echo",
+                "Aeschylus, Agamemnon", "citations resolved locally", "gemini-test", "full prompt",
+                DateTime.Parse("2026-08-15T12:00:00Z").ToUniversalTime(),
+                [new EchoCaptureCandidate(await db.WorkIdForAsync("target"), targetNode,
+                    "Aeschylus", "Agamemnon", "2", "target passage", null, "medium", "shared image")]));
+        Assert.Single(await repo.GetAtlasConnectionsAsync(project.ResearchProjectId));
+
+        await db.ExecuteAsync($"DELETE FROM TextNodes WHERE EditionId = {sourceEdition};");
+        await db.ExecuteAsync($"DELETE FROM Editions WHERE EditionId = {sourceEdition};");
+        await db.ExecuteAsync($"DELETE FROM Works WHERE WorkId = {sourceWorkId};");
+
+        // The Bench lists projects by WorkId and so cannot show a detached one at all.
+        // If the Atlas dropped it too, migration 31 would be preserving research that
+        // nothing in the application could reach.
+        var detached = Assert.Single(await repo.GetAtlasConnectionsAsync(project.ResearchProjectId));
+        Assert.Null(detached.Project.WorkId);
+        Assert.Contains("no longer in the library", detached.SourceLabel);
+    }
 }

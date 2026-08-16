@@ -152,7 +152,10 @@ public sealed class ResearchCorpusSnapshotRepository
     private static ResearchCorpusSnapshot ReadSnapshot(SqliteDataReader r)=>new(){ResearchCorpusSnapshotId=r.GetInt64(0),ResearchProjectId=r.GetInt64(1),Name=r.GetString(2),
         Scope=Enum.TryParse<CorpusSnapshotScope>(r.GetString(3),true,out var scope)?scope:CorpusSnapshotScope.ProjectWork,AppVersion=r.GetString(4),Notes=r.IsDBNull(5)?null:r.GetString(5),
         WorkCount=r.GetInt32(6),EditionCount=r.GetInt32(7),TextNodeCount=r.GetInt64(8),CreatedUtc=DateTime.Parse(r.GetString(9),null,System.Globalization.DateTimeStyles.RoundtripKind)};
-    private static async Task<int> ProjectWorkIdAsync(SqliteConnection conn,long projectId,CancellationToken ct){await using var cmd=conn.CreateCommand();cmd.CommandText="SELECT WorkId FROM ResearchProjects WHERE ResearchProjectId=@Id;";cmd.Parameters.AddWithValue("@Id",projectId);var value=await cmd.ExecuteScalarAsync(ct);if(value is null or DBNull)throw new ArgumentException("Research project does not exist.");return Convert.ToInt32(value);}
+    // Since schema 31 a NULL WorkId means the work left the library, not that the
+    // project is gone - two different problems, and reporting the second for the first
+    // sends the researcher looking for a project that is sitting right there.
+    private static async Task<int> ProjectWorkIdAsync(SqliteConnection conn,long projectId,CancellationToken ct){await using var cmd=conn.CreateCommand();cmd.CommandText="SELECT WorkId FROM ResearchProjects WHERE ResearchProjectId=@Id;";cmd.Parameters.AddWithValue("@Id",projectId);await using var reader=await cmd.ExecuteReaderAsync(ct);if(!await reader.ReadAsync(ct))throw new ArgumentException("Research project does not exist.");if(reader.IsDBNull(0))throw new ArgumentException("This project is not attached to a work in the library. Import the work again to reattach it, then capture the snapshot.");return reader.GetInt32(0);}
     private static string Key(ResearchCorpusSnapshotEntry e)=>e.EditionCtsUrn??"work:"+e.WorkCtsUrn;
     private static CorpusSnapshotDifference Difference(string status,ResearchCorpusSnapshotEntry e,string details)=>new(status,$"{e.AuthorName} — {e.WorkTitle}",e.EditionCtsUrn??"(no edition)",details);
     private static List<string> Changes(ResearchCorpusSnapshotEntry a,ResearchCorpusSnapshotEntry b)
