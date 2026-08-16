@@ -200,13 +200,25 @@ public class AboutForm : Form
             "assembled from whichever level each word happened to carry would belong to no scribe and no " +
             "dictionary.");
 
+        AddHeading(scrollHost, "Online Services & Privacy", ref y, 14, FontStyle.Bold);
         AddParagraph(scrollHost,
-            "One more thing worth being plain about, separate from the data sources above: Translate's " +
-            "AI option can send a selected passage to a live third-party API on request - either " +
-            "Anthropic's Claude or Google's Gemini, whichever you set up. Neither is a dataset bundled " +
-            "with this app; each needs its own API key, and each has its own terms - Gemini's free tier " +
-            "in particular may use what's sent to it to improve Google's models, which Claude's paid API " +
-            "doesn't. Nothing is sent unless you explicitly ask for it. See Help for the details.",
+            "Translation can send a selected passage to Anthropic's Claude or Google's Gemini when you " +
+            "explicitly request it. Research Bench AI tools use Gemini to propose corpus evidence, rival " +
+            "hypotheses, intertextual readings, provisional syntheses, and new research projects. These " +
+            "calls send only the context described in the confirmation shown before the request - such as " +
+            "a bounded corpus sample, project questions, or selected passages. Gemini requires your own API " +
+            "key. Each provider's current data-use and privacy terms apply, so review them before sending " +
+            "sensitive or unpublished material.",
+            ref y, 672, Color.DimGray);
+
+        AddParagraph(scrollHost,
+            "The new-project assistant can also query Crossref's public REST API for publication metadata. " +
+            "Crossref receives only the editable scholarly search terms - never your corpus text, notes, " +
+            "evidence, or project database - and needs no API key. Returned titles, authors, years, DOIs, " +
+            "links, and deposited abstracts are saved only as reading leads. Classica Codex never treats " +
+            "metadata as proof of what a publication argues. Nothing is sent to Gemini or Crossref until " +
+            "you click the corresponding AI or discovery action; confirmation prompts can remain enabled " +
+            "in AI Translation Settings. See Help for the complete Research Bench workflow.",
             ref y, 672, Color.DimGray);
 
         var closeButton = new Button
