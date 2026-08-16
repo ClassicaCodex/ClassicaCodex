@@ -123,8 +123,18 @@ public sealed class ResearchHypothesisRepository
         await using var tx = await conn.BeginTransactionAsync(ct); await using(var del=conn.CreateCommand())
         { del.Transaction=(SqliteTransaction)tx;del.CommandText="DELETE FROM ResearchHypothesisAssessments WHERE ResearchHypothesisId=@Id;";del.Parameters.AddWithValue("@Id",hypothesisId);await del.ExecuteNonQueryAsync(ct); }
         var now=DateTime.UtcNow.ToString("O"); foreach(var a in assessments){await using var ins=conn.CreateCommand();ins.Transaction=(SqliteTransaction)tx;
-            ins.CommandText=@"INSERT INTO ResearchHypothesisAssessments (ResearchHypothesisId,SourceKind,SourceId,Relationship,Strength,ResearcherNote,CreatedUtc,UpdatedUtc)
-                VALUES (@Hypothesis,@Kind,@Source,@Relationship,@Strength,@Note,@Now,@Now);";
+            // The source id goes into the typed column its kind names, so the row carries
+            // a real foreign key rather than a number that happens to match. The CASEs do
+            // the routing in SQL to keep the parameter list identical for every kind.
+            ins.CommandText=@"INSERT INTO ResearchHypothesisAssessments
+                (ResearchHypothesisId,SourceKind,EvidenceItemId,ResearchFindingId,ScholarlyClaimId,
+                 ResearchEchoResultId,Relationship,Strength,ResearcherNote,CreatedUtc,UpdatedUtc)
+                VALUES (@Hypothesis,@Kind,
+                    CASE WHEN @Kind='evidence' THEN @Source END,
+                    CASE WHEN @Kind='finding' THEN @Source END,
+                    CASE WHEN @Kind='scholarlyclaim' THEN @Source END,
+                    CASE WHEN @Kind='echoresult' THEN @Source END,
+                    @Relationship,@Strength,@Note,@Now,@Now);";
             ins.Parameters.AddWithValue("@Hypothesis",hypothesisId);ins.Parameters.AddWithValue("@Kind",Store(a.SourceKind));ins.Parameters.AddWithValue("@Source",a.SourceId);
             ins.Parameters.AddWithValue("@Relationship",Store(a.Relationship));ins.Parameters.AddWithValue("@Strength",Store(a.Strength));ins.Parameters.AddWithValue("@Note",Db(a.ResearcherNote));ins.Parameters.AddWithValue("@Now",now);await ins.ExecuteNonQueryAsync(ct);}
         await tx.CommitAsync(ct); await LogAsync(projectId,ResearchLogEntryKind.HypothesisAssessmentsChanged,$"Updated hypothesis source assessments ({assessments.Count})",null,ct);
