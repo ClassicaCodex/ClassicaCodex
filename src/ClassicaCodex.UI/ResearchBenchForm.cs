@@ -45,7 +45,10 @@ public class ResearchBenchForm : Form
     public (int WorkId, long TextNodeId)? NavigationTarget { get; private set; }
 
     private ResearchProject? CurrentProject => _projects.SelectedItem as ResearchProject;
-    private EvidenceItem? CurrentEvidence => _evidence.CurrentRow?.DataBoundItem as EvidenceItem;
+    // Read the selection, not CurrentRow: the two disagree while a selection change
+    // is in flight, and the inspector must always describe the highlighted evidence.
+    private EvidenceItem? CurrentEvidence =>
+        (_evidence.SelectedRows.Count > 0 ? _evidence.SelectedRows[0] : _evidence.CurrentRow)?.DataBoundItem as EvidenceItem;
 
     public ResearchBenchForm(Work work, string authorName, long initialProjectId = 0)
     {
@@ -455,8 +458,9 @@ public class ResearchBenchForm : Form
             foreach (DataGridViewRow row in _evidence.Rows)
             {
                 if (row.DataBoundItem is not EvidenceItem item || item.EvidenceItemId != evidenceId) continue;
-                row.Selected = true;
                 _evidence.CurrentCell = row.Cells[0];
+                row.Selected = true;
+                ShowEvidence(item);
                 _evidence.FirstDisplayedScrollingRowIndex = row.Index;
                 return;
             }
@@ -740,7 +744,7 @@ public class ResearchBenchForm : Form
         _evidence.DataSource = items;
         if (selectId != 0)
             foreach (DataGridViewRow row in _evidence.Rows)
-                if (row.DataBoundItem is EvidenceItem e && e.EvidenceItemId == selectId) { row.Selected = true; _evidence.CurrentCell = row.Cells[0]; break; }
+                if (row.DataBoundItem is EvidenceItem e && e.EvidenceItemId == selectId) { _evidence.CurrentCell = row.Cells[0]; row.Selected = true; ShowEvidence(e); break; }
         if (items.Count == 0) ShowEvidence(null);
     }
 

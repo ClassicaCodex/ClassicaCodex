@@ -93,7 +93,7 @@ public sealed class ResearchReadingQueueForm : Form
         _items.Columns.Add(new DataGridViewTextBoxColumn { DataPropertyName = nameof(ResearchReadingItem.Priority), HeaderText = "Priority", Width = 65 });
         _items.Columns.Add(new DataGridViewTextBoxColumn { DataPropertyName = nameof(ResearchReadingItem.Status), HeaderText = "Status", Width = 72 });
         _items.Columns.Add(new DataGridViewTextBoxColumn { DataPropertyName = nameof(ResearchReadingItem.Title), HeaderText = "Reading", AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill });
-        _items.SelectionChanged += (_, _) => ShowItem(_items.CurrentRow?.DataBoundItem as ResearchReadingItem);
+        _items.SelectionChanged += (_, _) => ShowItem(SelectedItem);
         host.Controls.Add(_items);
         host.Controls.Add(actions);
     }
@@ -346,13 +346,30 @@ public sealed class ResearchReadingQueueForm : Form
             : "Not evidence yet. Promotion requires Reviewed status and a quotation or note.";
     }
 
+    /// <summary>
+    /// The reading the grid is actually showing as selected. Read the selection
+    /// rather than <see cref="DataGridView.CurrentRow"/>: the two disagree while a
+    /// selection change is in flight, and the editor pane must never bind to a
+    /// different reading than the one highlighted, or "Save notes" would rewrite
+    /// the wrong row.
+    /// </summary>
+    private ResearchReadingItem? SelectedItem =>
+        (_items.SelectedRows.Count > 0 ? _items.SelectedRows[0] : _items.CurrentRow)?.DataBoundItem as ResearchReadingItem;
+
     private void SelectRow(long id)
     {
         foreach (DataGridViewRow row in _items.Rows)
             if (row.DataBoundItem is ResearchReadingItem item && item.ResearchReadingItemId == id)
             {
-                row.Selected = true;
+                // Order matters. DataGridViewRow.Selected raises SelectionChanged
+                // synchronously, before CurrentCell moves, so a handler that reads
+                // CurrentRow would bind the editor to the previously current row.
+                // Move the cell first, then bind explicitly to the item we already
+                // hold: SelectionChanged does not fire at all when the target row is
+                // already the selection, so the event alone cannot be relied on.
                 _items.CurrentCell = row.Cells[0];
+                row.Selected = true;
+                ShowItem(item);
                 break;
             }
     }
@@ -481,7 +498,8 @@ internal sealed class ResearchPassagePickerForm : Form
     private readonly DataGridView _nodes = new();
     private List<TextNode> _allNodes = [];
     public Edition? SelectedEdition => (_editions.SelectedItem as EditionChoice)?.Edition;
-    public TextNode? SelectedNode => _nodes.CurrentRow?.DataBoundItem as TextNode;
+    public TextNode? SelectedNode =>
+        (_nodes.SelectedRows.Count > 0 ? _nodes.SelectedRows[0] : _nodes.CurrentRow)?.DataBoundItem as TextNode;
 
     public ResearchPassagePickerForm(Work work)
     {
@@ -500,7 +518,27 @@ internal sealed class ResearchPassagePickerForm : Form
         AcceptButton = choose; _nodes.DoubleClick += (_, _) => { if (SelectedNode != null) DialogResult = DialogResult.OK; };
         _editions.SelectedIndexChanged += async (_, _) => await LoadNodesAsync();
         _filter.TextChanged += (_, _) => ApplyFilter();
+        // The filter is a single-line TextBox on a form that has an AcceptButton,
+        // so Enter would otherwise close the dialog — frequently with nothing
+        // selected, which reads to the researcher as the passage silently failing
+        // to be added. Enter here means "apply the filter".
+        _filter.KeyDown += (_, e) =>
+        {
+            if (e.KeyCode != Keys.Enter) return;
+            e.SuppressKeyPress = true;
+            ApplyFilter();
+        };
         Controls.Add(_nodes); Controls.Add(top); Controls.Add(choose);
+        FormClosing += (_, e) =>
+        {
+            // Never hand back OK without a passage. The caller treats that as
+            // "cancelled" and returns without a word, so the researcher sees the
+            // dialog close and nothing appear in the queue.
+            if (DialogResult != DialogResult.OK || SelectedNode != null) return;
+            MessageBox.Show(this, "Choose a passage from the list first.", "Choose passage");
+            e.Cancel = true;
+            DialogResult = DialogResult.None;
+        };
         ReadingTheme.AttachTo(this); WindowShortcuts.CloseOnEscape(this);
         Shown += async (_, _) =>
         {
