@@ -9,7 +9,7 @@ namespace ClassicaCodex.UI;
 /// Returns DialogResult.Yes for Guided, DialogResult.No for Advanced, and
 /// DialogResult.Cancel if closed without choosing either.
 /// </summary>
-public class SetupModeChoiceForm : Form
+public class SetupModeChoiceForm : ScaledForm
 {
     public SetupModeChoiceForm()
     {

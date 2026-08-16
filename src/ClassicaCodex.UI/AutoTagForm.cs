@@ -17,7 +17,7 @@ namespace ClassicaCodex.UI;
 /// double-click still jumps to a passage in full context if something looks
 /// worth checking closer.
 /// </summary>
-public class AutoTagForm : Form
+public class AutoTagForm : ScaledForm
 {
     private readonly TextBox _nameBox;
     private readonly TextBox _categoryBox;

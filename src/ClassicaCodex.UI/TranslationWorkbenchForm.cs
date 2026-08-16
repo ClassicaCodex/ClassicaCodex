@@ -22,7 +22,7 @@ namespace ClassicaCodex.UI;
 /// the same information a printed commentary would give, not a guess about
 /// what the passage means.
 /// </summary>
-public class TranslationWorkbenchForm : Form
+public class TranslationWorkbenchForm : ScaledForm
 {
     private readonly Work _work;
     private readonly string _authorName;
@@ -118,7 +118,6 @@ public class TranslationWorkbenchForm : Form
         List<(Edition Edition, string Label)> comparisons,
         Func<int, Task<PassageAligner>> loadAligner)
     {
-        DpiScaling.UseDesignFontScaling(this);
         _comparisons = comparisons;
         _loadAligner = loadAligner;
         _citationPrefix = CommonCitationPrefix(sourcePassages);

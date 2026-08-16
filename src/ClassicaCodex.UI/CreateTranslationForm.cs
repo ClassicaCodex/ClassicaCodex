@@ -36,7 +36,7 @@ namespace ClassicaCodex.UI;
 ///    lines still missing - it doesn't start over and doesn't re-spend
 ///    quota on lines already finished.
 /// </summary>
-public class CreateTranslationForm : Form
+public class CreateTranslationForm : ScaledForm
 {
     private const int BatchSize = 25;
     private const int InterBatchDelayMs = 2500;

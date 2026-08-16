@@ -8,7 +8,7 @@ namespace ClassicaCodex.UI;
 /// job rather than being general. This is the plain version, used for naming
 /// a hand-written translation.
 /// </summary>
-public class TextPromptForm : Form
+public class TextPromptForm : ScaledForm
 {
     private readonly TextBox _input;
 

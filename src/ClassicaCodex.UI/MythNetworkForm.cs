@@ -2,7 +2,7 @@ using ClassicaCodex.Data.Repositories;
 
 namespace ClassicaCodex.UI;
 
-public class MythNetworkForm : Form
+public class MythNetworkForm : ScaledForm
 {
     private readonly GraphCanvas _canvas;
     private readonly TrackBar _thresholdTrackBar;

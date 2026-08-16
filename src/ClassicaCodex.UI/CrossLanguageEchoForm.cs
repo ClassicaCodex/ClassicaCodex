@@ -32,7 +32,7 @@ namespace ClassicaCodex.UI;
 /// asked to find subtle cross-language echoes is exactly the kind of task
 /// where a wrong answer can sound just as confident as a right one.
 /// </summary>
-public class CrossLanguageEchoForm : Form
+public class CrossLanguageEchoForm : ScaledForm
 {
     // Comparison text capped well under either model's real context limit -
     // this is about keeping a single request's cost and latency

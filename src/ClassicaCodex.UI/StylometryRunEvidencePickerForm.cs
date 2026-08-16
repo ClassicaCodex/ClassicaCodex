@@ -3,7 +3,7 @@ using ClassicaCodex.Data.Repositories;
 namespace ClassicaCodex.UI;
 
 /// <summary>Selects a saved Delta run to attach as durable research evidence.</summary>
-public sealed class StylometryRunEvidencePickerForm : Form
+public sealed class StylometryRunEvidencePickerForm : ScaledForm
 {
     private readonly ListView _runs = new();
 

@@ -29,7 +29,7 @@ namespace ClassicaCodex.UI;
 /// of any real text somebody else wrote, and the form says so in the place a
 /// reader is most likely to stop reading.
 /// </summary>
-public class PerturbationForm : Form
+public class PerturbationForm : ScaledForm
 {
     private readonly string _targetAuthor;
     private readonly IReadOnlyList<WorkTokens> _pool;

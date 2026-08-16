@@ -15,7 +15,7 @@ namespace ClassicaCodex.UI;
 /// it, every inflected form is an unrelated string and none of this is
 /// possible.
 /// </summary>
-public class WordStudyForm : Form
+public class WordStudyForm : ScaledForm
 {
     private readonly ListBox _wordList;
     private readonly ListBox _headwordList;

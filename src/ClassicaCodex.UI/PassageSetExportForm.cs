@@ -39,7 +39,7 @@ public sealed record ExportPassage(
 /// document meant re-finding every passage by hand and exporting it one at a
 /// time.
 /// </summary>
-public class PassageSetExportForm : Form
+public class PassageSetExportForm : ScaledForm
 {
     private readonly string _collectionTitle;
     private readonly IReadOnlyList<ExportPassage> _passages;

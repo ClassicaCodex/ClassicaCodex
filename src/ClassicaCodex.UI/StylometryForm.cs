@@ -20,7 +20,7 @@ namespace ClassicaCodex.UI;
 /// style - a real methodological trap, so it's avoided here rather than
 /// producing a plausible-looking but meaningless result.
 /// </summary>
-public class StylometryForm : Form
+public class StylometryForm : ScaledForm
 {
     private class WorkItem
     {

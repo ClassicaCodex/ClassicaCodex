@@ -18,7 +18,7 @@ namespace ClassicaCodex.UI;
 /// subscript is invisible to anyone who doesn't know to look for it and
 /// changes the grammatical case when it's there.
 /// </summary>
-public class AlphabetForm : Form
+public class AlphabetForm : ScaledForm
 {
     public AlphabetForm(string? languageCode)
     {

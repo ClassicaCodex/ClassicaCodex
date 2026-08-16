@@ -8,7 +8,7 @@ namespace ClassicaCodex.UI;
 /// A small, human-first bridge between noticing a passage and constructing a
 /// formal research project. AI is absent until Research is deliberately chosen.
 /// </summary>
-public sealed class PassageInquiryForm : Form
+public sealed class PassageInquiryForm : ScaledForm
 {
     private readonly PassageResearchIdentity _passage;
     private readonly PassageInquiryRepository _inquiries = new();

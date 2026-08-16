@@ -16,7 +16,7 @@ namespace ClassicaCodex.UI;
 /// same coverage gaps: authors not in that table land in "unknown era"
 /// rather than being guessed at.
 /// </summary>
-public class ReceptionTrackerForm : Form
+public class ReceptionTrackerForm : ScaledForm
 {
     private readonly TextNode _sourceNode;
     private readonly Label _sourceLabel;

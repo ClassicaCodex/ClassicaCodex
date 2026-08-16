@@ -5,7 +5,7 @@ using ClassicaCodex.Data.Repositories;
 namespace ClassicaCodex.UI;
 
 /// <summary>Interactive projection of reviewed passage pairs; every visual edge drills back to its evidence.</summary>
-public sealed class IntertextualAtlasForm : Form
+public sealed class IntertextualAtlasForm : ScaledForm
 {
     private readonly ResearchProject _openingProject;
     private readonly ResearchEchoRepository _echoes = new();

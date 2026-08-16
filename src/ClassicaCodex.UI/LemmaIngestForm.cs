@@ -3,7 +3,7 @@ using ClassicaCodex.Ingestion;
 
 namespace ClassicaCodex.UI;
 
-public class LemmaIngestForm : Form
+public class LemmaIngestForm : ScaledForm
 {
     private readonly TextBox _pathBox;
     private readonly ComboBox _dataTypeBox;

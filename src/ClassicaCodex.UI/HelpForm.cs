@@ -6,7 +6,7 @@ namespace ClassicaCodex.UI;
 /// new user isn't left guessing whether something is broken or simply
 /// working as well as the source data allows.
 /// </summary>
-public class HelpForm : Form
+public class HelpForm : ScaledForm
 {
     private readonly ListBox _topicList;
     private readonly TextBox _contentBox;

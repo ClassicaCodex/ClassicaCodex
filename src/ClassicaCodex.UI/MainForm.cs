@@ -4,7 +4,7 @@ using ClassicaCodex.Data.Repositories;
 
 namespace ClassicaCodex.UI;
 
-public class MainForm : Form
+public class MainForm : ScaledForm
 {
     private readonly TreeView _libraryTree;
     private readonly Button _treeToggleButton;
@@ -173,7 +173,6 @@ public class MainForm : Form
 
     public MainForm()
     {
-        DpiScaling.UseDesignFontScaling(this);
         Text = "Classica Codex";
         AppIcons.ApplyWindowIcon(this, "AppIcon");
         Width = 1840;

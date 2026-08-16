@@ -3,7 +3,7 @@ using ClassicaCodex.Data.Repositories;
 
 namespace ClassicaCodex.UI;
 
-public class EchoResultsForm : Form
+public class EchoResultsForm : ScaledForm
 {
     private readonly TextNode _sourceNode;
     private readonly Label _sourceLabel;

@@ -4,7 +4,7 @@ using ClassicaCodex.Core.Models;
 namespace ClassicaCodex.UI;
 
 /// <summary>Actionable audit of the records currently saved in one project.</summary>
-public sealed class ResearchAuditForm : Form
+public sealed class ResearchAuditForm : ScaledForm
 {
     private readonly DataGridView _findings = new();
     private readonly Button _open = new();

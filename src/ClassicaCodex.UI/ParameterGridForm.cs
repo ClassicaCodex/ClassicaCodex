@@ -23,7 +23,7 @@ namespace ClassicaCodex.UI;
 /// in a grid of forty is usually noise, and treating one as a discovery is the
 /// specific failure this bench exists to make harder.
 /// </summary>
-public class ParameterGridForm : Form
+public class ParameterGridForm : ScaledForm
 {
     private readonly string _targetAuthor;
     private readonly string _poolSummary;
