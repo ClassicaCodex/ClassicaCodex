@@ -1210,6 +1210,8 @@ public class TranslationWorkbenchForm : Form
         }
 
         var passage = _sourcePassages[_index];
+        if (!ConfirmSend($"the word “{word}” and the line it appears in", passage.Text.Length)) return;
+
         _glossWordButton.Enabled = false;
         _statusLabel.Text = $"Asking about {word}...";
 
@@ -1247,6 +1249,8 @@ public class TranslationWorkbenchForm : Form
         }
 
         var passage = _sourcePassages[_index];
+        if (!ConfirmSend($"this passage, [{passage.CitationRef}]", passage.Text.Length)) return;
+
         _suggestButton.Enabled = false;
         _statusLabel.Text = "AI translating this passage...";
 
@@ -1272,6 +1276,25 @@ public class TranslationWorkbenchForm : Form
         {
             _suggestButton.Enabled = true;
         }
+    }
+
+    /// <summary>
+    /// The confirmation this form was missing. Every other place in the application
+    /// that reaches the network asks first and honours AlwaysConfirmBeforeSending;
+    /// these two went straight from a button press to Gemini, which made the setting a
+    /// promise the application did not keep - and this is the surface where the text
+    /// being sent is someone's unpublished transcription of a manuscript.
+    /// </summary>
+    private bool ConfirmSend(string what, int characters)
+    {
+        if (!TranslationSettings.AlwaysConfirmBeforeSending) return true;
+
+        return MessageBox.Show(this,
+            $"This will send {what} (about {characters:N0} characters) to Gemini's API over the " +
+            "internet. This is the one thing in Classica Codex that isn't offline.\n\n" +
+            "Continue? (You can turn this confirmation off in AI Translation Settings.)",
+            "Send to Gemini's API?",
+            MessageBoxButtons.YesNo, MessageBoxIcon.Warning) == DialogResult.Yes;
     }
 
     private async Task SaveCurrentAsync()
