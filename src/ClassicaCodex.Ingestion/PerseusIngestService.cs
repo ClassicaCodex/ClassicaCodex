@@ -34,6 +34,22 @@ public class PerseusIngestService
     /// </summary>
     public List<(string FilePath, string Error)> FailedFiles { get; } = new();
 
+    /// <summary>
+    /// Which textgroup folders to walk, by folder name. Null - the default - walks all
+    /// of them, which is right for every finished corpus.
+    ///
+    /// It exists for repositories that publish work in progress alongside work that is
+    /// done. The Patrologia Latina conversion holds 630 catalogued textgroups under
+    /// real identifiers and 8,770 more under placeholders named tmp1, tmp26, tmp990 -
+    /// with CTS URNs to match. Importing those would bind a researcher's notes to
+    /// identifiers their own project intends to replace, which is the one thing CTS
+    /// identity is relied on here not to do.
+    ///
+    /// A filter rather than a fixed exclusion list, and applied by the caller that
+    /// knows the corpus: this service has no business knowing what "tmp" means.
+    /// </summary>
+    public Func<string, bool>? IncludeTextGroup { get; set; }
+
     /// <param name="repoDataPaths">
     /// Path(s) to the "data" folder inside each cloned repo, e.g.
     /// "C:\src\canonical-greekLit\data" and "C:\src\canonical-latinLit\data".
@@ -78,6 +94,8 @@ public class PerseusIngestService
             throw new DirectoryNotFoundException($"Repo data folder not found: {dataPath}");
 
         var textGroupDirs = Directory.GetDirectories(dataPath);
+        if (IncludeTextGroup != null)
+            textGroupDirs = textGroupDirs.Where(d => IncludeTextGroup(Path.GetFileName(d))).ToArray();
         var totalWorks = textGroupDirs.Length; // rough estimate for progress, refined per-group below
         int worksProcessed = 0;
 

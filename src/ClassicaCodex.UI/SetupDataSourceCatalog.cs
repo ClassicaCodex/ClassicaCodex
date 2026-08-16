@@ -648,24 +648,40 @@ public static class SetupDataSourceCatalog
                 DefaultDestination = patrologiaDestination,
                 PlainLanguageDescription =
                     "Migne's Patrologia Latina - Latin Christian writing from Tertullian to the twelfth " +
-                    "century, and by far the largest collection here. Worth knowing what it is before you " +
-                    "cite from it: Migne reprinted whatever editions he could obtain in the 1840s and 50s, " +
-                    "so where a work also appears in the Church Fathers collection above, that one is the " +
-                    "edition scholars cite and this one is the wider net. Both can sit side by side - the " +
-                    "same work gains a second edition in the dropdown rather than being overwritten. " +
-                    "Around 1.4 gigabytes.",
+                    "century. Worth knowing what it is before you cite from it: Migne reprinted whatever " +
+                    "editions he could obtain in the 1840s and 50s, so where a work also appears in the " +
+                    "Church Fathers collection above, that one is the edition scholars cite and this one " +
+                    "is the wider net. Both can sit side by side - the same work gains a second edition " +
+                    "in the dropdown rather than being overwritten.\r\n\r\n" +
+                    "This imports the catalogued part of the collection: the volumes whose authors have " +
+                    "been identified and given permanent references. The rest of the conversion is still " +
+                    "under temporary numbering that its own project intends to change, and notes attached " +
+                    "to it would not survive that. Around 1.4 gigabytes to download, of which roughly a " +
+                    "fifteenth is imported.",
                 RunIngest = async (root, progress, ct) =>
                 {
-                    // Checked against the repository, the same way CSEL was: 940
-                    // textgroups under data/<textgroup>/<work>/__cts__.xml, URNs already
-                    // in latinLit (urn:cts:latinLit:stoa0022), CC BY-SA 4.0 declared per
-                    // file, and the same DOCTYPE-free EpiDoc body with
-                    // div[@type='edition'] at its root. No importer of its own.
+                    // Only the catalogued part of this repository is imported.
                     //
-                    // Fourteen times as many textgroups as CSEL, though, so the skipped
-                    // count this returns is worth reading rather than glancing at: a
-                    // corpus this size is where irregular files live.
-                    var service = new PerseusIngestService();
+                    // It holds 9,400 textgroups: 630 named stoa0022, stoa0040 and so on,
+                    // and 8,770 named tmp1, tmp26, tmp990 - placeholders from a
+                    // conversion still in progress, with CTS URNs to match
+                    // (urn:cts:latinLit:tmp26) and, in most cases, an empty groupname.
+                    //
+                    // The empty names were the visible damage: a library of nameless
+                    // authors. The identifiers are the reason for this filter. Passage
+                    // inquiries, research projects and echo investigations all bind to
+                    // CTS URNs as durable identity - that is what lets a note survive a
+                    // re-ingest - so binding one to an identifier its own project means
+                    // to replace would lose the note the day Leipzig finishes the
+                    // conversion, silently, months later.
+                    //
+                    // An allow-list rather than "not tmp", so a prefix invented later is
+                    // left out until someone has looked at it. The step reports what it
+                    // skipped either way.
+                    var service = new PerseusIngestService
+                    {
+                        IncludeTextGroup = name => name.StartsWith("stoa", StringComparison.OrdinalIgnoreCase)
+                    };
                     var wrapped = new Progress<IngestProgress>(p =>
                         progress.Report($"{p.CurrentAuthor}: {p.CurrentWork} ({p.WorksProcessed}/{p.TotalWorks})"));
                     await service.IngestAsync(

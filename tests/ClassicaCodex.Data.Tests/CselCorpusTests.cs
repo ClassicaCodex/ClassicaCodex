@@ -154,6 +154,81 @@ public class CselCorpusTests
         }
     }
 
+    /// <summary>
+    /// That the Patrologia Latina step imports only the catalogued textgroups.
+    ///
+    /// That repository publishes 630 textgroups under permanent identifiers beside
+    /// 8,770 under placeholders - tmp1, tmp26, tmp990, with CTS URNs to match. Notes in
+    /// this application bind to CTS URNs precisely because they are meant to outlast a
+    /// re-ingest, so importing an identifier its own project intends to replace would
+    /// lose whatever was attached to it, silently, whenever that happened.
+    ///
+    /// Worth a test rather than a comment because both failure directions are quiet: a
+    /// filter that excluded everything would import nothing and look like a slow step,
+    /// and a filter that excluded nothing would look exactly like success.
+    /// </summary>
+    [Fact]
+    public async Task ProvisionalTextGroupsAreLeftOutOfTheImport()
+    {
+        using var db = await TempDatabase.CreateAsync();
+        var root = Path.Combine(Path.GetTempPath(), "cc-pl-" + Guid.NewGuid().ToString("N"));
+        try
+        {
+            void WriteGroup(string dir, string urn, string name, string workUrn, string editionUrn, string line)
+            {
+                var workDir = Path.Combine(root, "data", dir, "w1");
+                Directory.CreateDirectory(workDir);
+                File.WriteAllText(Path.Combine(root, "data", dir, "__cts__.xml"),
+                    $@"<ti:textgroup xmlns:ti=""http://chs.harvard.edu/xmlns/cts"" urn=""{urn}"">
+                         <ti:groupname xml:lang=""eng"">{name}</ti:groupname>
+                       </ti:textgroup>");
+                File.WriteAllText(Path.Combine(workDir, "__cts__.xml"),
+                    $@"<ti:work xml:lang=""lat"" xmlns:ti=""http://chs.harvard.edu/xmlns/cts""
+                                groupUrn=""{urn}"" urn=""{workUrn}"">
+                         <ti:title xml:lang=""lat"">Opus</ti:title>
+                         <ti:edition xml:lang=""lat"" workUrn=""{workUrn}"" urn=""{editionUrn}"">
+                           <ti:label xml:lang=""lat"">Opus</ti:label>
+                         </ti:edition>
+                       </ti:work>");
+                File.WriteAllText(Path.Combine(workDir, "e.xml"),
+                    $@"<TEI xmlns=""http://www.tei-c.org/ns/1.0"">
+                         <teiHeader><fileDesc><titleStmt><title>Opus</title></titleStmt>
+                         <publicationStmt><p>t</p></publicationStmt><sourceDesc><p>s</p></sourceDesc></fileDesc></teiHeader>
+                         <text><body><div type=""edition"" xml:lang=""lat"" n=""{editionUrn}"">
+                           <div type=""textpart"" subtype=""chapter"" n=""1""><p>{line}</p></div>
+                         </div></body></text>
+                       </TEI>");
+            }
+
+            WriteGroup("stoa0022", "urn:cts:latinLit:stoa0022", "Ambrosius",
+                "urn:cts:latinLit:stoa0022.stoa001", "urn:cts:latinLit:stoa0022.stoa001.opp-lat1", "catalogued text");
+            WriteGroup("tmp26", "urn:cts:latinLit:tmp26", "Placeholder",
+                "urn:cts:latinLit:tmp26.tmp001", "urn:cts:latinLit:tmp26.tmp001.opp-lat1", "provisional text");
+
+            var service = new PerseusIngestService
+            {
+                IncludeTextGroup = name => name.StartsWith("stoa", StringComparison.OrdinalIgnoreCase)
+            };
+            await service.IngestAsync([(Path.Combine(root, "data"), "latinLit")]);
+
+            Assert.Equal(1L, await db.CountAsync("Authors"));
+            Assert.Equal(1L, await db.ScalarAsync<long>(
+                "SELECT COUNT(*) FROM Authors WHERE CtsUrn = 'urn:cts:latinLit:stoa0022';"));
+            Assert.Equal(0L, await db.ScalarAsync<long>(
+                "SELECT COUNT(*) FROM Authors WHERE CtsUrn LIKE '%tmp%';"));
+
+            // And the text under the provisional identifier never arrives either, rather
+            // than arriving orphaned from an author.
+            Assert.Equal("catalogued text",
+                Assert.Single((await new TextNodeRepository().SearchFilteredAsync(
+                    new SearchFilters { Query = "text" })).Rows).Text);
+        }
+        finally
+        {
+            try { Directory.Delete(root, recursive: true); } catch { /* temp dir */ }
+        }
+    }
+
     [Fact]
     public async Task ACselVolumeImportsAsLatinWithItsFootnotesOutOfTheReadingText()
     {
