@@ -55,7 +55,7 @@ public static class SchemaInitializer
     /// 7 to 13 until version 3 was cut, at which point they all failed at
     /// once and said nothing about what had actually broken.
     /// </summary>
-    public const int TargetSchemaVersion = 30;
+    public const int TargetSchemaVersion = 31;
 
     public static async Task EnsureSchemaAsync(CancellationToken cancellationToken = default)
     {
@@ -114,9 +114,11 @@ public static class SchemaInitializer
     }
 
     private static async Task SetSchemaVersionAsync(
-        SqliteConnection conn, int version, CancellationToken cancellationToken)
+        SqliteConnection conn, int version, CancellationToken cancellationToken,
+        SqliteTransaction? transaction = null)
     {
         await using var cmd = conn.CreateCommand();
+        cmd.Transaction = transaction;
 
         // PRAGMA values can't be parameterized - this one is a private const
         // int, never anything user-supplied.
@@ -162,12 +164,17 @@ public static class SchemaInitializer
                     await cmd.ExecuteNonQueryAsync(cancellationToken);
                 }
 
-                await transaction.CommitAsync(cancellationToken);
+                // Inside the transaction, deliberately. user_version lives in the
+                // database header page, which is journalled like any other page - it
+                // rolls back with everything else, so stamping it here cannot claim a
+                // migration that did not happen. Writing it after the commit instead
+                // leaves a window where the schema has moved and the version has not,
+                // and ten of these migrations cannot be replayed: the next launch dies
+                // on "duplicate column name" and the library stops opening at all.
+                await SetSchemaVersionAsync(conn, version, cancellationToken,
+                    (SqliteTransaction)transaction);
 
-                // Outside the transaction: PRAGMA user_version doesn't
-                // participate in one, so writing it inside would survive a
-                // rollback and claim a migration that didn't happen.
-                await SetSchemaVersionAsync(conn, version, cancellationToken);
+                await transaction.CommitAsync(cancellationToken);
             }
         }
         finally
@@ -785,6 +792,11 @@ public static class SchemaInitializer
         // Evidence may outlive a deleted question, so that link becomes NULL.
         [18] = new[]
         {
+            // Both constants are used as they stand, not back-shaped to their v18
+            // form. Migration 31 rebuilds both tables wholesale from named columns that
+            // exist in either shape, so a legacy file arriving here early with the v31
+            // columns ends up in exactly the same place - and no fragile .Replace chain
+            // sits here waiting to silently stop matching after a whitespace edit.
             ResearchProjectsDdl,
             ResearchQuestionsDdl,
             EvidenceItemsDdl,
@@ -927,18 +939,104 @@ public static class SchemaInitializer
             PassageInquiriesDdl,
             "CREATE UNIQUE INDEX IF NOT EXISTS UX_PassageInquiries_Passage ON PassageInquiries (EditionCtsUrn, CitationRef);",
             "CREATE INDEX IF NOT EXISTS IX_PassageInquiries_Project ON PassageInquiries (ResearchProjectId);"
+        },
+
+        // A project outlives its work.
+        //
+        // WorkId was NOT NULL with a plain FK, which made deleting a Work fail
+        // outright once any project referenced it - and Menota re-ingest deletes
+        // works when their last edition is replaced. The re-import then aborted
+        // part-way with a raw constraint error and no way for the researcher to
+        // clear it, since the Bench offers archiving rather than deletion.
+        //
+        // Rebuilt rather than altered: SQLite cannot change a column's nullability
+        // or its ON DELETE action in place. This is SQLite's documented rebuild
+        // procedure, and it is safe here only because ApplyMigrationsAsync turns
+        // foreign key enforcement off around migrations - with it on, DROP TABLE
+        // performs an implicit DELETE FROM and would cascade every question, every
+        // evidence item and the whole research log out of existence.
+        //
+        // WorkCtsUrn rides along so an orphaned project can find its work again
+        // after re-ingest: durable identity, the same principle the passage
+        // inquiries already use.
+        [31] = new[]
+        {
+            @"CREATE TABLE ResearchProjects_v31 (
+                ResearchProjectId INTEGER PRIMARY KEY,
+                WorkId INTEGER NULL,
+                WorkCtsUrn TEXT NULL,
+                Name TEXT NOT NULL,
+                Status TEXT NOT NULL DEFAULT 'active',
+                Notes TEXT NULL,
+                CreatedUtc TEXT NOT NULL,
+                UpdatedUtc TEXT NOT NULL,
+                CONSTRAINT FK_ResearchProjects_Works FOREIGN KEY (WorkId)
+                    REFERENCES Works(WorkId) ON DELETE SET NULL
+            );",
+            @"INSERT INTO ResearchProjects_v31
+                (ResearchProjectId, WorkId, WorkCtsUrn, Name, Status, Notes, CreatedUtc, UpdatedUtc)
+              SELECT p.ResearchProjectId, p.WorkId,
+                     (SELECT w.CtsUrn FROM Works w WHERE w.WorkId = p.WorkId),
+                     p.Name, p.Status, p.Notes, p.CreatedUtc, p.UpdatedUtc
+              FROM ResearchProjects p;",
+            "DROP TABLE ResearchProjects;",
+            "ALTER TABLE ResearchProjects_v31 RENAME TO ResearchProjects;",
+            "CREATE INDEX IF NOT EXISTS IX_ResearchProjects_Work ON ResearchProjects (WorkId, Status, UpdatedUtc);",
+
+            // A research question records who wrote it. Every sibling entity an AI
+            // proposal creates - hypotheses, experiments - already carried origin,
+            // model, prompt and timestamp; questions were the one kind the model
+            // authors that had nowhere to record it, so an exported dossier listed
+            // them beside the researcher's own.
+            //
+            // Rebuilt rather than ALTERed, for replayability. The migration tests fake
+            // an older database by dropping the TABLES a later migration creates and
+            // rewinding the version stamp - so a table that already existed, like this
+            // one, arrives here carrying its current columns. ADD COLUMN then dies on
+            // "duplicate column name" and takes ten tests with it. Selecting only the
+            // pre-v31 columns makes this statement idempotent whatever shape it meets:
+            // the four new ones fall back to their defaults either way.
+            @"CREATE TABLE ResearchQuestions_v31 (
+                ResearchQuestionId INTEGER PRIMARY KEY,
+                ResearchProjectId INTEGER NOT NULL,
+                Text TEXT NOT NULL,
+                Notes TEXT NULL,
+                SortOrder INTEGER NOT NULL DEFAULT 0,
+                CreatedUtc TEXT NOT NULL,
+                UpdatedUtc TEXT NOT NULL,
+                Origin TEXT NOT NULL DEFAULT 'researcher',
+                AiModel TEXT NULL,
+                AiPrompt TEXT NULL,
+                AiGeneratedUtc TEXT NULL,
+                CONSTRAINT FK_ResearchQuestions_Projects FOREIGN KEY (ResearchProjectId)
+                    REFERENCES ResearchProjects(ResearchProjectId) ON DELETE CASCADE
+            );",
+            @"INSERT INTO ResearchQuestions_v31
+                (ResearchQuestionId, ResearchProjectId, Text, Notes, SortOrder, CreatedUtc, UpdatedUtc)
+              SELECT ResearchQuestionId, ResearchProjectId, Text, Notes, SortOrder, CreatedUtc, UpdatedUtc
+              FROM ResearchQuestions;",
+            "DROP TABLE ResearchQuestions;",
+            "ALTER TABLE ResearchQuestions_v31 RENAME TO ResearchQuestions;",
+            "CREATE INDEX IF NOT EXISTS IX_ResearchQuestions_Project ON ResearchQuestions (ResearchProjectId, SortOrder);"
         }
     };
 
+    // Nullable WorkId with ON DELETE SET NULL: removing a work from the library
+    // detaches the research rather than destroying it or blocking the removal.
+    // WorkCtsUrn is how it finds its way back after a re-ingest. Must stay
+    // column-for-column identical to migration 31's rebuild - fresh databases only
+    // ever run this statement, upgraded ones only ever run that migration.
     private const string ResearchProjectsDdl = @"CREATE TABLE IF NOT EXISTS ResearchProjects (
         ResearchProjectId INTEGER PRIMARY KEY,
-        WorkId INTEGER NOT NULL,
+        WorkId INTEGER NULL,
+        WorkCtsUrn TEXT NULL,
         Name TEXT NOT NULL,
         Status TEXT NOT NULL DEFAULT 'active',
         Notes TEXT NULL,
         CreatedUtc TEXT NOT NULL,
         UpdatedUtc TEXT NOT NULL,
-        CONSTRAINT FK_ResearchProjects_Works FOREIGN KEY (WorkId) REFERENCES Works(WorkId)
+        CONSTRAINT FK_ResearchProjects_Works FOREIGN KEY (WorkId)
+            REFERENCES Works(WorkId) ON DELETE SET NULL
     );";
 
     private const string ResearchQuestionsDdl = @"CREATE TABLE IF NOT EXISTS ResearchQuestions (
@@ -949,6 +1047,10 @@ public static class SchemaInitializer
         SortOrder INTEGER NOT NULL DEFAULT 0,
         CreatedUtc TEXT NOT NULL,
         UpdatedUtc TEXT NOT NULL,
+        Origin TEXT NOT NULL DEFAULT 'researcher',
+        AiModel TEXT NULL,
+        AiPrompt TEXT NULL,
+        AiGeneratedUtc TEXT NULL,
         CONSTRAINT FK_ResearchQuestions_Projects FOREIGN KEY (ResearchProjectId)
             REFERENCES ResearchProjects(ResearchProjectId) ON DELETE CASCADE
     );";

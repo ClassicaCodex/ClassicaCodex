@@ -176,7 +176,9 @@ public sealed class IntertextualAtlasForm : Form
     private async Task OpenStudioAsync()
     {
         if (SelectedRow?.Connection is not { } c) return;
-        var work = new Work { WorkId = c.Project.WorkId, Title = c.SourceWorkTitle };
+        // WorkId is null only for a project detached by a re-ingest, which the atlas
+        // cannot navigate into anyway; 0 matches nothing rather than opening the wrong work.
+        var work = new Work { WorkId = c.Project.WorkId ?? 0, Title = c.SourceWorkTitle };
         using var studio = new ParallelPassageStudioForm(c.Project, work, c.SourceAuthorName, c.Investigation, c.Result);
         studio.ShowDialog(this);
         if (studio.NavigationTarget is { } target) { NavigationTarget = target; DialogResult = DialogResult.OK; Close(); return; }

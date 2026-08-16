@@ -63,7 +63,16 @@ public static class ResearchDossierExport
 
         text.AppendLine("## Research questions").AppendLine();
         foreach (var question in data.Questions.OrderBy(q => q.SortOrder))
-            text.AppendLine($"- {question.Text}");
+        {
+            // Say who wrote it. A reader of this dossier months later cannot otherwise
+            // tell a question the researcher framed from one a model proposed and they
+            // accepted, and the difference matters to what the argument rests on.
+            var authorship = question.Origin == ResearchQuestionOrigin.AiProposed
+                ? $" *(AI-proposed{(question.AiModel == null ? "" : $" by {question.AiModel}")}"
+                  + $"{(question.AiGeneratedUtc is not { } stamp ? "" : $" at {stamp:u}")}; human-selected)*"
+                : "";
+            text.AppendLine($"- {question.Text}{authorship}");
+        }
 
         text.AppendLine().AppendLine("## Findings").AppendLine();
         foreach (var finding in data.Findings.OrderBy(f => f.SortOrder))

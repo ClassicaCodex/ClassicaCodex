@@ -340,6 +340,7 @@ public sealed class PassageInquiryForm : Form
             project = new ResearchProject
             {
                 WorkId = _passage.WorkId,
+                WorkCtsUrn = _passage.WorkCtsUrn,
                 Name = ProjectName(_inquiry.DraftQuestion),
                 Notes = $"Started from {_passage.AuthorName}, {_passage.WorkTitle} {_passage.CitationRef}.\r\n\r\n" +
                         $"What caught my attention:\r\n{_inquiry.AttentionNote}\r\n\r\n" +

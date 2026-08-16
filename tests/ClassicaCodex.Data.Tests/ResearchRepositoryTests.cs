@@ -256,7 +256,7 @@ public class ResearchRepositoryTests
         await SchemaInitializer.EnsureSchemaAsync();
 
         Assert.Equal("Existing project",
-            Assert.Single(await repo.GetProjectsForWorkAsync(project.WorkId)).Name);
+            Assert.Single(await repo.GetProjectsForWorkAsync(project.WorkId!.Value)).Name);
         Assert.Equal("urn:cts:test",
             Assert.Single(await repo.GetEvidenceAsync(project.ResearchProjectId)).StableIdentifier);
         Assert.True(await db.TableExistsAsync("ResearchLogEntries"));
@@ -456,7 +456,7 @@ public class ResearchRepositoryTests
         await SchemaInitializer.EnsureSchemaAsync();
 
         Assert.Equal("Existing project", Assert.Single(
-            await repo.GetProjectsForWorkAsync(project.WorkId)).Name);
+            await repo.GetProjectsForWorkAsync(project.WorkId!.Value)).Name);
         Assert.True(await db.TableExistsAsync("ScholarlyClaims"));
         Assert.True(await db.TableExistsAsync("EvidenceAttachments"));
         Assert.True(await db.TableExistsAsync("EvidencePageAnnotations"));
@@ -546,7 +546,7 @@ public class ResearchRepositoryTests
         await SchemaInitializer.EnsureSchemaAsync();
 
         Assert.Equal("Existing project", Assert.Single(
-            await repo.GetProjectsForWorkAsync(project.WorkId)).Name);
+            await repo.GetProjectsForWorkAsync(project.WorkId!.Value)).Name);
         Assert.True(await db.TableExistsAsync("EvidenceAttachments"));
         Assert.True(await db.TableExistsAsync("EvidencePageAnnotations"));
         Assert.True(await db.TableExistsAsync("EvidenceBibliographyMetadata"));
@@ -594,7 +594,7 @@ public class ResearchRepositoryTests
         await db.ExecuteAsync("DROP TABLE ResearchEchoParallelAnalyses; DROP TABLE ResearchEchoResults; DROP TABLE ResearchEchoInvestigations; DROP TABLE ResearchFindingEvidence; DROP TABLE ResearchFindings; DROP TABLE ResearchReadingItems; DROP TABLE ResearchCorpusSnapshotEntries; DROP TABLE ResearchCorpusSnapshots; DROP TABLE EvidenceBibliographyMetadata; PRAGMA user_version=22;");
         await SchemaInitializer.EnsureSchemaAsync();
 
-        Assert.Equal("Existing project", Assert.Single(await repo.GetProjectsForWorkAsync(project.WorkId)).Name);
+        Assert.Equal("Existing project", Assert.Single(await repo.GetProjectsForWorkAsync(project.WorkId!.Value)).Name);
         Assert.True(await db.TableExistsAsync("EvidenceBibliographyMetadata"));
         Assert.True(await db.TableExistsAsync("ResearchCorpusSnapshots"));
         Assert.Equal(SchemaInitializer.TargetSchemaVersion, await db.ScalarAsync<int>("PRAGMA user_version;"));
@@ -679,7 +679,7 @@ public class ResearchRepositoryTests
         await db.ExecuteAsync("DROP TABLE ResearchEchoParallelAnalyses; DROP TABLE ResearchEchoResults; DROP TABLE ResearchEchoInvestigations; DROP TABLE ResearchFindingEvidence; DROP TABLE ResearchFindings; DROP TABLE ResearchReadingItems; DROP TABLE ResearchCorpusSnapshotEntries; DROP TABLE ResearchCorpusSnapshots; PRAGMA user_version=23;");
         await SchemaInitializer.EnsureSchemaAsync();
 
-        Assert.Equal("Existing project", Assert.Single(await repo.GetProjectsForWorkAsync(project.WorkId)).Name);
+        Assert.Equal("Existing project", Assert.Single(await repo.GetProjectsForWorkAsync(project.WorkId!.Value)).Name);
         Assert.True(await db.TableExistsAsync("ResearchCorpusSnapshots")); Assert.True(await db.TableExistsAsync("ResearchCorpusSnapshotEntries"));
         Assert.True(await db.TableExistsAsync("ResearchReadingItems"));
         Assert.Equal(SchemaInitializer.TargetSchemaVersion, await db.ScalarAsync<int>("PRAGMA user_version;"));
@@ -818,7 +818,7 @@ public class ResearchRepositoryTests
 
         await SchemaInitializer.EnsureSchemaAsync();
 
-        Assert.Equal("Existing project", Assert.Single(await research.GetProjectsForWorkAsync(project.WorkId)).Name);
+        Assert.Equal("Existing project", Assert.Single(await research.GetProjectsForWorkAsync(project.WorkId!.Value)).Name);
         Assert.True(await db.TableExistsAsync("ResearchReadingItems"));
         Assert.Equal(SchemaInitializer.TargetSchemaVersion, await db.ScalarAsync<int>("PRAGMA user_version;"));
     }
@@ -922,7 +922,7 @@ public class ResearchRepositoryTests
 
         await SchemaInitializer.EnsureSchemaAsync();
 
-        Assert.Equal("Existing project", Assert.Single(await research.GetProjectsForWorkAsync(project.WorkId)).Name);
+        Assert.Equal("Existing project", Assert.Single(await research.GetProjectsForWorkAsync(project.WorkId!.Value)).Name);
         Assert.True(await db.TableExistsAsync("ResearchFindings"));
         Assert.True(await db.TableExistsAsync("ResearchFindingEvidence"));
         Assert.Equal(SchemaInitializer.TargetSchemaVersion, await db.ScalarAsync<int>("PRAGMA user_version;"));

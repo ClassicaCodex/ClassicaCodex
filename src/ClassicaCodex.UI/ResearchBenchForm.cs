@@ -328,13 +328,13 @@ public class ResearchBenchForm : Form
 
     private async Task LoadProjectsAsync(long selectId = 0)
     {
-        var items = await _repo.GetProjectsForWorkAsync(_work.WorkId);
+        var items = await _repo.GetProjectsForWorkAsync(_work.WorkId, workCtsUrn: _work.CtsUrn);
         // Archiving is retention, not deletion, so a caller that names a project - a
         // passage inquiry opening the project it was promoted into - must still be able
         // to reach it. Widen the list only in that case, so ordinary browsing still
         // hides archived work.
         if (selectId != 0 && items.All(p => p.ResearchProjectId != selectId))
-            items = await _repo.GetProjectsForWorkAsync(_work.WorkId, includeArchived: true);
+            items = await _repo.GetProjectsForWorkAsync(_work.WorkId, includeArchived: true, workCtsUrn: _work.CtsUrn);
         _projects.DataSource = null;
         _projects.DataSource = items;
         if (selectId != 0)
@@ -342,7 +342,7 @@ public class ResearchBenchForm : Form
             var wanted = items.FirstOrDefault(p => p.ResearchProjectId == selectId);
             _projects.SelectedItem = wanted;
             if (wanted is { Status: ResearchProjectStatus.Archived })
-                _statusLine.Text = $"“{wanted.Name}” is archived. It is shown because it was opened directly.";
+                _statusLine.Text = $"\u201c{wanted.Name}\u201d is archived. It is shown because it was opened directly.";
         }
         if (items.Count == 0)
         {
@@ -369,7 +369,7 @@ public class ResearchBenchForm : Form
     {
         var name = TextPromptForm.Ask(this, "New research project", "Working theory or research question:");
         if (name == null) return;
-        var project = new ResearchProject { WorkId = _work.WorkId, Name = name };
+        var project = new ResearchProject { WorkId = _work.WorkId, WorkCtsUrn = _work.CtsUrn, Name = name };
         await _repo.SaveProjectAsync(project);
         await LoadProjectsAsync(project.ResearchProjectId);
     }

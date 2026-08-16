@@ -7,13 +7,30 @@ namespace ClassicaCodex.Data.Repositories;
 public class ResearchRepository
 {
     public async Task<List<ResearchProject>> GetProjectsForWorkAsync(
-        int workId, bool includeArchived = false, CancellationToken cancellationToken = default)
+        int workId, bool includeArchived = false, string? workCtsUrn = null,
+        CancellationToken cancellationToken = default)
     {
         var result = new List<ResearchProject>();
         await using var conn = await DbConnectionFactory.OpenConnectionAsync(cancellationToken);
+
+        // Re-adopt anything a re-ingest orphaned. Deleting a work sets WorkId to NULL
+        // rather than destroying the research; when a work with the same CTS identity
+        // is ingested again, its projects quietly reattach. Callers that can supply the
+        // URN get this for free, and the rest behave exactly as before.
+        if (!string.IsNullOrWhiteSpace(workCtsUrn))
+        {
+            await using var adopt = conn.CreateCommand();
+            adopt.CommandText = @"
+                UPDATE ResearchProjects SET WorkId = @WorkId
+                WHERE WorkId IS NULL AND WorkCtsUrn = @WorkCtsUrn;";
+            adopt.Parameters.AddWithValue("@WorkId", workId);
+            adopt.Parameters.AddWithValue("@WorkCtsUrn", workCtsUrn.Trim());
+            await adopt.ExecuteNonQueryAsync(cancellationToken);
+        }
+
         await using var cmd = conn.CreateCommand();
         cmd.CommandText = @"
-            SELECT ResearchProjectId, WorkId, Name, Status, Notes, CreatedUtc, UpdatedUtc
+            SELECT ResearchProjectId, WorkId, WorkCtsUrn, Name, Status, Notes, CreatedUtc, UpdatedUtc
             FROM ResearchProjects
             WHERE WorkId = @WorkId AND (@IncludeArchived = 1 OR Status <> 'archived')
             ORDER BY UpdatedUtc DESC, ResearchProjectId DESC;";
@@ -39,21 +56,24 @@ public class ResearchRepository
         if (isNew)
         {
             cmd.CommandText = @"
-                INSERT INTO ResearchProjects (WorkId, Name, Status, Notes, CreatedUtc, UpdatedUtc)
-                VALUES (@WorkId, @Name, @Status, @Notes, @Now, @Now);
+                INSERT INTO ResearchProjects (WorkId, WorkCtsUrn, Name, Status, Notes, CreatedUtc, UpdatedUtc)
+                VALUES (@WorkId, @WorkCtsUrn, @Name, @Status, @Notes, @Now, @Now);
                 SELECT last_insert_rowid();";
         }
         else
         {
             cmd.CommandText = @"
                 UPDATE ResearchProjects
-                SET Name=@Name, Status=@Status, Notes=@Notes, UpdatedUtc=@Now
+                SET Name=@Name, Status=@Status, Notes=@Notes, WorkCtsUrn=@WorkCtsUrn, UpdatedUtc=@Now
                 WHERE ResearchProjectId=@Id;
                 SELECT @Id;";
             cmd.Parameters.AddWithValue("@Id", project.ResearchProjectId);
         }
 
-        cmd.Parameters.AddWithValue("@WorkId", project.WorkId);
+        // WorkId is deliberately not in the UPDATE: a project detached by a re-ingest
+        // must not be silently reattached by an unrelated save.
+        cmd.Parameters.AddWithValue("@WorkId", (object?)project.WorkId ?? DBNull.Value);
+        cmd.Parameters.AddWithValue("@WorkCtsUrn", Db(project.WorkCtsUrn));
         cmd.Parameters.AddWithValue("@Name", project.Name.Trim());
         cmd.Parameters.AddWithValue("@Status", Store(project.Status));
         cmd.Parameters.AddWithValue("@Notes", Db(project.Notes));
@@ -116,7 +136,8 @@ public class ResearchRepository
         await using var conn = await DbConnectionFactory.OpenConnectionAsync(cancellationToken);
         await using var cmd = conn.CreateCommand();
         cmd.CommandText = @"
-            SELECT ResearchQuestionId, ResearchProjectId, Text, Notes, SortOrder, CreatedUtc, UpdatedUtc
+            SELECT ResearchQuestionId, ResearchProjectId, Text, Notes, SortOrder, CreatedUtc, UpdatedUtc,
+                   Origin, AiModel, AiPrompt, AiGeneratedUtc
             FROM ResearchQuestions WHERE ResearchProjectId=@ProjectId
             ORDER BY SortOrder, ResearchQuestionId;";
         cmd.Parameters.AddWithValue("@ProjectId", projectId);
@@ -128,7 +149,11 @@ public class ResearchRepository
                 ResearchQuestionId = reader.GetInt64(0), ResearchProjectId = reader.GetInt64(1),
                 Text = reader.GetString(2), Notes = reader.IsDBNull(3) ? null : reader.GetString(3),
                 SortOrder = reader.GetInt32(4), CreatedUtc = ParseDate(reader.GetString(5)),
-                UpdatedUtc = ParseDate(reader.GetString(6))
+                UpdatedUtc = ParseDate(reader.GetString(6)),
+                Origin = Parse(reader.GetString(7), ResearchQuestionOrigin.Researcher),
+                AiModel = reader.IsDBNull(8) ? null : reader.GetString(8),
+                AiPrompt = reader.IsDBNull(9) ? null : reader.GetString(9),
+                AiGeneratedUtc = reader.IsDBNull(10) ? null : ParseDate(reader.GetString(10))
             });
         }
         return result;
@@ -145,8 +170,10 @@ public class ResearchRepository
         var isNew = question.ResearchQuestionId == 0;
         if (isNew)
             cmd.CommandText = @"INSERT INTO ResearchQuestions
-                (ResearchProjectId, Text, Notes, SortOrder, CreatedUtc, UpdatedUtc)
-                VALUES (@ProjectId,@Text,@Notes,@Sort,@Now,@Now); SELECT last_insert_rowid();";
+                (ResearchProjectId, Text, Notes, SortOrder, CreatedUtc, UpdatedUtc,
+                 Origin, AiModel, AiPrompt, AiGeneratedUtc)
+                VALUES (@ProjectId,@Text,@Notes,@Sort,@Now,@Now,
+                        @Origin,@AiModel,@AiPrompt,@AiGeneratedUtc); SELECT last_insert_rowid();";
         else
         {
             cmd.CommandText = @"UPDATE ResearchQuestions SET Text=@Text, Notes=@Notes,
@@ -158,6 +185,13 @@ public class ResearchRepository
         cmd.Parameters.AddWithValue("@Notes", Db(question.Notes));
         cmd.Parameters.AddWithValue("@Sort", question.SortOrder);
         cmd.Parameters.AddWithValue("@Now", now.ToString("O"));
+        // Authorship is set once, at insert. Editing the wording of a question a model
+        // proposed does not make the researcher its author, and editing one's own does
+        // not make it the model's; the UPDATE above deliberately leaves these alone.
+        cmd.Parameters.AddWithValue("@Origin", Store(question.Origin));
+        cmd.Parameters.AddWithValue("@AiModel", Db(question.AiModel));
+        cmd.Parameters.AddWithValue("@AiPrompt", Db(question.AiPrompt));
+        cmd.Parameters.AddWithValue("@AiGeneratedUtc", Db(question.AiGeneratedUtc?.ToString("O")));
         var id = Convert.ToInt64(await cmd.ExecuteScalarAsync(cancellationToken));
         question.ResearchQuestionId = id;
         await TouchProjectAsync(conn, question.ResearchProjectId, cancellationToken);
@@ -190,6 +224,25 @@ public class ResearchRepository
         cmd.CommandText = "DELETE FROM ResearchQuestions WHERE ResearchQuestionId=@Id;";
         cmd.Parameters.AddWithValue("@Id", questionId);
         await cmd.ExecuteNonQueryAsync(cancellationToken);
+
+        // Close the gap. A new question is given a SortOrder of "however many are
+        // showing", so a gap left by a delete makes the next one tie with a surviving
+        // question and land in the middle of the list rather than at the end. This
+        // renumbers the survivors densely from 0 in their current order.
+        await using (var renumber = conn.CreateCommand())
+        {
+            renumber.CommandText = @"
+                UPDATE ResearchQuestions SET SortOrder = (
+                    SELECT COUNT(*) FROM ResearchQuestions q2
+                    WHERE q2.ResearchProjectId = ResearchQuestions.ResearchProjectId
+                      AND (q2.SortOrder < ResearchQuestions.SortOrder
+                           OR (q2.SortOrder = ResearchQuestions.SortOrder
+                               AND q2.ResearchQuestionId < ResearchQuestions.ResearchQuestionId)))
+                WHERE ResearchProjectId = @ProjectId;";
+            renumber.Parameters.AddWithValue("@ProjectId", projectId);
+            await renumber.ExecuteNonQueryAsync(cancellationToken);
+        }
+
         await TouchProjectAsync(conn, projectId, cancellationToken);
         await AppendLogAsync(conn, new ResearchLogEntry
         {
@@ -544,10 +597,13 @@ public class ResearchRepository
 
     private static ResearchProject ReadProject(SqliteDataReader reader) => new()
     {
-        ResearchProjectId = reader.GetInt64(0), WorkId = reader.GetInt32(1), Name = reader.GetString(2),
-        Status = Parse(reader.GetString(3), ResearchProjectStatus.Active),
-        Notes = reader.IsDBNull(4) ? null : reader.GetString(4),
-        CreatedUtc = ParseDate(reader.GetString(5)), UpdatedUtc = ParseDate(reader.GetString(6))
+        ResearchProjectId = reader.GetInt64(0),
+        WorkId = reader.IsDBNull(1) ? null : reader.GetInt32(1),
+        WorkCtsUrn = reader.IsDBNull(2) ? null : reader.GetString(2),
+        Name = reader.GetString(3),
+        Status = Parse(reader.GetString(4), ResearchProjectStatus.Active),
+        Notes = reader.IsDBNull(5) ? null : reader.GetString(5),
+        CreatedUtc = ParseDate(reader.GetString(6)), UpdatedUtc = ParseDate(reader.GetString(7))
     };
 
     private static EvidenceItem ReadEvidence(SqliteDataReader reader) => new()

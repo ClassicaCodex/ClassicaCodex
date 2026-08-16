@@ -96,11 +96,27 @@ public enum ResearchLogEntryKind
     EchoInvestigationRemoved
 }
 
+/// <summary>Who wrote a research question.</summary>
+public enum ResearchQuestionOrigin
+{
+    Researcher,
+    AiProposed
+}
+
 /// <summary>A persistent line of inquiry attached to one work.</summary>
 public class ResearchProject
 {
     public long ResearchProjectId { get; set; }
-    public int WorkId { get; set; }
+
+    /// <summary>
+    /// Null when the work has left the library. Research is never destroyed by an
+    /// import; the project detaches and reattaches by <see cref="WorkCtsUrn"/> when a
+    /// work with the same CTS identity is ingested again.
+    /// </summary>
+    public int? WorkId { get; set; }
+
+    /// <summary>The work's durable CTS identity, which survives re-ingest as row ids do not.</summary>
+    public string? WorkCtsUrn { get; set; }
     public string Name { get; set; } = string.Empty;
     public ResearchProjectStatus Status { get; set; } = ResearchProjectStatus.Active;
     public string? Notes { get; set; }
@@ -120,6 +136,16 @@ public class ResearchQuestion
     public int SortOrder { get; set; }
     public DateTime CreatedUtc { get; set; }
     public DateTime UpdatedUtc { get; set; }
+
+    /// <summary>
+    /// Who wrote this question. A model may propose one and a researcher may accept
+    /// it, but the dossier has to be able to say which - the sibling entities an AI
+    /// proposal creates all record this, and questions used to be the exception.
+    /// </summary>
+    public ResearchQuestionOrigin Origin { get; set; } = ResearchQuestionOrigin.Researcher;
+    public string? AiModel { get; set; }
+    public string? AiPrompt { get; set; }
+    public DateTime? AiGeneratedUtc { get; set; }
 
     public override string ToString() => Text;
 }
