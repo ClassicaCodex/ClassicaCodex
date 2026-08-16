@@ -55,7 +55,7 @@ public static class SchemaInitializer
     /// 7 to 13 until version 3 was cut, at which point they all failed at
     /// once and said nothing about what had actually broken.
     /// </summary>
-    public const int TargetSchemaVersion = 17;
+    public const int TargetSchemaVersion = 31;
 
     public static async Task EnsureSchemaAsync(CancellationToken cancellationToken = default)
     {
@@ -114,9 +114,11 @@ public static class SchemaInitializer
     }
 
     private static async Task SetSchemaVersionAsync(
-        SqliteConnection conn, int version, CancellationToken cancellationToken)
+        SqliteConnection conn, int version, CancellationToken cancellationToken,
+        SqliteTransaction? transaction = null)
     {
         await using var cmd = conn.CreateCommand();
+        cmd.Transaction = transaction;
 
         // PRAGMA values can't be parameterized - this one is a private const
         // int, never anything user-supplied.
@@ -162,12 +164,17 @@ public static class SchemaInitializer
                     await cmd.ExecuteNonQueryAsync(cancellationToken);
                 }
 
-                await transaction.CommitAsync(cancellationToken);
+                // Inside the transaction, deliberately. user_version lives in the
+                // database header page, which is journalled like any other page - it
+                // rolls back with everything else, so stamping it here cannot claim a
+                // migration that did not happen. Writing it after the commit instead
+                // leaves a window where the schema has moved and the version has not,
+                // and ten of these migrations cannot be replayed: the next launch dies
+                // on "duplicate column name" and the library stops opening at all.
+                await SetSchemaVersionAsync(conn, version, cancellationToken,
+                    (SqliteTransaction)transaction);
 
-                // Outside the transaction: PRAGMA user_version doesn't
-                // participate in one, so writing it inside would survive a
-                // rollback and claim a migration that didn't happen.
-                await SetSchemaVersionAsync(conn, version, cancellationToken);
+                await transaction.CommitAsync(cancellationToken);
             }
         }
         finally
@@ -778,11 +785,706 @@ public static class SchemaInitializer
             @"ALTER TABLE Works ADD COLUMN AttributionStatus TEXT NOT NULL DEFAULT 'accepted';",
             @"ALTER TABLE Works ADD COLUMN AttributionNote TEXT NULL;",
             @"ALTER TABLE Works ADD COLUMN AttributionSetByUser INTEGER NOT NULL DEFAULT 0;"
+        },
+
+        // v18: the offline-first Research Bench. Projects belong to stable
+        // Works rows; questions and evidence are wholly owned by a project.
+        // Evidence may outlive a deleted question, so that link becomes NULL.
+        [18] = new[]
+        {
+            // Both constants are used as they stand, not back-shaped to their v18
+            // form. Migration 31 rebuilds both tables wholesale from named columns that
+            // exist in either shape, so a legacy file arriving here early with the v31
+            // columns ends up in exactly the same place - and no fragile .Replace chain
+            // sits here waiting to silently stop matching after a whitespace edit.
+            ResearchProjectsDdl,
+            ResearchQuestionsDdl,
+            EvidenceItemsDdl,
+            "CREATE INDEX IF NOT EXISTS IX_ResearchProjects_Work ON ResearchProjects (WorkId, Status, UpdatedUtc);",
+            "CREATE INDEX IF NOT EXISTS IX_ResearchQuestions_Project ON ResearchQuestions (ResearchProjectId, SortOrder);",
+            "CREATE INDEX IF NOT EXISTS IX_EvidenceItems_Project ON EvidenceItems (ResearchProjectId, SortOrder);",
+            "CREATE INDEX IF NOT EXISTS IX_EvidenceItems_Question ON EvidenceItems (ResearchQuestionId);"
+        },
+
+        // v19: append-only research history. Related rows may be removed while
+        // the human-readable log remains, so those links become NULL.
+        [19] = new[]
+        {
+            ResearchLogEntriesDdl,
+            "CREATE INDEX IF NOT EXISTS IX_ResearchLogEntries_Project ON ResearchLogEntries (ResearchProjectId, CreatedUtc, ResearchLogEntryId);"
+        },
+
+        // v20: generated evidence keeps raw corpus material separate from an
+        // app/AI interpretation and records who/what produced that candidate.
+        // A companion table makes this additive and leaves every existing
+        // manual EvidenceItems row valid without a backfill.
+        [20] = new[]
+        {
+            EvidenceGenerationMetadataDdl,
+            "CREATE INDEX IF NOT EXISTS IX_EvidenceGenerationMetadata_Origin ON EvidenceGenerationMetadata (Origin);"
+        },
+
+        // v21: propositions attributed to scholarship are not themselves raw
+        // evidence. Keeping them in a claims matrix preserves the source,
+        // stance, exact locator and the researcher's verification separately.
+        [21] = new[]
+        {
+            ScholarlyClaimsDdl,
+            "CREATE INDEX IF NOT EXISTS IX_ScholarlyClaims_Project ON ScholarlyClaims (ResearchProjectId, SortOrder, ScholarlyClaimId);",
+            "CREATE INDEX IF NOT EXISTS IX_ScholarlyClaims_Question ON ScholarlyClaims (ResearchQuestionId);",
+            "CREATE INDEX IF NOT EXISTS IX_ScholarlyClaims_Source ON ScholarlyClaims (SourceEvidenceItemId);"
+        },
+
+        // v22: local source files stay outside SQLite, while their absolute
+        // path, size and SHA-256 fingerprint make replacement or disappearance
+        // visible. Page annotations belong to that exact fingerprinted file.
+        [22] = new[]
+        {
+            EvidenceAttachmentsDdl,
+            EvidencePageAnnotationsDdl,
+            "CREATE UNIQUE INDEX IF NOT EXISTS UX_EvidenceAttachments_Path ON EvidenceAttachments (EvidenceItemId, FilePath);",
+            "CREATE INDEX IF NOT EXISTS IX_EvidencePageAnnotations_Attachment ON EvidencePageAnnotations (EvidenceAttachmentId, PageNumber, EvidencePageAnnotationId);"
+        },
+
+        // v23: retain imported citation fields instead of flattening them
+        // irreversibly into display text, enabling offline RIS/BibTeX export.
+        [23] = new[]
+        {
+            EvidenceBibliographyMetadataDdl
+        },
+
+        // v24: reproducibility snapshots freeze stable corpus identities,
+        // attribution judgments, edition metadata and ordered-text hashes.
+        [24] = new[]
+        {
+            ResearchCorpusSnapshotsDdl,
+            ResearchCorpusSnapshotEntriesDdl,
+            "CREATE INDEX IF NOT EXISTS IX_ResearchCorpusSnapshots_Project ON ResearchCorpusSnapshots (ResearchProjectId, CreatedUtc);",
+            "CREATE INDEX IF NOT EXISTS IX_ResearchCorpusSnapshotEntries_Snapshot ON ResearchCorpusSnapshotEntries (ResearchCorpusSnapshotId, WorkCtsUrn, EditionCtsUrn);"
+        },
+
+        // v25: the reading queue is intentionally upstream of evidence.
+        // Stable passage/source references survive re-ingest; promotion is
+        // explicit and leaves an auditable link to the resulting evidence.
+        [25] = new[]
+        {
+            ResearchReadingItemsDdl,
+            "CREATE INDEX IF NOT EXISTS IX_ResearchReadingItems_Project ON ResearchReadingItems (ResearchProjectId, Status, Priority, SortOrder, ResearchReadingItemId);",
+            "CREATE INDEX IF NOT EXISTS IX_ResearchReadingItems_Question ON ResearchReadingItems (ResearchQuestionId);"
+        },
+
+        // v26: findings make synthesis an explicit researcher-owned layer.
+        // AI text is retained as a candidate beside, never in place of, the
+        // researcher's conclusion. Evidence links state their own role.
+        [26] = new[]
+        {
+            ResearchFindingsDdl,
+            ResearchFindingEvidenceDdl,
+            "CREATE INDEX IF NOT EXISTS IX_ResearchFindings_Project ON ResearchFindings (ResearchProjectId, SortOrder, ResearchFindingId);",
+            "CREATE INDEX IF NOT EXISTS IX_ResearchFindings_Question ON ResearchFindings (ResearchQuestionId);",
+            "CREATE INDEX IF NOT EXISTS IX_ResearchFindingEvidence_Evidence ON ResearchFindingEvidence (EvidenceItemId);"
+        },
+
+        // v27: preserve echo searches as auditable investigations. Passage
+        // CTS identities remain authoritative across re-ingest; transient
+        // row ids are retained only as navigation hints and are not FKs.
+        [27] = new[]
+        {
+            ResearchEchoInvestigationsDdl.Replace("        SourceLanguage TEXT NULL,", ""),
+            ResearchEchoResultsDdl
+                .Replace("        TargetLanguage TEXT NULL,", "")
+                .Replace("        ConnectionType TEXT NOT NULL DEFAULT 'unclassified',", "")
+                .Replace("        Directionality TEXT NOT NULL DEFAULT 'unknown',", "")
+                .Replace("        MotifTags TEXT NULL,", "")
+                .Replace("        ParallelNote TEXT NULL,", ""),
+            "CREATE INDEX IF NOT EXISTS IX_ResearchEchoInvestigations_Project ON ResearchEchoInvestigations (ResearchProjectId, CreatedUtc, ResearchEchoInvestigationId);",
+            "CREATE INDEX IF NOT EXISTS IX_ResearchEchoResults_Investigation ON ResearchEchoResults (ResearchEchoInvestigationId, Disposition, SortOrder, ResearchEchoResultId);",
+            "CREATE INDEX IF NOT EXISTS IX_ResearchEchoResults_Evidence ON ResearchEchoResults (EvidenceItemId);"
+        },
+
+        // v28: a close-reading layer over saved passage pairs. Human
+        // classifications live on the result; AI readings are append-only
+        // records so a later run never silently replaces an earlier one.
+        [28] = new[]
+        {
+            "ALTER TABLE ResearchEchoInvestigations ADD COLUMN SourceLanguage TEXT NULL;",
+            "ALTER TABLE ResearchEchoResults ADD COLUMN TargetLanguage TEXT NULL;",
+            "ALTER TABLE ResearchEchoResults ADD COLUMN ConnectionType TEXT NOT NULL DEFAULT 'unclassified';",
+            "ALTER TABLE ResearchEchoResults ADD COLUMN Directionality TEXT NOT NULL DEFAULT 'unknown';",
+            "ALTER TABLE ResearchEchoResults ADD COLUMN MotifTags TEXT NULL;",
+            "ALTER TABLE ResearchEchoResults ADD COLUMN ParallelNote TEXT NULL;",
+            ResearchEchoParallelAnalysesDdl,
+            "CREATE INDEX IF NOT EXISTS IX_ResearchEchoParallelAnalyses_Result ON ResearchEchoParallelAnalyses (ResearchEchoResultId, CreatedUtc, ResearchEchoParallelAnalysisId);"
+        },
+
+        // v29: competing explanations, explicit source-to-hypothesis assessments,
+        // and falsification experiments. AI provenance belongs to an accepted
+        // proposal, while the assessment matrix remains wholly researcher-owned.
+        [29] = new[]
+        {
+            ResearchHypothesesDdl,
+            ResearchHypothesisAssessmentsDdl,
+            ResearchExperimentsDdl,
+            "CREATE INDEX IF NOT EXISTS IX_ResearchHypotheses_Project ON ResearchHypotheses (ResearchProjectId, SortOrder, ResearchHypothesisId);",
+            "CREATE INDEX IF NOT EXISTS IX_ResearchHypothesisAssessments_Hypothesis ON ResearchHypothesisAssessments (ResearchHypothesisId, SourceKind, SourceId);",
+            "CREATE INDEX IF NOT EXISTS IX_ResearchExperiments_Project ON ResearchExperiments (ResearchProjectId, Status, SortOrder, ResearchExperimentId);"
+        },
+
+        // v30: a passage-first inquiry is intentionally smaller than a
+        // Research Bench project. It preserves the reader's own observation
+        // and question by stable CTS identity, then optionally records the
+        // project into which that note was promoted.
+        [30] = new[]
+        {
+            PassageInquiriesDdl,
+            "CREATE UNIQUE INDEX IF NOT EXISTS UX_PassageInquiries_Passage ON PassageInquiries (EditionCtsUrn, CitationRef);",
+            "CREATE INDEX IF NOT EXISTS IX_PassageInquiries_Project ON PassageInquiries (ResearchProjectId);"
+        },
+
+        // A project outlives its work.
+        //
+        // WorkId was NOT NULL with a plain FK, which made deleting a Work fail
+        // outright once any project referenced it - and Menota re-ingest deletes
+        // works when their last edition is replaced. The re-import then aborted
+        // part-way with a raw constraint error and no way for the researcher to
+        // clear it, since the Bench offers archiving rather than deletion.
+        //
+        // Rebuilt rather than altered: SQLite cannot change a column's nullability
+        // or its ON DELETE action in place. This is SQLite's documented rebuild
+        // procedure, and it is safe here only because ApplyMigrationsAsync turns
+        // foreign key enforcement off around migrations - with it on, DROP TABLE
+        // performs an implicit DELETE FROM and would cascade every question, every
+        // evidence item and the whole research log out of existence.
+        //
+        // WorkCtsUrn rides along so an orphaned project can find its work again
+        // after re-ingest: durable identity, the same principle the passage
+        // inquiries already use.
+        [31] = new[]
+        {
+            @"CREATE TABLE ResearchProjects_v31 (
+                ResearchProjectId INTEGER PRIMARY KEY,
+                WorkId INTEGER NULL,
+                WorkCtsUrn TEXT NULL,
+                Name TEXT NOT NULL,
+                Status TEXT NOT NULL DEFAULT 'active',
+                Notes TEXT NULL,
+                CreatedUtc TEXT NOT NULL,
+                UpdatedUtc TEXT NOT NULL,
+                CONSTRAINT FK_ResearchProjects_Works FOREIGN KEY (WorkId)
+                    REFERENCES Works(WorkId) ON DELETE SET NULL
+            );",
+            @"INSERT INTO ResearchProjects_v31
+                (ResearchProjectId, WorkId, WorkCtsUrn, Name, Status, Notes, CreatedUtc, UpdatedUtc)
+              SELECT p.ResearchProjectId, p.WorkId,
+                     (SELECT w.CtsUrn FROM Works w WHERE w.WorkId = p.WorkId),
+                     p.Name, p.Status, p.Notes, p.CreatedUtc, p.UpdatedUtc
+              FROM ResearchProjects p;",
+            "DROP TABLE ResearchProjects;",
+            "ALTER TABLE ResearchProjects_v31 RENAME TO ResearchProjects;",
+            "CREATE INDEX IF NOT EXISTS IX_ResearchProjects_Work ON ResearchProjects (WorkId, Status, UpdatedUtc);",
+
+            // A research question records who wrote it. Every sibling entity an AI
+            // proposal creates - hypotheses, experiments - already carried origin,
+            // model, prompt and timestamp; questions were the one kind the model
+            // authors that had nowhere to record it, so an exported dossier listed
+            // them beside the researcher's own.
+            //
+            // Rebuilt rather than ALTERed, for replayability. The migration tests fake
+            // an older database by dropping the TABLES a later migration creates and
+            // rewinding the version stamp - so a table that already existed, like this
+            // one, arrives here carrying its current columns. ADD COLUMN then dies on
+            // "duplicate column name" and takes ten tests with it. Selecting only the
+            // pre-v31 columns makes this statement idempotent whatever shape it meets:
+            // the four new ones fall back to their defaults either way.
+            @"CREATE TABLE ResearchQuestions_v31 (
+                ResearchQuestionId INTEGER PRIMARY KEY,
+                ResearchProjectId INTEGER NOT NULL,
+                Text TEXT NOT NULL,
+                Notes TEXT NULL,
+                SortOrder INTEGER NOT NULL DEFAULT 0,
+                CreatedUtc TEXT NOT NULL,
+                UpdatedUtc TEXT NOT NULL,
+                Origin TEXT NOT NULL DEFAULT 'researcher',
+                AiModel TEXT NULL,
+                AiPrompt TEXT NULL,
+                AiGeneratedUtc TEXT NULL,
+                CONSTRAINT FK_ResearchQuestions_Projects FOREIGN KEY (ResearchProjectId)
+                    REFERENCES ResearchProjects(ResearchProjectId) ON DELETE CASCADE
+            );",
+            @"INSERT INTO ResearchQuestions_v31
+                (ResearchQuestionId, ResearchProjectId, Text, Notes, SortOrder, CreatedUtc, UpdatedUtc)
+              SELECT ResearchQuestionId, ResearchProjectId, Text, Notes, SortOrder, CreatedUtc, UpdatedUtc
+              FROM ResearchQuestions;",
+            "DROP TABLE ResearchQuestions;",
+            "ALTER TABLE ResearchQuestions_v31 RENAME TO ResearchQuestions;",
+            "CREATE INDEX IF NOT EXISTS IX_ResearchQuestions_Project ON ResearchQuestions (ResearchProjectId, SortOrder);"
         }
     };
 
+    // Nullable WorkId with ON DELETE SET NULL: removing a work from the library
+    // detaches the research rather than destroying it or blocking the removal.
+    // WorkCtsUrn is how it finds its way back after a re-ingest. Must stay
+    // column-for-column identical to migration 31's rebuild - fresh databases only
+    // ever run this statement, upgraded ones only ever run that migration.
+    private const string ResearchProjectsDdl = @"CREATE TABLE IF NOT EXISTS ResearchProjects (
+        ResearchProjectId INTEGER PRIMARY KEY,
+        WorkId INTEGER NULL,
+        WorkCtsUrn TEXT NULL,
+        Name TEXT NOT NULL,
+        Status TEXT NOT NULL DEFAULT 'active',
+        Notes TEXT NULL,
+        CreatedUtc TEXT NOT NULL,
+        UpdatedUtc TEXT NOT NULL,
+        CONSTRAINT FK_ResearchProjects_Works FOREIGN KEY (WorkId)
+            REFERENCES Works(WorkId) ON DELETE SET NULL
+    );";
+
+    private const string ResearchQuestionsDdl = @"CREATE TABLE IF NOT EXISTS ResearchQuestions (
+        ResearchQuestionId INTEGER PRIMARY KEY,
+        ResearchProjectId INTEGER NOT NULL,
+        Text TEXT NOT NULL,
+        Notes TEXT NULL,
+        SortOrder INTEGER NOT NULL DEFAULT 0,
+        CreatedUtc TEXT NOT NULL,
+        UpdatedUtc TEXT NOT NULL,
+        Origin TEXT NOT NULL DEFAULT 'researcher',
+        AiModel TEXT NULL,
+        AiPrompt TEXT NULL,
+        AiGeneratedUtc TEXT NULL,
+        CONSTRAINT FK_ResearchQuestions_Projects FOREIGN KEY (ResearchProjectId)
+            REFERENCES ResearchProjects(ResearchProjectId) ON DELETE CASCADE
+    );";
+
+    private const string EvidenceItemsDdl = @"CREATE TABLE IF NOT EXISTS EvidenceItems (
+        EvidenceItemId INTEGER PRIMARY KEY,
+        ResearchProjectId INTEGER NOT NULL,
+        ResearchQuestionId INTEGER NULL,
+        Title TEXT NOT NULL,
+        EvidenceType TEXT NOT NULL,
+        SourceType TEXT NULL,
+        StableIdentifier TEXT NULL,
+        CanonicalReference TEXT NULL,
+        Provenance TEXT NULL,
+        Excerpt TEXT NULL,
+        Judgment TEXT NOT NULL DEFAULT 'uncertain',
+        Relationship TEXT NOT NULL DEFAULT 'contextualizes',
+        ResearcherNote TEXT NULL,
+        SortOrder INTEGER NOT NULL DEFAULT 0,
+        CreatedUtc TEXT NOT NULL,
+        UpdatedUtc TEXT NOT NULL,
+        CONSTRAINT FK_EvidenceItems_Projects FOREIGN KEY (ResearchProjectId)
+            REFERENCES ResearchProjects(ResearchProjectId) ON DELETE CASCADE,
+        CONSTRAINT FK_EvidenceItems_Questions FOREIGN KEY (ResearchQuestionId)
+            REFERENCES ResearchQuestions(ResearchQuestionId) ON DELETE SET NULL
+    );";
+
+    private const string EvidenceGenerationMetadataDdl = @"CREATE TABLE IF NOT EXISTS EvidenceGenerationMetadata (
+        EvidenceItemId INTEGER PRIMARY KEY,
+        Origin TEXT NOT NULL DEFAULT 'manual',
+        Interpretation TEXT NULL,
+        InterpretationAuthor TEXT NULL,
+        GeneratorPrompt TEXT NULL,
+        GeneratedUtc TEXT NULL,
+        CONSTRAINT FK_EvidenceGenerationMetadata_Evidence FOREIGN KEY (EvidenceItemId)
+            REFERENCES EvidenceItems(EvidenceItemId) ON DELETE CASCADE
+    );";
+
+    private const string ResearchLogEntriesDdl = @"CREATE TABLE IF NOT EXISTS ResearchLogEntries (
+        ResearchLogEntryId INTEGER PRIMARY KEY,
+        ResearchProjectId INTEGER NOT NULL,
+        Kind TEXT NOT NULL,
+        Summary TEXT NOT NULL,
+        Details TEXT NULL,
+        ResearchQuestionId INTEGER NULL,
+        EvidenceItemId INTEGER NULL,
+        CreatedUtc TEXT NOT NULL,
+        CONSTRAINT FK_ResearchLogEntries_Projects FOREIGN KEY (ResearchProjectId)
+            REFERENCES ResearchProjects(ResearchProjectId) ON DELETE CASCADE,
+        CONSTRAINT FK_ResearchLogEntries_Questions FOREIGN KEY (ResearchQuestionId)
+            REFERENCES ResearchQuestions(ResearchQuestionId) ON DELETE SET NULL,
+        CONSTRAINT FK_ResearchLogEntries_Evidence FOREIGN KEY (EvidenceItemId)
+            REFERENCES EvidenceItems(EvidenceItemId) ON DELETE SET NULL
+    );";
+
+    private const string ScholarlyClaimsDdl = @"CREATE TABLE IF NOT EXISTS ScholarlyClaims (
+        ScholarlyClaimId INTEGER PRIMARY KEY,
+        ResearchProjectId INTEGER NOT NULL,
+        ResearchQuestionId INTEGER NULL,
+        SourceEvidenceItemId INTEGER NULL,
+        Claimant TEXT NOT NULL,
+        ClaimText TEXT NOT NULL,
+        Locator TEXT NULL,
+        Relationship TEXT NOT NULL DEFAULT 'contextualizes',
+        Judgment TEXT NOT NULL DEFAULT 'uncertain',
+        Notes TEXT NULL,
+        SortOrder INTEGER NOT NULL DEFAULT 0,
+        CreatedUtc TEXT NOT NULL,
+        UpdatedUtc TEXT NOT NULL,
+        CONSTRAINT FK_ScholarlyClaims_Projects FOREIGN KEY (ResearchProjectId)
+            REFERENCES ResearchProjects(ResearchProjectId) ON DELETE CASCADE,
+        CONSTRAINT FK_ScholarlyClaims_Questions FOREIGN KEY (ResearchQuestionId)
+            REFERENCES ResearchQuestions(ResearchQuestionId) ON DELETE SET NULL,
+        CONSTRAINT FK_ScholarlyClaims_Evidence FOREIGN KEY (SourceEvidenceItemId)
+            REFERENCES EvidenceItems(EvidenceItemId) ON DELETE SET NULL
+    );";
+
+    private const string EvidenceAttachmentsDdl = @"CREATE TABLE IF NOT EXISTS EvidenceAttachments (
+        EvidenceAttachmentId INTEGER PRIMARY KEY,
+        EvidenceItemId INTEGER NOT NULL,
+        FilePath TEXT NOT NULL,
+        FileName TEXT NOT NULL,
+        MediaType TEXT NOT NULL DEFAULT 'application/pdf',
+        Sha256 TEXT NOT NULL,
+        FileSize INTEGER NOT NULL,
+        FileModifiedUtc TEXT NOT NULL,
+        CreatedUtc TEXT NOT NULL,
+        UpdatedUtc TEXT NOT NULL,
+        CONSTRAINT FK_EvidenceAttachments_Evidence FOREIGN KEY (EvidenceItemId)
+            REFERENCES EvidenceItems(EvidenceItemId) ON DELETE CASCADE
+    );";
+
+    private const string EvidencePageAnnotationsDdl = @"CREATE TABLE IF NOT EXISTS EvidencePageAnnotations (
+        EvidencePageAnnotationId INTEGER PRIMARY KEY,
+        EvidenceAttachmentId INTEGER NOT NULL,
+        PageNumber INTEGER NOT NULL CHECK (PageNumber > 0),
+        QuotedText TEXT NULL,
+        Note TEXT NULL,
+        Judgment TEXT NOT NULL DEFAULT 'uncertain',
+        CreatedUtc TEXT NOT NULL,
+        UpdatedUtc TEXT NOT NULL,
+        CONSTRAINT FK_EvidencePageAnnotations_Attachments FOREIGN KEY (EvidenceAttachmentId)
+            REFERENCES EvidenceAttachments(EvidenceAttachmentId) ON DELETE CASCADE
+    );";
+
+    private const string EvidenceBibliographyMetadataDdl = @"CREATE TABLE IF NOT EXISTS EvidenceBibliographyMetadata (
+        EvidenceItemId INTEGER PRIMARY KEY,
+        ImportFormat TEXT NOT NULL DEFAULT 'Manual',
+        EntryType TEXT NOT NULL DEFAULT 'MISC',
+        CiteKey TEXT NULL,
+        Title TEXT NOT NULL,
+        AuthorsJson TEXT NOT NULL DEFAULT '[]',
+        Year TEXT NULL,
+        ContainerTitle TEXT NULL,
+        Volume TEXT NULL,
+        Issue TEXT NULL,
+        Pages TEXT NULL,
+        Publisher TEXT NULL,
+        Doi TEXT NULL,
+        Url TEXT NULL,
+        Isbn TEXT NULL,
+        Abstract TEXT NULL,
+        KeywordsJson TEXT NOT NULL DEFAULT '[]',
+        CreatedUtc TEXT NOT NULL,
+        UpdatedUtc TEXT NOT NULL,
+        CONSTRAINT FK_EvidenceBibliographyMetadata_Evidence FOREIGN KEY (EvidenceItemId)
+            REFERENCES EvidenceItems(EvidenceItemId) ON DELETE CASCADE
+    );";
+
+    private const string ResearchCorpusSnapshotsDdl = @"CREATE TABLE IF NOT EXISTS ResearchCorpusSnapshots (
+        ResearchCorpusSnapshotId INTEGER PRIMARY KEY,
+        ResearchProjectId INTEGER NOT NULL,
+        Name TEXT NOT NULL,
+        Scope TEXT NOT NULL,
+        AppVersion TEXT NOT NULL,
+        Notes TEXT NULL,
+        WorkCount INTEGER NOT NULL,
+        EditionCount INTEGER NOT NULL,
+        TextNodeCount INTEGER NOT NULL,
+        CreatedUtc TEXT NOT NULL,
+        CONSTRAINT FK_ResearchCorpusSnapshots_Projects FOREIGN KEY (ResearchProjectId)
+            REFERENCES ResearchProjects(ResearchProjectId) ON DELETE CASCADE
+    );";
+
+    private const string ResearchCorpusSnapshotEntriesDdl = @"CREATE TABLE IF NOT EXISTS ResearchCorpusSnapshotEntries (
+        ResearchCorpusSnapshotEntryId INTEGER PRIMARY KEY,
+        ResearchCorpusSnapshotId INTEGER NOT NULL,
+        AuthorCtsUrn TEXT NOT NULL,
+        AuthorName TEXT NOT NULL,
+        WorkCtsUrn TEXT NOT NULL,
+        WorkTitle TEXT NOT NULL,
+        CitationScheme TEXT NULL,
+        AttributionStatus TEXT NOT NULL,
+        AttributionNote TEXT NULL,
+        AttributionSetByUser INTEGER NOT NULL,
+        EditionCtsUrn TEXT NULL,
+        EditionKind TEXT NULL,
+        Language TEXT NULL,
+        Translator TEXT NULL,
+        SourcePath TEXT NULL,
+        Orthography TEXT NULL,
+        TextNodeCount INTEGER NOT NULL,
+        ContentSha256 TEXT NULL,
+        CONSTRAINT FK_ResearchCorpusSnapshotEntries_Snapshots FOREIGN KEY (ResearchCorpusSnapshotId)
+            REFERENCES ResearchCorpusSnapshots(ResearchCorpusSnapshotId) ON DELETE CASCADE
+    );";
+
+    private const string ResearchReadingItemsDdl = @"CREATE TABLE IF NOT EXISTS ResearchReadingItems (
+        ResearchReadingItemId INTEGER PRIMARY KEY,
+        ResearchProjectId INTEGER NOT NULL,
+        ResearchQuestionId INTEGER NULL,
+        Kind TEXT NOT NULL,
+        Status TEXT NOT NULL DEFAULT 'queued',
+        Priority TEXT NOT NULL DEFAULT 'normal',
+        Title TEXT NOT NULL,
+        Purpose TEXT NULL,
+        WorkCtsUrn TEXT NULL,
+        EditionCtsUrn TEXT NULL,
+        CitationRef TEXT NULL,
+        LinkedEvidenceItemId INTEGER NULL,
+        StableIdentifier TEXT NULL,
+        Locator TEXT NULL,
+        Quotation TEXT NULL,
+        Notes TEXT NULL,
+        PromotedEvidenceItemId INTEGER NULL,
+        SortOrder INTEGER NOT NULL DEFAULT 0,
+        CreatedUtc TEXT NOT NULL,
+        UpdatedUtc TEXT NOT NULL,
+        CONSTRAINT FK_ResearchReadingItems_Projects FOREIGN KEY (ResearchProjectId)
+            REFERENCES ResearchProjects(ResearchProjectId) ON DELETE CASCADE,
+        CONSTRAINT FK_ResearchReadingItems_Questions FOREIGN KEY (ResearchQuestionId)
+            REFERENCES ResearchQuestions(ResearchQuestionId) ON DELETE SET NULL,
+        CONSTRAINT FK_ResearchReadingItems_LinkedEvidence FOREIGN KEY (LinkedEvidenceItemId)
+            REFERENCES EvidenceItems(EvidenceItemId) ON DELETE SET NULL,
+        CONSTRAINT FK_ResearchReadingItems_PromotedEvidence FOREIGN KEY (PromotedEvidenceItemId)
+            REFERENCES EvidenceItems(EvidenceItemId) ON DELETE SET NULL
+    );";
+
+    private const string ResearchFindingsDdl = @"CREATE TABLE IF NOT EXISTS ResearchFindings (
+        ResearchFindingId INTEGER PRIMARY KEY,
+        ResearchProjectId INTEGER NOT NULL,
+        ResearchQuestionId INTEGER NULL,
+        Title TEXT NOT NULL,
+        Statement TEXT NOT NULL,
+        Status TEXT NOT NULL DEFAULT 'hypothesis',
+        ResearcherConclusion TEXT NULL,
+        AiCandidateSynthesis TEXT NULL,
+        AiModel TEXT NULL,
+        AiPrompt TEXT NULL,
+        AiGeneratedUtc TEXT NULL,
+        SortOrder INTEGER NOT NULL DEFAULT 0,
+        CreatedUtc TEXT NOT NULL,
+        UpdatedUtc TEXT NOT NULL,
+        CONSTRAINT FK_ResearchFindings_Projects FOREIGN KEY (ResearchProjectId)
+            REFERENCES ResearchProjects(ResearchProjectId) ON DELETE CASCADE,
+        CONSTRAINT FK_ResearchFindings_Questions FOREIGN KEY (ResearchQuestionId)
+            REFERENCES ResearchQuestions(ResearchQuestionId) ON DELETE SET NULL
+    );";
+
+    private const string ResearchFindingEvidenceDdl = @"CREATE TABLE IF NOT EXISTS ResearchFindingEvidence (
+        ResearchFindingId INTEGER NOT NULL,
+        EvidenceItemId INTEGER NOT NULL,
+        Relationship TEXT NOT NULL DEFAULT 'contextualizes',
+        Note TEXT NULL,
+        PRIMARY KEY (ResearchFindingId, EvidenceItemId),
+        CONSTRAINT FK_ResearchFindingEvidence_Findings FOREIGN KEY (ResearchFindingId)
+            REFERENCES ResearchFindings(ResearchFindingId) ON DELETE CASCADE,
+        CONSTRAINT FK_ResearchFindingEvidence_Evidence FOREIGN KEY (EvidenceItemId)
+            REFERENCES EvidenceItems(EvidenceItemId) ON DELETE CASCADE
+    );";
+
+    private const string ResearchEchoInvestigationsDdl = @"CREATE TABLE IF NOT EXISTS ResearchEchoInvestigations (
+        ResearchEchoInvestigationId INTEGER PRIMARY KEY,
+        ResearchProjectId INTEGER NOT NULL,
+        ResearchQuestionId INTEGER NULL,
+        ResearchFindingId INTEGER NULL,
+        Method TEXT NOT NULL,
+        Title TEXT NOT NULL,
+        SourceWorkId INTEGER NOT NULL,
+        SourceTextNodeId INTEGER NOT NULL,
+        SourceWorkCtsUrn TEXT NOT NULL,
+        SourceEditionCtsUrn TEXT NOT NULL,
+        SourceCitationRef TEXT NOT NULL,
+        SourceText TEXT NOT NULL,
+        SourceLanguage TEXT NULL,
+        TargetScope TEXT NULL,
+        Settings TEXT NULL,
+        AiModel TEXT NULL,
+        AiPrompt TEXT NULL,
+        AiGeneratedUtc TEXT NULL,
+        CreatedUtc TEXT NOT NULL,
+        UpdatedUtc TEXT NOT NULL,
+        CONSTRAINT FK_ResearchEchoInvestigations_Projects FOREIGN KEY (ResearchProjectId)
+            REFERENCES ResearchProjects(ResearchProjectId) ON DELETE CASCADE,
+        CONSTRAINT FK_ResearchEchoInvestigations_Questions FOREIGN KEY (ResearchQuestionId)
+            REFERENCES ResearchQuestions(ResearchQuestionId) ON DELETE SET NULL,
+        CONSTRAINT FK_ResearchEchoInvestigations_Findings FOREIGN KEY (ResearchFindingId)
+            REFERENCES ResearchFindings(ResearchFindingId) ON DELETE SET NULL
+    );";
+
+    private const string ResearchEchoResultsDdl = @"CREATE TABLE IF NOT EXISTS ResearchEchoResults (
+        ResearchEchoResultId INTEGER PRIMARY KEY,
+        ResearchEchoInvestigationId INTEGER NOT NULL,
+        TargetWorkId INTEGER NOT NULL,
+        TargetTextNodeId INTEGER NOT NULL,
+        TargetAuthorName TEXT NOT NULL,
+        TargetWorkTitle TEXT NOT NULL,
+        TargetWorkCtsUrn TEXT NOT NULL,
+        TargetEditionCtsUrn TEXT NOT NULL,
+        TargetCitationRef TEXT NOT NULL,
+        TargetText TEXT NOT NULL,
+        TargetLanguage TEXT NULL,
+        Score REAL NULL,
+        ScoreLabel TEXT NULL,
+        Rationale TEXT NULL,
+        Disposition TEXT NOT NULL DEFAULT 'pending',
+        ResearcherNote TEXT NULL,
+        ConnectionType TEXT NOT NULL DEFAULT 'unclassified',
+        Directionality TEXT NOT NULL DEFAULT 'unknown',
+        MotifTags TEXT NULL,
+        ParallelNote TEXT NULL,
+        EvidenceItemId INTEGER NULL,
+        SortOrder INTEGER NOT NULL DEFAULT 0,
+        CreatedUtc TEXT NOT NULL,
+        UpdatedUtc TEXT NOT NULL,
+        CONSTRAINT FK_ResearchEchoResults_Investigations FOREIGN KEY (ResearchEchoInvestigationId)
+            REFERENCES ResearchEchoInvestigations(ResearchEchoInvestigationId) ON DELETE CASCADE,
+        CONSTRAINT FK_ResearchEchoResults_Evidence FOREIGN KEY (EvidenceItemId)
+            REFERENCES EvidenceItems(EvidenceItemId) ON DELETE SET NULL
+    );";
+
+    private const string ResearchEchoParallelAnalysesDdl = @"CREATE TABLE IF NOT EXISTS ResearchEchoParallelAnalyses (
+        ResearchEchoParallelAnalysisId INTEGER PRIMARY KEY,
+        ResearchEchoResultId INTEGER NOT NULL,
+        Model TEXT NOT NULL,
+        Prompt TEXT NOT NULL,
+        Summary TEXT NOT NULL,
+        SharedFeatures TEXT NULL,
+        ImportantDifferences TEXT NULL,
+        LexicalObservations TEXT NULL,
+        AlternativeExplanations TEXT NULL,
+        VerificationTasks TEXT NULL,
+        SuggestedMotifs TEXT NULL,
+        SuggestedConnectionType TEXT NOT NULL DEFAULT 'unclassified',
+        SuggestedDirectionality TEXT NOT NULL DEFAULT 'unknown',
+        CreatedUtc TEXT NOT NULL,
+        CONSTRAINT FK_ResearchEchoParallelAnalyses_Results FOREIGN KEY (ResearchEchoResultId)
+            REFERENCES ResearchEchoResults(ResearchEchoResultId) ON DELETE CASCADE
+    );";
+
+    private const string ResearchHypothesesDdl = @"CREATE TABLE IF NOT EXISTS ResearchHypotheses (
+        ResearchHypothesisId INTEGER PRIMARY KEY,
+        ResearchProjectId INTEGER NOT NULL,
+        Title TEXT NOT NULL,
+        Statement TEXT NOT NULL,
+        Status TEXT NOT NULL DEFAULT 'active',
+        Origin TEXT NOT NULL DEFAULT 'manual',
+        ResearcherNote TEXT NULL,
+        AiModel TEXT NULL,
+        AiPrompt TEXT NULL,
+        AiGeneratedUtc TEXT NULL,
+        SortOrder INTEGER NOT NULL DEFAULT 0,
+        CreatedUtc TEXT NOT NULL,
+        UpdatedUtc TEXT NOT NULL,
+        CONSTRAINT FK_ResearchHypotheses_Projects FOREIGN KEY (ResearchProjectId)
+            REFERENCES ResearchProjects(ResearchProjectId) ON DELETE CASCADE
+    );";
+
+    private const string ResearchHypothesisAssessmentsDdl = @"CREATE TABLE IF NOT EXISTS ResearchHypothesisAssessments (
+        ResearchHypothesisAssessmentId INTEGER PRIMARY KEY,
+        ResearchHypothesisId INTEGER NOT NULL,
+        SourceKind TEXT NOT NULL,
+        SourceId INTEGER NOT NULL,
+        Relationship TEXT NOT NULL DEFAULT 'contextualizes',
+        Strength TEXT NOT NULL DEFAULT 'moderate',
+        ResearcherNote TEXT NULL,
+        CreatedUtc TEXT NOT NULL,
+        UpdatedUtc TEXT NOT NULL,
+        CONSTRAINT UQ_ResearchHypothesisAssessments_Source UNIQUE (ResearchHypothesisId, SourceKind, SourceId),
+        CONSTRAINT FK_ResearchHypothesisAssessments_Hypotheses FOREIGN KEY (ResearchHypothesisId)
+            REFERENCES ResearchHypotheses(ResearchHypothesisId) ON DELETE CASCADE
+    );";
+
+    private const string ResearchExperimentsDdl = @"CREATE TABLE IF NOT EXISTS ResearchExperiments (
+        ResearchExperimentId INTEGER PRIMARY KEY,
+        ResearchProjectId INTEGER NOT NULL,
+        ResearchHypothesisId INTEGER NULL,
+        Title TEXT NOT NULL,
+        Method TEXT NOT NULL DEFAULT 'manual',
+        Status TEXT NOT NULL DEFAULT 'planned',
+        PredictedOutcome TEXT NULL,
+        FalsificationCriterion TEXT NULL,
+        ResearcherNote TEXT NULL,
+        Origin TEXT NOT NULL DEFAULT 'manual',
+        AiModel TEXT NULL,
+        AiPrompt TEXT NULL,
+        AiGeneratedUtc TEXT NULL,
+        SortOrder INTEGER NOT NULL DEFAULT 0,
+        CreatedUtc TEXT NOT NULL,
+        UpdatedUtc TEXT NOT NULL,
+        CONSTRAINT FK_ResearchExperiments_Projects FOREIGN KEY (ResearchProjectId)
+            REFERENCES ResearchProjects(ResearchProjectId) ON DELETE CASCADE,
+        CONSTRAINT FK_ResearchExperiments_Hypotheses FOREIGN KEY (ResearchHypothesisId)
+            REFERENCES ResearchHypotheses(ResearchHypothesisId) ON DELETE SET NULL
+    );";
+
+    private const string PassageInquiriesDdl = @"CREATE TABLE IF NOT EXISTS PassageInquiries (
+        PassageInquiryId INTEGER PRIMARY KEY,
+        WorkCtsUrn TEXT NOT NULL,
+        EditionCtsUrn TEXT NOT NULL,
+        CitationRef TEXT NOT NULL,
+        AuthorName TEXT NOT NULL,
+        WorkTitle TEXT NOT NULL,
+        Excerpt TEXT NOT NULL,
+        AttentionNote TEXT NOT NULL,
+        DraftQuestion TEXT NOT NULL,
+        Direction TEXT NOT NULL DEFAULT 'none',
+        ResearchProjectId INTEGER NULL,
+        CreatedUtc TEXT NOT NULL,
+        UpdatedUtc TEXT NOT NULL,
+        CONSTRAINT FK_PassageInquiries_Projects FOREIGN KEY (ResearchProjectId)
+            REFERENCES ResearchProjects(ResearchProjectId) ON DELETE SET NULL
+    );";
+
     private static readonly string[] SchemaStatements =
     {
+        ResearchProjectsDdl,
+        ResearchQuestionsDdl,
+        EvidenceItemsDdl,
+        EvidenceGenerationMetadataDdl,
+        ResearchLogEntriesDdl,
+        ScholarlyClaimsDdl,
+        EvidenceAttachmentsDdl,
+        EvidencePageAnnotationsDdl,
+        EvidenceBibliographyMetadataDdl,
+        ResearchCorpusSnapshotsDdl,
+        ResearchCorpusSnapshotEntriesDdl,
+        ResearchReadingItemsDdl,
+        ResearchFindingsDdl,
+        ResearchFindingEvidenceDdl,
+        ResearchEchoInvestigationsDdl,
+        ResearchEchoResultsDdl,
+        ResearchEchoParallelAnalysesDdl,
+        ResearchHypothesesDdl,
+        ResearchHypothesisAssessmentsDdl,
+        ResearchExperimentsDdl,
+        PassageInquiriesDdl,
+        "CREATE INDEX IF NOT EXISTS IX_ResearchProjects_Work ON ResearchProjects (WorkId, Status, UpdatedUtc);",
+        "CREATE INDEX IF NOT EXISTS IX_ResearchQuestions_Project ON ResearchQuestions (ResearchProjectId, SortOrder);",
+        "CREATE INDEX IF NOT EXISTS IX_EvidenceItems_Project ON EvidenceItems (ResearchProjectId, SortOrder);",
+        "CREATE INDEX IF NOT EXISTS IX_EvidenceItems_Question ON EvidenceItems (ResearchQuestionId);",
+        "CREATE INDEX IF NOT EXISTS IX_EvidenceGenerationMetadata_Origin ON EvidenceGenerationMetadata (Origin);",
+        "CREATE INDEX IF NOT EXISTS IX_ResearchLogEntries_Project ON ResearchLogEntries (ResearchProjectId, CreatedUtc, ResearchLogEntryId);",
+        "CREATE INDEX IF NOT EXISTS IX_ScholarlyClaims_Project ON ScholarlyClaims (ResearchProjectId, SortOrder, ScholarlyClaimId);",
+        "CREATE INDEX IF NOT EXISTS IX_ScholarlyClaims_Question ON ScholarlyClaims (ResearchQuestionId);",
+        "CREATE INDEX IF NOT EXISTS IX_ScholarlyClaims_Source ON ScholarlyClaims (SourceEvidenceItemId);",
+        "CREATE UNIQUE INDEX IF NOT EXISTS UX_EvidenceAttachments_Path ON EvidenceAttachments (EvidenceItemId, FilePath);",
+        "CREATE INDEX IF NOT EXISTS IX_EvidencePageAnnotations_Attachment ON EvidencePageAnnotations (EvidenceAttachmentId, PageNumber, EvidencePageAnnotationId);",
+        "CREATE INDEX IF NOT EXISTS IX_ResearchCorpusSnapshots_Project ON ResearchCorpusSnapshots (ResearchProjectId, CreatedUtc);",
+        "CREATE INDEX IF NOT EXISTS IX_ResearchCorpusSnapshotEntries_Snapshot ON ResearchCorpusSnapshotEntries (ResearchCorpusSnapshotId, WorkCtsUrn, EditionCtsUrn);",
+        "CREATE INDEX IF NOT EXISTS IX_ResearchReadingItems_Project ON ResearchReadingItems (ResearchProjectId, Status, Priority, SortOrder, ResearchReadingItemId);",
+        "CREATE INDEX IF NOT EXISTS IX_ResearchReadingItems_Question ON ResearchReadingItems (ResearchQuestionId);",
+        "CREATE INDEX IF NOT EXISTS IX_ResearchFindings_Project ON ResearchFindings (ResearchProjectId, SortOrder, ResearchFindingId);",
+        "CREATE INDEX IF NOT EXISTS IX_ResearchFindings_Question ON ResearchFindings (ResearchQuestionId);",
+        "CREATE INDEX IF NOT EXISTS IX_ResearchFindingEvidence_Evidence ON ResearchFindingEvidence (EvidenceItemId);",
+        "CREATE INDEX IF NOT EXISTS IX_ResearchEchoInvestigations_Project ON ResearchEchoInvestigations (ResearchProjectId, CreatedUtc, ResearchEchoInvestigationId);",
+        "CREATE INDEX IF NOT EXISTS IX_ResearchEchoResults_Investigation ON ResearchEchoResults (ResearchEchoInvestigationId, Disposition, SortOrder, ResearchEchoResultId);",
+        "CREATE INDEX IF NOT EXISTS IX_ResearchEchoResults_Evidence ON ResearchEchoResults (EvidenceItemId);",
+        "CREATE INDEX IF NOT EXISTS IX_ResearchEchoParallelAnalyses_Result ON ResearchEchoParallelAnalyses (ResearchEchoResultId, CreatedUtc, ResearchEchoParallelAnalysisId);",
+        "CREATE INDEX IF NOT EXISTS IX_ResearchHypotheses_Project ON ResearchHypotheses (ResearchProjectId, SortOrder, ResearchHypothesisId);",
+        "CREATE INDEX IF NOT EXISTS IX_ResearchHypothesisAssessments_Hypothesis ON ResearchHypothesisAssessments (ResearchHypothesisId, SourceKind, SourceId);",
+        "CREATE INDEX IF NOT EXISTS IX_ResearchExperiments_Project ON ResearchExperiments (ResearchProjectId, Status, SortOrder, ResearchExperimentId);",
+        "CREATE UNIQUE INDEX IF NOT EXISTS UX_PassageInquiries_Passage ON PassageInquiries (EditionCtsUrn, CitationRef);",
+        "CREATE INDEX IF NOT EXISTS IX_PassageInquiries_Project ON PassageInquiries (ResearchProjectId);",
 
         // The statements below are also created by migrations, and have to
         // be here as well because a NEW database never runs a migration - it

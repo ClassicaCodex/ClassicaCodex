@@ -243,7 +243,15 @@ public class SchemaMigrationTests
             "RecentSearches", "FavoriteWorks", "ApparatusEntries", "Artifacts",
             "ArtifactImages", "Lemmas", "Definitions",
             "StylometryRuns", "StylometryRunResults", "StylometryRunFeatures",
-            "StylometryExperiments", "StylometryExperimentRows"
+            "StylometryExperiments", "StylometryExperimentRows",
+            "ResearchProjects", "ResearchQuestions", "EvidenceItems",
+            "EvidenceGenerationMetadata", "ResearchLogEntries", "ScholarlyClaims",
+            "EvidenceAttachments", "EvidencePageAnnotations", "EvidenceBibliographyMetadata",
+            "ResearchCorpusSnapshots", "ResearchCorpusSnapshotEntries", "ResearchReadingItems",
+            "ResearchFindings", "ResearchFindingEvidence",
+            "ResearchEchoInvestigations", "ResearchEchoResults", "ResearchEchoParallelAnalyses",
+            "ResearchHypotheses", "ResearchHypothesisAssessments", "ResearchExperiments",
+            "PassageInquiries"
         };
 
         await using var conn = await DbConnectionFactory.OpenConnectionAsync();

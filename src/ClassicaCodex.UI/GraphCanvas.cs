@@ -10,6 +10,7 @@ namespace ClassicaCodex.UI;
 /// </summary>
 public class GraphCanvas : Panel
 {
+    public string EmptyMessage { get; set; } = "No tags yet - right-click a line in the reader to add some, then reopen this.";
     private class VisualNode
     {
         public int TagId;
@@ -215,7 +216,7 @@ public class GraphCanvas : Panel
             using var emptyFont = new Font(Font, FontStyle.Italic);
             using var emptyBrush = new SolidBrush(ReadingTheme.MutedText);
             e.Graphics.DrawString(
-                "No tags yet - right-click a line in the reader to add some, then reopen this.",
+                EmptyMessage,
                 emptyFont, emptyBrush, new PointF(16, 16));
             return;
         }

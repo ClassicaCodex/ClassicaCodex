@@ -5,6 +5,7 @@ namespace ClassicaCodex.UI;
 
 public class EchoResultsForm : Form
 {
+    private readonly TextNode _sourceNode;
     private readonly Label _sourceLabel;
     private readonly ListBox _resultsList;
     private readonly TextNodeRepository _textNodeRepo = new();
@@ -16,6 +17,7 @@ public class EchoResultsForm : Form
 
     public EchoResultsForm(TextNode sourceNode)
     {
+        _sourceNode = sourceNode;
         Text = "Intertextual Echoes";
         AppIcons.ApplyWindowIcon(this, "SimilarWorks");
         Width = 900;
@@ -47,7 +49,7 @@ public class EchoResultsForm : Form
             Left = 12,
             Top = 90,
             Width = 860,
-            Height = 480,
+            Height = 438,
             Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right,
             HorizontalScrollbar = true
         };
@@ -67,9 +69,36 @@ public class EchoResultsForm : Form
         Controls.Add(explainer);
         Controls.Add(_resultsList);
 
+        var save = new Button
+        {
+            Text = "Save investigation…", Left = 12, Top = 538, Width = 150, Height = 30,
+            Anchor = AnchorStyles.Bottom | AnchorStyles.Left
+        };
+        save.Click += async (_, _) => await SaveInvestigationAsync();
+        Controls.Add(save);
+
         Load += async (_, _) => await LoadEchoesAsync(sourceNode.TextNodeId);
         ReadingTheme.AttachTo(this);
         WindowShortcuts.CloseOnEscape(this);
+    }
+
+    private async Task SaveInvestigationAsync()
+    {
+        if (_currentResults.Count == 0) { MessageBox.Show(this, "There are no candidates to save."); return; }
+        var source = await _textNodeRepo.GetPassageResearchIdentityAsync(_sourceNode.TextNodeId);
+        if (source == null) { MessageBox.Show(this, "The source passage is no longer present in the local corpus."); return; }
+        var request = new ClassicaCodex.Core.EchoCaptureRequest(
+            ClassicaCodex.Core.ResearchEchoMethod.RareWordOverlap, source,
+            $"Rare-word echoes of {source.WorkTitle} {source.CitationRef}",
+            "Local corpus; same original/translation edition kind as the source",
+            "Normalized rare-word overlap; ranked by the number of shared rare source words.",
+            null, null, null,
+            _currentResults.Select(r => new ClassicaCodex.Core.EchoCaptureCandidate(
+                r.WorkId, r.TextNodeId, r.AuthorName, r.WorkTitle, r.CitationRef, r.Text,
+                r.SharedWordCount, $"{r.SharedWordCount} shared rare word(s)", null)).ToList());
+        using var form = new ResearchEchoCaptureForm(request);
+        if (form.ShowDialog(this) == DialogResult.OK)
+            MessageBox.Show(this, "The candidates are saved for human review in Research Bench → Project → Echo investigations.");
     }
 
     private async Task LoadEchoesAsync(long sourceTextNodeId)

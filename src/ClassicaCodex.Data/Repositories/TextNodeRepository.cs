@@ -7,6 +7,30 @@ namespace ClassicaCodex.Data.Repositories;
 public class TextNodeRepository
 {
     /// <summary>
+    /// Resolves a saved passage after a corpus re-ingest. TextNodeId is only
+    /// a fast hint; edition CTS URN plus citation is the durable address.
+    /// Exact saved text breaks ties when an edition contains duplicate refs.
+    /// </summary>
+    public async Task<(int WorkId, long TextNodeId)?> ResolvePassageNavigationAsync(
+        long textNodeIdHint, string editionCtsUrn, string citationRef, string savedText,
+        CancellationToken cancellationToken = default)
+    {
+        await using var conn = await DbConnectionFactory.OpenConnectionAsync(cancellationToken);
+        await using var cmd = conn.CreateCommand();
+        cmd.CommandText = @"SELECT w.WorkId,tn.TextNodeId FROM TextNodes tn
+            JOIN Editions e ON e.EditionId=tn.EditionId JOIN Works w ON w.WorkId=e.WorkId
+            WHERE e.CtsUrn=@Edition AND (tn.TextNodeId=@Hint OR tn.CitationRef=@Citation)
+            ORDER BY CASE WHEN tn.TextNodeId=@Hint THEN 0 WHEN tn.Text=@Text THEN 1 ELSE 2 END,
+                     tn.SortOrder,tn.TextNodeId LIMIT 1;";
+        cmd.Parameters.AddWithValue("@Edition", editionCtsUrn);
+        cmd.Parameters.AddWithValue("@Hint", textNodeIdHint);
+        cmd.Parameters.AddWithValue("@Citation", citationRef);
+        cmd.Parameters.AddWithValue("@Text", savedText);
+        await using var reader = await cmd.ExecuteReaderAsync(cancellationToken);
+        return await reader.ReadAsync(cancellationToken) ? (reader.GetInt32(0), reader.GetInt64(1)) : null;
+    }
+
+    /// <summary>
     /// How many matching lines a search returns before it stops and says so.
     /// Not a correctness limit - it's there so a two-letter query against a
     /// multi-million-line corpus doesn't try to materialise the whole thing
@@ -994,6 +1018,27 @@ public class TextNodeRepository
         if (!await reader.ReadAsync(cancellationToken)) return null;
 
         return (reader.GetString(0), reader.GetString(1), reader.GetString(2), reader.GetString(3));
+    }
+
+    /// <summary>Stable corpus identity for persisting a passage in a research investigation.</summary>
+    public async Task<PassageResearchIdentity?> GetPassageResearchIdentityAsync(
+        long textNodeId, CancellationToken cancellationToken = default)
+    {
+        await using var conn = await DbConnectionFactory.OpenConnectionAsync(cancellationToken);
+        await using var cmd = conn.CreateCommand();
+        cmd.CommandText = @"SELECT w.WorkId,tn.TextNodeId,e.EditionId,a.Name,w.Title,w.CtsUrn,e.CtsUrn,
+            tn.CitationRef,tn.Text,e.Language FROM TextNodes tn
+            JOIN Editions e ON e.EditionId=tn.EditionId
+            JOIN Works w ON w.WorkId=e.WorkId
+            JOIN Authors a ON a.AuthorId=w.AuthorId
+            WHERE tn.TextNodeId=@Id;";
+        cmd.Parameters.AddWithValue("@Id", textNodeId);
+        await using var reader = await cmd.ExecuteReaderAsync(cancellationToken);
+        if (!await reader.ReadAsync(cancellationToken)) return null;
+        return new PassageResearchIdentity(
+            reader.GetInt32(0), reader.GetInt64(1), reader.GetInt32(2), reader.GetString(3), reader.GetString(4),
+            reader.GetString(5), reader.GetString(6), reader.GetString(7), reader.GetString(8),
+            reader.IsDBNull(9) ? null : reader.GetString(9));
     }
 
     // \p{L} matches a letter in any script, not just ASCII. The original

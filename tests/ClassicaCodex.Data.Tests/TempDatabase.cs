@@ -101,7 +101,17 @@ public sealed class TempDatabase : IDisposable
         (16, "StylometryExperimentRows", "NearestCount"),
         (17, "Works", "AttributionStatus"),
         (17, "Works", "AttributionNote"),
-        (17, "Works", "AttributionSetByUser")
+        (17, "Works", "AttributionSetByUser"),
+        (28, "ResearchEchoInvestigations", "SourceLanguage"),
+        (28, "ResearchEchoResults", "TargetLanguage"),
+        (28, "ResearchEchoResults", "ConnectionType"),
+        (28, "ResearchEchoResults", "Directionality"),
+        (28, "ResearchEchoResults", "MotifTags"),
+        (28, "ResearchEchoResults", "ParallelNote")
+        // Migration 31 adds columns to ResearchProjects and ResearchQuestions by
+        // rebuilding both tables, not by ALTER, so neither belongs here: a rebuild
+        // replaces the whole table on replay and has no "duplicate column name" for a
+        // rewind to avoid.
     };
 
     /// <summary>

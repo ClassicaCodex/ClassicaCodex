@@ -45,6 +45,7 @@ Hover any line to see its citation reference.
 
 Right-click a line for:
    Copy to Clipboard - the line's text on its own
+   Start inquiry from this passage - begin with your own observation and a small question
    Tag this line - file it under a name you choose
    Bookmark this line - save it with a note
    Find Echoes - look for passages elsewhere that share rare wording
@@ -105,7 +106,7 @@ Ingested Translation
    If a translation edition of the work is loaded in the translation pane, this looks up the same passage in it automatically - the same citation matching Export's bilingual mode already uses, so it still lines up correctly even where the translation divides its text more coarsely than the original.
 
 AI Translation
-   The one part of Classica Codex that isn't offline. Two providers, side by side, since they trade off differently rather than one simply being better:
+   An optional online-assisted part of Classica Codex. Two providers, side by side, since they trade off differently rather than one simply being better:
 
    Claude (Anthropic)
       Costs money - there's no free tier, though a single passage runs a small fraction of a cent. Doesn't train on what you send it. Needs its own developer account and API key, separate from a claude.ai login or a Claude Pro/Max subscription even if you already have one.
@@ -113,7 +114,7 @@ AI Translation
    Gemini (Google)
       Genuinely free - no payment method, no expiration, through Google AI Studio. The tradeoff: Google's free tier may use what you send it to improve their models, so this one isn't private the way Claude's API is. Worth knowing before choosing it for anything you'd rather not have looked at.
 
-   Whichever you pick needs an internet connection - the only thing in this app that does. Nothing is sent until you click a button, and by default the app asks you to confirm every single time before it does. That confirmation can be turned off from AI Translation Settings once you're comfortable with it - it's a preference, not a one-time warning.
+   Whichever you pick needs an internet connection. Nothing is sent until you click a button, and by default the app asks you to confirm every single time before it does. That confirmation also covers Research Bench Gemini calls and can be turned off from AI Translation Settings once you're comfortable with it - it's a preference, not a one-time warning. Crossref publication discovery and live artifact images are separate online lookups described in Research Bench and Places Map below.
 
    Keys are stored encrypted, tied to your Windows user account, in a small file beside the database. Another account on the same machine can't read them.
 
@@ -340,6 +341,83 @@ Places Map
    The categories are the reason you would look a place up rather than a gazetteer's ontology, and a few are arguable: Salamis is an island and a battle, Rhodes an island and a city on it, Delphi a sanctuary and a polis. Each takes the sense a classical text most often points at. Nothing is ever hidden from the map by that choice - only its colour and which toggle hides it.
 
    Real coastlines come from the optional World Map Data setup step; without it the map still works, just with rougher built-in shapes. If the Art & Archaeology collection is loaded, objects found at a place appear alongside its passages - descriptions are stored locally, while the photographs load from Perseus's own server as you view them, so that part needs a connection.
+"""),
+
+        ("Research Bench", """
+Research Bench turns a work you have been reading or translating into a durable research workspace. Right-click the work in the library tree and choose Research. Everything in the bench belongs to that work, while a work may have several independent projects.
+
+The basic structure
+   A project is the broad inquiry or working theory. Give it a useful name, record its scope in the project notes, and keep its status current rather than replacing it when your judgment changes.
+
+   Questions break the project into things that can actually be answered. Evidence may be linked to one question or kept at project level. Reorder questions to match the investigation rather than the order in which they occurred to you.
+
+   Evidence records what you have, where it came from, and what you currently think it does. Source text, provenance, canonical reference, stable identifier, relationship, review judgment, and your interpretation are separate fields deliberately. A quotation is not an argument, and an AI interpretation is not your judgment.
+
+Starting from one passage
+   Right-click a passage in either reader pane and choose Start inquiry from this passage. The first screen stays deliberately small: the excerpt and citation are fixed in view, while you write what caught your attention and draft a question in your own words.
+
+   Read closely, Compare, and Research are directions rather than conclusions. Read closely keeps attention on language and form; Compare suggests placing the passage beside another text, translation, genre, or reception; Research opens a larger path. The note is saved by the edition's CTS identity and citation, so it survives a corpus re-ingest.
+
+   AI appears only after you choose Research. If requested, Gemini receives this one passage, its author/work/citation, and the two notes visible in the form - not the rest of the corpus, the Research Bench, or the database. Suggestions remain outside your draft until you select one, and anything copied into the question box stays editable.
+
+   Turn this into a Research Bench project appears only after your observation and question have been saved. Promotion creates a normal project, an initial research question, and a manual primary-text evidence record carrying the excerpt, CTS references, and your note. The original inquiry remains linked to the project so reopening the passage can take you back to it.
+
+Starting without a question
+   Let AI Suggest a New Project is for the point where a work interests you but you do not yet know what to ask about it. It combines the work's attribution record, existing project titles, a bounded sample of its locally ingested original-language text, and optional Crossref publication metadata. Gemini proposes several established-debate, corpus-question, or explicitly novel-theory blueprints.
+
+   Inspect a proposal before creating it. Each blueprint shows a central question, rival hypotheses, planned experiments, falsification criteria, locally keyed passages, and publications to investigate. Choosing one creates a normal project that you can rewrite or reject; it does not create conclusions or pretend that a suggested analysis has already run.
+
+   Crossref receives only the scholarly search terms shown at the top of the window. It returns bibliographic metadata and, where a publisher deposited one, an abstract. Those publications enter the Reading Queue as unreviewed leads. A title or DOI is never treated as evidence of what its author argues. If Crossref is unavailable, project discovery continues from the local corpus alone.
+
+   Gemini receives the context named in the confirmation dialog: project titles, attribution information, retrieved metadata, and a bounded corpus sample with opaque passage keys. Returned publication and passage keys are checked locally; invented keys are discarded. Prompt provenance and a fingerprint of the corpus sample are stored with accepted AI hypotheses and experiments.
+
+Gathering evidence
+   New evidence creates a manual record. Use a stable CTS or DOI identity where possible and record enough provenance that you could find the material again after re-ingesting the corpus or moving a source file.
+
+   Attach saved stylometry run connects a real saved result to the project. Open this saved run in Stylometry returns to the normal analysis window with that run loaded, so the evidence can be checked against its pool and settings.
+
+   AI: Find relevant corpus passages and AI: Challenge the working theory send the project context and a bounded original-language edition to Gemini. Returned citations must resolve against that exact local edition before they are saved. They arrive as uncertain AI candidates with the local passage text, model, prompt, corpus fingerprint, and generated time - never as accepted evidence.
+
+   The Project audit points out missing references, unreviewed candidates, unsupported findings, and other traceability gaps. It checks the state of your record; it does not decide whether an argument is true.
+
+Reading Queue and source work
+   Project > Reading queue & passage notebook is upstream of evidence. Add a corpus passage, queue an existing source, or create an external reading. Record why it matters, the exact quotation or passage, and your reading notes in their separate boxes. Mark it Reviewed only after reading it, then Promote to evidence when it genuinely belongs in the argument.
+
+   Project > Import RIS / BibTeX bibliography imports structured citations without flattening their fields. Bibliography & Zotero export writes RIS or BibTeX for another reference manager; the Zotero route requires Zotero's local integration to be available.
+
+   Source files & page notes attaches a local PDF to evidence without putting the PDF inside the database. Classica Codex records its path, size, modification time, and SHA-256 fingerprint so replacement or disappearance is visible. Page annotations retain the page number, exact quotation, note, and review judgment.
+
+   The Scholarly claims matrix records propositions attributed to scholars separately from the publications themselves. Name the claimant, transcribe or summarize the claim responsibly, provide an exact locator, link its source, and record your verification and stance. An imported citation does not become a scholarly claim automatically.
+
+Testing explanations
+   Project > Hypothesis Lab keeps rival explanations side by side. A hypothesis needs a testable statement, not merely a topic. The assessment matrix records whether each reviewed source supports, contradicts, contextualizes, or fails to discriminate between the alternatives, with strength and researcher notes kept explicit.
+
+   Falsification experiments state the expected outcome and what result would count against the linked explanation before running anything. Open method tool sends a planned Stylometry, Corpus Investigator, Parallel Studio, Bibliography, or Reading Queue experiment to the appropriate normal workflow. Changing an experiment to Completed is a human action; an AI suggestion never marks itself complete.
+
+   AI challenge asks Gemini for rival hypotheses and discriminating tests. Check only the proposals worth retaining. Accepted proposals preserve their AI origin but remain candidates, not facts.
+
+Echoes and close reading
+   Saved same-language and cross-language echo searches appear under Echo investigations. Each investigation retains the source passage, search method, settings, target passages, scores, AI provenance where applicable, and your pending, accepted, or rejected disposition.
+
+   Parallel Passage Studio opens a saved pair for close reading. Classify the kind of connection, possible direction, motifs, and your own parallel note. AI may suggest shared features, differences, lexical observations, alternative explanations, and verification tasks, but its reading is stored separately from your classification.
+
+   Intertextual Atlas visualizes reviewed passage relationships as a network. Its lines aggregate saved passage-level records; click a node or edge to inspect the underlying pairs rather than treating the picture as independent evidence.
+
+   Corpus Investigator begins with a reviewed parallel and asks Gemini to find locally resolved passages that might confirm, complicate, or falsify it across a chosen corpus scope. Candidates stay pending until you inspect them.
+
+Findings, synthesis, and export
+   Project > Synthesis & findings is where evidence becomes a proposition. Link only evidence you have weighed and state its role for that particular finding. Project-level and finding-level relationships may differ because one source can matter in different ways to different claims.
+
+   AI synthesis drafts a labelled candidate from the saved record. It is stored beside, never in place of, the researcher conclusion. Rewrite or reject it; changing a finding's status is always a human judgment.
+
+   Export the research dossier to Markdown when you need a portable record. It includes questions, evidence and provenance, bibliography, claims, findings, hypotheses, experiments, echoes, and unresolved audit concerns so an argument does not become separated from how it was produced.
+
+Reproducibility and history
+   Corpus snapshots freeze the identities, editions, attribution judgments, counts, and ordered-text hashes behind a project. Compare a later snapshot before treating two runs as directly comparable.
+
+   Research log is an append-only account of project changes. Removing a question or evidence item does not erase the human-readable history of what happened. Archiving a project is recoverable and is the normal way to put finished or abandoned work aside.
+
+The governing rule throughout the bench is simple: AI and automated searches may propose where to look, but the human researcher decides what was read, what was verified, what counts as evidence, and what the evidence warrants.
 """),
 
         ("Exporting passages", """

@@ -62,6 +62,9 @@ public class CrossLanguageEchoForm : Form
 
     private List<(TextNode Node, EchoCandidate Candidate)> _verifiedResults = new();
     private int _comparisonWorkId;
+    private GeminiEchoResult? _lastAiResult;
+    private DateTime? _lastAiGeneratedUtc;
+    private string? _lastTruncatedAtRef;
 
     // Captured alongside the work id when a comparison target is chosen -
     // the results themselves are bare TextNodes, which carry no attribution,
@@ -218,6 +221,13 @@ public class CrossLanguageEchoForm : Form
         };
         CancelButton = closeButton;
 
+        var saveButton = new Button
+        {
+            Text = "Save investigation…", Left = 12, Top = 622, Width = 150, Height = 30,
+            Anchor = AnchorStyles.Bottom | AnchorStyles.Left
+        };
+        saveButton.Click += async (_, _) => await SaveInvestigationAsync();
+
         Controls.Add(sourceLabel);
         Controls.Add(_sourceBox);
         Controls.Add(pickLabel);
@@ -228,6 +238,7 @@ public class CrossLanguageEchoForm : Form
         Controls.Add(_statusLabel);
         Controls.Add(_explainerLabel);
         Controls.Add(_resultsListBox);
+        Controls.Add(saveButton);
         Controls.Add(closeButton);
 
         RefreshFindButtonState();
@@ -322,6 +333,8 @@ public class CrossLanguageEchoForm : Form
         _statusLabel.Text = "Reading the comparison work...";
         _resultsListBox.Items.Clear();
         _verifiedResults = new List<(TextNode, EchoCandidate)>();
+        _lastAiResult = null;
+        _lastAiGeneratedUtc = null;
         _comparisonWorkId = selected.Edition.WorkId;
         _comparisonAuthorName = selected.Edition.AuthorName;
         _comparisonWorkTitle = selected.Edition.WorkTitle;
@@ -345,15 +358,17 @@ public class CrossLanguageEchoForm : Form
                 selected.Edition.EditionId, readingLinesOnly: true);
 
             var (taggedText, truncatedAtRef) = BuildTaggedComparisonText(comparisonNodes);
+            _lastTruncatedAtRef = truncatedAtRef;
 
             _statusLabel.Text = "Asking Gemini...";
             var apiKey = TranslationSettings.GeminiApiKey!;
-            var candidates = await GeminiTranslationService.FindEchoesAsync(
+            _lastAiResult = await GeminiTranslationService.FindEchoesWithProvenanceAsync(
                 _sourceNode.Text, _sourceLanguage, _sourceAuthorName, _sourceWorkTitle, _sourceNode.CitationRef,
                 selected.Edition.AuthorName, selected.Edition.WorkTitle, selected.Edition.Language,
                 taggedText, apiKey);
+            _lastAiGeneratedUtc = DateTime.UtcNow;
 
-            VerifyAndDisplayResults(candidates, comparisonNodes, truncatedAtRef);
+            VerifyAndDisplayResults(_lastAiResult.Candidates.ToList(), comparisonNodes, truncatedAtRef);
         }
         catch (Exception ex)
         {
@@ -364,6 +379,31 @@ public class CrossLanguageEchoForm : Form
         {
             RefreshFindButtonState();
         }
+    }
+
+    private async Task SaveInvestigationAsync()
+    {
+        if (_verifiedResults.Count == 0 || _lastAiResult == null)
+        {
+            MessageBox.Show(this, "Run a search with verified candidates before saving it.");
+            return;
+        }
+        var source = await _textNodeRepo.GetPassageResearchIdentityAsync(_sourceNode.TextNodeId);
+        if (source == null) { MessageBox.Show(this, "The source passage is no longer present in the local corpus."); return; }
+        var scope = $"{_comparisonAuthorName}, {_comparisonWorkTitle}" +
+                    (_lastTruncatedAtRef == null ? " (complete ingested edition)" : $" (through {_lastTruncatedAtRef})");
+        var request = new EchoCaptureRequest(
+            ResearchEchoMethod.AiCrossLanguage, source,
+            $"Cross-language echoes: {source.WorkTitle} {source.CitationRef} → {_comparisonWorkTitle}",
+            scope,
+            "Gemini thematic/imagistic comparison. Returned citations were resolved exactly against local reading-text nodes; unsupported words in rationales remain flagged for human checking.",
+            _lastAiResult.Model, _lastAiResult.PromptProvenance, _lastAiGeneratedUtc,
+            _verifiedResults.Select(r => new EchoCaptureCandidate(
+                _comparisonWorkId, r.Node.TextNodeId, _comparisonAuthorName, _comparisonWorkTitle,
+                r.Node.CitationRef, r.Node.Text, null, r.Candidate.Confidence, r.Candidate.Rationale)).ToList());
+        using var form = new ResearchEchoCaptureForm(request);
+        if (form.ShowDialog(this) == DialogResult.OK)
+            MessageBox.Show(this, "The verified candidates and Gemini provenance are saved for review in Research Bench → Project → Echo investigations.");
     }
 
     /// <summary>

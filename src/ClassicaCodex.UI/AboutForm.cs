@@ -200,14 +200,38 @@ public class AboutForm : Form
             "assembled from whichever level each word happened to carry would belong to no scribe and no " +
             "dictionary.");
 
+        AddHeading(scrollHost, "Online Services & Privacy", ref y, 14, FontStyle.Bold);
         AddParagraph(scrollHost,
-            "One more thing worth being plain about, separate from the data sources above: Translate's " +
-            "AI option can send a selected passage to a live third-party API on request - either " +
-            "Anthropic's Claude or Google's Gemini, whichever you set up. Neither is a dataset bundled " +
-            "with this app; each needs its own API key, and each has its own terms - Gemini's free tier " +
-            "in particular may use what's sent to it to improve Google's models, which Claude's paid API " +
-            "doesn't. Nothing is sent unless you explicitly ask for it. See Help for the details.",
+            "Classica Codex is offline-first. These optional actions use online services only when you ask:",
             ref y, 672, Color.DimGray);
+
+        AddPrivacyItem(scrollHost, ref y,
+            "AI translation - Claude or Gemini",
+            "Sends the selected passage only after you request a translation. Both providers require your " +
+            "own API key.");
+
+        AddPrivacyItem(scrollHost, ref y,
+            "Research Bench AI - Gemini",
+            "May receive the project context named in the confirmation dialog, such as questions, selected " +
+            "passages, or a bounded corpus sample. It can propose evidence, rival hypotheses, intertextual " +
+            "readings, provisional syntheses, and new projects; its suggestions still require human review.");
+
+        AddPrivacyItem(scrollHost, ref y,
+            "Publication discovery - Crossref",
+            "Sends only the editable scholarly search terms. It never sends corpus text, notes, evidence, " +
+            "or the project database, and it needs no API key. Returned metadata is saved as reading leads, " +
+            "not as proof of what a publication argues.");
+
+        AddPrivacyItem(scrollHost, ref y,
+            "You stay in control",
+            "Nothing is sent until you click the corresponding action. Confirmation prompts can remain " +
+            "enabled in AI Translation Settings. Review each provider's current privacy and data-use terms " +
+            "before sending sensitive or unpublished material. See Help for the complete workflow.");
+
+        // AutoScroll normally derives its range from the final child control. An explicit
+        // bottom margin prevents the last wrapped line from ending underneath the fixed
+        // Close-button strip, especially at non-default Windows text scaling.
+        scrollHost.AutoScrollMinSize = new Size(0, y + 28);
 
         var closeButton = new Button
         {
@@ -260,6 +284,39 @@ public class AboutForm : Form
         };
         parent.Controls.Add(label);
         y += label.Height + 6;
+    }
+
+    private static void AddPrivacyItem(Control parent, ref int y, string title, string description)
+    {
+        var titleLabel = new Label
+        {
+            Text = "•  " + title,
+            Left = 22,
+            Top = y,
+            Width = 660,
+            Height = 20,
+            Font = new Font(SystemFonts.DefaultFont, FontStyle.Bold)
+        };
+        parent.Controls.Add(titleLabel);
+        y += titleLabel.Height + 2;
+
+        const int descriptionWidth = 644;
+        var descriptionLabel = new Label
+        {
+            Text = description,
+            Left = 38,
+            Top = y,
+            Width = descriptionWidth,
+            AutoSize = false,
+            // Measure a slightly narrower line than the label's nominal width. Label's
+            // internal text padding otherwise lets TextRenderer predict one fewer line
+            // than WinForms ultimately draws at some DPI/font combinations.
+            Height = TextRenderer.MeasureText(description, SystemFonts.DefaultFont,
+                new Size(descriptionWidth - 10, int.MaxValue), TextFormatFlags.WordBreak).Height + 10,
+            ForeColor = Color.DimGray
+        };
+        parent.Controls.Add(descriptionLabel);
+        y += descriptionLabel.Height + 8;
     }
 
     private static void AddSourceSection(
