@@ -202,24 +202,36 @@ public class AboutForm : Form
 
         AddHeading(scrollHost, "Online Services & Privacy", ref y, 14, FontStyle.Bold);
         AddParagraph(scrollHost,
-            "Translation can send a selected passage to Anthropic's Claude or Google's Gemini when you " +
-            "explicitly request it. Research Bench AI tools use Gemini to propose corpus evidence, rival " +
-            "hypotheses, intertextual readings, provisional syntheses, and new research projects. These " +
-            "calls send only the context described in the confirmation shown before the request - such as " +
-            "a bounded corpus sample, project questions, or selected passages. Gemini requires your own API " +
-            "key. Each provider's current data-use and privacy terms apply, so review them before sending " +
-            "sensitive or unpublished material.",
+            "Classica Codex is offline-first. These optional actions use online services only when you ask:",
             ref y, 672, Color.DimGray);
 
-        AddParagraph(scrollHost,
-            "The new-project assistant can also query Crossref's public REST API for publication metadata. " +
-            "Crossref receives only the editable scholarly search terms - never your corpus text, notes, " +
-            "evidence, or project database - and needs no API key. Returned titles, authors, years, DOIs, " +
-            "links, and deposited abstracts are saved only as reading leads. Classica Codex never treats " +
-            "metadata as proof of what a publication argues. Nothing is sent to Gemini or Crossref until " +
-            "you click the corresponding AI or discovery action; confirmation prompts can remain enabled " +
-            "in AI Translation Settings. See Help for the complete Research Bench workflow.",
-            ref y, 672, Color.DimGray);
+        AddPrivacyItem(scrollHost, ref y,
+            "AI translation - Claude or Gemini",
+            "Sends the selected passage only after you request a translation. Both providers require your " +
+            "own API key.");
+
+        AddPrivacyItem(scrollHost, ref y,
+            "Research Bench AI - Gemini",
+            "May receive the project context named in the confirmation dialog, such as questions, selected " +
+            "passages, or a bounded corpus sample. It can propose evidence, rival hypotheses, intertextual " +
+            "readings, provisional syntheses, and new projects; its suggestions still require human review.");
+
+        AddPrivacyItem(scrollHost, ref y,
+            "Publication discovery - Crossref",
+            "Sends only the editable scholarly search terms. It never sends corpus text, notes, evidence, " +
+            "or the project database, and it needs no API key. Returned metadata is saved as reading leads, " +
+            "not as proof of what a publication argues.");
+
+        AddPrivacyItem(scrollHost, ref y,
+            "You stay in control",
+            "Nothing is sent until you click the corresponding action. Confirmation prompts can remain " +
+            "enabled in AI Translation Settings. Review each provider's current privacy and data-use terms " +
+            "before sending sensitive or unpublished material. See Help for the complete workflow.");
+
+        // AutoScroll normally derives its range from the final child control. An explicit
+        // bottom margin prevents the last wrapped line from ending underneath the fixed
+        // Close-button strip, especially at non-default Windows text scaling.
+        scrollHost.AutoScrollMinSize = new Size(0, y + 28);
 
         var closeButton = new Button
         {
@@ -272,6 +284,39 @@ public class AboutForm : Form
         };
         parent.Controls.Add(label);
         y += label.Height + 6;
+    }
+
+    private static void AddPrivacyItem(Control parent, ref int y, string title, string description)
+    {
+        var titleLabel = new Label
+        {
+            Text = "•  " + title,
+            Left = 22,
+            Top = y,
+            Width = 660,
+            Height = 20,
+            Font = new Font(SystemFonts.DefaultFont, FontStyle.Bold)
+        };
+        parent.Controls.Add(titleLabel);
+        y += titleLabel.Height + 2;
+
+        const int descriptionWidth = 644;
+        var descriptionLabel = new Label
+        {
+            Text = description,
+            Left = 38,
+            Top = y,
+            Width = descriptionWidth,
+            AutoSize = false,
+            // Measure a slightly narrower line than the label's nominal width. Label's
+            // internal text padding otherwise lets TextRenderer predict one fewer line
+            // than WinForms ultimately draws at some DPI/font combinations.
+            Height = TextRenderer.MeasureText(description, SystemFonts.DefaultFont,
+                new Size(descriptionWidth - 10, int.MaxValue), TextFormatFlags.WordBreak).Height + 10,
+            ForeColor = Color.DimGray
+        };
+        parent.Controls.Add(descriptionLabel);
+        y += descriptionLabel.Height + 8;
     }
 
     private static void AddSourceSection(
