@@ -361,10 +361,17 @@ public sealed class ResearchSynthesisForm : Form
             FileName = SafeName(_project.Name) + "-research-dossier.md"
         };
         if (dialog.ShowDialog(this) != DialogResult.OK) return;
+        var hypothesisRepo = new ResearchHypothesisRepository();
+        var hypotheses = await hypothesisRepo.GetHypothesesAsync(_project.ResearchProjectId);
+        var hypothesisLinks = new Dictionary<long, IReadOnlyList<ResearchHypothesisAssessment>>();
+        foreach (var hypothesis in hypotheses)
+            hypothesisLinks[hypothesis.ResearchHypothesisId] = await hypothesisRepo.GetAssessmentsAsync(hypothesis.ResearchHypothesisId);
         var dossier = new ResearchDossierData(_project, _work.Title, _authorName, _questions, _allEvidence,
             _claims, findings, links,
             await new ResearchCorpusSnapshotRepository().GetSnapshotsAsync(_project.ResearchProjectId),
-            await _research.GetResearchLogAsync(_project.ResearchProjectId));
+            await _research.GetResearchLogAsync(_project.ResearchProjectId), hypotheses, hypothesisLinks,
+            await hypothesisRepo.GetSourcesAsync(_project.ResearchProjectId),
+            await hypothesisRepo.GetExperimentsAsync(_project.ResearchProjectId));
         await File.WriteAllTextAsync(dialog.FileName, ResearchDossierExport.ToMarkdown(dossier));
         await _research.AddSystemResearchLogEntryAsync(new ResearchLogEntry
         {

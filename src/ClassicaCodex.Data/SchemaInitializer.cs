@@ -55,7 +55,7 @@ public static class SchemaInitializer
     /// 7 to 13 until version 3 was cut, at which point they all failed at
     /// once and said nothing about what had actually broken.
     /// </summary>
-    public const int TargetSchemaVersion = 28;
+    public const int TargetSchemaVersion = 29;
 
     public static async Task EnsureSchemaAsync(CancellationToken cancellationToken = default)
     {
@@ -903,6 +903,19 @@ public static class SchemaInitializer
             "ALTER TABLE ResearchEchoResults ADD COLUMN ParallelNote TEXT NULL;",
             ResearchEchoParallelAnalysesDdl,
             "CREATE INDEX IF NOT EXISTS IX_ResearchEchoParallelAnalyses_Result ON ResearchEchoParallelAnalyses (ResearchEchoResultId, CreatedUtc, ResearchEchoParallelAnalysisId);"
+        },
+
+        // v29: competing explanations, explicit source-to-hypothesis assessments,
+        // and falsification experiments. AI provenance belongs to an accepted
+        // proposal, while the assessment matrix remains wholly researcher-owned.
+        [29] = new[]
+        {
+            ResearchHypothesesDdl,
+            ResearchHypothesisAssessmentsDdl,
+            ResearchExperimentsDdl,
+            "CREATE INDEX IF NOT EXISTS IX_ResearchHypotheses_Project ON ResearchHypotheses (ResearchProjectId, SortOrder, ResearchHypothesisId);",
+            "CREATE INDEX IF NOT EXISTS IX_ResearchHypothesisAssessments_Hypothesis ON ResearchHypothesisAssessments (ResearchHypothesisId, SourceKind, SourceId);",
+            "CREATE INDEX IF NOT EXISTS IX_ResearchExperiments_Project ON ResearchExperiments (ResearchProjectId, Status, SortOrder, ResearchExperimentId);"
         }
     };
 
@@ -1235,6 +1248,62 @@ public static class SchemaInitializer
             REFERENCES ResearchEchoResults(ResearchEchoResultId) ON DELETE CASCADE
     );";
 
+    private const string ResearchHypothesesDdl = @"CREATE TABLE IF NOT EXISTS ResearchHypotheses (
+        ResearchHypothesisId INTEGER PRIMARY KEY,
+        ResearchProjectId INTEGER NOT NULL,
+        Title TEXT NOT NULL,
+        Statement TEXT NOT NULL,
+        Status TEXT NOT NULL DEFAULT 'active',
+        Origin TEXT NOT NULL DEFAULT 'manual',
+        ResearcherNote TEXT NULL,
+        AiModel TEXT NULL,
+        AiPrompt TEXT NULL,
+        AiGeneratedUtc TEXT NULL,
+        SortOrder INTEGER NOT NULL DEFAULT 0,
+        CreatedUtc TEXT NOT NULL,
+        UpdatedUtc TEXT NOT NULL,
+        CONSTRAINT FK_ResearchHypotheses_Projects FOREIGN KEY (ResearchProjectId)
+            REFERENCES ResearchProjects(ResearchProjectId) ON DELETE CASCADE
+    );";
+
+    private const string ResearchHypothesisAssessmentsDdl = @"CREATE TABLE IF NOT EXISTS ResearchHypothesisAssessments (
+        ResearchHypothesisAssessmentId INTEGER PRIMARY KEY,
+        ResearchHypothesisId INTEGER NOT NULL,
+        SourceKind TEXT NOT NULL,
+        SourceId INTEGER NOT NULL,
+        Relationship TEXT NOT NULL DEFAULT 'contextualizes',
+        Strength TEXT NOT NULL DEFAULT 'moderate',
+        ResearcherNote TEXT NULL,
+        CreatedUtc TEXT NOT NULL,
+        UpdatedUtc TEXT NOT NULL,
+        CONSTRAINT UQ_ResearchHypothesisAssessments_Source UNIQUE (ResearchHypothesisId, SourceKind, SourceId),
+        CONSTRAINT FK_ResearchHypothesisAssessments_Hypotheses FOREIGN KEY (ResearchHypothesisId)
+            REFERENCES ResearchHypotheses(ResearchHypothesisId) ON DELETE CASCADE
+    );";
+
+    private const string ResearchExperimentsDdl = @"CREATE TABLE IF NOT EXISTS ResearchExperiments (
+        ResearchExperimentId INTEGER PRIMARY KEY,
+        ResearchProjectId INTEGER NOT NULL,
+        ResearchHypothesisId INTEGER NULL,
+        Title TEXT NOT NULL,
+        Method TEXT NOT NULL DEFAULT 'manual',
+        Status TEXT NOT NULL DEFAULT 'planned',
+        PredictedOutcome TEXT NULL,
+        FalsificationCriterion TEXT NULL,
+        ResearcherNote TEXT NULL,
+        Origin TEXT NOT NULL DEFAULT 'manual',
+        AiModel TEXT NULL,
+        AiPrompt TEXT NULL,
+        AiGeneratedUtc TEXT NULL,
+        SortOrder INTEGER NOT NULL DEFAULT 0,
+        CreatedUtc TEXT NOT NULL,
+        UpdatedUtc TEXT NOT NULL,
+        CONSTRAINT FK_ResearchExperiments_Projects FOREIGN KEY (ResearchProjectId)
+            REFERENCES ResearchProjects(ResearchProjectId) ON DELETE CASCADE,
+        CONSTRAINT FK_ResearchExperiments_Hypotheses FOREIGN KEY (ResearchHypothesisId)
+            REFERENCES ResearchHypotheses(ResearchHypothesisId) ON DELETE SET NULL
+    );";
+
     private static readonly string[] SchemaStatements =
     {
         ResearchProjectsDdl,
@@ -1254,6 +1323,9 @@ public static class SchemaInitializer
         ResearchEchoInvestigationsDdl,
         ResearchEchoResultsDdl,
         ResearchEchoParallelAnalysesDdl,
+        ResearchHypothesesDdl,
+        ResearchHypothesisAssessmentsDdl,
+        ResearchExperimentsDdl,
         "CREATE INDEX IF NOT EXISTS IX_ResearchProjects_Work ON ResearchProjects (WorkId, Status, UpdatedUtc);",
         "CREATE INDEX IF NOT EXISTS IX_ResearchQuestions_Project ON ResearchQuestions (ResearchProjectId, SortOrder);",
         "CREATE INDEX IF NOT EXISTS IX_EvidenceItems_Project ON EvidenceItems (ResearchProjectId, SortOrder);",
@@ -1276,6 +1348,9 @@ public static class SchemaInitializer
         "CREATE INDEX IF NOT EXISTS IX_ResearchEchoResults_Investigation ON ResearchEchoResults (ResearchEchoInvestigationId, Disposition, SortOrder, ResearchEchoResultId);",
         "CREATE INDEX IF NOT EXISTS IX_ResearchEchoResults_Evidence ON ResearchEchoResults (EvidenceItemId);",
         "CREATE INDEX IF NOT EXISTS IX_ResearchEchoParallelAnalyses_Result ON ResearchEchoParallelAnalyses (ResearchEchoResultId, CreatedUtc, ResearchEchoParallelAnalysisId);",
+        "CREATE INDEX IF NOT EXISTS IX_ResearchHypotheses_Project ON ResearchHypotheses (ResearchProjectId, SortOrder, ResearchHypothesisId);",
+        "CREATE INDEX IF NOT EXISTS IX_ResearchHypothesisAssessments_Hypothesis ON ResearchHypothesisAssessments (ResearchHypothesisId, SourceKind, SourceId);",
+        "CREATE INDEX IF NOT EXISTS IX_ResearchExperiments_Project ON ResearchExperiments (ResearchProjectId, Status, SortOrder, ResearchExperimentId);",
 
         // The statements below are also created by migrations, and have to
         // be here as well because a NEW database never runs a migration - it

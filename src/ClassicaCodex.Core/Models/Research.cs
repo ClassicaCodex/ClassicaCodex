@@ -84,7 +84,15 @@ public enum ResearchLogEntryKind
     EchoResultReviewed,
     EchoResultPromoted,
     EchoParallelClassified,
-    EchoParallelAiAnalyzed
+    EchoParallelAiAnalyzed,
+    HypothesisAdded,
+    HypothesisUpdated,
+    HypothesisRemoved,
+    HypothesisAssessmentsChanged,
+    ExperimentAdded,
+    ExperimentUpdated,
+    ExperimentRemoved,
+    HypothesisChallengeGenerated
 }
 
 /// <summary>A persistent line of inquiry attached to one work.</summary>

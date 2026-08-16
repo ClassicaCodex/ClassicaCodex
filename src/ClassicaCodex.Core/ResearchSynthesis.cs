@@ -43,7 +43,11 @@ public sealed record ResearchDossierData(
     IReadOnlyList<ResearchFinding> Findings,
     IReadOnlyDictionary<long, IReadOnlyList<ResearchFindingEvidenceLink>> FindingLinks,
     IReadOnlyList<ResearchCorpusSnapshot> CorpusSnapshots,
-    IReadOnlyList<ResearchLogEntry> Log);
+    IReadOnlyList<ResearchLogEntry> Log,
+    IReadOnlyList<ResearchHypothesis>? Hypotheses = null,
+    IReadOnlyDictionary<long, IReadOnlyList<ResearchHypothesisAssessment>>? HypothesisAssessments = null,
+    IReadOnlyList<HypothesisSource>? HypothesisSources = null,
+    IReadOnlyList<ResearchExperiment>? Experiments = null);
 
 public static class ResearchDossierExport
 {
@@ -88,6 +92,37 @@ public static class ResearchDossierExport
                                         $"[{evidence.CanonicalReference ?? evidence.StableIdentifier ?? "no stable reference"}]");
                 }
             text.AppendLine();
+        }
+
+        var hypotheses = data.Hypotheses ?? [];
+        var assessments = data.HypothesisAssessments ?? new Dictionary<long, IReadOnlyList<ResearchHypothesisAssessment>>();
+        var sources = data.HypothesisSources ?? [];
+        text.AppendLine("## Competing hypotheses").AppendLine();
+        if (hypotheses.Count == 0) text.AppendLine("No competing hypotheses have been recorded.").AppendLine();
+        foreach (var hypothesis in hypotheses.OrderBy(h => h.SortOrder))
+        {
+            text.AppendLine($"### {hypothesis.Title}").AppendLine();
+            text.AppendLine($"**{hypothesis.Status} · origin: {hypothesis.Origin}**").AppendLine();
+            text.AppendLine(hypothesis.Statement).AppendLine();
+            if (!string.IsNullOrWhiteSpace(hypothesis.ResearcherNote)) text.AppendLine($"Researcher note: {hypothesis.ResearcherNote}").AppendLine();
+            if (assessments.TryGetValue(hypothesis.ResearchHypothesisId, out var hypothesisLinks))
+                foreach (var link in hypothesisLinks)
+                {
+                    var source = sources.FirstOrDefault(s => s.Kind == link.SourceKind && s.Id == link.SourceId);
+                    text.AppendLine($"- **{link.Relationship} / {link.Strength}:** {source?.Title ?? $"{link.SourceKind} {link.SourceId}"}" +
+                                    (string.IsNullOrWhiteSpace(link.ResearcherNote) ? "" : $" — {link.ResearcherNote}"));
+                }
+            text.AppendLine();
+        }
+
+        text.AppendLine("## Falsification experiments").AppendLine();
+        foreach (var experiment in (data.Experiments ?? []).OrderBy(e => e.SortOrder))
+        {
+            text.AppendLine($"### {experiment.Title}").AppendLine();
+            text.AppendLine($"**{experiment.Status} · {experiment.Method} · origin: {experiment.Origin}**").AppendLine();
+            if (!string.IsNullOrWhiteSpace(experiment.PredictedOutcome)) text.AppendLine($"Predicted outcome: {experiment.PredictedOutcome}  ");
+            if (!string.IsNullOrWhiteSpace(experiment.FalsificationCriterion)) text.AppendLine($"Would count against it: {experiment.FalsificationCriterion}  ");
+            if (!string.IsNullOrWhiteSpace(experiment.ResearcherNote)) text.AppendLine().AppendLine(experiment.ResearcherNote).AppendLine();
         }
 
         text.AppendLine("## Corpus snapshots").AppendLine();

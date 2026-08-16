@@ -204,6 +204,7 @@ public class ResearchBenchForm : Form
         projectMenu.Items.Add("Reading queue & passage notebook…", null, async (_, _) => await OpenReadingQueueAsync());
         projectMenu.Items.Add("Echo investigations…", null, (_, _) => OpenEchoInvestigations());
         projectMenu.Items.Add("Intertextual Atlas…", null, (_, _) => OpenIntertextualAtlas());
+        projectMenu.Items.Add("Hypothesis Lab…", null, (_, _) => OpenHypothesisLab());
         projectMenu.Items.Add("Synthesis & findings…", null, (_, _) => OpenSynthesis());
         projectMenu.Items.Add(new ToolStripSeparator());
         projectMenu.Items.Add("Project audit", null, async (_, _) => await OpenProjectAuditAsync());
@@ -830,6 +831,13 @@ public class ResearchBenchForm : Form
     {
         if (CurrentProject is not { } project) return;
         using var form = new ResearchSynthesisForm(project, _work, _authorName);
+        form.ShowDialog(this);
+    }
+
+    private void OpenHypothesisLab()
+    {
+        if (_projects.SelectedItem is not ResearchProject project) return;
+        using var form = new HypothesisLabForm(project, _work, _authorName);
         form.ShowDialog(this);
     }
 
