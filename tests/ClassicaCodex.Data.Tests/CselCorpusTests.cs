@@ -205,19 +205,60 @@ public class CselCorpusTests
                     </div></body></text>
                   </TEI>");
 
-            // Without a word for the case, the folder is passed over entirely.
+            // Without somewhere to file them, such folders are passed over entirely.
             await new PerseusIngestService().IngestAsync([(Path.Combine(root, "data"), "latinLit")]);
             Assert.Equal(0L, await db.CountAsync("Authors"));
 
-            // With one, the text arrives under a name that can be read.
-            await new PerseusIngestService { UnnamedTextGroupName = "Incertus" }
-                .IngestAsync([(Path.Combine(root, "data"), "latinLit")]);
+            // Given one, the text arrives under a name that can be read.
+            await new PerseusIngestService
+            {
+                UnnamedTextGroupAuthor = ("urn:cts:latinLit:pl.incertus", "Incertus")
+            }.IngestAsync([(Path.Combine(root, "data"), "latinLit")]);
 
             Assert.Equal(1L, await db.ScalarAsync<long>(
                 "SELECT COUNT(*) FROM Authors WHERE Name = 'Incertus';"));
             Assert.Equal("placuit uniuersis episcopis",
                 Assert.Single((await new TextNodeRepository().SearchFilteredAsync(
                     new SearchFilters { Query = "episcopis" })).Rows).Text);
+
+            // A second authorless textgroup joins the same row rather than adding
+            // another. There are roughly eight hundred of these in the real corpus, and
+            // eight hundred identical author rows would be its own kind of unusable.
+            var second = Path.Combine(root, "data", "tmp27", "tmp27");
+            Directory.CreateDirectory(second);
+            File.WriteAllText(Path.Combine(root, "data", "tmp27", "__cts__.xml"),
+                @"<ti:textgroup xmlns:ti=""http://chs.harvard.edu/xmlns/cts"" urn=""urn:cts:latinLit:tmp27"">
+                    <ti:groupname xml:lang=""eng""></ti:groupname>
+                  </ti:textgroup>");
+            File.WriteAllText(Path.Combine(second, "__cts__.xml"),
+                @"<ti:work xmlns:ti=""http://chs.harvard.edu/xmlns/cts"" groupUrn=""urn:cts:latinLit:tmp27""
+                           xml:lang=""lat"" urn=""urn:cts:latinLit:tmp27.tmp27"">
+                    <ti:title xml:lang=""eng"">Carthaginense concilium</ti:title>
+                    <ti:edition urn=""urn:cts:latinLit:tmp27.tmp27.opp-lat1"" workUrn=""urn:cts:latinLit:tmp27.tmp27"">
+                      <ti:label xml:lang=""eng"">Carthaginense concilium</ti:label>
+                    </ti:edition>
+                  </ti:work>");
+            File.WriteAllText(Path.Combine(second, "e.xml"),
+                @"<TEI xmlns=""http://www.tei-c.org/ns/1.0"">
+                    <teiHeader><fileDesc><titleStmt><title>Carthaginense concilium</title></titleStmt>
+                    <publicationStmt><p>t</p></publicationStmt><sourceDesc><p>s</p></sourceDesc></fileDesc></teiHeader>
+                    <text><body><div type=""edition"" xml:lang=""lat"" n=""urn:cts:latinLit:tmp27.tmp27.opp-lat1"">
+                      <div type=""textpart"" subtype=""chapter"" n=""1""><p>concilium octauum habitum</p></div>
+                    </div></body></text>
+                  </TEI>");
+
+            await new PerseusIngestService
+            {
+                UnnamedTextGroupAuthor = ("urn:cts:latinLit:pl.incertus", "Incertus")
+            }.IngestAsync([(Path.Combine(root, "data"), "latinLit")]);
+
+            Assert.Equal(1L, await db.CountAsync("Authors"));
+            Assert.Equal(2L, await db.CountAsync("Works"));
+
+            // Each work still carries its own CTS identity, so a note binds to the
+            // passage it was written about rather than to the shared row.
+            Assert.Equal(1L, await db.ScalarAsync<long>(
+                "SELECT COUNT(*) FROM Works WHERE CtsUrn = 'urn:cts:latinLit:tmp27.tmp27';"));
         }
         finally
         {

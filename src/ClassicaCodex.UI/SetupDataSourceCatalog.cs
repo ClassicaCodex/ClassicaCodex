@@ -686,8 +686,9 @@ public static class SetupDataSourceCatalog
                         // Council of Carthage, an appendix to Cyprian, an anonymous
                         // passion - and writes "Incertus" wherever he does fill it in.
                         // Borrowing his own word keeps those texts and keeps the author
-                        // column readable.
-                        UnnamedTextGroupName = "Incertus"
+                        // column readable. Roughly one textgroup in eleven, so they
+                        // gather under a single row rather than eight hundred alike.
+                        UnnamedTextGroupAuthor = ("urn:cts:latinLit:pl.incertus", "Incertus")
                     };
                     var wrapped = new Progress<IngestProgress>(p =>
                         progress.Report($"{p.CurrentAuthor}: {p.CurrentWork} ({p.WorksProcessed}/{p.TotalWorks})"));

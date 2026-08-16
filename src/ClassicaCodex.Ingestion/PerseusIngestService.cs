@@ -51,17 +51,26 @@ public class PerseusIngestService
     public Func<string, bool>? IncludeTextGroup { get; set; }
 
     /// <summary>
-    /// What to call a textgroup whose catalog names no author. Null - the default -
-    /// passes it over, which is right for a corpus where a missing name means a
-    /// malformed file.
+    /// The one author to file every textgroup under whose catalog names nobody. Null -
+    /// the default - passes them over, which is right for a corpus where a missing name
+    /// means a malformed file.
     ///
     /// The Patrologia Latina is the case for setting it: it leaves the name empty for
     /// works that have no author to give - the Council of Carthage, an appendix to
     /// Cyprian, an anonymous passion - and names everything else normally. Those are
-    /// texts worth having, and the corpus supplies its own word for the case, using
+    /// texts worth having, and the corpus supplies its own word for the case, writing
     /// "Incertus" wherever it does fill the name in.
+    ///
+    /// One shared author rather than one per textgroup, because there are roughly eight
+    /// hundred of them: filed separately they would be eight hundred identical rows in
+    /// the library tree, which is a worse answer than either dropping them or naming
+    /// them nothing. Their works keep their own URNs, so a note still binds to the
+    /// passage it was written about; only the author they hang under is shared.
+    ///
+    /// The URN is this application's own grouping key rather than a published CTS
+    /// identifier - there is nothing to cite here, and the alternative is no row at all.
     /// </summary>
-    public string? UnnamedTextGroupName { get; set; }
+    public (string Urn, string Name)? UnnamedTextGroupAuthor { get; set; }
 
     /// <param name="repoDataPaths">
     /// Path(s) to the "data" folder inside each cloned repo, e.g.
@@ -124,16 +133,17 @@ public class PerseusIngestService
             // that case, or the file is malformed and the folder is passed over. Never
             // an author row with no name - unreadable, unsearchable, and impossible to
             // tell from the next one.
+            var groupUrn = groupInfo.Urn;
             var groupName = groupInfo.GroupName;
             if (string.IsNullOrWhiteSpace(groupName))
             {
-                if (UnnamedTextGroupName == null) continue;
-                groupName = UnnamedTextGroupName;
+                if (UnnamedTextGroupAuthor == null) continue;
+                (groupUrn, groupName) = UnnamedTextGroupAuthor.Value;
             }
 
             var authorId = await _authorRepo.UpsertAsync(new Author
             {
-                CtsUrn = groupInfo.Urn,
+                CtsUrn = groupUrn,
                 Name = groupName,
                 Namespace = ns
             }, cancellationToken);
