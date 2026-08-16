@@ -1487,7 +1487,18 @@ public class MainForm : Form
             ? _openWork
             : _worksByAuthor.Values.SelectMany(works => works)
                 .FirstOrDefault(candidate => candidate.WorkId == passage.WorkId);
-        if (work == null) return;
+        if (work == null)
+        {
+            // The project was created; only the library entry for its work is missing
+            // from the loaded tree. Returning silently makes a promotion that succeeded
+            // look like a button that did nothing.
+            MessageBox.Show(this,
+                "The research project was created, but this work is not in the library list at the " +
+                "moment, so the Research Bench cannot be opened from here. Open the work from the " +
+                "library and choose Research… to find it.",
+                "Research project created", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            return;
+        }
 
         using var bench = new ResearchBenchForm(work, passage.AuthorName, projectId);
         bench.ShowDialog(this);

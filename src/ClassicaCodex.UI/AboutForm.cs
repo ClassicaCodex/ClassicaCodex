@@ -278,8 +278,12 @@ public class AboutForm : Form
             Top = y,
             Width = width,
             AutoSize = false,
-            Height = TextRenderer.MeasureText(text, SystemFonts.DefaultFont, new Size(width, int.MaxValue),
-                TextFormatFlags.WordBreak).Height + 8,
+            // Measure a slightly narrower line than the label's nominal width, as
+            // AddPrivacyItem does. Label's internal text padding otherwise lets
+            // TextRenderer predict one fewer line than WinForms ultimately draws at
+            // some DPI and font combinations, and the last line is clipped.
+            Height = TextRenderer.MeasureText(text, SystemFonts.DefaultFont,
+                new Size(width - 10, int.MaxValue), TextFormatFlags.WordBreak).Height + 10,
             ForeColor = color ?? Color.Black
         };
         parent.Controls.Add(label);
@@ -363,16 +367,25 @@ public class AboutForm : Form
 
         if (!string.IsNullOrEmpty(note))
         {
+            // Measure in the font the label will actually draw in. Measuring the
+            // highlighted notices with the regular font underestimated them - bold is
+            // wider, so it wraps to more lines than were budgeted - and those are the
+            // two longest notes on the page, the NonCommercial licence and the image
+            // redistribution terms. Exactly the sentences that must not be half shown.
+            var noteFont = highlightNotice
+                ? new Font(SystemFonts.DefaultFont, FontStyle.Bold)
+                : SystemFonts.DefaultFont;
             var noteLabel = new Label
             {
                 Text = note,
                 Left = 16,
                 Top = y,
                 Width = 672,
-                Height = TextRenderer.MeasureText(note, SystemFonts.DefaultFont, new Size(672, int.MaxValue),
-                    TextFormatFlags.WordBreak).Height + 8,
+                AutoSize = false,
+                Height = TextRenderer.MeasureText(note, noteFont, new Size(662, int.MaxValue),
+                    TextFormatFlags.WordBreak).Height + 10,
                 ForeColor = highlightNotice ? Color.DarkRed : Color.DimGray,
-                Font = highlightNotice ? new Font(SystemFonts.DefaultFont, FontStyle.Bold) : SystemFonts.DefaultFont
+                Font = noteFont
             };
             parent.Controls.Add(noteLabel);
             y += noteLabel.Height + 8;

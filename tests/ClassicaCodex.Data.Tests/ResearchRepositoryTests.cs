@@ -1076,6 +1076,26 @@ public class ResearchRepositoryTests
     }
 
     [Fact]
+    public async Task ReorderingQuestionsThatAreAlreadyGoneDoesNotFail()
+    {
+        using var db = await TempDatabase.CreateAsync();
+        await db.SeedEditionAsync("rhesus");
+        var repo = new ResearchRepository();
+        var project = new ResearchProject { WorkId = await db.WorkIdForAsync("rhesus"), Name = "Ordering" };
+        await repo.SaveProjectAsync(project);
+
+        // The Bench can hand back an id that has since been deleted. Reading the owning
+        // project with Convert.ToInt64 turned the missing row into project 0, reordered
+        // anyway, committed, and only then failed the research log's foreign key - a raw
+        // constraint error reported for an operation that had already succeeded.
+        await repo.ReorderQuestionsAsync([9999]);
+
+        Assert.Empty(await repo.GetQuestionsAsync(project.ResearchProjectId));
+        var log = await repo.GetResearchLogAsync(project.ResearchProjectId);
+        Assert.DoesNotContain(log, entry => entry.Kind == ResearchLogEntryKind.QuestionsReordered);
+    }
+
+    [Fact]
     public async Task RemovingEvidenceClosesTheSortOrderGapSoTheNextItemLandsLast()
     {
         using var db = await TempDatabase.CreateAsync();
