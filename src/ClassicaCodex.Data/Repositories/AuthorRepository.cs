@@ -20,7 +20,20 @@ public class AuthorRepository
             INSERT INTO Authors (CtsUrn, Name, Namespace, Language)
             VALUES (@CtsUrn, @Name, @Namespace, @Language)
             ON CONFLICT(CtsUrn) DO UPDATE SET
-                Name = excluded.Name,
+                -- The name an author already has is kept. Collections disagree about
+                -- what to call the same man - urn:cts:latinLit:stoa0022 is 'Sanctus
+                -- Ambrosius' in CSEL and 'Ambrosius' in the Patrologia Latina - and
+                -- overwriting meant the row was named by whichever collection had been
+                -- imported most recently. Installing a corpus would rename authors
+                -- already in the library, so someone who knew where Ambrose was could
+                -- no longer find him, with nothing on screen to say why.
+                --
+                -- An import adds texts; it does not get to rename what is already
+                -- there. A row whose name is somehow blank still takes one.
+                Name = CASE
+                    WHEN Authors.Name IS NULL OR TRIM(Authors.Name) = '' THEN excluded.Name
+                    ELSE Authors.Name
+                END,
                 Namespace = excluded.Namespace,
                 Language = excluded.Language
             RETURNING AuthorId;";

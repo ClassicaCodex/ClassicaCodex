@@ -1,3 +1,4 @@
+using ClassicaCodex.Core.Models;
 using ClassicaCodex.Data.Repositories;
 using ClassicaCodex.Ingestion;
 using Xunit;
@@ -322,6 +323,35 @@ public class CselCorpusTests
         {
             try { Directory.Delete(root, recursive: true); } catch { /* temp dir */ }
         }
+    }
+
+    /// <summary>
+    /// That installing a collection does not rename authors already in the library.
+    ///
+    /// Collections disagree about what to call the same man: urn:cts:latinLit:stoa0022
+    /// is "Sanctus Ambrosius" in CSEL and "Ambrosius" in the Patrologia Latina. While
+    /// the upsert took the incoming name, the row was called whatever the most recent
+    /// import said - so adding a corpus renamed authors someone already knew how to
+    /// find, silently and with nothing on screen to explain it.
+    /// </summary>
+    [Fact]
+    public async Task InstallingACollectionDoesNotRenameAnAuthorAlreadyInTheLibrary()
+    {
+        using var db = await TempDatabase.CreateAsync();
+        var authors = new AuthorRepository();
+
+        var first = await authors.UpsertAsync(new Author
+        {
+            CtsUrn = "urn:cts:latinLit:stoa0022", Name = "Sanctus Ambrosius", Namespace = "latinLit"
+        });
+
+        var second = await authors.UpsertAsync(new Author
+        {
+            CtsUrn = "urn:cts:latinLit:stoa0022", Name = "Ambrosius", Namespace = "latinLit"
+        });
+
+        Assert.Equal(first, second); // the same row, joined rather than duplicated
+        Assert.Equal("Sanctus Ambrosius", Assert.Single(await authors.GetAllAsync()).Name);
     }
 
     [Fact]
