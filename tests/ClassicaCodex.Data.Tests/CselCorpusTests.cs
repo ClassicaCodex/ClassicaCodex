@@ -71,6 +71,89 @@ public class CselCorpusTests
             </text>
           </TEI>";
 
+    /// <summary>
+    /// That the same work arriving from two collections gains a second edition rather
+    /// than replacing the first.
+    ///
+    /// The Patrologia Latina step tells the researcher exactly this - that where a work
+    /// also appears in CSEL, the two sit side by side and the critical edition is not
+    /// overwritten by the reprint. It rests on Author and Work upserting by CTS URN
+    /// while editions key on their own, which is a property of the repositories rather
+    /// than anything either step does, and so is worth pinning where a change to that
+    /// upsert would be caught.
+    /// </summary>
+    [Fact]
+    public async Task TheSameWorkFromTwoCollectionsGainsAnEditionRatherThanLosingOne()
+    {
+        using var db = await TempDatabase.CreateAsync();
+        var editions = new EditionRepository();
+
+        static string Group(string urn, string name) =>
+            $@"<ti:textgroup xmlns:ti=""http://chs.harvard.edu/xmlns/cts"" urn=""{urn}"">
+                 <ti:groupname xml:lang=""eng"">{name}</ti:groupname>
+               </ti:textgroup>";
+
+        static string Work(string editionUrn) =>
+            $@"<ti:work xml:lang=""lat"" xmlns:ti=""http://chs.harvard.edu/xmlns/cts""
+                        groupUrn=""urn:cts:latinLit:stoa0022"" urn=""urn:cts:latinLit:stoa0022.stoa001"">
+                 <ti:title xml:lang=""lat"">De Ciuitate Dei</ti:title>
+                 <ti:edition xml:lang=""lat"" workUrn=""urn:cts:latinLit:stoa0022.stoa001"" urn=""{editionUrn}"">
+                   <ti:label xml:lang=""lat"">De Ciuitate Dei</ti:label>
+                 </ti:edition>
+               </ti:work>";
+
+        static string Text(string editionUrn, string line) =>
+            $@"<TEI xmlns=""http://www.tei-c.org/ns/1.0"">
+                 <teiHeader><fileDesc><titleStmt><title>De Ciuitate Dei</title></titleStmt>
+                 <publicationStmt><p>t</p></publicationStmt><sourceDesc><p>s</p></sourceDesc></fileDesc></teiHeader>
+                 <text><body><div type=""edition"" xml:lang=""lat"" n=""{editionUrn}"">
+                   <div type=""textpart"" subtype=""chapter"" n=""1""><p>{line}</p></div>
+                 </div></body></text>
+               </TEI>";
+
+        async Task IngestAsync(string root, string editionUrn, string line, string collection)
+        {
+            var dir = Path.Combine(root, "data", "stoa0022", "stoa001");
+            Directory.CreateDirectory(dir);
+            File.WriteAllText(Path.Combine(root, "data", "stoa0022", "__cts__.xml"),
+                Group("urn:cts:latinLit:stoa0022", "Augustine"));
+            File.WriteAllText(Path.Combine(dir, "__cts__.xml"), Work(editionUrn));
+            File.WriteAllText(Path.Combine(dir, editionUrn.Split(':').Last() + ".xml"), Text(editionUrn, line));
+            await new PerseusIngestService().IngestAsync([(Path.Combine(root, "data"), "latinLit")]);
+            await editions.StampCollectionAsync(root, collection);
+        }
+
+        var cselRoot = Path.Combine(Path.GetTempPath(), "cc-two-" + Guid.NewGuid().ToString("N"));
+        var patrologiaRoot = Path.Combine(Path.GetTempPath(), "cc-two-" + Guid.NewGuid().ToString("N"));
+        try
+        {
+            await IngestAsync(cselRoot, "urn:cts:latinLit:stoa0022.stoa001.opp-lat1", "ciuitas dei critica", "csel");
+            await IngestAsync(patrologiaRoot, "urn:cts:latinLit:stoa0022.stoa001.opp-lat2", "ciuitas dei migne", "patrologia-latina");
+
+            // One author, one work - they merged on CTS identity, as intended.
+            Assert.Equal(1L, await db.CountAsync("Authors"));
+            Assert.Equal(1L, await db.CountAsync("Works"));
+
+            // Two editions of it, one per collection, neither overwritten.
+            var workId = await db.ScalarAsync<int>(
+                "SELECT WorkId FROM Works WHERE CtsUrn = 'urn:cts:latinLit:stoa0022.stoa001';");
+            Assert.Equal(2, (await editions.GetByWorkAsync(workId)).Count);
+            Assert.Equal(["csel", "patrologia-latina"], await editions.GetCollectionsAsync());
+
+            // And each is reachable on its own, which is the point of having both.
+            var repo = new TextNodeRepository();
+            var migneOnly = new SearchFilters { Query = "ciuitas" };
+            migneOnly.Collections.Add("patrologia-latina");
+            Assert.Equal("ciuitas dei migne",
+                Assert.Single((await repo.SearchFilteredAsync(migneOnly)).Rows).Text);
+        }
+        finally
+        {
+            foreach (var root in new[] { cselRoot, patrologiaRoot })
+                try { Directory.Delete(root, recursive: true); } catch { /* temp dir */ }
+        }
+    }
+
     [Fact]
     public async Task ACselVolumeImportsAsLatinWithItsFootnotesOutOfTheReadingText()
     {

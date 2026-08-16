@@ -32,6 +32,7 @@ public static class SetupDataSourceCatalog
         public const string PerseusLatin = "perseus-latin";
         public const string First1KGreek = "first1k-greek";
         public const string Csel = "csel";
+        public const string PatrologiaLatina = "patrologia-latina";
         public const string Renaissance = "renaissance";
         public const string Menota = "menota";
     }
@@ -48,6 +49,7 @@ public static class SetupDataSourceCatalog
         CollectionKeys.PerseusLatin => "Ancient Latin (Perseus)",
         CollectionKeys.First1KGreek => "Post-Classical Greek (First1KGreek)",
         CollectionKeys.Csel => "Latin Church Fathers (CSEL)",
+        CollectionKeys.PatrologiaLatina => "Patrologia Latina (Migne)",
         CollectionKeys.Renaissance => "English Literature (Renaissance)",
         CollectionKeys.Menota => "Medieval Nordic (Menota)",
         _ => key
@@ -63,6 +65,7 @@ public static class SetupDataSourceCatalog
         // already loaded?" check can't drift apart.
         var first1kDestination = Path.Combine(dataRoot, "first1k-greek");
         var cselDestination = Path.Combine(dataRoot, "csel");
+        var patrologiaDestination = Path.Combine(dataRoot, "patrologia-latina");
 
         return new List<SetupDataSource>
         {
@@ -635,6 +638,44 @@ public static class SetupDataSourceCatalog
                 // "loaded" from "this step has not run". Editions record the file they
                 // were built from, and this corpus downloads to a folder of its own.
                 CheckComplete = async () => await editionRepo.CountBySourcePathPrefixAsync(cselDestination) > 0
+            },
+
+            new SetupDataSource
+            {
+                Title = "Patrologia Latina (Migne, optional)",
+                RepoUrl = "https://github.com/OpenGreekAndLatin/patrologia_latina-dev",
+                DisplayNote = "the widest net for Latin Christian writing - a reprint, not a critical edition",
+                DefaultDestination = patrologiaDestination,
+                PlainLanguageDescription =
+                    "Migne's Patrologia Latina - Latin Christian writing from Tertullian to the twelfth " +
+                    "century, and by far the largest collection here. Worth knowing what it is before you " +
+                    "cite from it: Migne reprinted whatever editions he could obtain in the 1840s and 50s, " +
+                    "so where a work also appears in the Church Fathers collection above, that one is the " +
+                    "edition scholars cite and this one is the wider net. Both can sit side by side - the " +
+                    "same work gains a second edition in the dropdown rather than being overwritten. " +
+                    "Around 1.4 gigabytes.",
+                RunIngest = async (root, progress, ct) =>
+                {
+                    // Checked against the repository, the same way CSEL was: 940
+                    // textgroups under data/<textgroup>/<work>/__cts__.xml, URNs already
+                    // in latinLit (urn:cts:latinLit:stoa0022), CC BY-SA 4.0 declared per
+                    // file, and the same DOCTYPE-free EpiDoc body with
+                    // div[@type='edition'] at its root. No importer of its own.
+                    //
+                    // Fourteen times as many textgroups as CSEL, though, so the skipped
+                    // count this returns is worth reading rather than glancing at: a
+                    // corpus this size is where irregular files live.
+                    var service = new PerseusIngestService();
+                    var wrapped = new Progress<IngestProgress>(p =>
+                        progress.Report($"{p.CurrentAuthor}: {p.CurrentWork} ({p.WorksProcessed}/{p.TotalWorks})"));
+                    await service.IngestAsync(
+                        new[] { (Path.Combine(root, "data"), "latinLit") }, wrapped, ct);
+
+                    await editionRepo.StampCollectionAsync(root, CollectionKeys.PatrologiaLatina, ct);
+                    return IngestOutcome.From(service.FailedFiles);
+                },
+
+                CheckComplete = async () => await editionRepo.CountBySourcePathPrefixAsync(patrologiaDestination) > 0
             }
         };
     }

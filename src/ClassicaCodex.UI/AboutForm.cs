@@ -198,6 +198,18 @@ public class AboutForm : ScaledForm
 
         AddSourceSection(
             scrollHost, ref y,
+            "Patrologia Latina",
+            "Migne's collection of Latin Christian writing, from Tertullian to the twelfth century - the " +
+            "largest body of Latin here, and a 19th-century reprint rather than a critical edition.",
+            "Open Greek and Latin Project (OpenGreekAndLatin/patrologia_latina-dev)",
+            "Creative Commons Attribution-ShareAlike 4.0 International",
+            "https://github.com/OpenGreekAndLatin/patrologia_latina-dev",
+            "Declared per file in the TEI headers, as with CSEL above. Migne's volumes (1844-1865) are long " +
+            "out of copyright; the OCR correction and encoding are the Leipzig project's work. Where a work " +
+            "appears both here and in CSEL, the CSEL text is the critical edition and this is the reprint.");
+
+        AddSourceSection(
+            scrollHost, ref y,
             "Medieval Nordic Manuscripts",
             "Old Norse, Old Icelandic, Old Swedish and Old Danish manuscripts, transcribed word by word " +
             "from the parchment - Heimskringla, Laxdœla saga, the Codex Wormianus, the Old Norwegian " +
