@@ -1076,6 +1076,41 @@ public class ResearchRepositoryTests
     }
 
     [Fact]
+    public async Task RemovingEvidenceClosesTheSortOrderGapSoTheNextItemLandsLast()
+    {
+        using var db = await TempDatabase.CreateAsync();
+        await db.SeedEditionAsync("rhesus");
+        var repo = new ResearchRepository();
+        var project = new ResearchProject { WorkId = await db.WorkIdForAsync("rhesus"), Name = "Ordering" };
+        await repo.SaveProjectAsync(project);
+
+        var items = new List<EvidenceItem>();
+        foreach (var (title, sort) in new[] { ("First", 0), ("Second", 1), ("Third", 2) })
+        {
+            var item = new EvidenceItem
+            {
+                ResearchProjectId = project.ResearchProjectId, Title = title, SortOrder = sort
+            };
+            await repo.SaveEvidenceAsync(item);
+            items.Add(item);
+        }
+
+        await repo.DeleteEvidenceAsync(items[1].EvidenceItemId);
+        var survivors = await repo.GetEvidenceAsync(project.ResearchProjectId);
+        Assert.Equal([0, 1], survivors.Select(e => e.SortOrder));
+
+        // The Bench allocates a new row "however many are currently showing", which is
+        // what makes a gap matter: left at 0 and 2, a new item would arrive at 2, tie
+        // with Third, and lose the tie-break on id - landing above it, mid-list.
+        await repo.SaveEvidenceAsync(new EvidenceItem
+        {
+            ResearchProjectId = project.ResearchProjectId, Title = "Fourth", SortOrder = survivors.Count
+        });
+        var ordered = await repo.GetEvidenceAsync(project.ResearchProjectId);
+        Assert.Equal(["First", "Third", "Fourth"], ordered.Select(e => e.Title));
+    }
+
+    [Fact]
     public async Task DeletingAWorkDetachesItsProjectsRatherThanFailing()
     {
         using var db = await TempDatabase.CreateAsync();

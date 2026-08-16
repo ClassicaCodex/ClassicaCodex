@@ -225,23 +225,8 @@ public class ResearchRepository
         cmd.Parameters.AddWithValue("@Id", questionId);
         await cmd.ExecuteNonQueryAsync(cancellationToken);
 
-        // Close the gap. A new question is given a SortOrder of "however many are
-        // showing", so a gap left by a delete makes the next one tie with a surviving
-        // question and land in the middle of the list rather than at the end. This
-        // renumbers the survivors densely from 0 in their current order.
-        await using (var renumber = conn.CreateCommand())
-        {
-            renumber.CommandText = @"
-                UPDATE ResearchQuestions SET SortOrder = (
-                    SELECT COUNT(*) FROM ResearchQuestions q2
-                    WHERE q2.ResearchProjectId = ResearchQuestions.ResearchProjectId
-                      AND (q2.SortOrder < ResearchQuestions.SortOrder
-                           OR (q2.SortOrder = ResearchQuestions.SortOrder
-                               AND q2.ResearchQuestionId < ResearchQuestions.ResearchQuestionId)))
-                WHERE ResearchProjectId = @ProjectId;";
-            renumber.Parameters.AddWithValue("@ProjectId", projectId);
-            await renumber.ExecuteNonQueryAsync(cancellationToken);
-        }
+        await SortOrderCompaction.RenumberAsync(
+            conn, "ResearchQuestions", "ResearchQuestionId", projectId, cancellationToken);
 
         await TouchProjectAsync(conn, projectId, cancellationToken);
         await AppendLogAsync(conn, new ResearchLogEntry
@@ -379,6 +364,8 @@ public class ResearchRepository
         cmd.CommandText = "DELETE FROM EvidenceItems WHERE EvidenceItemId=@Id;";
         cmd.Parameters.AddWithValue("@Id", evidenceId);
         await cmd.ExecuteNonQueryAsync(cancellationToken);
+        await SortOrderCompaction.RenumberAsync(
+            conn, "EvidenceItems", "EvidenceItemId", projectId, cancellationToken);
         await TouchProjectAsync(conn, projectId, cancellationToken);
         await AppendLogAsync(conn, new ResearchLogEntry
         {
@@ -553,6 +540,8 @@ public class ResearchRepository
         cmd.CommandText = "DELETE FROM ScholarlyClaims WHERE ScholarlyClaimId=@Id;";
         cmd.Parameters.AddWithValue("@Id", claimId);
         await cmd.ExecuteNonQueryAsync(cancellationToken);
+        await SortOrderCompaction.RenumberAsync(
+            conn, "ScholarlyClaims", "ScholarlyClaimId", projectId, cancellationToken);
         await TouchProjectAsync(conn, projectId, cancellationToken);
         await AppendLogAsync(conn, new ResearchLogEntry
         {

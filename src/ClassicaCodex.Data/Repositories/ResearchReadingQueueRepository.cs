@@ -139,6 +139,8 @@ public sealed class ResearchReadingQueueRepository
             cmd.Parameters.AddWithValue("@Id", id);
             await cmd.ExecuteNonQueryAsync(cancellationToken);
         }
+        await SortOrderCompaction.RenumberAsync(
+            conn, "ResearchReadingItems", "ResearchReadingItemId", projectId, cancellationToken);
         await LogAsync(projectId, ResearchLogEntryKind.ReadingItemRemoved,
             $"Removed reading item: {title}", null, cancellationToken);
     }

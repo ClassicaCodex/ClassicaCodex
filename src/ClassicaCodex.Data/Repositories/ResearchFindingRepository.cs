@@ -147,6 +147,8 @@ public sealed class ResearchFindingRepository
         cmd.CommandText = "DELETE FROM ResearchFindings WHERE ResearchFindingId=@Id;";
         cmd.Parameters.AddWithValue("@Id", findingId);
         await cmd.ExecuteNonQueryAsync(cancellationToken);
+        await SortOrderCompaction.RenumberAsync(
+            conn, "ResearchFindings", "ResearchFindingId", projectId, cancellationToken);
         await LogAsync(projectId, ResearchLogEntryKind.FindingRemoved, $"Removed finding: {title}", null, cancellationToken);
     }
 
