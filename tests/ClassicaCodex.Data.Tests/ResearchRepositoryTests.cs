@@ -1233,6 +1233,45 @@ public class ResearchRepositoryTests
     }
 
     [Fact]
+    public async Task TheAtlasLeavesArchivedProjectsOutOfTheAllProjectsScope()
+    {
+        using var db = await TempDatabase.CreateAsync();
+        var sourceEdition = await db.SeedFullEditionAsync("source", "Euripides", "greekLit", "Rhesus", "Original", "grc");
+        var targetEdition = await db.SeedFullEditionAsync("target", "Aeschylus", "greekLit", "Agamemnon", "Original", "grc");
+        await db.InsertLinesAsync(sourceEdition, ("1", "source passage"));
+        await db.InsertLinesAsync(targetEdition, ("2", "target passage"));
+        var source = Assert.IsType<PassageResearchIdentity>(
+            await new TextNodeRepository().GetPassageResearchIdentityAsync(await db.TextNodeIdAsync(sourceEdition, "1")));
+        var research = new ResearchRepository();
+        var project = new ResearchProject
+        {
+            WorkId = await db.WorkIdForAsync("source"), WorkCtsUrn = "urn:w:source", Name = "Set aside later"
+        };
+        await research.SaveProjectAsync(project);
+
+        var repo = new ResearchEchoRepository();
+        await repo.SaveCaptureAsync(project.ResearchProjectId, null, null,
+            new EchoCaptureRequest(ResearchEchoMethod.AiCrossLanguage, source, "Possible tragic echo",
+                "Aeschylus, Agamemnon", "citations resolved locally", "gemini-test", "full prompt",
+                DateTime.Parse("2026-08-16T12:00:00Z").ToUniversalTime(),
+                [new EchoCaptureCandidate(await db.WorkIdForAsync("target"),
+                    await db.TextNodeIdAsync(targetEdition, "2"),
+                    "Aeschylus", "Agamemnon", "2", "target passage", null, "medium", "shared image")]));
+        Assert.Single(await repo.GetAtlasConnectionsAsync());
+
+        await research.ArchiveProjectAsync(project.ResearchProjectId);
+
+        // Archiving says the line of inquiry is closed. A cross-project view that
+        // ignored that filled up with work the researcher had deliberately set aside.
+        Assert.Empty(await repo.GetAtlasConnectionsAsync());
+        Assert.Single(await repo.GetAtlasConnectionsAsync(includeArchived: true));
+
+        // Opened by name, though, it still appears - the same principle the Bench uses
+        // when a passage inquiry opens the project it was promoted into.
+        Assert.Single(await repo.GetAtlasConnectionsAsync(project.ResearchProjectId));
+    }
+
+    [Fact]
     public async Task TheAtlasStillShowsAProjectWhoseWorkHasLeftTheLibrary()
     {
         using var db = await TempDatabase.CreateAsync();
