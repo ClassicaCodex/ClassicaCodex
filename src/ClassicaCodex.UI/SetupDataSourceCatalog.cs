@@ -653,35 +653,32 @@ public static class SetupDataSourceCatalog
                     "Church Fathers collection above, that one is the edition scholars cite and this one " +
                     "is the wider net. Both can sit side by side - the same work gains a second edition " +
                     "in the dropdown rather than being overwritten.\r\n\r\n" +
-                    "This imports the catalogued part of the collection: the volumes whose authors have " +
-                    "been identified and given permanent references. The rest of the conversion is still " +
-                    "under temporary numbering that its own project intends to change, and notes attached " +
-                    "to it would not survive that. Around 1.4 gigabytes to download, of which roughly a " +
-                    "fifteenth is imported.",
+                    "One caveat worth knowing before you build on it. Most of this collection is still " +
+                    "under temporary reference numbers that the publishing project intends to replace. " +
+                    "The texts and their authors are sound, and nothing about reading them is affected - " +
+                    "but if those numbers change and you re-import, notes tied to those particular " +
+                    "passages will need re-attaching. Works whose author Migne could not name arrive " +
+                    "under “Incertus”, his own word for it. Around 1.4 gigabytes.",
                 RunIngest = async (root, progress, ct) =>
                 {
-                    // Only the catalogued part of this repository is imported.
+                    // The whole repository is imported, placeholders included.
                     //
                     // It holds 9,400 textgroups: 630 named stoa0022, stoa0040 and so on,
-                    // and 8,770 named tmp1, tmp26, tmp990 - placeholders from a
-                    // conversion still in progress, with CTS URNs to match
-                    // (urn:cts:latinLit:tmp26) and, in most cases, an empty groupname.
+                    // and 8,770 named tmp1, tmp26, tmp990, from a conversion still in
+                    // progress. Those were excluded for a while on the strength of their
+                    // CTS URNs being provisional - urn:cts:latinLit:tmp26 - since notes
+                    // in this application bind to CTS identity precisely because it is
+                    // meant to outlast a re-ingest.
                     //
-                    // The empty names were the visible damage: a library of nameless
-                    // authors. The identifiers are the reason for this filter. Passage
-                    // inquiries, research projects and echo investigations all bind to
-                    // CTS URNs as durable identity - that is what lets a note survive a
-                    // re-ingest - so binding one to an identifier its own project means
-                    // to replace would lose the note the day Leipzig finishes the
-                    // conversion, silently, months later.
-                    //
-                    // An allow-list rather than "not tmp", so a prefix invented later is
-                    // left out until someone has looked at it. The step reports what it
-                    // skipped either way.
+                    // Included now, deliberately, because the objection is narrower than
+                    // it looked. Each file holds one work, correctly attributed by its
+                    // groupname; roughly nine in ten name their author outright. The
+                    // cost of excluding them is eight thousand texts today. The cost of
+                    // including them is that notes on those passages may need
+                    // re-attaching if the numbering changes, which the step says plainly
+                    // rather than leaving to be discovered.
                     var service = new PerseusIngestService
                     {
-                        IncludeTextGroup = name => name.StartsWith("stoa", StringComparison.OrdinalIgnoreCase),
-
                         // Migne leaves the author empty where a work has none - the
                         // Council of Carthage, an appendix to Cyprian, an anonymous
                         // passion - and writes "Incertus" wherever he does fill it in.
