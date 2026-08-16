@@ -133,6 +133,13 @@ public class MainForm : ScaledForm
     // their works, which is not something to repeat per character typed.
     private readonly TextBox _treeFilterBox;
     private readonly PictureBox _treeFilterIcon;
+    private readonly ContextMenuStrip _collectionsMenu = new();
+
+    /// <summary>
+    /// The works the chosen collections account for, or null when every collection is
+    /// showing. An author appears in the tree when one of their works is in here.
+    /// </summary>
+    private HashSet<int>? _collectionWorkIds;
     private readonly CheckBox _favoritesOnlyCheck;
 
     private readonly FavoriteWorkRepository _favoriteRepo = new();
@@ -317,7 +324,16 @@ public class MainForm : ScaledForm
             Width = 16,
             Height = 16,
             SizeMode = PictureBoxSizeMode.Zoom,
-            Image = AppIcons.Get("Filter", 16)
+            Image = AppIcons.Get("Filter", 16),
+
+            // It was decoration beside the name box. Now that a library can hold half a
+            // dozen collections at once, it is the obvious place to choose between them.
+            Cursor = Cursors.Hand
+        };
+        _treeFilterIcon.Click += (_, _) =>
+        {
+            if (_collectionsMenu.Items.Count == 0) return;
+            _collectionsMenu.Show(_treeFilterIcon, new Point(0, _treeFilterIcon.Height));
         };
 
         _treeFilterBox = new TextBox
@@ -877,7 +893,91 @@ public class MainForm : ScaledForm
 
         _allAuthors = authors;
         _worksByAuthor = worksByAuthor;
+        await BuildCollectionsMenuAsync();
         PopulateLibraryTree();
+    }
+
+    /// <summary>
+    /// Fills the filter icon's menu with the collections this library actually holds.
+    ///
+    /// Asked of the editions rather than of the setup catalogue, so it lists what was
+    /// imported rather than what could have been, and stays right for a library whose
+    /// downloaded files have since been deleted. With one collection there is nothing
+    /// to choose between, and the menu stays empty so the icon goes back to being an
+    /// ornament beside the name box.
+    /// </summary>
+    private async Task BuildCollectionsMenuAsync()
+    {
+        _collectionsMenu.Items.Clear();
+        _collectionWorkIds = null;
+
+        List<string> collections;
+        try { collections = await _editionRepo.GetCollectionsAsync(); }
+        catch { return; } // a filter that cannot be built is not worth failing startup over
+
+        if (collections.Count < 2)
+        {
+            _toolbarTips.SetToolTip(_treeFilterIcon, "Type a name to filter the library");
+            return;
+        }
+
+        foreach (var key in collections
+                     .Select(k => (Key: k, Title: SetupDataSourceCatalog.DescribeCollection(k)))
+                     .OrderBy(c => c.Title, StringComparer.CurrentCultureIgnoreCase))
+        {
+            var item = new ToolStripMenuItem(key.Title) { CheckOnClick = true, Tag = key.Key };
+            item.CheckedChanged += async (_, _) => await ApplyCollectionFilterAsync();
+            _collectionsMenu.Items.Add(item);
+        }
+
+        _collectionsMenu.Items.Add(new ToolStripSeparator());
+        var all = new ToolStripMenuItem("Show all collections");
+        all.Click += (_, _) =>
+        {
+            foreach (var item in _collectionsMenu.Items.OfType<ToolStripMenuItem>())
+                if (item.CheckOnClick) item.Checked = false;
+        };
+        _collectionsMenu.Items.Add(all);
+
+        ReadingTheme.ApplyToContextMenu(_collectionsMenu);
+        UpdateCollectionFilterTooltip();
+    }
+
+    private async Task ApplyCollectionFilterAsync()
+    {
+        var chosen = _collectionsMenu.Items.OfType<ToolStripMenuItem>()
+            .Where(i => i.CheckOnClick && i.Checked && i.Tag is string)
+            .Select(i => (string)i.Tag!)
+            .ToList();
+
+        try
+        {
+            _collectionWorkIds = chosen.Count == 0
+                ? null
+                : await _editionRepo.GetWorkIdsForCollectionsAsync(chosen);
+        }
+        catch (Exception ex)
+        {
+            _collectionWorkIds = null;
+            MessageBox.Show(this, $"Couldn't filter by collection: {ex.Message}", "Library",
+                MessageBoxButtons.OK, MessageBoxIcon.Warning);
+        }
+
+        UpdateCollectionFilterTooltip();
+        PopulateLibraryTree();
+    }
+
+    private void UpdateCollectionFilterTooltip()
+    {
+        var chosen = _collectionsMenu.Items.OfType<ToolStripMenuItem>()
+            .Count(i => i.CheckOnClick && i.Checked);
+        var total = _collectionsMenu.Items.OfType<ToolStripMenuItem>().Count(i => i.CheckOnClick);
+
+        // The icon has no room for a label, and a filter you cannot see is one you
+        // forget you set - so the count goes where hovering will find it.
+        _toolbarTips.SetToolTip(_treeFilterIcon, chosen == 0
+            ? $"Showing all {total} collections - click to choose"
+            : $"Showing {chosen} of {total} collections - click to change");
     }
 
     /// <summary>
@@ -898,6 +998,16 @@ public class MainForm : ScaledForm
             : _allAuthors
                 .Where(a => a.Name.Contains(filter, StringComparison.CurrentCultureIgnoreCase))
                 .ToList();
+
+        // An author earns a row by having a work still showing, so filtering to one
+        // collection cannot leave behind an author whose every work was filtered out.
+        if (_collectionWorkIds != null)
+        {
+            authors = authors
+                .Where(a => _worksByAuthor.TryGetValue(a.AuthorId, out var w)
+                            && w.Any(work => _collectionWorkIds.Contains(work.WorkId)))
+                .ToList();
+        }
 
         _libraryTree.Nodes.Clear();
 
@@ -931,6 +1041,8 @@ public class MainForm : ScaledForm
                 {
                     foreach (var work in works)
                     {
+                        if (_collectionWorkIds != null && !_collectionWorkIds.Contains(work.WorkId)) continue;
+
                         var isFavorite = _favoriteUrns.Contains(work.CtsUrn);
                         if (favoritesOnly && !isFavorite) continue;
 

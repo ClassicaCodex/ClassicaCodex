@@ -308,6 +308,40 @@ public class EditionRepository
         return result;
     }
 
+    /// <summary>
+    /// Which works have an edition in any of these collections.
+    ///
+    /// Works rather than authors, because the library tree needs both and one follows
+    /// from the other: an author belongs in the filtered tree exactly when one of their
+    /// works does. Asking the other way round would show an author whose works had all
+    /// been filtered out.
+    /// </summary>
+    public async Task<HashSet<int>> GetWorkIdsForCollectionsAsync(
+        IEnumerable<string> collections, CancellationToken cancellationToken = default)
+    {
+        var wanted = collections.Where(c => !string.IsNullOrWhiteSpace(c)).ToList();
+        var result = new HashSet<int>();
+        if (wanted.Count == 0) return result;
+
+        await using var conn = await DbConnectionFactory.OpenConnectionAsync(cancellationToken);
+        await using var cmd = conn.CreateCommand();
+
+        var names = new List<string>();
+        for (var i = 0; i < wanted.Count; i++)
+        {
+            names.Add($"@c{i}");
+            cmd.Parameters.AddWithValue($"@c{i}", wanted[i]);
+        }
+
+        cmd.CommandText =
+            $"SELECT DISTINCT WorkId FROM Editions WHERE Collection IN ({string.Join(",", names)});";
+        cmd.CommandTimeout = 60;
+
+        await using var reader = await cmd.ExecuteReaderAsync(cancellationToken);
+        while (await reader.ReadAsync(cancellationToken)) result.Add(reader.GetInt32(0));
+        return result;
+    }
+
     private static string EscapeForLike(string value) => value
         .Replace("\\", "\\\\")
         .Replace("%", "\\%")

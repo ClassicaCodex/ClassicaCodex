@@ -124,6 +124,42 @@ public class SearchFilterTests
         Assert.Equal(2, (await repo.SearchFilteredAsync(Query("arma"))).Rows.Count);
     }
 
+    /// <summary>
+    /// What the library tree's collection filter is built on. An author belongs in the
+    /// filtered tree exactly when one of their works does, so the question is asked
+    /// about works and the authors follow - otherwise a filter could leave an author
+    /// standing with every one of their works hidden.
+    /// </summary>
+    [Fact]
+    public async Task WorkIdsForCollectionsCoverOnlyTheChosenOnes()
+    {
+        using var db = await TempDatabase.CreateAsync();
+        var classical = await db.SeedFullEditionAsync("vergil", "Vergil", "latinLit", "Aeneid", "Original", "lat");
+        var fathers = await db.SeedFullEditionAsync("augustine", "Augustine", "latinLit", "Confessiones", "Original", "lat");
+        var editions = new EditionRepository();
+
+        await db.ExecuteAsync(
+            $@"UPDATE Editions SET SourcePath = 'C:\D\latin-texts\a.xml' WHERE EditionId = {classical};
+               UPDATE Editions SET SourcePath = 'C:\D\csel\b.xml' WHERE EditionId = {fathers};");
+        await editions.StampCollectionAsync(@"C:\D\latin-texts", "perseus-latin");
+        await editions.StampCollectionAsync(@"C:\D\csel", "csel");
+
+        var vergil = await db.WorkIdForAsync("vergil");
+        var augustine = await db.WorkIdForAsync("augustine");
+
+        var cselOnly = await editions.GetWorkIdsForCollectionsAsync(["csel"]);
+        Assert.Equal([augustine], cselOnly);
+
+        var both = await editions.GetWorkIdsForCollectionsAsync(["csel", "perseus-latin"]);
+        Assert.Contains(vergil, both);
+        Assert.Contains(augustine, both);
+
+        // Nothing chosen is not the same as everything chosen: the caller treats an
+        // empty selection as "no filter" and never asks, so this must not answer with
+        // the whole library and quietly invert the filter.
+        Assert.Empty(await editions.GetWorkIdsForCollectionsAsync([]));
+    }
+
     // --- match modes ------------------------------------------------------
 
     [Fact]
