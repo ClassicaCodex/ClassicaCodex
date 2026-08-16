@@ -5,7 +5,7 @@ using ClassicaCodex.Data.Repositories;
 namespace ClassicaCodex.UI;
 
 /// <summary>Turns reviewed evidence into explicit, auditable researcher-owned findings.</summary>
-public sealed class ResearchSynthesisForm : Form
+public sealed class ResearchSynthesisForm : ScaledForm
 {
     private readonly ResearchProject _project;
     private readonly Work _work;

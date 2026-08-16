@@ -1,6 +1,6 @@
 namespace ClassicaCodex.UI;
 
-public class TagPromptForm : Form
+public class TagPromptForm : ScaledForm
 {
     private readonly TextBox _nameBox;
     private readonly TextBox _categoryBox;

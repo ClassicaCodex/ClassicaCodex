@@ -35,7 +35,7 @@ namespace ClassicaCodex.UI;
 ///
 /// docs/stylometry-notes.md has the full working.
 /// </summary>
-public class StylometryAnalysisForm : Form
+public class StylometryAnalysisForm : ScaledForm
 {
     private readonly StylometryRunRepository _runRepo = new();
 

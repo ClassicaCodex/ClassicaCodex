@@ -15,7 +15,7 @@ namespace ClassicaCodex.UI;
 /// a long work, but a cached figure would go silently wrong the first time a
 /// corpus was re-ingested, and this is a number people would act on.
 /// </summary>
-public class VocabularyForm : Form
+public class VocabularyForm : ScaledForm
 {
     private readonly Work _work;
     private readonly string _authorName;

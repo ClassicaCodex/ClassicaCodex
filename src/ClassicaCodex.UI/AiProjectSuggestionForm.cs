@@ -5,7 +5,7 @@ using ClassicaCodex.Data.Repositories;
 
 namespace ClassicaCodex.UI;
 
-public sealed class AiProjectSuggestionForm : Form
+public sealed class AiProjectSuggestionForm : ScaledForm
 {
     private const int MaxCorpusChars=90_000;
     private readonly Work _work;private readonly string _author;private readonly ResearchRepository _research=new();private readonly EditionRepository _editions=new();private readonly TextNodeRepository _nodes=new();

@@ -6,7 +6,7 @@ using ClassicaCodex.Data.Repositories;
 namespace ClassicaCodex.UI;
 
 /// <summary>Lets a researcher choose which already-computed echo candidates become a saved investigation.</summary>
-public sealed class ResearchEchoCaptureForm : Form
+public sealed class ResearchEchoCaptureForm : ScaledForm
 {
     private readonly EchoCaptureRequest _capture;
     private readonly long? _defaultProjectId;

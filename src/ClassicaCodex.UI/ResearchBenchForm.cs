@@ -10,7 +10,7 @@ namespace ClassicaCodex.UI;
 /// promoted into a finding. The selected work supplies context; projects,
 /// questions and evidence retain their own durable records.
 /// </summary>
-public class ResearchBenchForm : Form
+public class ResearchBenchForm : ScaledForm
 {
     private readonly Work _work;
     private readonly string _authorName;
@@ -1162,7 +1162,7 @@ internal sealed record EvidenceCandidatePreview(
 /// The human accept step for AI-gathered corpus evidence. Candidates are shown with the
 /// local corpus text they resolved to, and only checked rows are saved.
 /// </summary>
-internal sealed class ResearchEvidenceReviewForm : Form
+internal sealed class ResearchEvidenceReviewForm : ScaledForm
 {
     private readonly DataGridView _grid = new();
     private readonly BindingList<Row> _rows;

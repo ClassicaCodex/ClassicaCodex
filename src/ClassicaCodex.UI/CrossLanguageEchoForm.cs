@@ -32,7 +32,7 @@ namespace ClassicaCodex.UI;
 /// asked to find subtle cross-language echoes is exactly the kind of task
 /// where a wrong answer can sound just as confident as a right one.
 /// </summary>
-public class CrossLanguageEchoForm : Form
+public class CrossLanguageEchoForm : ScaledForm
 {
     // Comparison text capped well under either model's real context limit -
     // this is about keeping a single request's cost and latency
@@ -662,7 +662,13 @@ public class CrossLanguageEchoForm : Form
         var unresolvedCount = 0;
         foreach (var candidate in candidates)
         {
-            if (byRef.TryGetValue(candidate.CitationRef, out var node))
+            // The corpus is sent as "[ref] text" and the prompt asks for the reference
+            // "exactly as tagged above", so a model that complies returns "[1.1]" while
+            // this index is keyed on "1.1". Matching verbatim made a correct response
+            // read as entirely unresolved, and the better the model followed the
+            // instruction the worse the result looked.
+            var citation = candidate.CitationRef.Trim().TrimStart('[').TrimEnd(']');
+            if (byRef.TryGetValue(citation, out var node))
             {
                 _verifiedResults.Add((node, candidate));
             }

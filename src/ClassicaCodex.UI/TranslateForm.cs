@@ -39,7 +39,7 @@ namespace ClassicaCodex.UI;
 ///    counterpart language implies - into English from the original pane,
 ///    or into the work's original language from the translation pane.
 /// </summary>
-public class TranslateForm : Form
+public class TranslateForm : ScaledForm
 {
     private readonly TextNode _node;
     private readonly string? _sourceLanguage;

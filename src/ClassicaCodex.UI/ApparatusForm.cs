@@ -30,7 +30,7 @@ namespace ClassicaCodex.UI;
 /// whole edition - and reading an editor's notes straight through is how you
 /// find out whether they are conservative or interventionist.
 /// </summary>
-public class ApparatusForm : Form
+public class ApparatusForm : ScaledForm
 {
     private readonly ApparatusRepository _apparatusRepo = new();
 

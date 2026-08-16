@@ -5,7 +5,7 @@ using ClassicaCodex.Data.Repositories;
 namespace ClassicaCodex.UI;
 
 /// <summary>Close reading and classification of one saved passage-to-passage edge.</summary>
-public sealed class ParallelPassageStudioForm : Form
+public sealed class ParallelPassageStudioForm : ScaledForm
 {
     private readonly ResearchProject _project;
     private readonly Work _sourceWork;

@@ -9,7 +9,7 @@ namespace ClassicaCodex.UI;
 /// layout. Right-clicking a Myth Network node opens one of these, searching
 /// by that figure's name.
 /// </summary>
-public class ArtifactBrowserForm : Form
+public class ArtifactBrowserForm : ScaledForm
 {
     private readonly ArtifactBrowserControl _browser;
     private readonly ArtifactRepository _artifactRepo = new();

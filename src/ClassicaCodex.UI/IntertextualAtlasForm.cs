@@ -5,7 +5,7 @@ using ClassicaCodex.Data.Repositories;
 namespace ClassicaCodex.UI;
 
 /// <summary>Interactive projection of reviewed passage pairs; every visual edge drills back to its evidence.</summary>
-public sealed class IntertextualAtlasForm : Form
+public sealed class IntertextualAtlasForm : ScaledForm
 {
     private readonly ResearchProject _openingProject;
     private readonly ResearchEchoRepository _echoes = new();
@@ -32,7 +32,11 @@ public sealed class IntertextualAtlasForm : Form
         AppIcons.ApplyWindowIcon(this, "MythNetwork");
 
         var controls = new FlowLayoutPanel { Dock = DockStyle.Top, Height = 48, Padding = new Padding(8) };
-        _scope.Items.AddRange(["This research project", "All Research Bench projects"]); _scope.SelectedIndex = 0;
+        // Archiving is how a researcher says a line of inquiry is closed, so the
+        // cross-project view offers it as a separate choice rather than quietly
+        // including work that has been set aside. The single-project scope always shows
+        // the project that was opened, archived or not.
+        _scope.Items.AddRange(["This research project", "All active projects", "All projects, including archived"]); _scope.SelectedIndex = 0;
         _review.Items.AddRange(["Accepted connections", "Pending candidates", "Rejected candidates", "All review states"]); _review.SelectedIndex = 0;
         _view.Items.AddRange(["Works network", "Works ↔ motifs network"]); _view.SelectedIndex = 0;
         _scope.Width = 190; _review.Width = 175; _view.Width = 175; _classifiedOnly.Padding = new Padding(8, 6, 0, 0);
@@ -83,7 +87,9 @@ public sealed class IntertextualAtlasForm : Form
 
     private async Task LoadAsync()
     {
-        _all = await _echoes.GetAtlasConnectionsAsync(_scope.SelectedIndex == 0 ? _openingProject.ResearchProjectId : null);
+        _all = await _echoes.GetAtlasConnectionsAsync(
+            _scope.SelectedIndex == 0 ? _openingProject.ResearchProjectId : null,
+            includeArchived: _scope.SelectedIndex == 2);
         ApplyFilters();
     }
 

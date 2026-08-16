@@ -16,7 +16,7 @@ namespace ClassicaCodex.UI;
 /// Setup (the original all-at-once form) stays one click away throughout,
 /// for anyone who wants to point at an existing folder or skip around.
 /// </summary>
-public class GuidedSetupForm : Form
+public class GuidedSetupForm : ScaledForm
 {
     public event Action? CorpusChanged;
 

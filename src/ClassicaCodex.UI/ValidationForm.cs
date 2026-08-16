@@ -40,7 +40,7 @@ namespace ClassicaCodex.UI;
 /// That last paragraph is the reason this form exists. It is easier to build a
 /// tool that produces encouraging numbers than one that catches itself.
 /// </summary>
-public class ValidationForm : Form
+public class ValidationForm : ScaledForm
 {
     private class WorkItem
     {

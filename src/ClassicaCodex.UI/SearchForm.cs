@@ -20,7 +20,7 @@ namespace ClassicaCodex.UI;
 /// beside the reader, and double-clicking a result moves the reader behind
 /// it.
 /// </summary>
-public class SearchForm : Form
+public class SearchForm : ScaledForm
 {
     private readonly TextBox _queryBox;
     private readonly Button _searchButton;

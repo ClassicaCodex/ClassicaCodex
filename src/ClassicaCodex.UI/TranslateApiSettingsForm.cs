@@ -8,7 +8,7 @@ namespace ClassicaCodex.UI;
 /// TranslateForm the first time (no key yet for whichever provider was
 /// clicked) or on demand afterward.
 /// </summary>
-public class TranslateApiSettingsForm : Form
+public class TranslateApiSettingsForm : ScaledForm
 {
     private readonly TextBox _anthropicKeyBox;
     private readonly TextBox _geminiKeyBox;

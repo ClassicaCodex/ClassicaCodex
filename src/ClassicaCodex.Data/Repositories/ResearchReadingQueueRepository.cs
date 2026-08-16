@@ -55,7 +55,7 @@ public sealed class ResearchReadingQueueRepository
                 Quotation=@Quotation,Notes=@Notes,PromotedEvidenceItemId=@PromotedEvidence,
                 SortOrder=@Sort,UpdatedUtc=@Now
                 WHERE ResearchReadingItemId=@Id AND ResearchProjectId=@Project;
-                SELECT @Id;";
+                SELECT changes();";
             cmd.Parameters.AddWithValue("@Id", item.ResearchReadingItemId);
         }
 
@@ -77,7 +77,10 @@ public sealed class ResearchReadingQueueRepository
         cmd.Parameters.AddWithValue("@PromotedEvidence", Db(item.PromotedEvidenceItemId));
         cmd.Parameters.AddWithValue("@Sort", item.SortOrder);
         cmd.Parameters.AddWithValue("@Now", now.ToString("O"));
-        item.ResearchReadingItemId = Convert.ToInt64(await cmd.ExecuteScalarAsync(cancellationToken));
+        var scalar = Convert.ToInt64(await cmd.ExecuteScalarAsync(cancellationToken));
+        if (!isNew && scalar != 1)
+            throw new ArgumentException("This reading item no longer exists, or belongs to another project.");
+        item.ResearchReadingItemId = isNew ? scalar : item.ResearchReadingItemId;
         if (item.CreatedUtc == default) item.CreatedUtc = now;
         item.UpdatedUtc = now;
         await LogAsync(item.ResearchProjectId,

@@ -4,7 +4,7 @@ using ClassicaCodex.Data.Repositories;
 namespace ClassicaCodex.UI;
 
 /// <summary>Chronological, append-only history for one research project.</summary>
-public sealed class ResearchLogForm : Form
+public sealed class ResearchLogForm : ScaledForm
 {
     private readonly ResearchProject _project;
     private readonly ResearchRepository _repo = new();

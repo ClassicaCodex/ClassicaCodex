@@ -44,7 +44,7 @@ public sealed class ResearchSourceRepository
         {
             cmd.CommandText = @"UPDATE EvidenceAttachments SET FilePath=@Path,FileName=@Name,MediaType=@Media,
                 Sha256=@Hash,FileSize=@Size,FileModifiedUtc=@Modified,UpdatedUtc=@Now
-                WHERE EvidenceAttachmentId=@Id AND EvidenceItemId=@EvidenceId; SELECT @Id;";
+                WHERE EvidenceAttachmentId=@Id AND EvidenceItemId=@EvidenceId; SELECT changes();";
             cmd.Parameters.AddWithValue("@Id", item.EvidenceAttachmentId);
         }
         cmd.Parameters.AddWithValue("@EvidenceId", item.EvidenceItemId);
@@ -55,7 +55,10 @@ public sealed class ResearchSourceRepository
         cmd.Parameters.AddWithValue("@Size", item.FileSize);
         cmd.Parameters.AddWithValue("@Modified", item.FileModifiedUtc.ToString("O"));
         cmd.Parameters.AddWithValue("@Now", now.ToString("O"));
-        item.EvidenceAttachmentId = Convert.ToInt64(await cmd.ExecuteScalarAsync(cancellationToken));
+        var scalar = Convert.ToInt64(await cmd.ExecuteScalarAsync(cancellationToken));
+        if (!isNew && scalar != 1)
+            throw new ArgumentException("This attachment no longer exists, or belongs to another evidence item.");
+        item.EvidenceAttachmentId = isNew ? scalar : item.EvidenceAttachmentId;
         if (item.CreatedUtc == default) item.CreatedUtc = now;
         item.UpdatedUtc = now;
         await LogAsync(context.ProjectId, item.EvidenceItemId, ResearchLogEntryKind.SourceAttached,
@@ -121,7 +124,7 @@ public sealed class ResearchSourceRepository
         {
             cmd.CommandText = @"UPDATE EvidencePageAnnotations SET PageNumber=@Page,QuotedText=@Quote,
                 Note=@Note,Judgment=@Judgment,UpdatedUtc=@Now
-                WHERE EvidencePageAnnotationId=@Id AND EvidenceAttachmentId=@AttachmentId; SELECT @Id;";
+                WHERE EvidencePageAnnotationId=@Id AND EvidenceAttachmentId=@AttachmentId; SELECT changes();";
             cmd.Parameters.AddWithValue("@Id", item.EvidencePageAnnotationId);
         }
         cmd.Parameters.AddWithValue("@AttachmentId", item.EvidenceAttachmentId);
@@ -130,7 +133,10 @@ public sealed class ResearchSourceRepository
         cmd.Parameters.AddWithValue("@Note", Db(item.Note));
         cmd.Parameters.AddWithValue("@Judgment", item.Judgment.ToString().ToLowerInvariant());
         cmd.Parameters.AddWithValue("@Now", now.ToString("O"));
-        item.EvidencePageAnnotationId = Convert.ToInt64(await cmd.ExecuteScalarAsync(cancellationToken));
+        var annotationScalar = Convert.ToInt64(await cmd.ExecuteScalarAsync(cancellationToken));
+        if (!isNew && annotationScalar != 1)
+            throw new ArgumentException("This page note no longer exists.");
+        item.EvidencePageAnnotationId = isNew ? annotationScalar : item.EvidencePageAnnotationId;
         await LogAsync(context.ProjectId, context.EvidenceId,
             isNew ? ResearchLogEntryKind.PageAnnotationAdded : ResearchLogEntryKind.PageAnnotationUpdated,
             $"{(isNew ? "Added" : "Updated")} page {item.PageNumber} note in {context.FileName}",

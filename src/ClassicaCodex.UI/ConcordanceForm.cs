@@ -10,7 +10,7 @@ namespace ClassicaCodex.UI;
 /// Homer, Livy, etc. have used for a century, just computed on demand here
 /// instead of printed in a volume.
 /// </summary>
-public class ConcordanceForm : Form
+public class ConcordanceForm : ScaledForm
 {
     private readonly TextBox _wordBox;
     private readonly Button _searchButton;

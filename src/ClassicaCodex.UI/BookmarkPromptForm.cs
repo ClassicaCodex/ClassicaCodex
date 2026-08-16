@@ -1,6 +1,6 @@
 namespace ClassicaCodex.UI;
 
-public class BookmarkPromptForm : Form
+public class BookmarkPromptForm : ScaledForm
 {
     private readonly TextBox _noteBox;
 

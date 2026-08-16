@@ -8,7 +8,7 @@ namespace ClassicaCodex.UI;
 /// Server connection string; now it's a file path with a sensible default,
 /// which is most of the point of this migration.
 /// </summary>
-public class SettingsForm : Form
+public class SettingsForm : ScaledForm
 {
     private readonly TextBox _pathBox;
     private readonly Button _connectButton;

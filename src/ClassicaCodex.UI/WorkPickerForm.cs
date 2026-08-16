@@ -15,7 +15,7 @@ namespace ClassicaCodex.UI;
 /// full corpus is a couple of thousand authors and rather more works, so the
 /// filter box is the primary control here and the list is what it acts on.
 /// </summary>
-public class WorkPickerForm : Form
+public class WorkPickerForm : ScaledForm
 {
     private readonly TextBox _filterBox;
     private readonly ComboBox _showCombo;

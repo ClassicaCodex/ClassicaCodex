@@ -7,7 +7,7 @@ namespace ClassicaCodex.UI;
 /// in and lines them up in side-by-side scrollable columns - e.g. Hesiod,
 /// Aeschylus, and Ovid's treatments of Prometheus all visible at once.
 /// </summary>
-public class CompareForm : Form
+public class CompareForm : ScaledForm
 {
     private readonly CheckedListBox _sourceCheckList;
     private readonly Panel _columnsHost;

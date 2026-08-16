@@ -16,7 +16,7 @@ namespace ClassicaCodex.UI;
 /// vocabularies. The form says so directly rather than silently returning
 /// nothing for Latin.
 /// </summary>
-public class MorphologyForm : Form
+public class MorphologyForm : ScaledForm
 {
     private readonly ComboBox _languageComboBox;
     private readonly List<(string Label, int Position, ComboBox Combo)> _categoryCombos = new();

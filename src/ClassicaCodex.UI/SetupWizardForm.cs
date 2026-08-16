@@ -11,7 +11,7 @@ namespace ClassicaCodex.UI;
 /// Windows colon-in-filename problem that broke a plain `git clone` on
 /// every one of these repos earlier.
 /// </summary>
-public class SetupWizardForm : Form
+public class SetupWizardForm : ScaledForm
 {
     private class WizardRow
     {
