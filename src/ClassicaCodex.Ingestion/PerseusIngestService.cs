@@ -50,6 +50,19 @@ public class PerseusIngestService
     /// </summary>
     public Func<string, bool>? IncludeTextGroup { get; set; }
 
+    /// <summary>
+    /// What to call a textgroup whose catalog names no author. Null - the default -
+    /// passes it over, which is right for a corpus where a missing name means a
+    /// malformed file.
+    ///
+    /// The Patrologia Latina is the case for setting it: it leaves the name empty for
+    /// works that have no author to give - the Council of Carthage, an appendix to
+    /// Cyprian, an anonymous passion - and names everything else normally. Those are
+    /// texts worth having, and the corpus supplies its own word for the case, using
+    /// "Incertus" wherever it does fill the name in.
+    /// </summary>
+    public string? UnnamedTextGroupName { get; set; }
+
     /// <param name="repoDataPaths">
     /// Path(s) to the "data" folder inside each cloned repo, e.g.
     /// "C:\src\canonical-greekLit\data" and "C:\src\canonical-latinLit\data".
@@ -107,10 +120,21 @@ public class PerseusIngestService
             var groupInfo = _catalogReader.ReadTextGroup(groupCtsPath);
             if (groupInfo == null) continue; // not a valid textgroup folder, skip
 
+            // A catalog that names no author: either the corpus has said what to call
+            // that case, or the file is malformed and the folder is passed over. Never
+            // an author row with no name - unreadable, unsearchable, and impossible to
+            // tell from the next one.
+            var groupName = groupInfo.GroupName;
+            if (string.IsNullOrWhiteSpace(groupName))
+            {
+                if (UnnamedTextGroupName == null) continue;
+                groupName = UnnamedTextGroupName;
+            }
+
             var authorId = await _authorRepo.UpsertAsync(new Author
             {
                 CtsUrn = groupInfo.Urn,
-                Name = groupInfo.GroupName,
+                Name = groupName,
                 Namespace = ns
             }, cancellationToken);
 

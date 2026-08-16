@@ -167,6 +167,64 @@ public class CselCorpusTests
     /// filter that excluded everything would import nothing and look like a slow step,
     /// and a filter that excluded nothing would look exactly like success.
     /// </summary>
+    /// <summary>
+    /// An authorless work is kept under the name its corpus uses for the case, rather
+    /// than dropped or imported under no name at all.
+    ///
+    /// Both wrong answers are quiet. Dropping it loses a real text - the Council of
+    /// Carthage is 105KB of it - and importing it nameless gives the library a row
+    /// nobody can read, search for, or tell from the next one.
+    /// </summary>
+    [Fact]
+    public async Task AnAuthorlessWorkIsKeptUnderTheCorpusOwnWordForIt()
+    {
+        using var db = await TempDatabase.CreateAsync();
+        var root = Path.Combine(Path.GetTempPath(), "cc-anon-" + Guid.NewGuid().ToString("N"));
+        var workDir = Path.Combine(root, "data", "tmp26", "tmp26");
+        try
+        {
+            Directory.CreateDirectory(workDir);
+            File.WriteAllText(Path.Combine(root, "data", "tmp26", "__cts__.xml"),
+                @"<ti:textgroup xmlns:ti=""http://chs.harvard.edu/xmlns/cts"" urn=""urn:cts:latinLit:tmp26"">
+                    <ti:groupname xml:lang=""eng""></ti:groupname>
+                  </ti:textgroup>");
+            File.WriteAllText(Path.Combine(workDir, "__cts__.xml"),
+                @"<ti:work xmlns:ti=""http://chs.harvard.edu/xmlns/cts"" groupUrn=""urn:cts:latinLit:tmp26""
+                           xml:lang=""lat"" urn=""urn:cts:latinLit:tmp26.tmp26"">
+                    <ti:title xml:lang=""eng"">Carthaginiensis Synodus</ti:title>
+                    <ti:edition urn=""urn:cts:latinLit:tmp26.tmp26.opp-lat1"" workUrn=""urn:cts:latinLit:tmp26.tmp26"">
+                      <ti:label xml:lang=""eng"">Carthaginiensis Synodus</ti:label>
+                    </ti:edition>
+                  </ti:work>");
+            File.WriteAllText(Path.Combine(workDir, "e.xml"),
+                @"<TEI xmlns=""http://www.tei-c.org/ns/1.0"">
+                    <teiHeader><fileDesc><titleStmt><title>Carthaginiensis Synodus</title></titleStmt>
+                    <publicationStmt><p>t</p></publicationStmt><sourceDesc><p>s</p></sourceDesc></fileDesc></teiHeader>
+                    <text><body><div type=""edition"" xml:lang=""lat"" n=""urn:cts:latinLit:tmp26.tmp26.opp-lat1"">
+                      <div type=""textpart"" subtype=""chapter"" n=""1""><p>placuit uniuersis episcopis</p></div>
+                    </div></body></text>
+                  </TEI>");
+
+            // Without a word for the case, the folder is passed over entirely.
+            await new PerseusIngestService().IngestAsync([(Path.Combine(root, "data"), "latinLit")]);
+            Assert.Equal(0L, await db.CountAsync("Authors"));
+
+            // With one, the text arrives under a name that can be read.
+            await new PerseusIngestService { UnnamedTextGroupName = "Incertus" }
+                .IngestAsync([(Path.Combine(root, "data"), "latinLit")]);
+
+            Assert.Equal(1L, await db.ScalarAsync<long>(
+                "SELECT COUNT(*) FROM Authors WHERE Name = 'Incertus';"));
+            Assert.Equal("placuit uniuersis episcopis",
+                Assert.Single((await new TextNodeRepository().SearchFilteredAsync(
+                    new SearchFilters { Query = "episcopis" })).Rows).Text);
+        }
+        finally
+        {
+            try { Directory.Delete(root, recursive: true); } catch { /* temp dir */ }
+        }
+    }
+
     [Fact]
     public async Task ProvisionalTextGroupsAreLeftOutOfTheImport()
     {

@@ -67,16 +67,17 @@ public class CorpusFolderExclusionTests
     }
 
     /// <summary>
-    /// A catalog naming nobody is treated as no catalog.
+    /// A catalog that names no author is read as exactly that, and not confused with a
+    /// folder that has no catalog at all.
     ///
-    /// The Patrologia Latina repository carries thousands of placeholder textgroups
-    /// whose groupname element is present and empty. Read literally, each became an
-    /// author with no name: rows that cannot be read, searched for, or told apart, and
-    /// which look to anyone opening the library like corruption rather than like a
-    /// corpus that was passed over.
+    /// The distinction carries meaning in a real corpus: the Patrologia Latina leaves
+    /// the name empty for works that have no author to give - the Council of Carthage,
+    /// an appendix to Cyprian - while naming everything else. Collapsing the two cases
+    /// would either drop those texts or fill the library with nameless rows, and which
+    /// of those is wanted is the importing caller's decision, not this reader's.
     /// </summary>
     [Fact]
-    public void ATextGroupNamingNobodyIsSkipped()
+    public void ATextGroupNamingNobodyIsReadWithAnEmptyName()
     {
         var root = NewRepo();
         try
@@ -88,7 +89,11 @@ public class CorpusFolderExclusionTests
                     <ti:groupname xml:lang=""eng""></ti:groupname>
                   </ti:textgroup>");
 
-            Assert.Null(new CtsCatalogReader().ReadTextGroup(Path.Combine(dir, "__cts__.xml")));
+            var info = new CtsCatalogReader().ReadTextGroup(Path.Combine(dir, "__cts__.xml"));
+
+            Assert.NotNull(info);
+            Assert.Equal("urn:cts:latinLit:tmp26", info!.Urn);
+            Assert.Equal("", info.GroupName);
         }
         finally
         {

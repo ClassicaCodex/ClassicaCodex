@@ -680,7 +680,14 @@ public static class SetupDataSourceCatalog
                     // skipped either way.
                     var service = new PerseusIngestService
                     {
-                        IncludeTextGroup = name => name.StartsWith("stoa", StringComparison.OrdinalIgnoreCase)
+                        IncludeTextGroup = name => name.StartsWith("stoa", StringComparison.OrdinalIgnoreCase),
+
+                        // Migne leaves the author empty where a work has none - the
+                        // Council of Carthage, an appendix to Cyprian, an anonymous
+                        // passion - and writes "Incertus" wherever he does fill it in.
+                        // Borrowing his own word keeps those texts and keeps the author
+                        // column readable.
+                        UnnamedTextGroupName = "Incertus"
                     };
                     var wrapped = new Progress<IngestProgress>(p =>
                         progress.Report($"{p.CurrentAuthor}: {p.CurrentWork} ({p.WorksProcessed}/{p.TotalWorks})"));
