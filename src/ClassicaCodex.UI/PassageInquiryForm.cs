@@ -303,11 +303,21 @@ public sealed class PassageInquiryForm : Form
 
     private void UpdatePromotionOffer()
     {
-        var hasSavedHumanNote = !_dirty && _inquiry.PassageInquiryId != 0 &&
+        // Gate on what has been SAVED, not on _dirty. Choosing a direction marks the
+        // inquiry dirty, and that must not withdraw an offer the researcher has already
+        // earned - least of all the way back into a project they already created.
+        var savedBothNotes = _inquiry.PassageInquiryId != 0 &&
             !string.IsNullOrWhiteSpace(_inquiry.AttentionNote) &&
             !string.IsNullOrWhiteSpace(_inquiry.DraftQuestion);
-        _promote.Visible = hasSavedHumanNote;
-        _promote.Text = _inquiry.ResearchProjectId.HasValue
+        var alreadyPromoted = _inquiry.ResearchProjectId.HasValue;
+        // Before promotion the visible text must still match what was saved, so a
+        // project is never built from a question since rewritten but not saved. After
+        // promotion the button only navigates, so edits in progress do not affect it.
+        var matchesSaved =
+            string.Equals(_attention.Text.Trim(), _inquiry.AttentionNote.Trim(), StringComparison.Ordinal) &&
+            string.Equals(_question.Text.Trim(), _inquiry.DraftQuestion.Trim(), StringComparison.Ordinal);
+        _promote.Visible = savedBothNotes && (alreadyPromoted || matchesSaved);
+        _promote.Text = alreadyPromoted
             ? "Open this Research Bench project"
             : "Turn this into a Research Bench project";
     }
@@ -368,9 +378,21 @@ public sealed class PassageInquiryForm : Form
         }
         catch (Exception ex)
         {
+            // The cleanup runs against the database that just failed, so it can fail
+            // for the same reason. It must never escape: an exception thrown from here
+            // replaces the real error with a crash report and tells the researcher
+            // nothing about the half-built project left behind.
+            var cleanupFailed = false;
             if (project?.ResearchProjectId > 0)
-                await _research.DeleteIncompleteProjectAsync(project.ResearchProjectId);
-            MessageBox.Show(this, $"The Research Bench project could not be created: {ex.Message}",
+            {
+                try { await _research.DeleteIncompleteProjectAsync(project.ResearchProjectId); }
+                catch { cleanupFailed = true; }
+            }
+            var remains = cleanupFailed
+                ? "\r\n\r\nA partly-built project may remain in the Research Bench for this work; "
+                  + "open it there and remove it before trying again."
+                : "";
+            MessageBox.Show(this, $"The Research Bench project could not be created: {ex.Message}{remains}",
                 "Create project", MessageBoxButtons.OK, MessageBoxIcon.Error);
         }
     }

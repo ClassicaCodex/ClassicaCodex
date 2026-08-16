@@ -313,8 +313,15 @@ public sealed class ResearchSynthesisForm : Form
             .ToList();
         if (TranslationSettings.AlwaysConfirmBeforeSending &&
             MessageBox.Show(this,
-                $"This will send the project theory, this proposition, {rows.Count} linked evidence item(s), " +
-                $"and {relevantClaims.Count} recorded scholarly claim(s) to Gemini. The response will be saved only as an AI candidate.\n\nContinue?",
+                $"This will send to Gemini:\n\n" +
+                $"\u2022 the project name and project notes\n" +
+                $"\u2022 this proposition\n" +
+                $"\u2022 {rows.Count} linked evidence item(s) - for each: its title, reference, your\n" +
+                $"   judgment and relationship, up to 1800 characters of the excerpt, and your\n" +
+                $"   researcher note on it\n" +
+                $"\u2022 {relevantClaims.Count} recorded scholarly claim(s)\n\n" +
+                $"It will not send the rest of your corpus or the rest of the Research Bench. " +
+                $"The response will be saved only as an AI candidate.\n\nContinue?",
                 "Send synthesis context to Gemini?", MessageBoxButtons.YesNo, MessageBoxIcon.Warning) != DialogResult.Yes)
             return;
 

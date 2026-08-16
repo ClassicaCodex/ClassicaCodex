@@ -147,8 +147,19 @@ public sealed class ResearchEchoInvestigationsForm : Form
             Judgment = EvidenceJudgment.Uncertain,
             Relationship = EvidenceRelationship.Contextualizes,
             ResearcherNote = string.Join("\r\n\r\n", new[] { result.ResearcherNote, result.ParallelNote }.Where(n => !string.IsNullOrWhiteSpace(n))),
-            Origin = investigation.Method == ResearchEchoMethod.AiCrossLanguage ? EvidenceOrigin.AiCandidate : EvidenceOrigin.ClassicaCodexAnalysis,
-            Interpretation = string.Join("\r\n\r\n", new[] { result.Rationale, result.ParallelNote }.Where(n => !string.IsNullOrWhiteSpace(n))),
+            // Every AI-assisted method is AI-derived evidence, not the app's own
+            // deterministic analysis. Testing one method by name silently exported
+            // Corpus Investigator candidates as ClassicaCodexAnalysis; ask whether a
+            // model was involved at all instead, so a method added later cannot repeat it.
+            Origin = investigation.AiModel != null ||
+                     investigation.Method is ResearchEchoMethod.AiCrossLanguage
+                                          or ResearchEchoMethod.AiCorpusInvestigation
+                ? EvidenceOrigin.AiCandidate
+                : EvidenceOrigin.ClassicaCodexAnalysis,
+            // The AI rationale only. The researcher's own close-reading note is
+            // ResearcherNote above; folding it in here would attribute the human's
+            // words to the model named in InterpretationAuthor.
+            Interpretation = result.Rationale,
             InterpretationAuthor = investigation.AiModel == null ? "ClassicaCodex" : $"Gemini ({investigation.AiModel})",
             GeneratorPrompt = investigation.AiPrompt,
             GeneratedUtc = investigation.AiGeneratedUtc,

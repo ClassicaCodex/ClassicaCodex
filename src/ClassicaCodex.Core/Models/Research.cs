@@ -92,7 +92,8 @@ public enum ResearchLogEntryKind
     ExperimentAdded,
     ExperimentUpdated,
     ExperimentRemoved,
-    HypothesisChallengeGenerated
+    HypothesisChallengeGenerated,
+    EchoInvestigationRemoved
 }
 
 /// <summary>A persistent line of inquiry attached to one work.</summary>

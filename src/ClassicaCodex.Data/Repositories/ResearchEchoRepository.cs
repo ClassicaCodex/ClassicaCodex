@@ -302,10 +302,41 @@ public sealed class ResearchEchoRepository
     public async Task DeleteInvestigationAsync(long investigationId, CancellationToken cancellationToken = default)
     {
         await using var conn = await DbConnectionFactory.OpenConnectionAsync(cancellationToken);
-        await using var cmd = conn.CreateCommand();
-        cmd.CommandText = "DELETE FROM ResearchEchoInvestigations WHERE ResearchEchoInvestigationId=@Id;";
-        cmd.Parameters.AddWithValue("@Id", investigationId);
-        await cmd.ExecuteNonQueryAsync(cancellationToken);
+
+        // Read the owning project and the size of what is about to go before deleting.
+        // The cascade takes the candidates, their dispositions and classifications and
+        // every saved parallel analysis with it; without this the research log would
+        // show them being reviewed and then simply ceasing to exist.
+        long projectId = 0;
+        var candidateCount = 0;
+        await using (var read = conn.CreateCommand())
+        {
+            read.CommandText = @"
+                SELECT i.ResearchProjectId, (SELECT COUNT(*) FROM ResearchEchoResults r
+                                            WHERE r.ResearchEchoInvestigationId = i.ResearchEchoInvestigationId)
+                FROM ResearchEchoInvestigations i
+                WHERE i.ResearchEchoInvestigationId = @Id;";
+            read.Parameters.AddWithValue("@Id", investigationId);
+            await using var reader = await read.ExecuteReaderAsync(cancellationToken);
+            if (await reader.ReadAsync(cancellationToken))
+            {
+                projectId = reader.GetInt64(0);
+                candidateCount = reader.GetInt32(1);
+            }
+        }
+        if (projectId == 0) return; // already gone; nothing to delete and nothing to record
+
+        await using (var cmd = conn.CreateCommand())
+        {
+            cmd.CommandText = "DELETE FROM ResearchEchoInvestigations WHERE ResearchEchoInvestigationId=@Id;";
+            cmd.Parameters.AddWithValue("@Id", investigationId);
+            await cmd.ExecuteNonQueryAsync(cancellationToken);
+        }
+
+        await LogAsync(projectId, ResearchLogEntryKind.EchoInvestigationRemoved,
+            "Removed echo investigation",
+            $"Investigation {investigationId}; {candidateCount} candidate(s) and their reviews removed with it",
+            cancellationToken);
     }
 
     private static async Task ValidateScopeAsync(SqliteConnection conn, long projectId, long? questionId,

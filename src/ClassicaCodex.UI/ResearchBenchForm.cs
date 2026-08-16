@@ -231,6 +231,24 @@ public class ResearchBenchForm : Form
         gatherMenu.Items.Add("AI: Find relevant corpus passages", null, async (_, _) => await GatherCorpusEvidenceAsync(false));
         gatherMenu.Items.Add("AI: Challenge the working theory", null, async (_, _) => await GatherCorpusEvidenceAsync(true));
         gather.Click += (_, _) => gatherMenu.Show(gather, new Point(0, gather.Height));
+
+        // A ContextMenuStrip is a component, not a child control, so ReadingTheme's
+        // control-tree walk never reaches these two - they would drop out of a dark
+        // window in system light. Theme them here, and again on every toggle, the way
+        // MainForm does for the menus it owns.
+        void ThemeMenus()
+        {
+            ReadingTheme.ApplyToContextMenu(projectMenu);
+            ReadingTheme.ApplyToContextMenu(gatherMenu);
+        }
+        ThemeMenus();
+        ReadingTheme.Changed += ThemeMenus;
+        FormClosed += (_, _) =>
+        {
+            ReadingTheme.Changed -= ThemeMenus;
+            projectMenu.Dispose();
+            gatherMenu.Dispose();
+        };
         strip.Controls.Add(add);
         strip.Controls.Add(remove);
         strip.Controls.Add(projectTools);
@@ -311,10 +329,21 @@ public class ResearchBenchForm : Form
     private async Task LoadProjectsAsync(long selectId = 0)
     {
         var items = await _repo.GetProjectsForWorkAsync(_work.WorkId);
+        // Archiving is retention, not deletion, so a caller that names a project - a
+        // passage inquiry opening the project it was promoted into - must still be able
+        // to reach it. Widen the list only in that case, so ordinary browsing still
+        // hides archived work.
+        if (selectId != 0 && items.All(p => p.ResearchProjectId != selectId))
+            items = await _repo.GetProjectsForWorkAsync(_work.WorkId, includeArchived: true);
         _projects.DataSource = null;
         _projects.DataSource = items;
         if (selectId != 0)
-            _projects.SelectedItem = items.FirstOrDefault(p => p.ResearchProjectId == selectId);
+        {
+            var wanted = items.FirstOrDefault(p => p.ResearchProjectId == selectId);
+            _projects.SelectedItem = wanted;
+            if (wanted is { Status: ResearchProjectStatus.Archived })
+                _statusLine.Text = $"“{wanted.Name}” is archived. It is shown because it was opened directly.";
+        }
         if (items.Count == 0)
         {
             ClearProject();

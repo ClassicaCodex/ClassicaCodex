@@ -117,7 +117,11 @@ public sealed class ParallelPassageStudioForm : Form
     {
         if (string.IsNullOrWhiteSpace(TranslationSettings.GeminiApiKey))
         {
-            using var settings = new TranslateApiSettingsForm(); settings.ShowDialog(this); return;
+            using var settings = new TranslateApiSettingsForm();
+            settings.ShowDialog(this);
+            // Continue if a key was entered. Returning unconditionally made the user
+            // click the button a second time for no reason they could see.
+            if (string.IsNullOrWhiteSpace(TranslationSettings.GeminiApiKey)) return;
         }
         if (TranslationSettings.AlwaysConfirmBeforeSending && MessageBox.Show(this,
                 "This sends the two displayed passages, their citations, the saved candidate rationale, and the project question to Gemini. It does not send the rest of the corpus. Continue?",

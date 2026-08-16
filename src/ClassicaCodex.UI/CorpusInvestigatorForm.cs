@@ -135,7 +135,11 @@ public sealed class CorpusInvestigatorForm : Form
     {
         if (string.IsNullOrWhiteSpace(TranslationSettings.GeminiApiKey))
         {
-            using var settings = new TranslateApiSettingsForm(); settings.ShowDialog(this); return;
+            using var settings = new TranslateApiSettingsForm();
+            settings.ShowDialog(this);
+            // Continue if a key was entered. Returning unconditionally made the user
+            // click the button a second time for no reason they could see.
+            if (string.IsNullOrWhiteSpace(TranslationSettings.GeminiApiKey)) return;
         }
         SyncVisibleSelections();
         var selected = _allWorks.Where(w => _selectedEditionIds.Contains(w.Edition.EditionId)).ToList();
