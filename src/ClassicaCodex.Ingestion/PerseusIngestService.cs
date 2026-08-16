@@ -56,6 +56,27 @@ public class PerseusIngestService
     /// </summary>
     public (string Urn, string Name)? UnnamedTextGroupAuthor { get; set; }
 
+    /// <summary>
+    /// Whether textgroups naming the same author should share one author row. Off by
+    /// default: in a catalogued corpus every author has one textgroup, and a repeated
+    /// name is likelier to be two people than one.
+    ///
+    /// On for the Patrologia Latina, where it is the other way round. Migne's volumes
+    /// return to an author again and again, and each appearance became its own
+    /// textgroup - Alphanus of Benevento six times, Anonymus nine. Left alone the
+    /// library tree lists the same name over and over with a work or two under each,
+    /// which is not a catalogue so much as a pile.
+    ///
+    /// Matching is on the name as printed, case and spacing aside. It will not join
+    /// two spellings of one man, and it will join two men who share a name - but a
+    /// corpus that repeats "Anonymus" nine times is telling you which of those errors
+    /// it actually contains.
+    /// </summary>
+    public bool MergeAuthorsByName { get; set; }
+
+    private static string NormaliseAuthorName(string name) =>
+        string.Join(' ', name.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries)).ToLowerInvariant();
+
     /// <param name="repoDataPaths">
     /// Path(s) to the "data" folder inside each cloned repo, e.g.
     /// "C:\src\canonical-greekLit\data" and "C:\src\canonical-latinLit\data".
@@ -103,6 +124,18 @@ public class PerseusIngestService
         var totalWorks = textGroupDirs.Length; // rough estimate for progress, refined per-group below
         int worksProcessed = 0;
 
+        // Which author row a given name already has, so repeats join it. Seeded from
+        // the library rather than from this run alone, so a collection arriving second
+        // joins the authors the first one created instead of shadowing them.
+        Dictionary<string, string>? authorUrnByName = null;
+        if (MergeAuthorsByName)
+        {
+            authorUrnByName = (await _authorRepo.GetAllAsync(cancellationToken))
+                .Where(a => string.Equals(a.Namespace, ns, StringComparison.OrdinalIgnoreCase))
+                .GroupBy(a => NormaliseAuthorName(a.Name), StringComparer.Ordinal)
+                .ToDictionary(g => g.Key, g => g.First().CtsUrn, StringComparer.Ordinal);
+        }
+
         foreach (var textGroupDir in textGroupDirs)
         {
             cancellationToken.ThrowIfCancellationRequested();
@@ -121,6 +154,16 @@ public class PerseusIngestService
             {
                 if (UnnamedTextGroupAuthor == null) continue;
                 (groupUrn, groupName) = UnnamedTextGroupAuthor.Value;
+            }
+
+            // Two textgroups naming the same author are that author, not two of them.
+            // The first URN seen wins and the rest join it, so their works gather under
+            // one row instead of six identical ones.
+            if (authorUrnByName != null)
+            {
+                var key = NormaliseAuthorName(groupName);
+                if (authorUrnByName.TryGetValue(key, out var existingUrn)) groupUrn = existingUrn;
+                else authorUrnByName[key] = groupUrn;
             }
 
             var authorId = await _authorRepo.UpsertAsync(new Author

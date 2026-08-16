@@ -253,6 +253,77 @@ public class CselCorpusTests
         }
     }
 
+    /// <summary>
+    /// That textgroups naming the same author share one row, and that an author already
+    /// in the library is joined rather than shadowed.
+    ///
+    /// The second half is the part worth pinning: the map is seeded from the library,
+    /// not from the run, so the Patrologia Latina's Ambrose joins the Ambrose that CSEL
+    /// created instead of starting a second one beside it.
+    /// </summary>
+    [Fact]
+    public async Task TextGroupsNamingTheSameAuthorShareOneRow()
+    {
+        using var db = await TempDatabase.CreateAsync();
+        var root = Path.Combine(Path.GetTempPath(), "cc-merge-" + Guid.NewGuid().ToString("N"));
+        try
+        {
+            void WriteGroup(string dir, string urn, string name, string workUrn, string editionUrn, string line)
+            {
+                var workDir = Path.Combine(root, "data", dir, "w");
+                Directory.CreateDirectory(workDir);
+                File.WriteAllText(Path.Combine(root, "data", dir, "__cts__.xml"),
+                    $@"<ti:textgroup xmlns:ti=""http://chs.harvard.edu/xmlns/cts"" urn=""{urn}"">
+                         <ti:groupname xml:lang=""eng"">{name}</ti:groupname>
+                       </ti:textgroup>");
+                File.WriteAllText(Path.Combine(workDir, "__cts__.xml"),
+                    $@"<ti:work xml:lang=""lat"" xmlns:ti=""http://chs.harvard.edu/xmlns/cts""
+                                groupUrn=""{urn}"" urn=""{workUrn}"">
+                         <ti:title xml:lang=""lat"">Opus</ti:title>
+                         <ti:edition xml:lang=""lat"" workUrn=""{workUrn}"" urn=""{editionUrn}"">
+                           <ti:label xml:lang=""lat"">Opus</ti:label>
+                         </ti:edition>
+                       </ti:work>");
+                File.WriteAllText(Path.Combine(workDir, "e.xml"),
+                    $@"<TEI xmlns=""http://www.tei-c.org/ns/1.0"">
+                         <teiHeader><fileDesc><titleStmt><title>Opus</title></titleStmt>
+                         <publicationStmt><p>t</p></publicationStmt><sourceDesc><p>s</p></sourceDesc></fileDesc></teiHeader>
+                         <text><body><div type=""edition"" xml:lang=""lat"" n=""{editionUrn}"">
+                           <div type=""textpart"" subtype=""chapter"" n=""1""><p>{line}</p></div>
+                         </div></body></text>
+                       </TEI>");
+            }
+
+            // An author already in the library, as CSEL would have left him.
+            WriteGroup("stoa0022", "urn:cts:latinLit:stoa0022", "Ambrosius",
+                "urn:cts:latinLit:stoa0022.s1", "urn:cts:latinLit:stoa0022.s1.opp-lat1", "de officiis");
+            await new PerseusIngestService().IngestAsync([(Path.Combine(root, "data"), "latinLit")]);
+            Assert.Equal(1L, await db.CountAsync("Authors"));
+
+            // Migne's two further appearances of the same man, under their own numbers,
+            // plus a differently-spaced repeat that should still be recognised.
+            WriteGroup("tmp10", "urn:cts:latinLit:tmp10", "Ambrosius",
+                "urn:cts:latinLit:tmp10.w", "urn:cts:latinLit:tmp10.w.opp-lat1", "de fide");
+            WriteGroup("tmp11", "urn:cts:latinLit:tmp11", "  ambrosius  ",
+                "urn:cts:latinLit:tmp11.w", "urn:cts:latinLit:tmp11.w.opp-lat1", "de spiritu");
+
+            await new PerseusIngestService { MergeAuthorsByName = true }
+                .IngestAsync([(Path.Combine(root, "data"), "latinLit")]);
+
+            // One Ambrose, carrying all three works.
+            Assert.Equal(1L, await db.CountAsync("Authors"));
+            Assert.Equal(3L, await db.CountAsync("Works"));
+
+            // And it is the row CSEL created, not a new one that shadowed it.
+            Assert.Equal(1L, await db.ScalarAsync<long>(
+                "SELECT COUNT(*) FROM Authors WHERE CtsUrn = 'urn:cts:latinLit:stoa0022';"));
+        }
+        finally
+        {
+            try { Directory.Delete(root, recursive: true); } catch { /* temp dir */ }
+        }
+    }
+
     [Fact]
     public async Task ACselVolumeImportsAsLatinWithItsFootnotesOutOfTheReadingText()
     {

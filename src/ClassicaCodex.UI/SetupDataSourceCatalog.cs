@@ -679,6 +679,12 @@ public static class SetupDataSourceCatalog
                     // rather than leaving to be discovered.
                     var service = new PerseusIngestService
                     {
+                        // Migne returns to an author across volumes and each appearance
+                        // became its own textgroup, so without this the tree lists
+                        // Alphanus of Benevento six times and Anonymus nine, a work or
+                        // two under each. They are the same people.
+                        MergeAuthorsByName = true,
+
                         // Migne leaves the author empty where a work has none - the
                         // Council of Carthage, an appendix to Cyprian, an anonymous
                         // passion - and writes "Incertus" wherever he does fill it in.
