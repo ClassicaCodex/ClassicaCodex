@@ -67,6 +67,36 @@ public class CorpusFolderExclusionTests
     }
 
     /// <summary>
+    /// A catalog naming nobody is treated as no catalog.
+    ///
+    /// The Patrologia Latina repository carries thousands of placeholder textgroups
+    /// whose groupname element is present and empty. Read literally, each became an
+    /// author with no name: rows that cannot be read, searched for, or told apart, and
+    /// which look to anyone opening the library like corruption rather than like a
+    /// corpus that was passed over.
+    /// </summary>
+    [Fact]
+    public void ATextGroupNamingNobodyIsSkipped()
+    {
+        var root = NewRepo();
+        try
+        {
+            var dir = Path.Combine(root, "tmp26");
+            Directory.CreateDirectory(dir);
+            File.WriteAllText(Path.Combine(dir, "__cts__.xml"),
+                @"<ti:textgroup xmlns:ti=""http://chs.harvard.edu/xmlns/cts"" urn=""urn:cts:latinLit:tmp26"">
+                    <ti:groupname xml:lang=""eng""></ti:groupname>
+                  </ti:textgroup>");
+
+            Assert.Null(new CtsCatalogReader().ReadTextGroup(Path.Combine(dir, "__cts__.xml")));
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    /// <summary>
     /// A working directory has no catalog of its own, so it is skipped -
     /// however many catalogs sit inside it. This is save/ exactly: 53
     /// __cts__.xml files below it and none at the top.

@@ -30,7 +30,15 @@ public class CtsCatalogReader
             ?.Value
             ?? textGroup.Elements(Ti + "groupname").FirstOrDefault()?.Value;
 
-        if (urn == null || groupName == null) return null;
+        // A present-but-empty <ti:groupname/> counts as no catalog, not as an author
+        // called nothing. Some CTS repositories carry placeholder textgroups whose
+        // element is there and blank, and taking that at face value produced a library
+        // of nameless authors - rows that cannot be read, searched for, or told apart,
+        // and which look like corruption rather than like a corpus that was skipped.
+        //
+        // Returning null puts them on the same footing as a folder with no catalog at
+        // all, which the ingest already knows to pass over.
+        if (urn == null || string.IsNullOrWhiteSpace(groupName)) return null;
 
         return new TextGroupInfo(urn, groupName.Trim());
     }
