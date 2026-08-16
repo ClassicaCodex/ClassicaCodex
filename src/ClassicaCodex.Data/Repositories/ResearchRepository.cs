@@ -66,7 +66,7 @@ public class ResearchRepository
                 UPDATE ResearchProjects
                 SET Name=@Name, Status=@Status, Notes=@Notes, WorkCtsUrn=@WorkCtsUrn, UpdatedUtc=@Now
                 WHERE ResearchProjectId=@Id;
-                SELECT @Id;";
+                SELECT changes();";
             cmd.Parameters.AddWithValue("@Id", project.ResearchProjectId);
         }
 
@@ -78,7 +78,14 @@ public class ResearchRepository
         cmd.Parameters.AddWithValue("@Status", Store(project.Status));
         cmd.Parameters.AddWithValue("@Notes", Db(project.Notes));
         cmd.Parameters.AddWithValue("@Now", now.ToString("O"));
-        var id = Convert.ToInt64(await cmd.ExecuteScalarAsync(cancellationToken));
+        // An UPDATE that matched nothing used to hand back the id it was given, which
+        // reported success for a write that never happened - and made every scope
+        // condition in a WHERE clause a guard that could not fail. The update branch
+        // now returns its row count instead, and an id only when a row really moved.
+        var scalar = Convert.ToInt64(await cmd.ExecuteScalarAsync(cancellationToken));
+        if (!isNew && scalar != 1)
+            throw new ArgumentException("This research project no longer exists.");
+        var id = isNew ? scalar : project.ResearchProjectId;
 
         project.ResearchProjectId = id;
         if (project.CreatedUtc == default) project.CreatedUtc = now;
@@ -177,7 +184,7 @@ public class ResearchRepository
         else
         {
             cmd.CommandText = @"UPDATE ResearchQuestions SET Text=@Text, Notes=@Notes,
-                SortOrder=@Sort, UpdatedUtc=@Now WHERE ResearchQuestionId=@Id; SELECT @Id;";
+                SortOrder=@Sort, UpdatedUtc=@Now WHERE ResearchQuestionId=@Id; SELECT changes();";
             cmd.Parameters.AddWithValue("@Id", question.ResearchQuestionId);
         }
         cmd.Parameters.AddWithValue("@ProjectId", question.ResearchProjectId);
@@ -192,7 +199,10 @@ public class ResearchRepository
         cmd.Parameters.AddWithValue("@AiModel", Db(question.AiModel));
         cmd.Parameters.AddWithValue("@AiPrompt", Db(question.AiPrompt));
         cmd.Parameters.AddWithValue("@AiGeneratedUtc", Db(question.AiGeneratedUtc?.ToString("O")));
-        var id = Convert.ToInt64(await cmd.ExecuteScalarAsync(cancellationToken));
+        var scalar = Convert.ToInt64(await cmd.ExecuteScalarAsync(cancellationToken));
+        if (!isNew && scalar != 1)
+            throw new ArgumentException("This research question no longer exists.");
+        var id = isNew ? scalar : question.ResearchQuestionId;
         question.ResearchQuestionId = id;
         await TouchProjectAsync(conn, question.ResearchProjectId, cancellationToken);
         await AppendLogAsync(conn, new ResearchLogEntry
@@ -327,7 +337,7 @@ public class ResearchRepository
                 EvidenceType=@Type,SourceType=@SourceType,StableIdentifier=@StableId,
                 CanonicalReference=@Reference,Provenance=@Provenance,Excerpt=@Excerpt,
                 Judgment=@Judgment,Relationship=@Relationship,ResearcherNote=@Note,
-                SortOrder=@Sort,UpdatedUtc=@Now WHERE EvidenceItemId=@Id; SELECT @Id;";
+                SortOrder=@Sort,UpdatedUtc=@Now WHERE EvidenceItemId=@Id; SELECT changes();";
             cmd.Parameters.AddWithValue("@Id", item.EvidenceItemId);
         }
         cmd.Parameters.AddWithValue("@ProjectId", item.ResearchProjectId);
@@ -344,7 +354,10 @@ public class ResearchRepository
         cmd.Parameters.AddWithValue("@Note", Db(item.ResearcherNote));
         cmd.Parameters.AddWithValue("@Sort", item.SortOrder);
         cmd.Parameters.AddWithValue("@Now", now.ToString("O"));
-        var id = Convert.ToInt64(await cmd.ExecuteScalarAsync(cancellationToken));
+        var scalar = Convert.ToInt64(await cmd.ExecuteScalarAsync(cancellationToken));
+        if (!isNew && scalar != 1)
+            throw new ArgumentException("This evidence item no longer exists.");
+        var id = isNew ? scalar : item.EvidenceItemId;
         item.EvidenceItemId = id;
         await SaveEvidenceGenerationMetadataAsync(conn, item, tx, cancellationToken);
         await tx.CommitAsync(cancellationToken);
@@ -506,7 +519,7 @@ public class ResearchRepository
             cmd.CommandText = @"UPDATE ScholarlyClaims SET ResearchQuestionId=@QuestionId,
                 SourceEvidenceItemId=@SourceId,Claimant=@Claimant,ClaimText=@ClaimText,Locator=@Locator,
                 Relationship=@Relationship,Judgment=@Judgment,Notes=@Notes,SortOrder=@Sort,UpdatedUtc=@Now
-                WHERE ScholarlyClaimId=@Id AND ResearchProjectId=@ProjectId; SELECT @Id;";
+                WHERE ScholarlyClaimId=@Id AND ResearchProjectId=@ProjectId; SELECT changes();";
             cmd.Parameters.AddWithValue("@Id", claim.ScholarlyClaimId);
         }
         cmd.Parameters.AddWithValue("@ProjectId", claim.ResearchProjectId);
@@ -520,7 +533,10 @@ public class ResearchRepository
         cmd.Parameters.AddWithValue("@Notes", Db(claim.Notes));
         cmd.Parameters.AddWithValue("@Sort", claim.SortOrder);
         cmd.Parameters.AddWithValue("@Now", now.ToString("O"));
-        var id = Convert.ToInt64(await cmd.ExecuteScalarAsync(cancellationToken));
+        var scalar = Convert.ToInt64(await cmd.ExecuteScalarAsync(cancellationToken));
+        if (!isNew && scalar != 1)
+            throw new ArgumentException("This scholarly claim no longer exists, or belongs to another project.");
+        var id = isNew ? scalar : claim.ScholarlyClaimId;
         claim.ScholarlyClaimId = id;
         if (claim.CreatedUtc == default) claim.CreatedUtc = now;
         claim.UpdatedUtc = now;

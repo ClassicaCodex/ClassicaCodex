@@ -1076,6 +1076,31 @@ public class ResearchRepositoryTests
     }
 
     [Fact]
+    public async Task SavingSomethingThatHasBeenDeletedFailsInsteadOfReportingSuccess()
+    {
+        using var db = await TempDatabase.CreateAsync();
+        await db.SeedEditionAsync("rhesus");
+        var repo = new ResearchRepository();
+        var project = new ResearchProject { WorkId = await db.WorkIdForAsync("rhesus"), Name = "Held open" };
+        await repo.SaveProjectAsync(project);
+        var question = new ResearchQuestion
+        {
+            ResearchProjectId = project.ResearchProjectId, Text = "Does the diction depart?"
+        };
+        await repo.SaveQuestionAsync(question);
+        await repo.DeleteQuestionAsync(question.ResearchQuestionId);
+
+        // A Bench window left open still holds the object. The UPDATE matches nothing,
+        // and the old "UPDATE ...; SELECT @Id;" handed the id straight back - so the
+        // save reported success, the caller believed the edit had landed, and nothing
+        // had been written. The same silence made every "AND ResearchProjectId=@Project"
+        // scope condition a guard that could not fail.
+        question.Text = "Edited after it was gone";
+        await Assert.ThrowsAsync<ArgumentException>(() => repo.SaveQuestionAsync(question));
+        Assert.Empty(await repo.GetQuestionsAsync(project.ResearchProjectId));
+    }
+
+    [Fact]
     public async Task ReorderingQuestionsThatAreAlreadyGoneDoesNotFail()
     {
         using var db = await TempDatabase.CreateAsync();

@@ -43,7 +43,7 @@ public sealed class ResearchHypothesisRepository
                 SELECT last_insert_rowid();"
             : @"UPDATE ResearchHypotheses SET Title=@Title,Statement=@Statement,Status=@Status,Origin=@Origin,
                 ResearcherNote=@Note,AiModel=@Model,AiPrompt=@Prompt,AiGeneratedUtc=@Generated,SortOrder=@Sort,
-                UpdatedUtc=@Now WHERE ResearchHypothesisId=@Id AND ResearchProjectId=@Project; SELECT @Id;";
+                UpdatedUtc=@Now WHERE ResearchHypothesisId=@Id AND ResearchProjectId=@Project; SELECT changes();";
         if (!isNew) cmd.Parameters.AddWithValue("@Id", hypothesis.ResearchHypothesisId);
         cmd.Parameters.AddWithValue("@Project", hypothesis.ResearchProjectId); cmd.Parameters.AddWithValue("@Title", hypothesis.Title.Trim());
         cmd.Parameters.AddWithValue("@Statement", hypothesis.Statement.Trim()); cmd.Parameters.AddWithValue("@Status", Store(hypothesis.Status));
@@ -51,7 +51,9 @@ public sealed class ResearchHypothesisRepository
         cmd.Parameters.AddWithValue("@Model", Db(hypothesis.AiModel)); cmd.Parameters.AddWithValue("@Prompt", Db(hypothesis.AiPrompt));
         cmd.Parameters.AddWithValue("@Generated", hypothesis.AiGeneratedUtc is null ? DBNull.Value : hypothesis.AiGeneratedUtc.Value.ToString("O"));
         cmd.Parameters.AddWithValue("@Sort", hypothesis.SortOrder); cmd.Parameters.AddWithValue("@Now", now.ToString("O"));
-        hypothesis.ResearchHypothesisId = Convert.ToInt64(await cmd.ExecuteScalarAsync(ct));
+        var scalar = Convert.ToInt64(await cmd.ExecuteScalarAsync(ct));
+        if (!isNew && scalar != 1) throw new ArgumentException("This hypothesis no longer exists, or belongs to another project.");
+        hypothesis.ResearchHypothesisId = isNew ? scalar : hypothesis.ResearchHypothesisId;
         if (hypothesis.CreatedUtc == default) hypothesis.CreatedUtc = now; hypothesis.UpdatedUtc = now;
         await LogAsync(hypothesis.ResearchProjectId, isNew ? ResearchLogEntryKind.HypothesisAdded : ResearchLogEntryKind.HypothesisUpdated,
             $"{(isNew ? "Added" : "Updated")} hypothesis: {hypothesis.Title}", hypothesis.Status.ToString(), ct);
@@ -149,13 +151,15 @@ public sealed class ResearchHypothesisRepository
             ?@"INSERT INTO ResearchExperiments (ResearchProjectId,ResearchHypothesisId,Title,Method,Status,PredictedOutcome,FalsificationCriterion,ResearcherNote,Origin,AiModel,AiPrompt,AiGeneratedUtc,SortOrder,CreatedUtc,UpdatedUtc)
                VALUES (@Project,@Hypothesis,@Title,@Method,@Status,@Predicted,@Falsification,@Note,@Origin,@Model,@Prompt,@Generated,@Sort,@Now,@Now);SELECT last_insert_rowid();"
             :@"UPDATE ResearchExperiments SET ResearchHypothesisId=@Hypothesis,Title=@Title,Method=@Method,Status=@Status,PredictedOutcome=@Predicted,FalsificationCriterion=@Falsification,
-               ResearcherNote=@Note,Origin=@Origin,AiModel=@Model,AiPrompt=@Prompt,AiGeneratedUtc=@Generated,SortOrder=@Sort,UpdatedUtc=@Now WHERE ResearchExperimentId=@Id AND ResearchProjectId=@Project;SELECT @Id;";
+               ResearcherNote=@Note,Origin=@Origin,AiModel=@Model,AiPrompt=@Prompt,AiGeneratedUtc=@Generated,SortOrder=@Sort,UpdatedUtc=@Now WHERE ResearchExperimentId=@Id AND ResearchProjectId=@Project;SELECT changes();";
         if(!isNew)cmd.Parameters.AddWithValue("@Id",experiment.ResearchExperimentId);cmd.Parameters.AddWithValue("@Project",experiment.ResearchProjectId);cmd.Parameters.AddWithValue("@Hypothesis",Db(experiment.ResearchHypothesisId));
         cmd.Parameters.AddWithValue("@Title",experiment.Title.Trim());cmd.Parameters.AddWithValue("@Method",Store(experiment.Method));cmd.Parameters.AddWithValue("@Status",Store(experiment.Status));
         cmd.Parameters.AddWithValue("@Predicted",Db(experiment.PredictedOutcome));cmd.Parameters.AddWithValue("@Falsification",Db(experiment.FalsificationCriterion));cmd.Parameters.AddWithValue("@Note",Db(experiment.ResearcherNote));
         cmd.Parameters.AddWithValue("@Origin",Store(experiment.Origin));cmd.Parameters.AddWithValue("@Model",Db(experiment.AiModel));cmd.Parameters.AddWithValue("@Prompt",Db(experiment.AiPrompt));
         cmd.Parameters.AddWithValue("@Generated",experiment.AiGeneratedUtc is null?DBNull.Value:experiment.AiGeneratedUtc.Value.ToString("O"));cmd.Parameters.AddWithValue("@Sort",experiment.SortOrder);cmd.Parameters.AddWithValue("@Now",now.ToString("O"));
-        experiment.ResearchExperimentId=Convert.ToInt64(await cmd.ExecuteScalarAsync(ct));await LogAsync(experiment.ResearchProjectId,isNew?ResearchLogEntryKind.ExperimentAdded:ResearchLogEntryKind.ExperimentUpdated,$"{(isNew?"Added":"Updated")} experiment: {experiment.Title}",experiment.Status.ToString(),ct);return experiment.ResearchExperimentId;
+        var experimentScalar=Convert.ToInt64(await cmd.ExecuteScalarAsync(ct));
+        if(!isNew&&experimentScalar!=1)throw new ArgumentException("This experiment no longer exists, or belongs to another project.");
+        experiment.ResearchExperimentId=isNew?experimentScalar:experiment.ResearchExperimentId;await LogAsync(experiment.ResearchProjectId,isNew?ResearchLogEntryKind.ExperimentAdded:ResearchLogEntryKind.ExperimentUpdated,$"{(isNew?"Added":"Updated")} experiment: {experiment.Title}",experiment.Status.ToString(),ct);return experiment.ResearchExperimentId;
     }
 
     public async Task DeleteExperimentAsync(long id,CancellationToken ct=default){await using var conn=await DbConnectionFactory.OpenConnectionAsync(ct);await using var read=conn.CreateCommand();read.CommandText="SELECT ResearchProjectId,Title FROM ResearchExperiments WHERE ResearchExperimentId=@Id;";read.Parameters.AddWithValue("@Id",id);await using var r=await read.ExecuteReaderAsync(ct);if(!await r.ReadAsync(ct))return;var project=r.GetInt64(0);var title=r.GetString(1);await r.DisposeAsync();await using var cmd=conn.CreateCommand();cmd.CommandText="DELETE FROM ResearchExperiments WHERE ResearchExperimentId=@Id;";cmd.Parameters.AddWithValue("@Id",id);await cmd.ExecuteNonQueryAsync(ct);await SortOrderCompaction.RenumberAsync(conn,"ResearchExperiments","ResearchExperimentId",project,ct);await LogAsync(project,ResearchLogEntryKind.ExperimentRemoved,$"Removed experiment: {title}",null,ct);}
