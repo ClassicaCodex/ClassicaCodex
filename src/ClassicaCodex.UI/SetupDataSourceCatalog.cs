@@ -12,12 +12,34 @@ namespace ClassicaCodex.UI;
 /// </summary>
 public static class SetupDataSourceCatalog
 {
+    private static string DataRoot => Path.Combine(
+        Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "ClassicaCodexData");
+
+    /// <summary>
+    /// The collections that carry readable text, with the folder each downloads
+    /// to - the same folder its setup step counts editions under to decide
+    /// whether it is installed, and the same one the search window filters by.
+    ///
+    /// Here rather than beside each entry below so that a folder name cannot be
+    /// changed in one place and left behind in the other. The lemma, lexicon,
+    /// map and artifact sources are deliberately absent: they hold no passages,
+    /// so there is nothing in them to search.
+    /// </summary>
+    public static IReadOnlyList<(string Title, string Folder)> TextCollections =>
+    [
+        ("Ancient Greek (Perseus)", Path.Combine(DataRoot, "greek-texts")),
+        ("Ancient Latin (Perseus)", Path.Combine(DataRoot, "latin-texts")),
+        ("Post-Classical Greek (First1KGreek)", Path.Combine(DataRoot, "first1k-greek")),
+        ("Latin Church Fathers (CSEL)", Path.Combine(DataRoot, "csel")),
+        ("English Literature (Renaissance)", Path.Combine(DataRoot, "english-texts")),
+        ("Medieval Nordic (Menota)", Path.Combine(DataRoot, "menota"))
+    ];
+
     public static List<SetupDataSource> Build(
         AuthorRepository authorRepo, LemmaRepository lemmaRepo, DefinitionRepository definitionRepo,
         ArtifactRepository artifactRepo, EditionRepository editionRepo)
     {
-        var dataRoot = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "ClassicaCodexData");
+        var dataRoot = DataRoot;
 
         // Named once, so the step's download location and its "is this
         // already loaded?" check can't drift apart.

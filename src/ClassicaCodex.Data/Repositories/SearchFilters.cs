@@ -56,6 +56,22 @@ public sealed class SearchFilters
     public HashSet<string> Corpora { get; } = new(StringComparer.OrdinalIgnoreCase);
 
     /// <summary>
+    /// Which downloaded collections to search, named by the folder each was
+    /// ingested from. Empty means all.
+    ///
+    /// Deliberately not the same axis as <see cref="Corpora"/> above, which asks
+    /// what language tradition a text belongs to. Both CSEL and the classical
+    /// Latin texts are "latinLit", and both Greek collections are "greekLit", so
+    /// the namespace cannot answer "search only CSEL" - the question someone asks
+    /// the moment they have installed more than one collection in a language.
+    ///
+    /// The download folder is what separates them, and it is already trusted for
+    /// exactly this: every setup step decides whether its collection is installed
+    /// by counting editions whose source path sits under its own folder.
+    /// </summary>
+    public HashSet<string> Collections { get; } = new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>
     /// True to search only original-language editions, false for only
     /// translations, null for both. Distinct from the language filter: an
     /// English original (Shakespeare) and an English translation of Homer

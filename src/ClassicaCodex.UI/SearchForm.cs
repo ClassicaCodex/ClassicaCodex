@@ -33,6 +33,9 @@ public class SearchForm : Form
     private readonly ComboBox _eraBox;
     private readonly ComboBox _tagBox;
     private readonly CheckBox _bookmarkedCheck;
+    private readonly Button _collectionsButton;
+    private readonly ContextMenuStrip _collectionsMenu = new();
+    private readonly ComboBox _viewBox;
     private readonly ListBox _resultsList;
     private readonly Label _statusLabel;
     private readonly Button _clearFiltersButton;
@@ -42,8 +45,35 @@ public class SearchForm : Form
     private readonly AuthorRepository _authorRepo = new();
     private readonly TagRepository _tagRepo = new();
     private readonly RecentSearchRepository _recentRepo = new();
+    private readonly EditionRepository _editionRepo = new();
 
     private List<(int WorkId, long TextNodeId, string AuthorName, string WorkTitle, string CitationRef, string Text)> _results = new();
+
+    /// <summary>
+    /// The passages actually on screen - every result, or one document's worth
+    /// when a document row has been opened. Everything that indexes the list by
+    /// row reads this rather than <see cref="_results"/>.
+    /// </summary>
+    private List<(int WorkId, long TextNodeId, string AuthorName, string WorkTitle, string CitationRef, string Text)> _visible = new();
+
+    /// <summary>One row per work, with how many of the matches fell in it.</summary>
+    private List<(int WorkId, string AuthorName, string WorkTitle, int Matches)> _documents = new();
+
+    /// <summary>Set while the passage list is scoped to one document.</summary>
+    private int? _openDocumentWorkId;
+
+    // Carried from the last search so the view can be re-rendered without
+    // re-running it - switching between passages and documents is a change of
+    // presentation, and should not cost another query.
+    private bool _truncated;
+    private string _displayCount = "0";
+    private bool _narrowed;
+
+    /// <summary>The collections that are installed, so the menu offers only real ones.</summary>
+    private List<(string Title, string Folder)> _collections = new();
+
+    private bool DocumentView => _viewBox.SelectedIndex == 1 && _openDocumentWorkId == null;
+
     private List<string> _highlightTerms = new();
     private List<Author> _authors = new();
     private List<RecentSearch> _recent = new();
@@ -193,20 +223,48 @@ public class SearchForm : Form
             Left = 652, Top = 62, Width = 200, DropDownStyle = ComboBoxStyle.DropDownList
         };
 
+        // A menu rather than a row of checkboxes: the number of collections grows
+        // every time a corpus is added, and a filter panel that has to grow with
+        // it would push the results further down the window each time.
+        _collectionsButton = new Button
+        {
+            Text = "Collections: all", Left = 870, Top = 61, Width = 178, Height = 26
+        };
+        _collectionsButton.Click += (_, _) =>
+            _collectionsMenu.Show(_collectionsButton, new Point(0, _collectionsButton.Height));
+
         filterPanel.Controls.AddRange(new Control[]
         {
             matchLabel, _matchModeBox, languageLabel, _greekCheck, _latinCheck, _englishCheck,
             kindLabel, _kindBox, _bookmarkedCheck,
-            authorLabel, _authorBox, eraLabel, _eraBox, tagLabel, _tagBox
+            authorLabel, _authorBox, eraLabel, _eraBox, tagLabel, _tagBox, _collectionsButton
         });
+
+        // A view control, not a filter - it changes how the same matches are
+        // presented, so it sits with the results rather than inside "Narrow the
+        // search".
+        var viewLabel = new Label { Text = "Show:", Left = 14, Top = 198, Width = 42 };
+        _viewBox = new ComboBox
+        {
+            Left = 58, Top = 194, Width = 220, DropDownStyle = ComboBoxStyle.DropDownList
+        };
+        _viewBox.Items.AddRange(new object[] { "Every matching passage", "One row per document" });
+        _viewBox.SelectedIndex = 0;
+        _viewBox.SelectedIndexChanged += (_, _) =>
+        {
+            // Switching the view always leaves a single document, so the results
+            // never disagree with the control describing them.
+            _openDocumentWorkId = null;
+            RenderResults();
+        };
 
         // --- results ---------------------------------------------------
         _resultsList = new ListBox
         {
             Left = 12,
-            Top = 196,
+            Top = 226,
             Width = 1060,
-            Height = 444,
+            Height = 414,
             Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right,
             HorizontalScrollbar = true,
             DrawMode = DrawMode.OwnerDrawFixed
@@ -214,15 +272,24 @@ public class SearchForm : Form
         _resultsList.DrawItem += Results_DrawItem;
         _resultsList.DoubleClick += async (_, _) => await JumpToSelectedAsync();
 
+        // All three index the list by row, so all three have to know that a row
+        // means a document rather than a passage in the grouped view - a document
+        // row has no single citation to show and no line to copy.
         ListResultHelpers.AttachCitationTooltip(_resultsList,
-            i => i < _displayedCount ? _results[i].CitationRef : null);
+            i => !DocumentView && i < _displayedCount ? _visible[i].CitationRef : null);
         ListResultHelpers.AttachCopyToClipboardMenu(_resultsList,
-            i => i < _displayedCount
-                ? $"{_results[i].AuthorName}, {_results[i].WorkTitle} [{_results[i].CitationRef}]: {_results[i].Text}"
-                : null);
+            i => i >= _displayedCount ? null
+                : DocumentView
+                    ? $"{_documents[i].AuthorName}, {_documents[i].WorkTitle} — {_documents[i].Matches} match(es)"
+                    : $"{_visible[i].AuthorName}, {_visible[i].WorkTitle} [{_visible[i].CitationRef}]: {_visible[i].Text}");
+
+        // Export stays passage-level in both views: a list of documents and their
+        // counts is not something anyone wants to paste into a notebook, and the
+        // export is scoped to what is on screen, so opening a document exports
+        // that document.
         ListResultHelpers.AttachExportMenu(_resultsList, () => (
             DescribeSearch(),
-            _results.Select(r => new ExportPassage(
+            _visible.Select(r => new ExportPassage(
                 r.WorkId, r.TextNodeId, r.AuthorName, r.WorkTitle, r.CitationRef, r.Text)).ToList()), this);
 
         _statusLabel = new Label
@@ -240,7 +307,7 @@ public class SearchForm : Form
         {
             queryLabel, _queryBox, _searchButton, _clearFiltersButton,
             recentLabel, _recentBox,
-            filterPanel, _resultsList, _statusLabel
+            filterPanel, viewLabel, _viewBox, _resultsList, _statusLabel
         });
 
         Load += async (_, _) =>
@@ -265,6 +332,8 @@ public class SearchForm : Form
             _authorBox.Items.Add("(any author)");
             foreach (var author in _authors) _authorBox.Items.Add(author.Name);
             _authorBox.SelectedIndex = 0;
+
+            await LoadCollectionsAsync();
 
             var tags = await _tagRepo.GetAllTagsAsync();
             _tagBox.Items.Add("(any)");
@@ -453,6 +522,10 @@ public class SearchForm : Form
         if (_authorBox.Items.Count > 0) _authorBox.SelectedIndex = 0;
         if (_tagBox.Items.Count > 0) _tagBox.SelectedIndex = 0;
         _eraBox.SelectedIndex = 0;
+
+        foreach (var item in _collectionsMenu.Items.OfType<ToolStripMenuItem>())
+            if (item.CheckOnClick) item.Checked = false;
+        UpdateCollectionsButton();
     }
 
     private SearchFilters BuildFilters()
@@ -478,6 +551,8 @@ public class SearchForm : Form
         if (_greekCheck.Checked) filters.Languages.Add("grc");
         if (_latinCheck.Checked) filters.Languages.Add("lat");
         if (_englishCheck.Checked) filters.Languages.Add("eng");
+
+        foreach (var folder in CheckedCollections()) filters.Collections.Add(folder);
 
         if (_authorBox.SelectedIndex > 0 && _authorBox.SelectedIndex - 1 < _authors.Count)
         {
@@ -534,40 +609,11 @@ public class SearchForm : Form
 
             var hits = await _textNodeRepo.SearchFilteredAsync(filters);
             _results = hits.Rows;
-            _displayedCount = Math.Min(_results.Count, DisplayLimit);
-
-            _resultsList.BeginUpdate();
-            try
-            {
-                _resultsList.Items.Clear();
-
-                foreach (var r in _results.Take(DisplayLimit))
-                {
-                    _resultsList.Items.Add($"{r.AuthorName}, {r.WorkTitle}: {r.Text}");
-                }
-
-                if (_results.Count == 0)
-                {
-                    _resultsList.Items.Add(filters.HasAnyNarrowing
-                        ? "No matches. Try Clear Filters, or a different match mode."
-                        : "No matches.");
-                }
-                else if (hits.Truncated || _results.Count > _displayedCount)
-                {
-                    _resultsList.Items.Add(hits.Truncated
-                        ? $"--- showing {_displayedCount:N0} of {hits.DisplayCount} matches; the search stopped at its limit. Narrow it to see the rest. ---"
-                        : $"--- showing {_displayedCount:N0} of {_results.Count:N0} matches. ---");
-                }
-            }
-            finally
-            {
-                _resultsList.EndUpdate();
-            }
-
-            _statusLabel.Text = _results.Count == 0
-                ? "No matches."
-                : $"{hits.DisplayCount} match(es). Double-click to open in the reader; " +
-                  "right-click to copy or export.";
+            _openDocumentWorkId = null;
+            _truncated = hits.Truncated;
+            _displayCount = hits.DisplayCount;
+            _narrowed = filters.HasAnyNarrowing;
+            RenderResults();
 
             // Recorded at the end rather than the start: a search that threw
             // isn't one worth offering back. Replaying an entry from the
@@ -619,15 +665,164 @@ public class SearchForm : Form
             : $"Search: {query} ({string.Join(", ", parts)})";
     }
 
+    /// <summary>
+    /// Offers only the collections that are actually installed, asked of the
+    /// library rather than of the filesystem - a folder that was downloaded and
+    /// never ingested has nothing in it to search, and a checkbox for it would
+    /// silently return nothing.
+    ///
+    /// Unchecked throughout means all of them, which is both the default and
+    /// what someone with a single collection should never have to think about.
+    /// </summary>
+    private async Task LoadCollectionsAsync()
+    {
+        _collections.Clear();
+        foreach (var (title, folder) in SetupDataSourceCatalog.TextCollections)
+        {
+            if (await _editionRepo.CountBySourcePathPrefixAsync(folder) > 0)
+                _collections.Add((title, folder));
+        }
+
+        _collectionsMenu.Items.Clear();
+
+        // With one collection there is nothing to choose between, and a menu
+        // offering the only option is noise.
+        _collectionsButton.Visible = _collections.Count > 1;
+        if (!_collectionsButton.Visible) return;
+
+        foreach (var (title, folder) in _collections)
+        {
+            var item = new ToolStripMenuItem(title) { CheckOnClick = true, Tag = folder };
+            item.CheckedChanged += (_, _) => UpdateCollectionsButton();
+            _collectionsMenu.Items.Add(item);
+        }
+
+        _collectionsMenu.Items.Add(new ToolStripSeparator());
+        var all = new ToolStripMenuItem("Search all collections");
+        all.Click += (_, _) =>
+        {
+            foreach (var item in _collectionsMenu.Items.OfType<ToolStripMenuItem>())
+                if (item.CheckOnClick) item.Checked = false;
+        };
+        _collectionsMenu.Items.Add(all);
+
+        ReadingTheme.ApplyToContextMenu(_collectionsMenu);
+        UpdateCollectionsButton();
+    }
+
+    private void UpdateCollectionsButton()
+    {
+        var chosen = CheckedCollections().Count;
+        _collectionsButton.Text = chosen == 0
+            ? "Collections: all"
+            : $"Collections: {chosen} of {_collections.Count}";
+    }
+
+    private List<string> CheckedCollections() =>
+        _collectionsMenu.Items.OfType<ToolStripMenuItem>()
+            .Where(i => i.CheckOnClick && i.Checked && i.Tag is string)
+            .Select(i => (string)i.Tag!)
+            .ToList();
+
+    /// <summary>
+    /// Fills the list from the last search's results, in whichever view is
+    /// selected. Never queries: the same matches are being shown a different way.
+    /// </summary>
+    private void RenderResults()
+    {
+        _visible = _openDocumentWorkId is { } workId
+            ? _results.Where(r => r.WorkId == workId).ToList()
+            : _results;
+
+        _documents = DocumentView
+            ? _results
+                .GroupBy(r => r.WorkId)
+                .Select(g => (WorkId: g.Key, g.First().AuthorName, g.First().WorkTitle, Matches: g.Count()))
+                .OrderByDescending(d => d.Matches).ThenBy(d => d.AuthorName).ThenBy(d => d.WorkTitle)
+                .ToList()
+            : [];
+
+        _displayedCount = DocumentView
+            ? Math.Min(_documents.Count, DisplayLimit)
+            : Math.Min(_visible.Count, DisplayLimit);
+
+        _resultsList.BeginUpdate();
+        try
+        {
+            _resultsList.Items.Clear();
+
+            if (DocumentView)
+            {
+                foreach (var d in _documents.Take(DisplayLimit))
+                    _resultsList.Items.Add($"{d.AuthorName}, {d.WorkTitle} — {d.Matches:N0} match(es)");
+            }
+            else
+            {
+                foreach (var r in _visible.Take(DisplayLimit))
+                    _resultsList.Items.Add($"{r.AuthorName}, {r.WorkTitle}: {r.Text}");
+            }
+
+            if (_results.Count == 0)
+            {
+                _resultsList.Items.Add(_narrowed
+                    ? "No matches. Try Clear Filters, or a different match mode."
+                    : "No matches.");
+            }
+            else if (_truncated || (DocumentView ? _documents.Count : _visible.Count) > _displayedCount)
+            {
+                var total = DocumentView ? $"{_documents.Count:N0} documents" : $"{_visible.Count:N0} matches";
+                _resultsList.Items.Add(_truncated
+                    ? $"--- showing {_displayedCount:N0} of {_displayCount} matches; the search stopped at its limit. Narrow it to see the rest. ---"
+                    : $"--- showing {_displayedCount:N0} of {total}. ---");
+            }
+        }
+        finally
+        {
+            _resultsList.EndUpdate();
+        }
+
+        if (_results.Count == 0)
+        {
+            _statusLabel.Text = "No matches.";
+            return;
+        }
+
+        // Says plainly that the per-document counts are of the matches that came
+        // back, not of everything in the document. A search that stopped at its
+        // limit would otherwise report "47" as though it had counted.
+        var truncationNote = _truncated
+            ? " Counts cover the matches returned before the search hit its limit, not the whole library."
+            : string.Empty;
+
+        _statusLabel.Text = _openDocumentWorkId != null
+            ? $"{_visible.Count:N0} match(es) in {_visible[0].AuthorName}, {_visible[0].WorkTitle}. " +
+              "Switch Show back to see every document again."
+            : DocumentView
+                ? $"{_displayCount} match(es) across {_documents.Count:N0} document(s). " +
+                  $"Double-click a document to list its matches.{truncationNote}"
+                : $"{_displayCount} match(es). Double-click to open in the reader; " +
+                  "right-click to copy or export.";
+    }
+
     private async Task JumpToSelectedAsync()
     {
         var index = _resultsList.SelectedIndex;
 
         // Bounded by the displayed count, not the result count - the last
         // row can be a notice rather than a result.
-        if (index < 0 || index >= _displayedCount || OnNavigate == null) return;
+        if (index < 0 || index >= _displayedCount) return;
 
-        var result = _results[index];
+        // In the grouped view a row is a document, and a document has no single
+        // passage to open. Double-clicking it asks to see its matches instead.
+        if (DocumentView)
+        {
+            _openDocumentWorkId = _documents[index].WorkId;
+            RenderResults();
+            return;
+        }
+
+        if (OnNavigate == null) return;
+        var result = _visible[index];
         await OnNavigate(result.WorkId, result.TextNodeId);
     }
 

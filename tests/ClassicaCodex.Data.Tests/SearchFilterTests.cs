@@ -66,6 +66,48 @@ public class SearchFilterTests
         Assert.Empty(hits.Rows);
     }
 
+    /// <summary>
+    /// The case the namespace filter cannot answer, and the reason the collection
+    /// filter exists: two collections in one language tradition. CSEL and the
+    /// classical Latin texts are both "latinLit", as are First1KGreek and Perseus
+    /// Greek both "greekLit" - so "search only CSEL" has no expression in terms of
+    /// namespaces at all.
+    /// </summary>
+    [Fact]
+    public async Task CollectionFilterSeparatesTwoCollectionsSharingANamespace()
+    {
+        using var db = await TempDatabase.CreateAsync();
+
+        var classical = await db.SeedFullEditionAsync("vergil", "Vergil", "latinLit", "Aeneid", "Original", "lat");
+        await db.InsertLinesAsync(classical, ("1.1", "arma virumque cano"));
+        var fathers = await db.SeedFullEditionAsync("augustine", "Augustine", "latinLit", "Confessiones", "Original", "lat");
+        await db.InsertLinesAsync(fathers, ("1.1", "arma spiritalia sumenda sunt"));
+
+        await db.ExecuteAsync(
+            $@"UPDATE Editions SET SourcePath = 'C:\Data\latin-texts\data\vergil\x.xml' WHERE EditionId = {classical};
+               UPDATE Editions SET SourcePath = 'C:\Data\csel\data\augustine\y.xml' WHERE EditionId = {fathers};");
+
+        var repo = new TextNodeRepository();
+
+        var byNamespace = new SearchFilters { Query = "arma" };
+        byNamespace.Corpora.Add("latinLit");
+        Assert.Equal(2, (await repo.SearchFilteredAsync(byNamespace)).Rows.Count);
+
+        var cselOnly = new SearchFilters { Query = "arma" };
+        cselOnly.Collections.Add(@"C:\Data\csel");
+        Assert.Equal("arma spiritalia sumenda sunt",
+            Assert.Single((await repo.SearchFilteredAsync(cselOnly)).Rows).Text);
+
+        // Any number of them, which is what makes it a set rather than a dropdown.
+        var both = new SearchFilters { Query = "arma" };
+        both.Collections.Add(@"C:\Data\csel");
+        both.Collections.Add(@"C:\Data\latin-texts");
+        Assert.Equal(2, (await repo.SearchFilteredAsync(both)).Rows.Count);
+
+        // And unset still means everything, so the default search is unchanged.
+        Assert.Equal(2, (await repo.SearchFilteredAsync(Query("arma"))).Rows.Count);
+    }
+
     // --- match modes ------------------------------------------------------
 
     [Fact]
