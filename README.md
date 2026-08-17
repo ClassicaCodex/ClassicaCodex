@@ -77,6 +77,13 @@ security warning you'll hit on first run.
 - **AI-assisted translation** — translate a single passage on demand, or an entire work at once, using Claude or Gemini. Off by default and opt-in per use — nothing is sent anywhere unless you ask for it, and the app works completely offline without it
 - **Read Aloud** — text-to-speech for Greek, Latin, or English, using whatever voices are already installed on Windows; fully offline, no network involved
 - **Export** passages to plain text, Word, or PDF, citations intact — and every translation carries the edition it came from, so a published rendering, your own, and an AI's are never confused once the text has left the app
+- **Latin Church Fathers (CSEL)** — the critical editions of Augustine, Ambrose, Jerome, Cyprian and their contemporaries, from the volumes old enough to be out of copyright
+- **Patrologia Latina** — Migne's collection of Latin Christian writing, Tertullian to the twelfth century, and much the largest thing the app can install. A 19th-century reprint rather than a critical edition, and the setup step says so: where a work appears in both, CSEL is the text a scholar cites and this is the wider net. Both sit side by side, the same work gaining a second edition rather than being overwritten
+- **Political theory** — Bodin's *Six Books of the Commonwealth* in the French of 1577, the Latin of 1586 he made himself, and Knolles's English of 1606. One work rather than a corpus, and the rare case where an author's own translation of his own book can be read against the original
+- **Search or browse one collection at a time** — with several collections installed, "search only the Church Fathers" is a question the language filter cannot answer, since they and the classical Latin texts are both Latin. Both the search window and the library tree narrow to any number of collections, and the tree filters works as well as authors, so an author in two collections shows only the works you asked for
+- **Marks in the margin of the line** — a `?`, `#` or `★` at the end of a passage says an inquiry has been started from it, that it carries a tag, or that it is bookmarked. Drawn rather than stored, so copying or exporting the line still gives you only the text
+- **A default collection** — overlap between collections is normal: Perseus and First1KGreek both carry the Agamemnon, CSEL and Patrologia Latina share a good deal of Augustine. Pick which one a work opens on and it applies everywhere, rather than the choice falling to whichever edition happens to sort first. A preference and not a filter — the other editions stay in the dropdown, only the selection changes
+- **Results by document** — switch the search between every matching passage and one row per work with its match count, for when the question is where a word is concentrated rather than what each occurrence says
 - **Recent searches** — the last ten searches you ran, with every filter, recorded automatically; nothing to save and nothing to tidy up
 - **Favorites** — star the works you actually return to and filter the library to them; stored against the work's CTS URN, so they survive a corpus re-ingest
 - **Back and Forward** — retrace where you've been. Ten features here end in "jump to it"; following a reference no longer costs you your place
@@ -126,6 +133,9 @@ Classica Codex doesn't own or bundle any of the texts, dictionaries, or linguist
 | [Princeton WordNet](https://wordnet.princeton.edu) | English word-form → headword mapping and definitions, for search and Word Study on translations | WordNet License (permissive, free for any use) |
 | [PerseusDL/canonical-engLit](https://github.com/PerseusDL/canonical-engLit) | Renaissance & Early Modern English texts (Shakespeare, Marlowe, Hakluyt…), optional | CC BY-SA 4.0 |
 | [OpenGreekAndLatin/First1KGreek](https://github.com/OpenGreekAndLatin/First1KGreek) | Post-Classical Greek texts extending the corpus into late antiquity, optional | CC BY-SA 4.0 |
+| [OpenGreekAndLatin/csel-dev](https://github.com/OpenGreekAndLatin/csel-dev) | Corpus Scriptorum Ecclesiasticorum Latinorum — critical editions of the Latin Church Fathers, optional | CC BY-SA 4.0, declared per file in the TEI headers rather than at the repository root |
+| [OpenGreekAndLatin/patrologia_latina-dev](https://github.com/OpenGreekAndLatin/patrologia_latina-dev) | Migne's Patrologia Latina — Latin Christian writing to the twelfth century, optional. A reprint rather than a critical edition; most of it is still under provisional reference numbers the publishing project intends to replace | CC BY-SA 4.0, declared per file |
+| [PerseusDL/canonical-pdlpsci](https://github.com/PerseusDL/canonical-pdlpsci) | Jean Bodin's *Six Books of the Commonwealth* in French, Latin and English, optional | CC BY-SA 4.0 |
 | [Medieval Nordic Text Archive](https://www.menota.org) | Old Norse, Icelandic, Swedish and Danish manuscript transcriptions, optional — downloaded individually from Menota's catalogue, one file per manuscript, since there's no archive to fetch | CC BY-SA 4.0 |
 
 The Greek lemma data is the one entry above marked **noncommercial** — it can't be sold, and because it's woven into the search and Word Study features, that restriction carries over to the whole project as distributed. Which is fine: Classica Codex is a free personal tool, and it's going to stay that way regardless. (WordNet's license, despite doing a similar job for English, doesn't carry the same restriction — it's permissive and doesn't add a second constraint on top of the Greek lemma data's.)
@@ -175,13 +185,28 @@ suspecting.
 
 ## Status
 
-Version 3.1.0.
+Version 3.2.0.
 
 Version 1 was a reader. Version 2 made it a searchable, taggable,
 cross-referenced library and added the translation workbench. Version 3 adds the
 Medieval Nordic manuscript reader and its editorial apparatus — a different kind
 of text from the printed editions the rest of the library holds, and the first
 material here where the manuscript evidence is visible rather than settled.
+
+3.2.0 takes the library from three collections to seven — CSEL, the Patrologia
+Latina, and Bodin — and then deals with the consequence of that, which is that
+collections overlap. Two of them can hold the same work, and once that is true
+the app has to answer questions it never had to before: which collection am I
+searching, which one does this work open on, which collection is this passage
+even from. Search, the library tree and the recent-search list all narrow by
+collection now, and a default collection settles which edition opens.
+
+The overlap also exposed a text the reader could not show at all. First1KGreek
+carries the notes published alongside the Septuagint Isaiah as a separate
+edition, and a gap in how CTS version identifiers were read left it classified
+as neither original nor translation — so it was ingested, indexed, returned by
+searches, and impossible to open. Three thousand lines you could read in a
+results list and nowhere else.
 
 3.1.0 adds a validation bench for the stylometry: leave-one-out validation, a
 parameter-stability grid, and controlled perturbation with synthetic

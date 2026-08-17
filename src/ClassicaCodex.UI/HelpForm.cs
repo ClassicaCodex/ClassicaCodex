@@ -14,7 +14,14 @@ public class HelpForm : ScaledForm
     private static readonly (string Title, string Body)[] Topics =
     {
         ("Getting started", """
-Classica Codex reads the Perseus Digital Library - the Greek and Latin classics, their English translations, dictionaries, and the linguistic data that makes searching them work properly - plus two optional collections that extend it further: Shakespeare and the other Renaissance writers who reworked classical material in English, and Greek writing from after the classical period into late antiquity.
+Classica Codex reads the Perseus Digital Library - the Greek and Latin classics, their English translations, dictionaries, and the linguistic data that makes searching them work properly - plus several optional collections that extend it further:
+
+   Post-Classical Greek - Greek writing from after the classical period into late antiquity.
+   Latin Church Fathers (CSEL) - the critical editions of Augustine, Ambrose, Jerome, Cyprian and their contemporaries, from the volumes out of copyright.
+   Patrologia Latina - Migne's collection, Tertullian to the twelfth century, and much the largest thing here. A 19th-century reprint rather than a critical edition: where a work appears in both, CSEL is the text scholars cite and this is the wider net. Both can sit side by side, and the same work simply gains a second edition in the dropdown.
+   Renaissance English - Shakespeare and the other writers who reworked classical material in English.
+   Political Theory - Bodin's Six Books of the Commonwealth in French, Latin and English. One work rather than a corpus, and worth having because the French of 1577 and the Latin of 1586 are both Bodin: putting his own two versions side by side in the reader is a comparison you cannot usually make.
+   Medieval Nordic manuscripts - see Manuscripts and editorial notes.
 
 Everything starts in Setup Wizard, on the main toolbar. It asks how you'd like to set things up:
 
@@ -39,9 +46,24 @@ Pick an author in the library tree on the left, then a work beneath it. The orig
 Two editions of the same thing
    The dropdown above each pane lists every edition of that work you have. Where a work has several translations, you can switch between translators freely - the other pane stays where it is. The original-language side can carry more than one edition too, when a later collection added an alternate older edition of a work Perseus already had (a couple of Sophocles' plays, among others) - each entry in the dropdown names which.
 
+   Which of them a work opens on is yours to set. "Open works from:" under Reading in the Setup Wizard picks a collection, and any work carried by more than one opens on that collection's edition - Perseus and First1KGreek both have the Agamemnon, CSEL and Patrologia Latina share a good deal of Augustine. It is a preference, not a filter: the other editions stay in the dropdown in the same order, and only which one is already selected changes. Works that collection doesn't have open exactly as before, so a preference set once needs no maintenance as the library grows.
+
 Scrolling and selection are synced between the panes. That works best on verse, where a translation keeps roughly the same line structure as the original. Prose translations often carry far fewer citation points than the original does, so the two sides drift apart; that's how the texts were digitized, not a fault in the alignment. The ⇅ button on the toolbar turns that off: linked panes suit verse, where a translation keeps roughly the original's line structure, but on prose one Greek sentence can become three English ones and the two sides drift apart until the mirroring is dragging you away from the line you were reading. Your choice is remembered.
 
 Hover any line to see its citation reference.
+
+Marks at the end of a line
+   ?  an inquiry has been started from this passage
+   #  it carries at least one tag
+   ★  it is bookmarked
+
+   All three appear together, in that order, on a line that has all three. A line tagged five times still shows one #: the mark says there is something recorded here, not how much.
+
+   They are drawn, not stored - copying, exporting or searching a line gives you the text and nothing else, the same way an athetized line is shown in italic rather than by putting brackets into the words. Three plain characters rather than icons because the reading panes use whatever font you have chosen, and an ornamental glyph would arrive as an empty box in exactly the Greek and medieval faces this app exists to display.
+
+   They are per edition, not per work. A passage bookmarked in the Greek does not show a star opposite it in the translation, because that is a different passage with its own annotations - even though both sides carry the same citation reference. And because tags and bookmarks are recorded against that reference rather than an internal id, the marks come back after a corpus is re-ingested, along with the annotations they stand for.
+
+   Marks added from the right-click menu appear at once. Deleting a tag or bookmark from the Tags or Bookmarks window clears its mark when that window closes.
 
 Right-click a line for:
    Copy to Clipboard - the line's text on its own
@@ -56,6 +78,13 @@ Right-click a line for:
    Export - write the passage out to a file
 
 The library tree lists every author alphabetically. The box beside the Library button filters it by author name as you type - with a few thousand authors loaded, typing three letters beats scrolling. Clearing the box brings them all back.
+
+Showing one collection at a time
+   The funnel icon beside that box opens a list of the collections you have installed. Tick one or more and the tree narrows to them; leave them all unticked and you see everything. Hovering the icon says which state it is in, since a filter you have forgotten you set looks exactly like a library that has lost half its contents.
+
+   Works are filtered as well as authors, so an author only appears while one of their works does. That matters where an author is in more than one collection: Ambrose has works in both the Church Fathers and the Patrologia Latina, and narrowing to one shows him with just that collection's works beneath him rather than all of them.
+
+   The list is built from what is actually in your library rather than from what could have been installed, so it is right even if you have since deleted the downloaded files. It only appears once you have more than one collection - with a single one there is nothing to choose between.
 
 Favourites
    Right-click a work and choose Add to Favourites to mark it with a star. The star checkbox on the filter row then narrows the tree to favourites only, and authors with nothing favourited drop out rather than showing empty.
@@ -200,8 +229,16 @@ Narrowing
    Text - originals, translations, or both. Not the same as language: an English original and an English translation of a Greek text are both "English" and are not the same thing.
    Author and Era - one author, or a broad period.
    Tagged and Bookmarked - search only inside your own tagged passages, or only ones you've bookmarked.
+   Collections - which of the downloaded collections to look in. Tick any number of them; leave them all unticked to search everything. This is a different question from Language: the Church Fathers and the classical Latin texts are both Latin, and "search only the Church Fathers" cannot be asked any other way. The button says how many are selected, and only appears once you have more than one collection.
 
 Clear Filters resets the narrowing without clearing what you typed.
+
+Every passage, or one row per document
+   The Show box beside the results switches between the two. By passage is the default and lists every matching line. By document lists each work once with the number of matches in it - which is the better question when you want to know where a word is concentrated rather than read each occurrence.
+
+   Double-click a document to list its matches; switch Show back to see every document again. Both views come from the same search, so changing between them costs nothing and finds nothing new.
+
+   One caution: searches stop at a limit, and when that happens the counts cover the matches that came back rather than everything in the library. The status line says so when it applies. A document count is a good guide to where to look and not a census.
 
 Recent searches
    Every search you run is remembered, with its filters, and listed in the Recent box - most recent first, the last ten kept. There is nothing to save and nothing to tidy up.
@@ -349,6 +386,8 @@ Research Bench turns a work you have been reading or translating into a durable 
 The basic structure
    A project is the broad inquiry or working theory. Give it a useful name, record its scope in the project notes, and keep its status current rather than replacing it when your judgment changes.
 
+   Status is active, on hold, concluded, or archived, and it takes effect as soon as you choose it. Archiving is not deletion: the questions, evidence and log are all kept, the Archive button becomes Restore, and the Show list above the project list decides which statuses you are looking at - Current, meaning everything except archived, being the default. A project opened directly from a passage inquiry appears whatever its status, so following a note never leads to an empty window.
+
    Questions break the project into things that can actually be answered. Evidence may be linked to one question or kept at project level. Reorder questions to match the investigation rather than the order in which they occurred to you.
 
    Evidence records what you have, where it came from, and what you currently think it does. Source text, provenance, canonical reference, stable identifier, relationship, review judgment, and your interpretation are separate fields deliberately. A quotation is not an argument, and an AI interpretation is not your judgment.
@@ -376,7 +415,9 @@ Gathering evidence
 
    Attach saved stylometry run connects a real saved result to the project. Open this saved run in Stylometry returns to the normal analysis window with that run loaded, so the evidence can be checked against its pool and settings.
 
-   AI: Find relevant corpus passages and AI: Challenge the working theory send the project context and a bounded original-language edition to Gemini. Returned citations must resolve against that exact local edition before they are saved. They arrive as uncertain AI candidates with the local passage text, model, prompt, corpus fingerprint, and generated time - never as accepted evidence.
+   AI: Find relevant corpus passages and AI: Challenge the working theory send the project context and a bounded original-language edition to Gemini. Returned citations must resolve against that exact local edition before anything is offered to you.
+
+   What comes back is shown for review before it is kept: each candidate with its reference, relationship, the model's confidence and rationale, and the local corpus text the citation resolved to. Tick the ones worth having and only those are saved; Discard all writes nothing at all, not to the evidence register and not to the research log. What you keep is stored as an uncertain AI candidate carrying the local passage text, model, prompt, corpus fingerprint and generated time - never as accepted evidence, and never without your having said so.
 
    The Project audit points out missing references, unreviewed candidates, unsupported findings, and other traceability gaps. It checks the state of your record; it does not decide whether an argument is true.
 

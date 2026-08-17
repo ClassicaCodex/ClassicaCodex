@@ -101,6 +101,8 @@ public class MainForm : ScaledForm
     private (string CitationRef, string Text)? _translationPrefaceMatch;
     private readonly TagRepository _tagRepo = new();
     private readonly BookmarkRepository _bookmarkRepo = new();
+    private readonly PassageMarkRepository _passageMarkRepo = new();
+    private readonly PassageInquiryRepository _inquiryRepo = new();
 
     private bool _syncingScroll;
 
@@ -133,6 +135,13 @@ public class MainForm : ScaledForm
     // their works, which is not something to repeat per character typed.
     private readonly TextBox _treeFilterBox;
     private readonly PictureBox _treeFilterIcon;
+    private readonly ContextMenuStrip _collectionsMenu = new();
+
+    /// <summary>
+    /// The works the chosen collections account for, or null when every collection is
+    /// showing. An author appears in the tree when one of their works is in here.
+    /// </summary>
+    private HashSet<int>? _collectionWorkIds;
     private readonly CheckBox _favoritesOnlyCheck;
 
     private readonly FavoriteWorkRepository _favoriteRepo = new();
@@ -180,26 +189,31 @@ public class MainForm : ScaledForm
         StartPosition = FormStartPosition.CenterScreen;
 
         var tagsButton = new IconButton { Text = "Tags...", Left = 532, Top = 10, Width = 80, Height = 30 };
-        tagsButton.Click += (_, _) =>
+        // Refreshed on close because tags can be deleted in there as well as
+        // added, and a passage still showing its mark after the tag behind it
+        // is gone would be worse than not marking it at all.
+        tagsButton.Click += async (_, _) =>
         {
-            using var tagBrowser = new TagBrowserForm
+            using (var tagBrowser = new TagBrowserForm { OnNavigate = NavigateToPassageAsync })
             {
-                OnNavigate = NavigateToPassageAsync
-            };
-            tagBrowser.ShowDialog(this);
+                tagBrowser.ShowDialog(this);
+            }
+
+            await RefreshPassageMarksAsync();
         };
 
         _searchButton = new IconButton { Text = "Search...", Left = 10, Top = 12, Width = 110 };
         _searchButton.Click += (_, _) => OpenSearchWindow();
 
         var bookmarksButton = new IconButton { Text = "Bookmarks...", Left = 416, Top = 10, Width = 110, Height = 30 };
-        bookmarksButton.Click += (_, _) =>
+        bookmarksButton.Click += async (_, _) =>
         {
-            using var bookmarksForm = new BookmarksForm
+            using (var bookmarksForm = new BookmarksForm { OnNavigate = NavigateToPassageAsync })
             {
-                OnNavigate = NavigateToPassageAsync
-            };
-            bookmarksForm.ShowDialog(this);
+                bookmarksForm.ShowDialog(this);
+            }
+
+            await RefreshPassageMarksAsync();
         };
 
         var mythNetworkButton = new IconButton { Text = "Myth Network...", Left = 622, Top = 10, Width = 140, Height = 30 };
@@ -317,7 +331,16 @@ public class MainForm : ScaledForm
             Width = 16,
             Height = 16,
             SizeMode = PictureBoxSizeMode.Zoom,
-            Image = AppIcons.Get("Filter", 16)
+            Image = AppIcons.Get("Filter", 16),
+
+            // It was decoration beside the name box. Now that a library can hold half a
+            // dozen collections at once, it is the obvious place to choose between them.
+            Cursor = Cursors.Hand
+        };
+        _treeFilterIcon.Click += (_, _) =>
+        {
+            if (_collectionsMenu.Items.Count == 0) return;
+            _collectionsMenu.Show(_treeFilterIcon, new Point(0, _treeFilterIcon.Height));
         };
 
         _treeFilterBox = new TextBox
@@ -877,7 +900,91 @@ public class MainForm : ScaledForm
 
         _allAuthors = authors;
         _worksByAuthor = worksByAuthor;
+        await BuildCollectionsMenuAsync();
         PopulateLibraryTree();
+    }
+
+    /// <summary>
+    /// Fills the filter icon's menu with the collections this library actually holds.
+    ///
+    /// Asked of the editions rather than of the setup catalogue, so it lists what was
+    /// imported rather than what could have been, and stays right for a library whose
+    /// downloaded files have since been deleted. With one collection there is nothing
+    /// to choose between, and the menu stays empty so the icon goes back to being an
+    /// ornament beside the name box.
+    /// </summary>
+    private async Task BuildCollectionsMenuAsync()
+    {
+        _collectionsMenu.Items.Clear();
+        _collectionWorkIds = null;
+
+        List<string> collections;
+        try { collections = await _editionRepo.GetCollectionsAsync(); }
+        catch { return; } // a filter that cannot be built is not worth failing startup over
+
+        if (collections.Count < 2)
+        {
+            _toolbarTips.SetToolTip(_treeFilterIcon, "Type a name to filter the library");
+            return;
+        }
+
+        foreach (var key in collections
+                     .Select(k => (Key: k, Title: SetupDataSourceCatalog.DescribeCollection(k)))
+                     .OrderBy(c => c.Title, StringComparer.CurrentCultureIgnoreCase))
+        {
+            var item = new ToolStripMenuItem(key.Title) { CheckOnClick = true, Tag = key.Key };
+            item.CheckedChanged += async (_, _) => await ApplyCollectionFilterAsync();
+            _collectionsMenu.Items.Add(item);
+        }
+
+        _collectionsMenu.Items.Add(new ToolStripSeparator());
+        var all = new ToolStripMenuItem("Show all collections");
+        all.Click += (_, _) =>
+        {
+            foreach (var item in _collectionsMenu.Items.OfType<ToolStripMenuItem>())
+                if (item.CheckOnClick) item.Checked = false;
+        };
+        _collectionsMenu.Items.Add(all);
+
+        ReadingTheme.ApplyToContextMenu(_collectionsMenu);
+        UpdateCollectionFilterTooltip();
+    }
+
+    private async Task ApplyCollectionFilterAsync()
+    {
+        var chosen = _collectionsMenu.Items.OfType<ToolStripMenuItem>()
+            .Where(i => i.CheckOnClick && i.Checked && i.Tag is string)
+            .Select(i => (string)i.Tag!)
+            .ToList();
+
+        try
+        {
+            _collectionWorkIds = chosen.Count == 0
+                ? null
+                : await _editionRepo.GetWorkIdsForCollectionsAsync(chosen);
+        }
+        catch (Exception ex)
+        {
+            _collectionWorkIds = null;
+            MessageBox.Show(this, $"Couldn't filter by collection: {ex.Message}", "Library",
+                MessageBoxButtons.OK, MessageBoxIcon.Warning);
+        }
+
+        UpdateCollectionFilterTooltip();
+        PopulateLibraryTree();
+    }
+
+    private void UpdateCollectionFilterTooltip()
+    {
+        var chosen = _collectionsMenu.Items.OfType<ToolStripMenuItem>()
+            .Count(i => i.CheckOnClick && i.Checked);
+        var total = _collectionsMenu.Items.OfType<ToolStripMenuItem>().Count(i => i.CheckOnClick);
+
+        // The icon has no room for a label, and a filter you cannot see is one you
+        // forget you set - so the count goes where hovering will find it.
+        _toolbarTips.SetToolTip(_treeFilterIcon, chosen == 0
+            ? $"Showing all {total} collections - click to choose"
+            : $"Showing {chosen} of {total} collections - click to change");
     }
 
     /// <summary>
@@ -898,6 +1005,16 @@ public class MainForm : ScaledForm
             : _allAuthors
                 .Where(a => a.Name.Contains(filter, StringComparison.CurrentCultureIgnoreCase))
                 .ToList();
+
+        // An author earns a row by having a work still showing, so filtering to one
+        // collection cannot leave behind an author whose every work was filtered out.
+        if (_collectionWorkIds != null)
+        {
+            authors = authors
+                .Where(a => _worksByAuthor.TryGetValue(a.AuthorId, out var w)
+                            && w.Any(work => _collectionWorkIds.Contains(work.WorkId)))
+                .ToList();
+        }
 
         _libraryTree.Nodes.Clear();
 
@@ -921,6 +1038,11 @@ public class MainForm : ScaledForm
                 {
                     "engLit" => $"{author.Name}  (English)",
                     "greekLit" or "latinLit" => author.Name,
+
+                    // Perseus's own namespace for its political science collection.
+                    // Spelled out rather than shown raw: the fallback below would put
+                    // "(pdlpsci)" beside Bodin's name, which tells a reader nothing.
+                    "pdlpsci" => $"{author.Name}  (Political theory)",
                     null or "" => author.Name,
                     _ => $"{author.Name}  ({author.Namespace})"
                 };
@@ -931,6 +1053,8 @@ public class MainForm : ScaledForm
                 {
                     foreach (var work in works)
                     {
+                        if (_collectionWorkIds != null && !_collectionWorkIds.Contains(work.WorkId)) continue;
+
                         var isFavorite = _favoriteUrns.Contains(work.CtsUrn);
                         if (favoritesOnly && !isFavorite) continue;
 
@@ -1338,7 +1462,7 @@ public class MainForm : ScaledForm
         showAll.Click += async (_, _) =>
         {
             NodeKindVisibility.ShowAll();
-            await RefreshReaderPanesAsync();
+            await RefreshPassageMarksAsync();
         };
         showItem.DropDownItems.Add(showAll);
     }
@@ -1355,6 +1479,27 @@ public class MainForm : ScaledForm
         foreach (var (pane, source) in _paneSource.ToList())
         {
             await PopulateReaderAsync(pane, source.Edition, source.EmptyMessage);
+        }
+    }
+
+    /// <summary>
+    /// Re-reads which passages are marked, without rebuilding the panes.
+    ///
+    /// Deliberately not RefreshReaderPanesAsync. That repopulates from scratch,
+    /// which resets both panes to the top - and these run when the Tags and
+    /// Bookmarks windows close, which are exactly the windows you jump to a
+    /// passage from. Rebuilding there would undo the jump the reader had just
+    /// made on the way out.
+    /// </summary>
+    private async Task RefreshPassageMarksAsync()
+    {
+        foreach (var (pane, source) in _paneSource.ToList())
+        {
+            if (source.Edition == null) continue;
+
+            pane.SetPassageMarks(
+                await _passageMarkRepo.GetForEditionAsync(source.Edition.EditionId, source.Edition.CtsUrn));
+            pane.Invalidate();
         }
     }
 
@@ -1440,6 +1585,8 @@ public class MainForm : ScaledForm
         var tagId = await _tagRepo.GetOrCreateAsync(prompt.TagName, prompt.Category);
         await _tagRepo.TagTextNodeAsync(node.TextNodeId, tagId);
 
+        list.AddPassageMark(node.CitationRef, PassageMarks.Tag);
+
         MessageBox.Show(this, $"Tagged [{node.CitationRef}] with \"{prompt.TagName}\".", "Tagged",
             MessageBoxButtons.OK, MessageBoxIcon.Information);
     }
@@ -1457,6 +1604,8 @@ public class MainForm : ScaledForm
         if (prompt.ShowDialog(this) != DialogResult.OK) return;
 
         await _bookmarkRepo.AddAsync(node.TextNodeId, prompt.Note);
+
+        list.AddPassageMark(node.CitationRef, PassageMarks.Bookmark);
 
         MessageBox.Show(this, $"Bookmarked [{node.CitationRef}].", "Bookmarked",
             MessageBoxButtons.OK, MessageBoxIcon.Information);
@@ -1480,8 +1629,19 @@ public class MainForm : ScaledForm
         }
 
         using var inquiry = new PassageInquiryForm(passage);
-        if (inquiry.ShowDialog(this) != DialogResult.OK || inquiry.OpenProjectId is not { } projectId)
-            return;
+        var result = inquiry.ShowDialog(this);
+
+        // Asked of the database rather than inferred from the dialog result.
+        // OK there means "promote this to a project", and an inquiry saved
+        // without being promoted - which is the ordinary case, and the whole
+        // point of inquiries being a lighter thing than projects - closes with
+        // Cancel. Reading the result would mark only the ones that got promoted.
+        if (await _inquiryRepo.GetAsync(passage.EditionCtsUrn, passage.CitationRef) != null)
+        {
+            list.AddPassageMark(node.CitationRef, PassageMarks.Inquiry);
+        }
+
+        if (result != DialogResult.OK || inquiry.OpenProjectId is not { } projectId) return;
 
         var work = _openWork?.WorkId == passage.WorkId
             ? _openWork
@@ -2128,6 +2288,12 @@ public class MainForm : ScaledForm
     /// Sorted by the edition descriptor rather than the whole label, since
     /// the author/work prefix is identical across every entry here and would
     /// contribute nothing to the ordering.
+    ///
+    /// Which one counts as "the first" is the reader's to decide when several
+    /// collections carry the same work - see PreferredEdition. The ordering
+    /// itself is untouched by that preference: what changes is only which row
+    /// is already selected, so the dropdown a reader has learned the shape of
+    /// does not rearrange itself underneath them.
     /// </summary>
     private static void PopulateEditionCombo(
         ComboBox combo, List<Edition> editions, string? authorName, string? workTitle,
@@ -2150,9 +2316,12 @@ public class MainForm : ScaledForm
             .SelectMany(g => g)
             .ToHashSet();
 
-        foreach (var edition in editions
-                     .OrderBy(GetEditionDescriptor, StringComparer.OrdinalIgnoreCase)
-                     .ThenBy(e => e.CtsUrn, StringComparer.OrdinalIgnoreCase))
+        var ordered = editions
+            .OrderBy(GetEditionDescriptor, StringComparer.OrdinalIgnoreCase)
+            .ThenBy(e => e.CtsUrn, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        foreach (var edition in ordered)
         {
             coverageNotes.TryGetValue(edition.EditionId, out var coverageNote);
 
@@ -2165,7 +2334,8 @@ public class MainForm : ScaledForm
             });
         }
 
-        if (combo.Items.Count > 0) combo.SelectedIndex = 0;
+        var index = PreferredEdition.IndexOfDefault(ordered, PreferredCollectionSettings.Preferred);
+        if (index >= 0) combo.SelectedIndex = index;
     }
 
     private async Task OnOriginalEditionChangedAsync()
@@ -2209,12 +2379,18 @@ public class MainForm : ScaledForm
             // clearing the pane entirely) doesn't leave a stale preface
             // pointing at the previous work.
             SetPrefaceMatch(pane, null);
+            pane.SetPassageMarks(new Dictionary<string, PassageMarks>(StringComparer.Ordinal));
 
             if (edition == null)
             {
                 pane.Items.Add(emptyMessage);
                 return;
             }
+
+            // Before the items, not after: the marks are part of what each row
+            // is measured against.
+            pane.SetPassageMarks(
+                await _passageMarkRepo.GetForEditionAsync(edition.EditionId, edition.CtsUrn));
 
             var nodes = await _textNodeRepo.GetByEditionAsync(edition.EditionId);
 
@@ -2346,11 +2522,49 @@ public class MainForm : ScaledForm
                 }
             }
 
-            SelectItemByTextNodeId(_originalPane, textNodeId);
-            SelectItemByTextNodeId(_translationPane, textNodeId);
+            if (!SelectItemByTextNodeId(_originalPane, textNodeId) &&
+                !SelectItemByTextNodeId(_translationPane, textNodeId))
+            {
+                await ExplainUnreachablePassageAsync(textNodeId);
+            }
         }
 
         return true;
+    }
+
+    /// <summary>
+    /// Says why a jump landed on the work but not on the line.
+    ///
+    /// This is reachable whenever the passage exists in the database but is
+    /// not among the items in either pane - the reader has hidden that kind of
+    /// line, or it is front matter held back for the Preface command. Both are
+    /// the reader's own settings doing exactly what was asked of them, but
+    /// arriving at the top of a long work with no explanation reads as the
+    /// jump being broken, and there is nothing on screen to suggest otherwise.
+    ///
+    /// Named rather than described: knowing it is in "Other edition
+    /// (1st1K-eng1a)" is what makes it findable in the dropdown.
+    /// </summary>
+    private async Task ExplainUnreachablePassageAsync(long textNodeId)
+    {
+        var editionId = await _textNodeRepo.GetEditionIdAsync(textNodeId);
+        var edition = editionId == null ? null : await _editionRepo.GetByIdAsync(editionId.Value);
+
+        var where = edition == null
+            ? "This passage"
+            : $"This passage is in “{GetEditionDescriptor(edition)}”, and it";
+
+        MessageBox.Show(
+            this,
+            $"{where} isn't shown in the reader at the moment.\n\n" +
+            "That is usually because the kind of line it is - a speaker name, a stage direction, " +
+            "a heading - is currently hidden: right-click either pane and use Show to bring it " +
+            "back. A translator's preface is held back too, and is on the same menu under " +
+            "View Preface.\n\n" +
+            "The work itself is open, so nothing is lost.",
+            "Passage not on screen",
+            MessageBoxButtons.OK,
+            MessageBoxIcon.Information);
     }
 
     /// <summary>
@@ -2693,8 +2907,18 @@ public class MainForm : ScaledForm
     private async Task LoadEditionSelectorsAsync(int workId)
     {
         var editions = await _editionRepo.GetByWorkAsync(workId);
+
+        // Everything that is not the original goes in the second pane's
+        // dropdown, including an edition whose Kind ingest could not settle.
+        //
+        // Asking for Translation exactly meant an Unknown edition appeared in
+        // neither dropdown and so could not be opened at all, while its text
+        // sat in the database being returned by searches - a result you could
+        // read in the results list and not in the reader. Whatever we failed
+        // to classify, it is still a text of this work, and the second pane is
+        // where a text that is not the original belongs.
         var originals = editions.Where(ed => ed.Kind == EditionKind.Original).ToList();
-        var translations = editions.Where(ed => ed.Kind == EditionKind.Translation).ToList();
+        var translations = editions.Where(ed => ed.Kind != EditionKind.Original).ToList();
 
         // The library tree already holds both names - the work on its node,
         // the author on that node's parent - so no extra query is needed.

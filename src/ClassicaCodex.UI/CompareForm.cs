@@ -151,7 +151,7 @@ public class CompareForm : ScaledForm
                 TextAlign = ContentAlignment.MiddleCenter
             };
             headers.Add(header);
-            var list = new ListBox { Dock = DockStyle.Fill, HorizontalScrollbar = true };
+            var list = new ListBox { Dock = DockStyle.Fill };
 
             if (passages.Count == 0)
             {

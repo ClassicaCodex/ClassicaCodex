@@ -255,6 +255,11 @@ public class TextNodeRepository
             where.Add($"a.Namespace IN ({AddParameters(cmd, "ns", filters.Corpora)})");
         }
 
+        if (filters.Collections.Count > 0)
+        {
+            where.Add($"e.Collection IN ({AddParameters(cmd, "coll", filters.Collections)})");
+        }
+
         if (filters.OriginalsOnly != null)
         {
             where.Add("e.Kind = @Kind");

@@ -66,16 +66,17 @@ public class RecentSearchRepository
 
         cmd.CommandText = @"
             INSERT INTO RecentSearches
-                (Name, Query, MatchMode, Languages, Corpora, OriginalsOnly,
+                (Name, Query, MatchMode, Languages, Corpora, Collections, OriginalsOnly,
                  AuthorName, TagName, BookmarkedOnly, EraLabel, CreatedAt)
             VALUES
-                (@Name, @Query, @MatchMode, @Languages, @Corpora, @OriginalsOnly,
+                (@Name, @Query, @MatchMode, @Languages, @Corpora, @Collections, @OriginalsOnly,
                  @AuthorName, @TagName, @BookmarkedOnly, @EraLabel, @CreatedAt)
             ON CONFLICT(Name) DO UPDATE SET
                 Query          = excluded.Query,
                 MatchMode      = excluded.MatchMode,
                 Languages      = excluded.Languages,
                 Corpora        = excluded.Corpora,
+                Collections    = excluded.Collections,
                 OriginalsOnly  = excluded.OriginalsOnly,
                 AuthorName     = excluded.AuthorName,
                 TagName        = excluded.TagName,
@@ -89,6 +90,7 @@ public class RecentSearchRepository
         cmd.Parameters.AddWithValue("@MatchMode", search.MatchMode);
         cmd.Parameters.AddWithValue("@Languages", search.Languages);
         cmd.Parameters.AddWithValue("@Corpora", search.Corpora);
+        cmd.Parameters.AddWithValue("@Collections", search.Collections);
         cmd.Parameters.AddWithValue("@OriginalsOnly",
             search.OriginalsOnly == null ? DBNull.Value : search.OriginalsOnly.Value ? 1 : 0);
         cmd.Parameters.AddWithValue("@AuthorName", (object?)search.AuthorName ?? DBNull.Value);
@@ -108,7 +110,7 @@ public class RecentSearchRepository
         await using var conn = await DbConnectionFactory.OpenConnectionAsync(cancellationToken);
         await using var cmd = conn.CreateCommand();
         cmd.CommandText = @"
-            SELECT RecentSearchId, Name, Query, MatchMode, Languages, Corpora,
+            SELECT RecentSearchId, Name, Query, MatchMode, Languages, Corpora, Collections,
                    OriginalsOnly, AuthorName, TagName, BookmarkedOnly, EraLabel, CreatedAt
             FROM RecentSearches
             ORDER BY CreatedAt DESC;";
@@ -124,12 +126,13 @@ public class RecentSearchRepository
                 MatchMode = reader.GetString(3),
                 Languages = reader.GetString(4),
                 Corpora = reader.GetString(5),
-                OriginalsOnly = reader.IsDBNull(6) ? null : reader.GetInt32(6) != 0,
-                AuthorName = reader.IsDBNull(7) ? null : reader.GetString(7),
-                TagName = reader.IsDBNull(8) ? null : reader.GetString(8),
-                BookmarkedOnly = reader.GetInt32(9) != 0,
-                EraLabel = reader.IsDBNull(10) ? null : reader.GetString(10),
-                CreatedAt = DateTime.TryParse(reader.GetString(11), out var created) ? created : DateTime.UtcNow
+                Collections = reader.GetString(6),
+                OriginalsOnly = reader.IsDBNull(7) ? null : reader.GetInt32(7) != 0,
+                AuthorName = reader.IsDBNull(8) ? null : reader.GetString(8),
+                TagName = reader.IsDBNull(9) ? null : reader.GetString(9),
+                BookmarkedOnly = reader.GetInt32(10) != 0,
+                EraLabel = reader.IsDBNull(11) ? null : reader.GetString(11),
+                CreatedAt = DateTime.TryParse(reader.GetString(12), out var created) ? created : DateTime.UtcNow
             });
         }
 

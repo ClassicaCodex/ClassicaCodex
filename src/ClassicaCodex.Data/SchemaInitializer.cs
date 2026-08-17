@@ -55,7 +55,7 @@ public static class SchemaInitializer
     /// 7 to 13 until version 3 was cut, at which point they all failed at
     /// once and said nothing about what had actually broken.
     /// </summary>
-    public const int TargetSchemaVersion = 32;
+    public const int TargetSchemaVersion = 34;
 
     public static async Task EnsureSchemaAsync(CancellationToken cancellationToken = default)
     {
@@ -1020,6 +1020,74 @@ public static class SchemaInitializer
             "CREATE INDEX IF NOT EXISTS IX_ResearchQuestions_Project ON ResearchQuestions (ResearchProjectId, SortOrder);"
         },
 
+        // Out of numerical order below: 33 was written as 32 on a branch, and became
+        // 33 when the assessments migration reached main first. ApplyMigrationsAsync
+        // walks the version numbers rather than this literal's order, so the sequence
+        // is still 32 then 33 - but do not read the file expecting otherwise.
+
+        // Which collection an edition came from, recorded on the edition itself.
+        //
+        // The search window needs to tell CSEL from the classical Latin texts, and
+        // the namespace cannot: both are latinLit, as both Greek collections are
+        // greekLit. The download folder can, and was the first answer - but a
+        // folder is where the file was, not what the text is. Install somewhere
+        // custom, move the data folder, or open the same library on another
+        // machine or Windows account, and every path stops matching while the
+        // texts sit there unchanged. The database is portable; a path is not.
+        //
+        // So the collection is stamped onto the edition at ingest and travels with
+        // the library. Nothing here reads the XML: the files can be deleted once
+        // imported, which was already true and stays true.
+        // Rebuilt rather than ALTERed. ADD COLUMN is not replayable - the migration
+        // tests fake an older database by rewinding the version stamp while the
+        // table keeps its current shape, and the second run dies on "duplicate
+        // column name". An index on the new column makes it worse still, since the
+        // rewind's DROP COLUMN then fails against the index that depends on it.
+        // Selecting only the pre-33 columns makes this idempotent whatever shape it
+        // meets.
+        [33] = new[]
+        {
+            @"CREATE TABLE Editions_v33 (
+                EditionId   INTEGER PRIMARY KEY,
+                WorkId      INTEGER NOT NULL,
+                CtsUrn      TEXT NOT NULL,
+                Kind        TEXT NOT NULL,
+                Language    TEXT NULL,
+                Translator  TEXT NULL,
+                SourcePath  TEXT NULL,
+                Orthography TEXT NULL,
+                Collection  TEXT NULL,
+                CONSTRAINT UQ_Editions_CtsUrn UNIQUE (CtsUrn),
+                CONSTRAINT FK_Editions_Works FOREIGN KEY (WorkId) REFERENCES Works(WorkId)
+            );",
+            @"INSERT INTO Editions_v33
+                (EditionId, WorkId, CtsUrn, Kind, Language, Translator, SourcePath, Orthography)
+              SELECT EditionId, WorkId, CtsUrn, Kind, Language, Translator, SourcePath, Orthography
+              FROM Editions;",
+            "DROP TABLE Editions;",
+            "ALTER TABLE Editions_v33 RENAME TO Editions;",
+            "CREATE INDEX IF NOT EXISTS IX_Editions_WorkId ON Editions (WorkId);",
+
+            // Best effort for libraries that already exist, from the only signal
+            // they carry. A collection installed to a custom folder will not match
+            // and stays NULL - it shows as "Other" in the filter until that step is
+            // run again, which stamps it properly.
+            @"UPDATE Editions SET Collection = 'perseus-greek'
+              WHERE Collection IS NULL AND SourcePath LIKE '%\greek-texts\%';",
+            @"UPDATE Editions SET Collection = 'perseus-latin'
+              WHERE Collection IS NULL AND SourcePath LIKE '%\latin-texts\%';",
+            @"UPDATE Editions SET Collection = 'first1k-greek'
+              WHERE Collection IS NULL AND SourcePath LIKE '%\first1k-greek\%';",
+            @"UPDATE Editions SET Collection = 'csel'
+              WHERE Collection IS NULL AND SourcePath LIKE '%\csel\%';",
+            @"UPDATE Editions SET Collection = 'renaissance'
+              WHERE Collection IS NULL AND SourcePath LIKE '%\english-texts\%';",
+            @"UPDATE Editions SET Collection = 'menota'
+              WHERE Collection IS NULL AND SourcePath LIKE '%\menota\%';",
+
+            "CREATE INDEX IF NOT EXISTS IX_Editions_Collection ON Editions (Collection);"
+        },
+
         // An assessment belongs to the source it assesses.
         //
         // (SourceKind, SourceId) named a row without referencing it. SQLite reuses
@@ -1094,6 +1162,46 @@ public static class SchemaInitializer
             "ALTER TABLE ResearchHypothesisAssessments_v32 RENAME TO ResearchHypothesisAssessments;",
             "CREATE INDEX IF NOT EXISTS IX_ResearchHypothesisAssessments_Hypothesis ON ResearchHypothesisAssessments (ResearchHypothesisId, SourceKind, SourceId);",
             "CREATE UNIQUE INDEX IF NOT EXISTS UX_ResearchHypothesisAssessments_Source ON ResearchHypothesisAssessments (ResearchHypothesisId, SourceKind, SourceId);"
+        },
+
+        // A recent search remembers which collections it was narrowed to.
+        //
+        // It remembered every other filter already, so replaying one silently widened it
+        // back to the whole library - the single filter that quietly did not come back,
+        // in a list whose entire promise is that it reflects what you actually ran.
+        //
+        // Stored as the collection keys, comma separated, for the same reason the author
+        // is kept by name and the era by label: those outlive a re-ingest, and a row id
+        // does not.
+        //
+        // Rebuilt rather than ALTERed, per the convention above - selecting only the
+        // pre-34 columns keeps it idempotent whatever shape it meets.
+        [34] = new[]
+        {
+            @"CREATE TABLE RecentSearches_v34 (
+                RecentSearchId INTEGER PRIMARY KEY AUTOINCREMENT,
+                Name           TEXT NOT NULL,
+                Query          TEXT NOT NULL,
+                MatchMode      TEXT NOT NULL,
+                Languages      TEXT NOT NULL DEFAULT '',
+                Corpora        TEXT NOT NULL DEFAULT '',
+                Collections    TEXT NOT NULL DEFAULT '',
+                OriginalsOnly  INTEGER NULL,
+                AuthorName     TEXT NULL,
+                TagName        TEXT NULL,
+                BookmarkedOnly INTEGER NOT NULL DEFAULT 0,
+                EraLabel       TEXT NULL,
+                CreatedAt      TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                CONSTRAINT UQ_RecentSearches_Name UNIQUE (Name)
+            );",
+            @"INSERT INTO RecentSearches_v34
+                (RecentSearchId, Name, Query, MatchMode, Languages, Corpora, OriginalsOnly,
+                 AuthorName, TagName, BookmarkedOnly, EraLabel, CreatedAt)
+              SELECT RecentSearchId, Name, Query, MatchMode, Languages, Corpora, OriginalsOnly,
+                     AuthorName, TagName, BookmarkedOnly, EraLabel, CreatedAt
+              FROM RecentSearches;",
+            "DROP TABLE RecentSearches;",
+            "ALTER TABLE RecentSearches_v34 RENAME TO RecentSearches;"
         }
     };
 
@@ -1691,6 +1799,7 @@ public static class SchemaInitializer
             Translator  TEXT NULL,
             SourcePath  TEXT NULL,
             Orthography TEXT NULL,   -- normalised / diplomatic / NULL; see migration 13
+            Collection  TEXT NULL,   -- which downloaded collection this came from; see migration 32
             CONSTRAINT UQ_Editions_CtsUrn UNIQUE (CtsUrn),
             CONSTRAINT FK_Editions_Works FOREIGN KEY (WorkId) REFERENCES Works(WorkId)
         );",
@@ -1707,6 +1816,7 @@ public static class SchemaInitializer
         // at the cost of a one-time build and a little index upkeep on
         // writes, which ingestion already pays for the indexes above.
         @"CREATE INDEX IF NOT EXISTS IX_Editions_WorkId ON Editions (WorkId);",
+        @"CREATE INDEX IF NOT EXISTS IX_Editions_Collection ON Editions (Collection);",
         @"CREATE INDEX IF NOT EXISTS IX_Works_AuthorId ON Works (AuthorId);",
 
         // CitationRef is plain TEXT - most works cite by simple numbers
@@ -1837,6 +1947,7 @@ public static class SchemaInitializer
                 MatchMode      TEXT NOT NULL,
                 Languages      TEXT NOT NULL DEFAULT '',
                 Corpora        TEXT NOT NULL DEFAULT '',
+                Collections    TEXT NOT NULL DEFAULT '',
                 OriginalsOnly  INTEGER NULL,
                 AuthorName     TEXT NULL,
                 TagName        TEXT NULL,

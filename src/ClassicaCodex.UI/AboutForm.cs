@@ -185,6 +185,42 @@ public class AboutForm : ScaledForm
 
         AddSourceSection(
             scrollHost, ref y,
+            "Latin Church Fathers (CSEL)",
+            "The Corpus Scriptorum Ecclesiasticorum Latinorum - critical editions of Augustine, Ambrose, " +
+            "Jerome, Cyprian and their contemporaries, from the volumes old enough to be out of copyright.",
+            "Open Greek and Latin Project (OpenGreekAndLatin/csel-dev)",
+            "Creative Commons Attribution-ShareAlike 4.0 International",
+            "https://github.com/OpenGreekAndLatin/csel-dev",
+            "The repository declares no licence at its top level; each text file declares CC BY-SA 4.0 in " +
+            "its own TEI header, which is the same licence Perseus applies across its canonical collections. " +
+            "The underlying CSEL volumes are 19th and early 20th-century editions in the public domain; the " +
+            "OCR correction and EpiDoc encoding are the Leipzig project's own work.");
+
+        AddSourceSection(
+            scrollHost, ref y,
+            "Patrologia Latina",
+            "Migne's collection of Latin Christian writing, from Tertullian to the twelfth century - the " +
+            "largest body of Latin here, and a 19th-century reprint rather than a critical edition.",
+            "Open Greek and Latin Project (OpenGreekAndLatin/patrologia_latina-dev)",
+            "Creative Commons Attribution-ShareAlike 4.0 International",
+            "https://github.com/OpenGreekAndLatin/patrologia_latina-dev",
+            "Declared per file in the TEI headers, as with CSEL above. Migne's volumes (1844-1865) are long " +
+            "out of copyright; the OCR correction and encoding are the Leipzig project's work. Where a work " +
+            "appears both here and in CSEL, the CSEL text is the critical edition and this is the reprint.");
+
+        AddSourceSection(
+            scrollHost, ref y,
+            "Political Theory",
+            "Jean Bodin's Six Books of the Commonwealth in French, Latin and English - the founding text of " +
+            "modern sovereignty, in the author's own two versions and its first English translation.",
+            "Perseus Digital Library (PerseusDL/canonical-pdlpsci)",
+            "Creative Commons Attribution-ShareAlike 4.0 International",
+            "https://github.com/PerseusDL/canonical-pdlpsci",
+            "The same Perseus and Tufts terms as the Greek and Latin texts above. The printed editions " +
+            "digitised here date from 1577, 1586 and 1606 and are long out of copyright.");
+
+        AddSourceSection(
+            scrollHost, ref y,
             "Medieval Nordic Manuscripts",
             "Old Norse, Old Icelandic, Old Swedish and Old Danish manuscripts, transcribed word by word " +
             "from the parchment - Heimskringla, Laxdœla saga, the Codex Wormianus, the Old Norwegian " +

@@ -45,8 +45,17 @@ public class SetupWizardForm : ScaledForm
     private readonly ArtifactRepository _artifactRepo = new();
     private readonly EditionRepository _editionRepo = new();
 
+    // Which collection wins when several carry the same work. Filled on Load,
+    // because the choices are whatever is actually in the library rather than
+    // whatever the catalog knows how to fetch - a source listed above and never
+    // run has no editions to prefer.
+    private readonly ComboBox _preferredCollectionBox;
+    private bool _loadingPreferredCollection;
 
-
+    private sealed record CollectionOption(string? Key, string Title)
+    {
+        public override string ToString() => Title;
+    }
 
 
     private System.Windows.Forms.Timer? _heartbeat;
@@ -271,11 +280,50 @@ public class SetupWizardForm : ScaledForm
 
         reopenCheck.CheckedChanged += (_, _) => ReadingPosition.ReopenOnLaunch = reopenCheck.Checked;
 
+        var preferredLabel = new Label
+        {
+            Text = "Open works from:",
+            Left = 12,
+            Top = y + 86,
+            Width = 110
+        };
+
+        _preferredCollectionBox = new ComboBox
+        {
+            Left = 126,
+            Top = y + 82,
+            Width = 300,
+            DropDownStyle = ComboBoxStyle.DropDownList,
+            Enabled = false
+        };
+        _preferredCollectionBox.SelectedIndexChanged += (_, _) =>
+        {
+            if (_loadingPreferredCollection) return;
+            PreferredCollectionSettings.Preferred =
+                (_preferredCollectionBox.SelectedItem as CollectionOption)?.Key;
+        };
+
+        var preferredDesc = new Label
+        {
+            Text = "When more than one collection has the same work - Perseus and First1KGreek both " +
+                   "carry the Agamemnon - this is the one it opens on. The others stay in the edition " +
+                   "dropdown; only which is already selected changes. Leave it on no preference and " +
+                   "works open on whichever edition sorts first.",
+            Left = 32,
+            Top = y + 110,
+            Width = 840,
+            Height = 34,
+            ForeColor = Color.DimGray
+        };
+
         Controls.Add(readingTitle);
         Controls.Add(reopenCheck);
         Controls.Add(reopenDesc);
+        Controls.Add(preferredLabel);
+        Controls.Add(_preferredCollectionBox);
+        Controls.Add(preferredDesc);
 
-        y += 88;
+        y += 154;
 
         var closeButton = new Button
         {
@@ -288,8 +336,60 @@ public class SetupWizardForm : ScaledForm
         };
         Controls.Add(closeButton);
 
-        Load += async (_, _) => await RefreshCompletionIconsAsync();
+        Load += async (_, _) =>
+        {
+            await RefreshCompletionIconsAsync();
+            await LoadPreferredCollectionAsync();
+        };
         ReadingTheme.AttachTo(this);
+    }
+
+    /// <summary>
+    /// Offers the collections actually present in the library, plus the option
+    /// of having no preference at all.
+    ///
+    /// Left disabled with fewer than two of them: with one collection nothing
+    /// ever overlaps, so there is no choice to make and a live control implying
+    /// otherwise would be a small lie. It stays visible rather than hidden,
+    /// because a setting that appears only once you happen to have installed a
+    /// second corpus is a setting nobody discovers.
+    ///
+    /// A stored preference naming a collection that is not installed is left
+    /// alone rather than reset - the box falls back to showing no preference,
+    /// which is what is in force, but reinstalling that collection brings the
+    /// preference back rather than having silently discarded it.
+    /// </summary>
+    private async Task LoadPreferredCollectionAsync()
+    {
+        if (!DbConnectionFactory.IsConfigured) return;
+
+        var collections = await _editionRepo.GetCollectionsAsync();
+
+        _loadingPreferredCollection = true;
+        try
+        {
+            _preferredCollectionBox.Items.Clear();
+            _preferredCollectionBox.Items.Add(new CollectionOption(null, "No preference"));
+
+            foreach (var key in collections
+                         .Select(k => new CollectionOption(k, SetupDataSourceCatalog.DescribeCollection(k)))
+                         .OrderBy(c => c.Title, StringComparer.CurrentCultureIgnoreCase))
+            {
+                _preferredCollectionBox.Items.Add(key);
+            }
+
+            var stored = PreferredCollectionSettings.Preferred;
+            var match = _preferredCollectionBox.Items.OfType<CollectionOption>()
+                .FirstOrDefault(c => c.Key != null
+                                     && string.Equals(c.Key, stored, StringComparison.OrdinalIgnoreCase));
+
+            _preferredCollectionBox.SelectedItem = match ?? _preferredCollectionBox.Items[0];
+            _preferredCollectionBox.Enabled = collections.Count > 1;
+        }
+        finally
+        {
+            _loadingPreferredCollection = false;
+        }
     }
 
     /// <summary>

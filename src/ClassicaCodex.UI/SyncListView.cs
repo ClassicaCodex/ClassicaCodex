@@ -1,3 +1,4 @@
+using ClassicaCodex.Core;
 using ClassicaCodex.Core.Models;
 
 namespace ClassicaCodex.UI;
@@ -397,10 +398,49 @@ public class SyncListView : ListBox
         return _athetizedFont;
     }
 
+    /// <summary>
+    /// Which passages of this pane's edition carry an inquiry, a tag or a
+    /// bookmark, keyed on citation reference. Set when the pane is filled;
+    /// empty means nothing is marked.
+    /// </summary>
+    private Dictionary<string, PassageMarks> _marks = new(StringComparer.Ordinal);
+
+    /// <summary>
+    /// Replaces the marks shown at the end of each line. Call before filling
+    /// the pane: the marks are part of the text that gets measured, so setting
+    /// them afterwards would leave every row sized for a line it no longer
+    /// draws.
+    /// </summary>
+    public void SetPassageMarks(Dictionary<string, PassageMarks> marks) => _marks = marks;
+
+    /// <summary>
+    /// Records a mark just added to a passage, so it appears without reloading
+    /// the whole pane - which on a long work would cost a visible pause and
+    /// throw away the reader's place in it.
+    ///
+    /// Redraws rather than remeasures. Row height is fixed once measured, so a
+    /// line already close to wrapping can have its new mark clipped until the
+    /// work is reopened. That is the cheap failure of the two: the alternative
+    /// is rebuilding every row's height to show one character.
+    /// </summary>
+    public void AddPassageMark(string citationRef, PassageMarks mark)
+    {
+        _marks[citationRef] = _marks.TryGetValue(citationRef, out var existing) ? existing | mark : mark;
+        Invalidate();
+    }
+
     private string GetItemText(int index)
     {
         if (index < 0 || index >= Items.Count) return string.Empty;
-        return Items[index] is TextNode node ? node.Text : Items[index]?.ToString() ?? string.Empty;
+        if (Items[index] is not TextNode node) return Items[index]?.ToString() ?? string.Empty;
+
+        // Appended here rather than written into the node, because node.Text is
+        // what gets copied, exported and searched - the same reasoning that
+        // keeps an athetized line's brackets out of its string. This method is
+        // the display path and nothing else reads it.
+        return _marks.TryGetValue(node.CitationRef, out var marks)
+            ? node.Text + PassageMarkSymbols.Suffix(marks)
+            : node.Text;
     }
 
     private void OnMouseMoveForTooltip(object? sender, MouseEventArgs e)

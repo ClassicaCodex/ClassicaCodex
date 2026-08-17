@@ -156,8 +156,7 @@ public class MorphologyForm : ScaledForm
             Top = 212,
             Width = 1156,
             Height = 496,
-            Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right,
-            HorizontalScrollbar = true
+            Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right
         };
         _resultsList.DoubleClick += async (_, _) => await JumpToSelectedResultAsync();
         ListResultHelpers.AttachCitationTooltip(_resultsList,

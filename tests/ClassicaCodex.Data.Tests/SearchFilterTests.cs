@@ -66,6 +66,100 @@ public class SearchFilterTests
         Assert.Empty(hits.Rows);
     }
 
+    /// <summary>
+    /// The case the namespace filter cannot answer, and the reason the collection
+    /// filter exists: two collections in one language tradition. CSEL and the
+    /// classical Latin texts are both "latinLit", as are First1KGreek and Perseus
+    /// Greek both "greekLit" - so "search only CSEL" has no expression in terms of
+    /// namespaces at all.
+    /// </summary>
+    [Fact]
+    public async Task CollectionFilterSeparatesTwoCollectionsSharingANamespace()
+    {
+        using var db = await TempDatabase.CreateAsync();
+
+        var classical = await db.SeedFullEditionAsync("vergil", "Vergil", "latinLit", "Aeneid", "Original", "lat");
+        await db.InsertLinesAsync(classical, ("1.1", "arma virumque cano"));
+        var fathers = await db.SeedFullEditionAsync("augustine", "Augustine", "latinLit", "Confessiones", "Original", "lat");
+        await db.InsertLinesAsync(fathers, ("1.1", "arma spiritalia sumenda sunt"));
+
+        // Stamped the way a setup step stamps them: by the folder it just
+        // imported from, recording a key that does not mention the folder.
+        var editions = new EditionRepository();
+        await db.ExecuteAsync(
+            $@"UPDATE Editions SET SourcePath = 'C:\Data\latin-texts\data\vergil\x.xml' WHERE EditionId = {classical};
+               UPDATE Editions SET SourcePath = 'C:\Data\csel\data\augustine\y.xml' WHERE EditionId = {fathers};");
+        await editions.StampCollectionAsync(@"C:\Data\latin-texts", "perseus-latin");
+        await editions.StampCollectionAsync(@"C:\Data\csel", "csel");
+
+        var repo = new TextNodeRepository();
+
+        var byNamespace = new SearchFilters { Query = "arma" };
+        byNamespace.Corpora.Add("latinLit");
+        Assert.Equal(2, (await repo.SearchFilteredAsync(byNamespace)).Rows.Count);
+
+        var cselOnly = new SearchFilters { Query = "arma" };
+        cselOnly.Collections.Add("csel");
+        Assert.Equal("arma spiritalia sumenda sunt",
+            Assert.Single((await repo.SearchFilteredAsync(cselOnly)).Rows).Text);
+
+        // Any number of them, which is what makes it a set rather than a dropdown.
+        var both = new SearchFilters { Query = "arma" };
+        both.Collections.Add("csel");
+        both.Collections.Add("perseus-latin");
+        Assert.Equal(2, (await repo.SearchFilteredAsync(both)).Rows.Count);
+
+        // The library knows what it holds without being told where it came from.
+        Assert.Equal(["csel", "perseus-latin"], await editions.GetCollectionsAsync());
+
+        // And the whole point of storing a key rather than a path: the downloads
+        // are gone, the paths are meaningless, and the filter still works.
+        await db.ExecuteAsync("UPDATE Editions SET SourcePath = NULL;");
+        var afterCleanup = new SearchFilters { Query = "arma" };
+        afterCleanup.Collections.Add("csel");
+        Assert.Equal("arma spiritalia sumenda sunt",
+            Assert.Single((await repo.SearchFilteredAsync(afterCleanup)).Rows).Text);
+
+        // And unset still means everything, so the default search is unchanged.
+        Assert.Equal(2, (await repo.SearchFilteredAsync(Query("arma"))).Rows.Count);
+    }
+
+    /// <summary>
+    /// What the library tree's collection filter is built on. An author belongs in the
+    /// filtered tree exactly when one of their works does, so the question is asked
+    /// about works and the authors follow - otherwise a filter could leave an author
+    /// standing with every one of their works hidden.
+    /// </summary>
+    [Fact]
+    public async Task WorkIdsForCollectionsCoverOnlyTheChosenOnes()
+    {
+        using var db = await TempDatabase.CreateAsync();
+        var classical = await db.SeedFullEditionAsync("vergil", "Vergil", "latinLit", "Aeneid", "Original", "lat");
+        var fathers = await db.SeedFullEditionAsync("augustine", "Augustine", "latinLit", "Confessiones", "Original", "lat");
+        var editions = new EditionRepository();
+
+        await db.ExecuteAsync(
+            $@"UPDATE Editions SET SourcePath = 'C:\D\latin-texts\a.xml' WHERE EditionId = {classical};
+               UPDATE Editions SET SourcePath = 'C:\D\csel\b.xml' WHERE EditionId = {fathers};");
+        await editions.StampCollectionAsync(@"C:\D\latin-texts", "perseus-latin");
+        await editions.StampCollectionAsync(@"C:\D\csel", "csel");
+
+        var vergil = await db.WorkIdForAsync("vergil");
+        var augustine = await db.WorkIdForAsync("augustine");
+
+        var cselOnly = await editions.GetWorkIdsForCollectionsAsync(["csel"]);
+        Assert.Equal([augustine], cselOnly);
+
+        var both = await editions.GetWorkIdsForCollectionsAsync(["csel", "perseus-latin"]);
+        Assert.Contains(vergil, both);
+        Assert.Contains(augustine, both);
+
+        // Nothing chosen is not the same as everything chosen: the caller treats an
+        // empty selection as "no filter" and never asks, so this must not answer with
+        // the whole library and quietly invert the filter.
+        Assert.Empty(await editions.GetWorkIdsForCollectionsAsync([]));
+    }
+
     // --- match modes ------------------------------------------------------
 
     [Fact]

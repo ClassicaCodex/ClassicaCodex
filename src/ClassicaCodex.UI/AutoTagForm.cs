@@ -196,7 +196,6 @@ public class AutoTagForm : ScaledForm
             Width = 1060,
             Height = 480,
             Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right,
-            HorizontalScrollbar = true,
             CheckOnClick = true,
             DrawMode = DrawMode.OwnerDrawFixed
         };

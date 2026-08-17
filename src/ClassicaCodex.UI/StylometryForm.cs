@@ -280,8 +280,7 @@ public class StylometryForm : ScaledForm
         _resultsList = new ListBox
         {
             Left = RightCol, Top = 32, Width = RightWidth, Height = 300,
-            Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right,
-            HorizontalScrollbar = true
+            Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right
         };
         _resultsList.DoubleClick += async (_, _) => await OpenSelectedResultAsync();
 

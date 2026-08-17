@@ -167,7 +167,20 @@ public class PlacesMapForm : ScaledForm
             Width = 300,
             Height = 328,
             Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Right,
-            HorizontalScrollbar = true
+
+            // No horizontal scrollbar, deliberately. Setting it makes WinForms measure
+            // every item it is given with GDI+ to work out the scroll extent, and that
+            // measurement throws on characters the list's font cannot resolve - which
+            // the Menota transcriptions are full of, since medieval Nordic glyphs are
+            // encoded in the Unicode private use area. Clicking a place that matched one
+            // of those passages took the window down with "a generic error occurred in
+            // GDI+" and no indication of which passage or why.
+            //
+            // The measurement is the only thing that fails, so the fix is to stop asking
+            // for it. Nothing is lost that this list was providing: at 300px wide,
+            // scrolling a passage sideways was never how it was read - the entry is
+            // there to be recognised and double-clicked, which opens it in the reader.
+            // The text is trimmed below so the part that identifies it stays visible.
         };
         _passageList.DoubleClick += async (_, _) => await JumpToSelectedPassageAsync();
         ListResultHelpers.AttachCitationTooltip(_passageList,
@@ -288,17 +301,18 @@ public class PlacesMapForm : ScaledForm
             // they are worth noticing where they happen to coincide with it,
             // which is the only thing tags were ever doing on this screen.
             //
-            // Plain ASCII rather than a star or a bullet. This ListBox has
-            // HorizontalScrollbar set, so every item added is measured for the
-            // scroll extent, and a character the list's font has no glyph for
-            // took that measurement down with a GDI+ error rather than falling
-            // back to a box. The same lesson as the elided Greek in the PDF
-            // export: one font, no fallback, so stay inside what it carries.
+            // Plain ASCII rather than a star or a bullet - originally because the
+            // scroll-extent measurement choked on anything else, and still because a
+            // marker that renders as a box says less than four brackets do.
             var mark = _tagsByNode.TryGetValue(p.TextNodeId, out var tags)
                 ? $"[tagged: {string.Join(", ", tags)}]  "
                 : "";
 
-            _passageList.Items.Add($"{mark}{p.AuthorName}, {p.WorkTitle}: {p.Text}");
+            // Trimmed rather than scrolled. The whole passage is one double-click away
+            // in the reader, where it is set in a font chosen for it.
+            var text = p.Text.Length <= 160 ? p.Text : p.Text[..160] + "…";
+
+            _passageList.Items.Add($"{mark}{p.AuthorName}, {p.WorkTitle}: {text}");
         }
 
         if (_currentPassages.Count == 0)

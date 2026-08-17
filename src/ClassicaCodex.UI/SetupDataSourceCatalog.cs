@@ -12,16 +12,63 @@ namespace ClassicaCodex.UI;
 /// </summary>
 public static class SetupDataSourceCatalog
 {
+    private static string DataRoot => Path.Combine(
+        Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "ClassicaCodexData");
+
+    /// <summary>
+    /// The stored identity of each collection that carries readable text.
+    ///
+    /// Written onto every edition as it is imported, so a library can say which
+    /// collection a text belongs to without consulting the folder it arrived in -
+    /// which stops being true the moment the data is moved, installed somewhere
+    /// custom, or opened on another machine.
+    ///
+    /// The lemma, lexicon, map and artifact sources have no keys: they hold no
+    /// passages, so there is nothing in them to search.
+    /// </summary>
+    public static class CollectionKeys
+    {
+        public const string PerseusGreek = "perseus-greek";
+        public const string PerseusLatin = "perseus-latin";
+        public const string First1KGreek = "first1k-greek";
+        public const string Csel = "csel";
+        public const string PatrologiaLatina = "patrologia-latina";
+        public const string PoliticalTheory = "pdl-politics";
+        public const string Renaissance = "renaissance";
+        public const string Menota = "menota";
+    }
+
+    /// <summary>
+    /// How each collection key should be named to a person. Anything not listed -
+    /// a library predating this, or a collection installed to a custom folder the
+    /// backfill could not recognise - is shown under its own key rather than
+    /// hidden, so an unfamiliar name is at least a name.
+    /// </summary>
+    public static string DescribeCollection(string key) => key switch
+    {
+        CollectionKeys.PerseusGreek => "Ancient Greek (Perseus)",
+        CollectionKeys.PerseusLatin => "Ancient Latin (Perseus)",
+        CollectionKeys.First1KGreek => "Post-Classical Greek (First1KGreek)",
+        CollectionKeys.Csel => "Latin Church Fathers (CSEL)",
+        CollectionKeys.PatrologiaLatina => "Patrologia Latina (Migne)",
+        CollectionKeys.PoliticalTheory => "Political Theory (Bodin)",
+        CollectionKeys.Renaissance => "English Literature (Renaissance)",
+        CollectionKeys.Menota => "Medieval Nordic (Menota)",
+        _ => key
+    };
+
     public static List<SetupDataSource> Build(
         AuthorRepository authorRepo, LemmaRepository lemmaRepo, DefinitionRepository definitionRepo,
         ArtifactRepository artifactRepo, EditionRepository editionRepo)
     {
-        var dataRoot = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "ClassicaCodexData");
+        var dataRoot = DataRoot;
 
         // Named once, so the step's download location and its "is this
         // already loaded?" check can't drift apart.
         var first1kDestination = Path.Combine(dataRoot, "first1k-greek");
+        var cselDestination = Path.Combine(dataRoot, "csel");
+        var patrologiaDestination = Path.Combine(dataRoot, "patrologia-latina");
+        var politicalDestination = Path.Combine(dataRoot, "political-theory");
 
         return new List<SetupDataSource>
         {
@@ -40,6 +87,7 @@ public static class SetupDataSourceCatalog
                         progress.Report($"{p.CurrentAuthor}: {p.CurrentWork} ({p.WorksProcessed}/{p.TotalWorks})"));
                     await service.IngestAsync(
                         new[] { (Path.Combine(root, "data"), "greekLit") }, wrapped, ct);
+                    await editionRepo.StampCollectionAsync(root, CollectionKeys.PerseusGreek, ct);
                     return IngestOutcome.From(service.FailedFiles);
                 },
                 // Checked by corpus (Authors.Namespace), not by edition
@@ -64,6 +112,7 @@ public static class SetupDataSourceCatalog
                         progress.Report($"{p.CurrentAuthor}: {p.CurrentWork} ({p.WorksProcessed}/{p.TotalWorks})"));
                     await service.IngestAsync(
                         new[] { (Path.Combine(root, "data"), "latinLit") }, wrapped, ct);
+                    await editionRepo.StampCollectionAsync(root, CollectionKeys.PerseusLatin, ct);
                     return IngestOutcome.From(service.FailedFiles);
                 },
                 // Same reasoning as the Greek row above, inverted - and this
@@ -250,10 +299,18 @@ public static class SetupDataSourceCatalog
                     // Runs second so its name-based de-dup can fold Sidney and
                     // James I into the author rows the CTS pass just created.
                     var renaissance = Path.Combine(root, "Renaissance");
-                    if (!Directory.Exists(renaissance)) return IngestOutcome.From(cts.FailedFiles);
+                    if (!Directory.Exists(renaissance))
+                    {
+                        await editionRepo.StampCollectionAsync(root, CollectionKeys.Renaissance, ct);
+                        return IngestOutcome.From(cts.FailedFiles);
+                    }
 
                     var preCts = new RenaissanceIngestService();
                     await preCts.IngestAsync(renaissance, wrapped, ct);
+
+                    // Both passes land under the same download folder, so one stamp
+                    // covers the CTS works and the pre-CTS ones alike.
+                    await editionRepo.StampCollectionAsync(root, CollectionKeys.Renaissance, ct);
 
                     return IngestOutcome.Combine(
                         IngestOutcome.From(cts.FailedFiles),
@@ -405,6 +462,7 @@ public static class SetupDataSourceCatalog
 
                     var service = new MenotaIngestService();
                     var outcome = await service.IngestAsync(root, progress, ct);
+                    await editionRepo.StampCollectionAsync(root, CollectionKeys.Menota, ct);
 
                     // Reaching this branch means a manuscript arrived in the folder
                     // after the review dialogs ran, or its review was skipped. The
@@ -501,6 +559,7 @@ public static class SetupDataSourceCatalog
                         Namespace = "hebrewLit"
                     }, ct);
 
+                    await editionRepo.StampCollectionAsync(root, CollectionKeys.First1KGreek, ct);
                     return IngestOutcome.From(service.FailedFiles);
                 },
                 // Authors.Namespace="greekLit" is already >0 from the
@@ -531,6 +590,155 @@ public static class SetupDataSourceCatalog
                 // which is the right direction for a step whose whole failure
                 // mode was silently skipping.
                 CheckComplete = async () => await editionRepo.CountBySourcePathPrefixAsync(first1kDestination) > 0
+            },
+
+            new SetupDataSource
+            {
+                Title = "Latin Church Fathers (CSEL, optional)",
+                RepoUrl = "https://github.com/OpenGreekAndLatin/csel-dev",
+                DisplayNote = "extends the Ancient Latin Texts above into late antiquity - same library, not a separate one",
+                DefaultDestination = cselDestination,
+                PlainLanguageDescription =
+                    "The Corpus Scriptorum Ecclesiasticorum Latinorum - the critical editions of the Latin " +
+                    "Church Fathers, from the volumes old enough to be out of copyright. Augustine, Ambrose, " +
+                    "Jerome, Cyprian and their contemporaries, in the editions scholars actually cite. " +
+                    "Authors already in your library gain works and editions rather than duplicates. " +
+                    "Around 400 megabytes.",
+                RunIngest = async (root, progress, ct) =>
+                {
+                    // Verified against the repository itself before writing this, not
+                    // inferred from the fact that it is an Open Greek and Latin repo:
+                    // data/<textgroup>/<work>/__cts__.xml in the same CTS layout as
+                    // canonical-latinLit, textgroup URNs already in the latinLit
+                    // namespace (urn:cts:latinLit:stoa0007), and a TEI-P5/EpiDoc body -
+                    // no DOCTYPE, no entity references beyond the five XML built-ins,
+                    // div[@type='edition'] over div[@type='textpart'] to <p> leaves.
+                    // So this is the same service the Greek and Latin steps use, with
+                    // the namespace it declares for itself, rather than a new importer.
+                    //
+                    // The apparatus is the reason this needed checking rather than
+                    // assuming: these files carry <note type="footnote"> inside the
+                    // reading text, and TeiParser already excludes note from the text
+                    // and captures it as an apparatus entry instead. Had it not, every
+                    // page of Augustine would have arrived with its footnotes spliced
+                    // into the sentences.
+                    //
+                    // Volumes/ holds the same texts unsplit, one file per CSEL volume,
+                    // and is left alone: IngestRepoAsync walks data/ only, so the
+                    // volume-level files cannot produce a second copy of anything.
+                    var service = new PerseusIngestService();
+                    var wrapped = new Progress<IngestProgress>(p =>
+                        progress.Report($"{p.CurrentAuthor}: {p.CurrentWork} ({p.WorksProcessed}/{p.TotalWorks})"));
+                    await service.IngestAsync(
+                        new[] { (Path.Combine(root, "data"), "latinLit") }, wrapped, ct);
+
+                    await editionRepo.StampCollectionAsync(root, CollectionKeys.Csel, ct);
+                    return IngestOutcome.From(service.FailedFiles);
+                },
+
+                // Same reasoning as First1KGreek above: Authors.Namespace="latinLit" is
+                // already non-zero from the classical Latin corpus, so it cannot tell
+                // "loaded" from "this step has not run". Editions record the file they
+                // were built from, and this corpus downloads to a folder of its own.
+                CheckComplete = async () => await editionRepo.CountBySourcePathPrefixAsync(cselDestination) > 0
+            },
+
+            new SetupDataSource
+            {
+                Title = "Patrologia Latina (Migne, optional)",
+                RepoUrl = "https://github.com/OpenGreekAndLatin/patrologia_latina-dev",
+                DisplayNote = "the widest net for Latin Christian writing - a reprint, not a critical edition",
+                DefaultDestination = patrologiaDestination,
+                PlainLanguageDescription =
+                    "Migne's Patrologia Latina - Latin Christian writing from Tertullian to the twelfth " +
+                    "century. Worth knowing what it is before you cite from it: Migne reprinted whatever " +
+                    "editions he could obtain in the 1840s and 50s, so where a work also appears in the " +
+                    "Church Fathers collection above, that one is the edition scholars cite and this one " +
+                    "is the wider net. Both can sit side by side - the same work gains a second edition " +
+                    "in the dropdown rather than being overwritten.\r\n\r\n" +
+                    "One caveat worth knowing before you build on it. Most of this collection is still " +
+                    "under temporary reference numbers that the publishing project intends to replace. " +
+                    "The texts and their authors are sound, and nothing about reading them is affected - " +
+                    "but if those numbers change and you re-import, notes tied to those particular " +
+                    "passages will need re-attaching. Works whose author Migne could not name arrive " +
+                    "under “Incertus”, his own word for it. Around 1.4 gigabytes.",
+                RunIngest = async (root, progress, ct) =>
+                {
+                    // The whole repository is imported, placeholders included.
+                    //
+                    // It holds 9,400 textgroups: 630 named stoa0022, stoa0040 and so on,
+                    // and 8,770 named tmp1, tmp26, tmp990, from a conversion still in
+                    // progress. Those were excluded for a while on the strength of their
+                    // CTS URNs being provisional - urn:cts:latinLit:tmp26 - since notes
+                    // in this application bind to CTS identity precisely because it is
+                    // meant to outlast a re-ingest.
+                    //
+                    // Included now, deliberately, because the objection is narrower than
+                    // it looked. Each file holds one work, correctly attributed by its
+                    // groupname; roughly nine in ten name their author outright. The
+                    // cost of excluding them is eight thousand texts today. The cost of
+                    // including them is that notes on those passages may need
+                    // re-attaching if the numbering changes, which the step says plainly
+                    // rather than leaving to be discovered.
+                    var service = new PerseusIngestService
+                    {
+                        // Migne returns to an author across volumes and each appearance
+                        // became its own textgroup, so without this the tree lists
+                        // Alphanus of Benevento six times and Anonymus nine, a work or
+                        // two under each. They are the same people.
+                        MergeAuthorsByName = true,
+
+                        // Migne leaves the author empty where a work has none - the
+                        // Council of Carthage, an appendix to Cyprian, an anonymous
+                        // passion - and writes "Incertus" wherever he does fill it in.
+                        // Borrowing his own word keeps those texts and keeps the author
+                        // column readable. Roughly one textgroup in eleven, so they
+                        // gather under a single row rather than eight hundred alike.
+                        UnnamedTextGroupAuthor = ("urn:cts:latinLit:pl.incertus", "Incertus")
+                    };
+                    var wrapped = new Progress<IngestProgress>(p =>
+                        progress.Report($"{p.CurrentAuthor}: {p.CurrentWork} ({p.WorksProcessed}/{p.TotalWorks})"));
+                    await service.IngestAsync(
+                        new[] { (Path.Combine(root, "data"), "latinLit") }, wrapped, ct);
+
+                    await editionRepo.StampCollectionAsync(root, CollectionKeys.PatrologiaLatina, ct);
+                    return IngestOutcome.From(service.FailedFiles);
+                },
+
+                CheckComplete = async () => await editionRepo.CountBySourcePathPrefixAsync(patrologiaDestination) > 0
+            },
+
+            new SetupDataSource
+            {
+                Title = "Political Theory: Bodin (optional)",
+                RepoUrl = "https://github.com/PerseusDL/canonical-pdlpsci",
+                DisplayNote = "one work in three languages - small, and the only thing in this collection",
+                DefaultDestination = politicalDestination,
+                PlainLanguageDescription =
+                    "Jean Bodin's Six Books of the Commonwealth, the founding text of modern sovereignty, " +
+                    "in all three of the versions that matter: the French of 1577 he wrote first, the Latin " +
+                    "of 1586 he made himself, and Richard Knolles's English of 1606. Reading his own Latin " +
+                    "against his own French is the kind of comparison the reader panes were built for. " +
+                    "About nine megabytes - it is one work, not a corpus.",
+                RunIngest = async (root, progress, ct) =>
+                {
+                    // Same CTS layout as everything else here, in its own namespace:
+                    // urn:cts:pdlpsci:bodin rather than latinLit. Passed through as
+                    // declared rather than folded into Latin, because it is not Latin
+                    // literature - the French is the original and the Latin is Bodin
+                    // translating himself, which is exactly the distinction the
+                    // edition/translation split exists to keep.
+                    var service = new PerseusIngestService();
+                    var wrapped = new Progress<IngestProgress>(p =>
+                        progress.Report($"{p.CurrentAuthor}: {p.CurrentWork} ({p.WorksProcessed}/{p.TotalWorks})"));
+                    await service.IngestAsync(
+                        new[] { (Path.Combine(root, "data"), "pdlpsci") }, wrapped, ct);
+
+                    await editionRepo.StampCollectionAsync(root, CollectionKeys.PoliticalTheory, ct);
+                    return IngestOutcome.From(service.FailedFiles);
+                },
+
+                CheckComplete = async () => await editionRepo.CountBySourcePathPrefixAsync(politicalDestination) > 0
             }
         };
     }

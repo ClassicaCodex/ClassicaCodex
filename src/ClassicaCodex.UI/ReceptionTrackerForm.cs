@@ -1,6 +1,8 @@
 using ClassicaCodex.Core.Models;
 using ClassicaCodex.Data.Repositories;
 
+using ClassicaCodex.Core;
+
 namespace ClassicaCodex.UI;
 
 /// <summary>
@@ -55,8 +57,7 @@ public class ReceptionTrackerForm : ScaledForm
         _laterList = new ListBox
         {
             Left = 12, Top = 78, Width = 410, Height = 610,
-            Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left,
-            HorizontalScrollbar = true
+            Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left
         };
         _laterList.DoubleClick += async (_, _) => await JumpAsync(_laterList, _later);
         ListResultHelpers.AttachCitationTooltip(_laterList,
@@ -74,8 +75,7 @@ public class ReceptionTrackerForm : ScaledForm
         _earlierList = new ListBox
         {
             Left = 434, Top = 78, Width = 410, Height = 610,
-            Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left,
-            HorizontalScrollbar = true
+            Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left
         };
         _earlierList.DoubleClick += async (_, _) => await JumpAsync(_earlierList, _earlier);
         ListResultHelpers.AttachCitationTooltip(_earlierList,
@@ -93,8 +93,7 @@ public class ReceptionTrackerForm : ScaledForm
         _unknownList = new ListBox
         {
             Left = 856, Top = 78, Width = 410, Height = 610,
-            Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right,
-            HorizontalScrollbar = true
+            Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right
         };
         _unknownList.DoubleClick += async (_, _) => await JumpAsync(_unknownList, _unknown);
         ListResultHelpers.AttachCitationTooltip(_unknownList,

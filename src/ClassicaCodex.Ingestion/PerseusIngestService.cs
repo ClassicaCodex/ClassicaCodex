@@ -1,3 +1,4 @@
+using System.Text.RegularExpressions;
 using System.Xml.Linq;
 using ClassicaCodex.Core.Models;
 using ClassicaCodex.Data.Repositories;
@@ -33,6 +34,49 @@ public class PerseusIngestService
     /// IngestAsync completes.
     /// </summary>
     public List<(string FilePath, string Error)> FailedFiles { get; } = new();
+
+    /// <summary>
+    /// The one author to file every textgroup under whose catalog names nobody. Null -
+    /// the default - passes them over, which is right for a corpus where a missing name
+    /// means a malformed file.
+    ///
+    /// The Patrologia Latina is the case for setting it: it leaves the name empty for
+    /// works that have no author to give - the Council of Carthage, an appendix to
+    /// Cyprian, an anonymous passion - and names everything else normally. Those are
+    /// texts worth having, and the corpus supplies its own word for the case, writing
+    /// "Incertus" wherever it does fill the name in.
+    ///
+    /// One shared author rather than one per textgroup, because there are roughly eight
+    /// hundred of them: filed separately they would be eight hundred identical rows in
+    /// the library tree, which is a worse answer than either dropping them or naming
+    /// them nothing. Their works keep their own URNs, so a note still binds to the
+    /// passage it was written about; only the author they hang under is shared.
+    ///
+    /// The URN is this application's own grouping key rather than a published CTS
+    /// identifier - there is nothing to cite here, and the alternative is no row at all.
+    /// </summary>
+    public (string Urn, string Name)? UnnamedTextGroupAuthor { get; set; }
+
+    /// <summary>
+    /// Whether textgroups naming the same author should share one author row. Off by
+    /// default: in a catalogued corpus every author has one textgroup, and a repeated
+    /// name is likelier to be two people than one.
+    ///
+    /// On for the Patrologia Latina, where it is the other way round. Migne's volumes
+    /// return to an author again and again, and each appearance became its own
+    /// textgroup - Alphanus of Benevento six times, Anonymus nine. Left alone the
+    /// library tree lists the same name over and over with a work or two under each,
+    /// which is not a catalogue so much as a pile.
+    ///
+    /// Matching is on the name as printed, case and spacing aside. It will not join
+    /// two spellings of one man, and it will join two men who share a name - but a
+    /// corpus that repeats "Anonymus" nine times is telling you which of those errors
+    /// it actually contains.
+    /// </summary>
+    public bool MergeAuthorsByName { get; set; }
+
+    private static string NormaliseAuthorName(string name) =>
+        string.Join(' ', name.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries)).ToLowerInvariant();
 
     /// <param name="repoDataPaths">
     /// Path(s) to the "data" folder inside each cloned repo, e.g.
@@ -81,6 +125,18 @@ public class PerseusIngestService
         var totalWorks = textGroupDirs.Length; // rough estimate for progress, refined per-group below
         int worksProcessed = 0;
 
+        // Which author row a given name already has, so repeats join it. Seeded from
+        // the library rather than from this run alone, so a collection arriving second
+        // joins the authors the first one created instead of shadowing them.
+        Dictionary<string, string>? authorUrnByName = null;
+        if (MergeAuthorsByName)
+        {
+            authorUrnByName = (await _authorRepo.GetAllAsync(cancellationToken))
+                .Where(a => string.Equals(a.Namespace, ns, StringComparison.OrdinalIgnoreCase))
+                .GroupBy(a => NormaliseAuthorName(a.Name), StringComparer.Ordinal)
+                .ToDictionary(g => g.Key, g => g.First().CtsUrn, StringComparer.Ordinal);
+        }
+
         foreach (var textGroupDir in textGroupDirs)
         {
             cancellationToken.ThrowIfCancellationRequested();
@@ -89,10 +145,32 @@ public class PerseusIngestService
             var groupInfo = _catalogReader.ReadTextGroup(groupCtsPath);
             if (groupInfo == null) continue; // not a valid textgroup folder, skip
 
+            // A catalog that names no author: either the corpus has said what to call
+            // that case, or the file is malformed and the folder is passed over. Never
+            // an author row with no name - unreadable, unsearchable, and impossible to
+            // tell from the next one.
+            var groupUrn = groupInfo.Urn;
+            var groupName = groupInfo.GroupName;
+            if (string.IsNullOrWhiteSpace(groupName))
+            {
+                if (UnnamedTextGroupAuthor == null) continue;
+                (groupUrn, groupName) = UnnamedTextGroupAuthor.Value;
+            }
+
+            // Two textgroups naming the same author are that author, not two of them.
+            // The first URN seen wins and the rest join it, so their works gather under
+            // one row instead of six identical ones.
+            if (authorUrnByName != null)
+            {
+                var key = NormaliseAuthorName(groupName);
+                if (authorUrnByName.TryGetValue(key, out var existingUrn)) groupUrn = existingUrn;
+                else authorUrnByName[key] = groupUrn;
+            }
+
             var authorId = await _authorRepo.UpsertAsync(new Author
             {
-                CtsUrn = groupInfo.Urn,
-                Name = groupInfo.GroupName,
+                CtsUrn = groupUrn,
+                Name = groupName,
                 Namespace = ns
             }, cancellationToken);
 
@@ -256,18 +334,24 @@ public class PerseusIngestService
             // div as type="edition" or type="translation", which is a real
             // statement about the text rather than a list of languages
             // occurring in it.
+            //
+            // type="commentary" is the third one CTS defines, for the notes
+            // and appendices published alongside a text. It is not a
+            // translation, but the reader has two panes and this belongs in
+            // the second - the one holding whatever is read against the
+            // original. Unknown would mean no pane at all.
             if (kind == EditionKind.Unknown)
             {
                 var bodyDiv = doc.Descendants(tei + "div")
                     .FirstOrDefault(d =>
                     {
                         var type = d.Attribute("type")?.Value;
-                        return type is "edition" or "translation";
+                        return type is "edition" or "translation" or "commentary";
                     });
 
                 var divType = bodyDiv?.Attribute("type")?.Value;
                 if (divType == "edition") kind = EditionKind.Original;
-                else if (divType == "translation") kind = EditionKind.Translation;
+                else if (divType is "translation" or "commentary") kind = EditionKind.Translation;
 
                 versionLanguage ??= bodyDiv?.Attribute(XNamespace.Xml + "lang")?.Value;
             }
@@ -285,8 +369,23 @@ public class PerseusIngestService
     /// <summary>
     /// Pulls the language code out of a CTS version identifier: the last
     /// dot-segment of the name, after its final hyphen, with the trailing
-    /// version number removed. "tlg0028.tlg005.perseus-eng2" gives "eng";
+    /// version marker removed. "tlg0028.tlg005.perseus-eng2" gives "eng";
     /// "phi0448.phi002.digilibLT-lat1" gives "lat".
+    ///
+    /// That marker can carry a letter as well as a number. A companion volume
+    /// published with a text - notes, an appendix, an index - is versioned off
+    /// its parent rather than given a number of its own, so the Cambridge
+    /// Septuagint Isaiah is 1st1K-eng1 and its notes are 1st1K-eng1a.
+    ///
+    /// Reading that as three letters plus a number alone got "eng1a" wrong in
+    /// the quietest possible way: not a wrong language but no language, which
+    /// left the edition's Kind unresolved, which left it in neither reader
+    /// dropdown. The text ingested, and searched, and could not be opened -
+    /// results pointing into a volume the reader would not show.
+    ///
+    /// Deliberately narrow: three letters, then nothing, or digits with at
+    /// most one letter after them. A looser pattern would start reading the
+    /// first three letters of any version identifier as a language code.
     /// </summary>
     private static string? ExtractVersionLanguage(string fileNameWithoutExtension)
     {
@@ -296,7 +395,7 @@ public class PerseusIngestService
         var hyphenIndex = version.LastIndexOf('-');
         if (hyphenIndex < 0 || hyphenIndex == version.Length - 1) return null;
 
-        var code = version[(hyphenIndex + 1)..].TrimEnd("0123456789".ToCharArray());
-        return code.Length == 3 ? code.ToLowerInvariant() : null;
+        var match = Regex.Match(version[(hyphenIndex + 1)..], @"^([A-Za-z]{3})(\d+[A-Za-z]?)?$");
+        return match.Success ? match.Groups[1].Value.ToLowerInvariant() : null;
     }
 }

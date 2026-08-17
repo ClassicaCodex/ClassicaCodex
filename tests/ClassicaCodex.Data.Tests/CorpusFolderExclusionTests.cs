@@ -67,6 +67,41 @@ public class CorpusFolderExclusionTests
     }
 
     /// <summary>
+    /// A catalog that names no author is read as exactly that, and not confused with a
+    /// folder that has no catalog at all.
+    ///
+    /// The distinction carries meaning in a real corpus: the Patrologia Latina leaves
+    /// the name empty for works that have no author to give - the Council of Carthage,
+    /// an appendix to Cyprian - while naming everything else. Collapsing the two cases
+    /// would either drop those texts or fill the library with nameless rows, and which
+    /// of those is wanted is the importing caller's decision, not this reader's.
+    /// </summary>
+    [Fact]
+    public void ATextGroupNamingNobodyIsReadWithAnEmptyName()
+    {
+        var root = NewRepo();
+        try
+        {
+            var dir = Path.Combine(root, "tmp26");
+            Directory.CreateDirectory(dir);
+            File.WriteAllText(Path.Combine(dir, "__cts__.xml"),
+                @"<ti:textgroup xmlns:ti=""http://chs.harvard.edu/xmlns/cts"" urn=""urn:cts:latinLit:tmp26"">
+                    <ti:groupname xml:lang=""eng""></ti:groupname>
+                  </ti:textgroup>");
+
+            var info = new CtsCatalogReader().ReadTextGroup(Path.Combine(dir, "__cts__.xml"));
+
+            Assert.NotNull(info);
+            Assert.Equal("urn:cts:latinLit:tmp26", info!.Urn);
+            Assert.Equal("", info.GroupName);
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    /// <summary>
     /// A working directory has no catalog of its own, so it is skipped -
     /// however many catalogs sit inside it. This is save/ exactly: 53
     /// __cts__.xml files below it and none at the top.

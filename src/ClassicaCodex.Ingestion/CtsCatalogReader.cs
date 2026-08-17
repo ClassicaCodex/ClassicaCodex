@@ -30,6 +30,19 @@ public class CtsCatalogReader
             ?.Value
             ?? textGroup.Elements(Ti + "groupname").FirstOrDefault()?.Value;
 
+        // An empty <ti:groupname/> is reported as an empty name rather than as no
+        // catalog, because in a real corpus it means something: the Patrologia Latina
+        // uses it for works that genuinely have no author - councils, appendices,
+        // anonymous passions - while naming the rest normally. Treating it as a missing
+        // catalog would silently drop those texts; treating it as an author called
+        // nothing fills the library with unreadable rows.
+        //
+        // So the distinction is preserved here and the decision left to the caller,
+        // which is the only party that knows what its corpus means by it. See
+        // PerseusIngestService.UnnamedTextGroupName.
+        // No groupname element at all is a malformed catalog and skipped. An element
+        // that is present and empty is not the same thing, and is passed on as an empty
+        // name for the caller to decide about.
         if (urn == null || groupName == null) return null;
 
         return new TextGroupInfo(urn, groupName.Trim());
