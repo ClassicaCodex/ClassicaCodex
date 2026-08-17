@@ -50,8 +50,7 @@ public class EchoResultsForm : ScaledForm
             Top = 90,
             Width = 860,
             Height = 438,
-            Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right,
-            HorizontalScrollbar = true
+            Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right
         };
         _resultsList.DoubleClick += async (_, _) => await JumpToSelectedAsync();
         ListResultHelpers.AttachCitationTooltip(_resultsList,

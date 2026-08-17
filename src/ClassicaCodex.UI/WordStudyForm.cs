@@ -168,7 +168,6 @@ public class WordStudyForm : ScaledForm
             Width = 756,
             Height = 592,
             Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right,
-            HorizontalScrollbar = true,
             DrawMode = DrawMode.OwnerDrawFixed
         };
         _occurrenceList.DrawItem += OccurrenceList_DrawItem;

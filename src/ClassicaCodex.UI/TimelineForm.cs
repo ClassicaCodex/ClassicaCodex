@@ -65,8 +65,7 @@ public class TimelineForm : ScaledForm
             Top = 34,
             Width = 300,
             Height = 712,
-            Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Right,
-            HorizontalScrollbar = true
+            Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Right
         };
         _workList.DoubleClick += async (_, _) => await OpenSelectedWorkAsync();
 

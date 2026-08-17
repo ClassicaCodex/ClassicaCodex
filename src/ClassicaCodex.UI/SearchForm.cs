@@ -268,7 +268,18 @@ public class SearchForm : ScaledForm
             Width = 1060,
             Height = 414,
             Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right,
-            HorizontalScrollbar = true,
+
+            // No horizontal scrollbar. Setting it makes WinForms measure every item with
+            // GDI+ for the scroll extent, and that measurement throws on characters the
+            // font cannot resolve - which the Menota transcriptions carry, encoding
+            // medieval glyphs in the Unicode private use area. It took the places map
+            // down that way.
+            //
+            // This list is owner-drawn, and owner-drawing may well skip that measurement
+            // - it has never failed here on the same corpus. But "may well" is the whole
+            // of the case for treating it differently, and this is the screen used most.
+            // One rule for every list that shows corpus text is easier to keep than an
+            // exception resting on an inference nobody has tested.
             DrawMode = DrawMode.OwnerDrawFixed
         };
         _resultsList.DrawItem += Results_DrawItem;

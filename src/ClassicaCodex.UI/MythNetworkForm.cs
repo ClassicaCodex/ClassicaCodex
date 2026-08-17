@@ -143,8 +143,7 @@ public class MythNetworkForm : ScaledForm
             Top = 94,
             Width = 300,
             Height = 652,
-            Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Right,
-            HorizontalScrollbar = true
+            Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Right
         };
         _passageList.DoubleClick += async (_, _) => await JumpToSelectedPassageAsync();
         ListResultHelpers.AttachCitationTooltip(_passageList,

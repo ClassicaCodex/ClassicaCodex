@@ -186,8 +186,7 @@ public class CrossLanguageEchoForm : ScaledForm
             Width = 780,
             Height = 260,
             Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right,
-            IntegralHeight = false,
-            HorizontalScrollbar = true
+            IntegralHeight = false
         };
         _resultsListBox.DoubleClick += async (_, _) => await OnResultActivatedAsync();
 

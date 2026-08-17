@@ -98,7 +98,6 @@ public class ApparatusForm : ScaledForm
             Top = 92,
             Width = 860,
             Height = 330,
-            HorizontalScrollbar = true,
             Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right
         };
         _entryList.SelectedIndexChanged += (_, _) => ShowDetail();

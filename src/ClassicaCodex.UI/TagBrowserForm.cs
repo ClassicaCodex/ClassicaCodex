@@ -52,8 +52,7 @@ public class TagBrowserForm : ScaledForm
             Top = 32,
             Width = 620,
             Height = 560,
-            Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right,
-            HorizontalScrollbar = true
+            Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right
         };
         _resultsList.DoubleClick += async (_, _) => await JumpToSelectedResultAsync();
         ListResultHelpers.AttachCitationTooltip(_resultsList,

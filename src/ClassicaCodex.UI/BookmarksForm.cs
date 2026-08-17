@@ -46,7 +46,6 @@ public class BookmarksForm : ScaledForm
             Width = 740,
             Height = 460,
             Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right,
-            HorizontalScrollbar = true,
             DrawMode = DrawMode.OwnerDrawVariable
         };
         _italicFont = new Font(_bookmarkList.Font, FontStyle.Italic);
