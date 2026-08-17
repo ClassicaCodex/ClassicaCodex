@@ -73,12 +73,11 @@ public class CollationRepositoryTests
     }
 
     /// <summary>
-    /// Two editions of a work within one collection are not a cross-collection
-    /// pair, and an edition with no collection recorded cannot be attributed to
-    /// one - neither belongs in the list.
+    /// An edition with no collection recorded cannot be attributed to one, so
+    /// it has no side to sit on.
     /// </summary>
     [Fact]
-    public async Task EditionsFromOneCollectionOrFromNoneDoNotPair()
+    public async Task AnEditionWithNoCollectionDoesNotPair()
     {
         using var db = await TempDatabase.CreateAsync();
 
@@ -86,12 +85,84 @@ public class CollationRepositoryTests
         await db.ExecuteAsync($@"
             INSERT INTO Editions (WorkId, CtsUrn, Kind, Language, Collection)
             VALUES ((SELECT WorkId FROM Editions WHERE EditionId = {first}),
-                    'urn:e:ag-2', 'Original', 'grc', 'perseus-greek');
-            INSERT INTO Editions (WorkId, CtsUrn, Kind, Language, Collection)
-            VALUES ((SELECT WorkId FROM Editions WHERE EditionId = {first}),
                     'urn:e:ag-3', 'Original', 'grc', NULL);");
 
         Assert.Empty(await new CollationRepository().FindPairsAsync());
+    }
+
+    /// <summary>
+    /// Two editions from one collection are a pair like any other. Perseus
+    /// alone carries two editions of Ajax and of a dozen Plutarch works, and
+    /// those are two independent printings of one text - the whole definition
+    /// of something worth collating. Requiring the collections to differ
+    /// excluded them for no reason beyond how the feature was first described.
+    /// </summary>
+    [Fact]
+    public async Task TwoEditionsFromOneCollectionArePairedToo()
+    {
+        using var db = await TempDatabase.CreateAsync();
+
+        var first = await SeedAsync(db, "ajax", "perseus-greek");
+        await db.ExecuteAsync($@"
+            INSERT INTO Editions (WorkId, CtsUrn, Kind, Language, Collection)
+            VALUES ((SELECT WorkId FROM Editions WHERE EditionId = {first}),
+                    'tlg0011.tlg003.perseus-grc2', 'Original', 'grc', 'perseus-greek');");
+
+        var pair = Assert.Single(await new CollationRepository().FindPairsAsync());
+
+        Assert.True(pair.WithinOneCollection);
+        Assert.NotEqual(pair.LeftEditionId, pair.RightEditionId);
+    }
+
+    /// <summary>
+    /// A work with three editions has three pairings, not one - and each is a
+    /// different comparison. Six works in a full library have three, one has
+    /// five and one has six.
+    /// </summary>
+    [Fact]
+    public async Task AWorkWithThreeEditionsHasThreePairings()
+    {
+        using var db = await TempDatabase.CreateAsync();
+
+        var first = await SeedAsync(db, "geo", "perseus-greek");
+        await db.ExecuteAsync($@"
+            INSERT INTO Editions (WorkId, CtsUrn, Kind, Language, Collection)
+            VALUES ((SELECT WorkId FROM Editions WHERE EditionId = {first}),
+                    'tlg0090.tlg001.1st1K-grc1', 'Original', 'grc', 'first1k-greek');
+            INSERT INTO Editions (WorkId, CtsUrn, Kind, Language, Collection)
+            VALUES ((SELECT WorkId FROM Editions WHERE EditionId = {first}),
+                    'tlg0090.tlg001.1st1K-grc2', 'Original', 'grc', 'first1k-greek');");
+
+        var pairs = await new CollationRepository().FindPairsAsync();
+
+        Assert.Equal(3, pairs.Count);
+
+        // Each pairing appears once, never also reversed.
+        var seen = pairs.Select(p => (p.LeftEditionId, p.RightEditionId)).ToList();
+        Assert.Equal(3, seen.Distinct().Count());
+        Assert.DoesNotContain(seen, s => seen.Contains((s.RightEditionId, s.LeftEditionId)));
+    }
+
+    /// <summary>
+    /// The version identifier is what tells two editions of one work apart when
+    /// the collection name cannot - which is every same-collection pairing, and
+    /// every work whose editions pair up more than one way.
+    /// </summary>
+    [Fact]
+    public async Task ThePairCarriesTheVersionIdentifierThatDistinguishesEachSide()
+    {
+        using var db = await TempDatabase.CreateAsync();
+
+        var first = await SeedAsync(db, "ajax", "perseus-greek");
+        await db.ExecuteAsync($@"
+            INSERT INTO Editions (WorkId, CtsUrn, Kind, Language, Collection)
+            VALUES ((SELECT WorkId FROM Editions WHERE EditionId = {first}),
+                    'tlg0011.tlg003.perseus-grc2', 'Original', 'grc', 'perseus-greek');");
+
+        var pair = Assert.Single(await new CollationRepository().FindPairsAsync());
+
+        Assert.NotEqual(pair.LeftVersion, pair.RightVersion);
+        Assert.Contains("perseus-grc2", new[] { pair.LeftVersion, pair.RightVersion });
     }
 
     /// <summary>

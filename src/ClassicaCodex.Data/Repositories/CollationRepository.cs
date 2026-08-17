@@ -3,11 +3,12 @@ using ClassicaCodex.Core;
 namespace ClassicaCodex.Data.Repositories;
 
 /// <summary>
-/// One work that two collections both carry, and the two editions of it.
+/// One work held twice, and the two editions of it.
 ///
-/// Left and right are only an order, fixed by collection name so the same pair
-/// always presents the same way round - a collation that swapped sides between
-/// openings would make the reader re-learn which column is which every time.
+/// Left and right are only an order, fixed by collection and then by CTS URN so
+/// the same pair always presents the same way round - a collation that swapped
+/// sides between openings would make the reader re-learn which column is which
+/// every time.
 /// </summary>
 public sealed record CollationPair(
     int WorkId,
@@ -21,8 +22,26 @@ public sealed record CollationPair(
     string RightCollection,
     string? Language)
 {
+    /// <summary>
+    /// The CTS version identifier - "perseus-grc2", "1st1K-grc1", "opp-lat3" -
+    /// which is what tells two editions of one work apart when they came from
+    /// the same collection, and the only thing that does.
+    /// </summary>
+    public string LeftVersion => Version(LeftEditionUrn);
+
+    /// <summary>See <see cref="LeftVersion"/>.</summary>
+    public string RightVersion => Version(RightEditionUrn);
+
+    /// <summary>True when both editions came from the same collection.</summary>
+    public bool WithinOneCollection =>
+        string.Equals(LeftCollection, RightCollection, StringComparison.OrdinalIgnoreCase);
+
+    private static string Version(string editionUrn) =>
+        editionUrn.Split(new[] { '.', ':' }, StringSplitOptions.RemoveEmptyEntries).LastOrDefault()
+        ?? editionUrn;
+
     public override string ToString() =>
-        $"{AuthorName} - {WorkTitle}  ({LeftCollection} / {RightCollection})";
+        $"{AuthorName} - {WorkTitle}  ({LeftVersion} / {RightVersion})";
 }
 
 /// <summary>
@@ -36,8 +55,15 @@ public sealed record CollationPair(
 public sealed class CollationRepository
 {
     /// <summary>
-    /// Every work with original-language editions in two different
-    /// collections.
+    /// Every pairing of original-language editions of one work.
+    ///
+    /// Every pairing, not every pair of collections: a work with three editions
+    /// yields all three combinations, and two editions from the SAME collection
+    /// are a pair like any other. Perseus alone carries two editions of Ajax and
+    /// of a dozen Plutarch works, and those are two independent printings of one
+    /// text - which is the whole definition of something worth collating.
+    /// Requiring the collections to differ excluded them for no reason beyond
+    /// how the feature was first described.
     ///
     /// Originals only. A work's translations are different texts by different
     /// hands, and lining two of those up would produce a page of differences
@@ -60,12 +86,17 @@ public sealed class CollationRepository
                    r.EditionId, r.CtsUrn, r.Collection,
                    COALESCE(l.Language, r.Language)
             FROM Editions l
-            JOIN Editions r ON r.WorkId = l.WorkId AND l.Collection < r.Collection
+            JOIN Editions r ON r.WorkId = l.WorkId
+                 -- Each unordered pairing once, in a fixed order: by collection,
+                 -- then by URN so two editions from one collection still get a
+                 -- stable side each.
+                 AND (l.Collection < r.Collection
+                      OR (l.Collection = r.Collection AND l.CtsUrn < r.CtsUrn))
             JOIN Works w    ON w.WorkId = l.WorkId
             JOIN Authors a  ON a.AuthorId = w.AuthorId
             WHERE l.Kind = 'Original' AND r.Kind = 'Original'
               AND l.Collection IS NOT NULL AND r.Collection IS NOT NULL
-            ORDER BY a.Name, w.Title;";
+            ORDER BY a.Name, w.Title, l.CtsUrn, r.CtsUrn;";
 
         await using var reader = await cmd.ExecuteReaderAsync(cancellationToken);
         while (await reader.ReadAsync(cancellationToken))

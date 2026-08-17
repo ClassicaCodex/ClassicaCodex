@@ -48,7 +48,7 @@ public class CollationForm : ScaledForm
             Height = 38,
             Padding = new Padding(10, 8, 10, 0),
             ForeColor = Color.DimGray,
-            Text = "Works this library holds twice, from two collections. Differences are graded: " +
+            Text = "Works this library holds more than one edition of. Differences are graded: " +
                    "only the last kind is a difference in the words."
         };
 
@@ -154,20 +154,59 @@ public class CollationForm : ScaledForm
         return panel;
     }
 
+    private sealed record PairOption(CollationPair Pair, string Label)
+    {
+        public override string ToString() => Label;
+    }
+
+    /// <summary>
+    /// What the picker shows for one pairing.
+    ///
+    /// The collection names alone are not enough, and assuming they were made
+    /// five entries of Agathemerus read identically. A work can have more than
+    /// two editions - one here has six - so several pairings share the same two
+    /// collections, and two editions can come from the same collection
+    /// entirely, which leaves the collection name saying nothing at all.
+    ///
+    /// So the version identifier is added wherever the collections do not
+    /// separate the pairings, and left off where they do - it is precise but it
+    /// is not what anyone is looking for, and putting "perseus-grc2" on every
+    /// row would bury the collection names under identifiers that matter for a
+    /// handful of works.
+    /// </summary>
+    private string DescribePair(CollationPair pair)
+    {
+        var left = SetupDataSourceCatalog.DescribeCollection(pair.LeftCollection);
+        var right = SetupDataSourceCatalog.DescribeCollection(pair.RightCollection);
+
+        var sameWork = _pairs.Count(p => p.WorkId == pair.WorkId);
+        var sameCollections = _pairs.Count(p =>
+            p.WorkId == pair.WorkId
+            && p.LeftCollection == pair.LeftCollection
+            && p.RightCollection == pair.RightCollection);
+
+        var sides = sameWork > 1 && (sameCollections > 1 || pair.WithinOneCollection)
+            ? $"{left} {pair.LeftVersion} / {right} {pair.RightVersion}"
+            : $"{left} / {right}";
+
+        return $"{pair.AuthorName} - {pair.WorkTitle}  ({sides})";
+    }
+
     private async Task LoadPairsAsync()
     {
         _pairs = await _repo.FindPairsAsync();
 
         _pairBox.Items.Clear();
-        foreach (var pair in _pairs) _pairBox.Items.Add(pair);
+        foreach (var pair in _pairs) _pairBox.Items.Add(new PairOption(pair, DescribePair(pair)));
 
         if (_pairs.Count == 0)
         {
             // Not an error, and the commonest state for a library with one
             // collection - so it says what would make it possible rather than
             // just showing an empty list.
-            _summary.Text = "No work in this library is held by two collections, so there is nothing to " +
-                            "collate yet. Installing a second collection that overlaps one you have creates the pairs.";
+            _summary.Text = "No work in this library has two original-language editions, so there is " +
+                            "nothing to collate yet. Installing a collection that overlaps one you " +
+                            "already have creates the pairs.";
             _showBox.Enabled = false;
             return;
         }
@@ -177,7 +216,7 @@ public class CollationForm : ScaledForm
 
     private async Task LoadSelectedAsync()
     {
-        if (_loading || _pairBox.SelectedItem is not CollationPair pair) return;
+        if (_loading || _pairBox.SelectedItem is not PairOption { Pair: var pair }) return;
 
         _loading = true;
         try
@@ -185,8 +224,14 @@ public class CollationForm : ScaledForm
             UseWaitCursor = true;
             _result = await _repo.CollateAsync(pair);
 
-            _leftHeader.Text = SetupDataSourceCatalog.DescribeCollection(pair.LeftCollection);
-            _rightHeader.Text = SetupDataSourceCatalog.DescribeCollection(pair.RightCollection);
+            // The version identifier always, on the columns and panes that hold
+            // the text itself. Two editions from one collection would otherwise
+            // give both sides the same heading, and even across collections the
+            // identifier is what a reader would cite.
+            _leftHeader.Text =
+                $"{SetupDataSourceCatalog.DescribeCollection(pair.LeftCollection)}  ({pair.LeftVersion})";
+            _rightHeader.Text =
+                $"{SetupDataSourceCatalog.DescribeCollection(pair.RightCollection)}  ({pair.RightVersion})";
 
             RenderSummary();
             RenderRows();
@@ -226,6 +271,20 @@ public class CollationForm : ScaledForm
             (result.OnlyInLeft + result.OnlyInRight > 0
                 ? $"   ({result.OnlyInLeft:N0} only on the left, {result.OnlyInRight:N0} only on the right)"
                 : string.Empty);
+
+        // A caution rather than a refusal. Some pairings here come out at
+        // four-fifths of shared lines differing in the words, which is not
+        // something two printings of one text do - they are far more likely
+        // offset by a line, or not the same text at all. That is worth saying,
+        // and it is not worth deciding on the reader's behalf: the collation is
+        // still there to be read, and reading a few rows settles it faster than
+        // any rule here could.
+        const double implausible = 0.6;
+        if (result.Shared > 0 && result.TextDiffers > result.Shared * implausible)
+        {
+            _summary.Text += "   ⚠ That is a very high rate - two printings of one text rarely " +
+                             "differ this much. Check the first few rows for an offset.";
+        }
     }
 
     private void RenderRows()

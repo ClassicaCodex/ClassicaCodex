@@ -60,6 +60,8 @@ Collate Editions
 
    The counts above the list say whether a pairing is worth reading before you read any of it. On the Aeschylus pairings in a full library, roughly a fifth of shared lines differ in the words and the rest is typography.
 
+   A work with more than two editions offers every pairing of them, and two editions from the same collection pair like any other — Perseus alone carries two editions of Ajax and of a dozen Plutarch works, which are two independent printings of one text and exactly what this is for. Where the collection names do not tell two pairings apart, the CTS version identifier is added.
+
    Some pairs cannot be collated, and the window says so rather than inventing a result. Two editions that divide a work differently can still collide on plain numbers - both label their passages 1, 2, 3 - so they look aligned and then disagree at every one. Where that happens the collation is refused with the reason.
 
    Nothing here says which reading is right. That is not a question the app can answer and it does not pretend to.
