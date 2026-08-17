@@ -62,6 +62,11 @@ public enum PlaceKind
 /// couple of Hakluyt's own trade-route stops - Aleppo, Astrakhan - that
 /// happened to already fall inside the map's existing range).
 ///
+/// Extended again for the Church Fathers and the Patrologia Latina, mostly with
+/// episcopal sees, since that literature identifies an author by his see rather
+/// than his birthplace. That batch needed no change to the map's bounds; see the
+/// note at the top of the table.
+///
 /// Deliberately not attempted: Hakluyt's most distant destinations - India,
 /// the Americas, the Arctic passages - which would need a far larger
 /// eastward and westward stretch than a few new points justify, and would
@@ -74,6 +79,63 @@ public static class PlaceData
 {
     private static readonly (string Key, double Lat, double Lon, PlaceKind Kind)[] Entries =
     {
+        // Late antiquity and the early Middle Ages, for the Church Fathers and the
+        // Patrologia Latina. Mostly episcopal sees, which is what that literature is
+        // organised around: an author is Bishop of Hippo, of Arles, of Poetovio, and
+        // the see is how you place him.
+        //
+        // Every one falls inside the map's existing bounds, so unlike the Renaissance
+        // batch this needed no stretching of the viewport - the westernmost is Braga
+        // and the northernmost Iona, both well within what Edinburgh already required.
+        //
+        // Monastic foundations are filed as Sanctuary rather than City. Lerins is an
+        // island and Vivarium an estate; neither is a town, and the filter already
+        // means "religious site" more than it means "temple".
+        //
+        // Deliberately left out: Ruspe, Fulgentius's see, whose location on the
+        // Tunisian coast is not securely identified - the map would rather omit a place
+        // than pin it confidently in the wrong bay.
+        ("Hippo Regius", 36.9000, 7.7500, PlaceKind.City),
+        ("Cirta", 36.3650, 6.6147, PlaceKind.City),
+        ("Mileve", 36.4500, 6.2647, PlaceKind.City),
+        ("Uzalis", 37.0500, 10.0600, PlaceKind.City),
+        ("Nola", 40.9264, 14.5281, PlaceKind.City),
+        ("Aquileia", 45.7697, 13.3672, PlaceKind.City),
+        ("Brescia", 45.5416, 10.2118, PlaceKind.City),
+        ("Piacenza", 45.0526, 9.6929, PlaceKind.City),
+        ("Pavia", 45.1847, 9.1582, PlaceKind.City),
+        ("Salerno", 40.6824, 14.7681, PlaceKind.City),
+        ("Benevento", 41.1297, 14.7826, PlaceKind.City),
+        ("Cagliari", 39.2238, 9.1217, PlaceKind.City),
+        ("Poetovio", 46.4200, 15.8700, PlaceKind.City),
+        ("Arles", 43.6768, 4.6280, PlaceKind.City),
+        ("Vienne", 45.5253, 4.8746, PlaceKind.City),
+        ("Lyon", 45.7640, 4.8357, PlaceKind.City),
+        ("Riez", 43.8175, 6.0925, PlaceKind.City),
+        ("Poitiers", 46.5802, 0.3404, PlaceKind.City),
+        ("Tours", 47.3941, 0.6848, PlaceKind.City),
+        ("Limoges", 45.8336, 1.2611, PlaceKind.City),
+        ("Perigueux", 45.1848, 0.7218, PlaceKind.City),
+        ("Clermont", 45.7772, 3.0870, PlaceKind.City),
+        ("Auxerre", 47.7982, 3.5731, PlaceKind.City),
+        ("Le Mans", 48.0061, 0.1996, PlaceKind.City),
+        ("Reims", 49.2583, 4.0317, PlaceKind.City),
+        ("Tournai", 50.6070, 3.3887, PlaceKind.City),
+        ("Trier", 49.7596, 6.6441, PlaceKind.City),
+        ("Aachen", 50.7753, 6.0839, PlaceKind.City),
+        ("Caesaraugusta", 41.6488, -0.8891, PlaceKind.City),
+        ("Avila", 40.6565, -4.7009, PlaceKind.City),
+        ("Seville", 37.3891, -5.9845, PlaceKind.City),
+        ("Braga", 41.5454, -8.4265, PlaceKind.City),
+        ("Urgell", 42.3582, 1.4590, PlaceKind.City),
+        ("Canterbury", 51.2802, 1.0789, PlaceKind.City),
+        ("Monte Cassino", 41.4894, 13.8142, PlaceKind.Sanctuary),
+        ("Lerins", 43.5106, 7.0472, PlaceKind.Sanctuary),
+        ("Vivarium", 38.7800, 16.5100, PlaceKind.Sanctuary),
+        ("Jarrow", 54.9800, -1.4900, PlaceKind.Sanctuary),
+        ("Iona", 56.3300, -6.4000, PlaceKind.Sanctuary),
+        ("Kildare", 53.1589, -6.9096, PlaceKind.Sanctuary),
+
         ("Athens", 37.9838, 23.7275, PlaceKind.City),
         ("Sparta", 37.0733, 22.4235, PlaceKind.City),
         ("Corinth", 37.9061, 22.8781, PlaceKind.City),
@@ -309,6 +371,14 @@ public static class PlaceData
     /// more entries are added - it gets riskier - so this closes the same
     /// class of bug before it has a chance to show up.
     /// </summary>
+    /// <summary>
+    /// Every name the table is keyed on, so its own consistency can be checked - no
+    /// place listed twice, nothing pinned outside the map it is drawn on. The same
+    /// reason AuthorEraData exposes its keys: both are hand-maintained, both are past
+    /// two hundred entries, and both fail quietly when they fail.
+    /// </summary>
+    public static IEnumerable<string> Keys => Entries.Select(e => e.Key);
+
     public static (double Lat, double Lon)? Lookup(string placeName)
     {
         var found = LookupWithKind(placeName);
