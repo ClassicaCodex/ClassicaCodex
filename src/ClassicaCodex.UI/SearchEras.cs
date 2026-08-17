@@ -1,3 +1,5 @@
+using ClassicaCodex.Core;
+
 namespace ClassicaCodex.UI;
 
 /// <summary>

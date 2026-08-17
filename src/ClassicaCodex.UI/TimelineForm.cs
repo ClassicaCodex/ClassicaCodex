@@ -1,5 +1,7 @@
 using ClassicaCodex.Data.Repositories;
 
+using ClassicaCodex.Core;
+
 namespace ClassicaCodex.UI;
 
 public class TimelineForm : ScaledForm

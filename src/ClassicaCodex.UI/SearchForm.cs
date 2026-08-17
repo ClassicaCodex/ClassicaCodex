@@ -1,6 +1,8 @@
 using ClassicaCodex.Core.Models;
 using ClassicaCodex.Data.Repositories;
 
+using ClassicaCodex.Core;
+
 namespace ClassicaCodex.UI;
 
 /// <summary>

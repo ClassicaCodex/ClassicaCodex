@@ -1,4 +1,4 @@
-namespace ClassicaCodex.UI;
+namespace ClassicaCodex.Core;
 
 /// <summary>
 /// Approximate floruit/lifespan years for well-known classical authors, used
@@ -262,6 +262,109 @@ public static class AuthorEraData
         ("Chrysippus", -279, -206),
         ("Cleanthes", -330, -230),
         ("Xenocrates of Chalcedon", -396, -314),
+
+        // Late antiquity and the Middle Ages, for the Church Fathers, the Patrologia
+        // Latina and Bodin. Keyed on the exact name each collection's catalogue uses,
+        // read from the catalogues themselves rather than guessed - the same discipline
+        // the Heraclitus note above explains, and it matters more here: the Patrologia
+        // alone holds several Augustines, several Hilaries and two Victorinuses.
+        //
+        // Deliberately incomplete. These collections carry thousands of authors, most
+        // of them obscure enough that a date would be invention rather than estimate,
+        // and an author with no entry simply shows as unknown era - which is honest,
+        // where a made-up century would not be. Names skipped for that reason include
+        // every Pseudo-, the anonymous and corporate rows, and figures like Commodianus
+        // whose dating is disputed across two hundred years.
+        ("Tertullian", 155, 240),
+        ("Minucius Felix, Marcus", 150, 250),
+        ("Cyprian Saint, Bishop of Carthage", 200, 258),
+        ("Cyprianus Carthaginensis", 200, 258),
+        ("Pontius Diaconus", 220, 270),
+        ("Dionysius Alexandrinus", 190, 265),
+        ("Arnobius of Sicca", 255, 330),
+        ("Lactantius", 250, 325),
+        ("Victorinus, Saint, Bishop of Poetovio", 250, 304),
+        ("Juvencus, Caius Vettius Aquilinus", 275, 340),
+        ("Constantinus Imperator", 272, 337),
+        ("Victorinus, Marius", 290, 364),
+        ("Firmicus Maternus, Julius", 300, 360),
+        ("Hilary, Saint, Bishop of Poitiers", 310, 367),
+        ("Lucifer, Bishop of Cagliari", 315, 370),
+        ("Proba", 322, 370),
+        ("Optatus, Saint, Bishop of Mileve", 320, 390),
+        ("Priscillian, Bishop of Avila", 340, 385),
+        ("Sanctus Ambrosius", 339, 397),
+        ("Ambrosius", 339, 397),
+        ("Ambrosiaster", 360, 390),
+        ("Aurelius Symmachus", 340, 402),
+        ("Ausonius Decius", 310, 395),
+        ("Aurelius Prudentius", 348, 413),
+        ("Augustine", 354, 430),
+        ("Augustinus", 354, 430),
+        ("Rufinus, of Aquileia", 345, 411),
+        ("Cromatius Episcopus Aquileiensis", 345, 407),
+        ("Philastrius, Saint, Bishop of Brescia", 330, 397),
+        ("Paulinus of Nola, Saint", 354, 431),
+        ("Severus, Sulpicius", 363, 425),
+        ("Cassian, John", 360, 435),
+        ("Cassianus Ioannes", 360, 435),
+        ("Evodius, Bishop of Uzalis", 365, 425),
+        ("Orosius, Paulus", 375, 420),
+        ("Paulinus of Pella", 376, 460),
+        ("Bachiarius Monachus", 380, 420),
+        ("Eucherius of Lyon, Saint", 380, 449),
+        ("Anonymous pilgrim of Piacenza", 560, 580),
+        ("Cyprianus Gallus", 390, 430),
+        ("Orientius, Saint", 390, 450),
+        ("Victor, Claudius Marius", 390, 445),
+        ("Capreolus Carthaginensis", 400, 437),
+        ("Salvian, of Marseilles", 400, 490),
+        ("Sedulius", 400, 460),
+        ("Coelius Sedulius", 400, 460),
+        ("Proterius Alexandrinus Episcopus", 400, 457),
+        ("Hilary, Saint, Archbishop of Arles", 403, 449),
+        ("Faustus of Riez", 405, 490),
+        ("Claudianus Mamertus", 425, 474),
+        ("Victor Vitensis", 430, 500),
+        ("Paulinus Petricordiae", 440, 490),
+        ("Ruricius I, Bishop of Limoges", 440, 510),
+        ("Dracontius Blossius Aemilius", 455, 505),
+        ("Eleutherius Tornacensis", 456, 531),
+        ("Avitus Viennensis Episcopus", 460, 518),
+        ("Eugippius", 465, 535),
+        ("Clodoveus I Rex Francorum", 466, 511),
+        ("Caesarius Arelatensis Episcopus", 470, 542),
+        ("Dionysius Exiguus", 470, 544),
+        ("Ennodius, Magnus Felix", 474, 521),
+        ("Benedictus Nursinus", 480, 547),
+        ("Fulgentius Ferrandus", 480, 546),
+        ("Cassiodorus Vivariensis Abbas", 485, 585),
+        ("Arator Subdiaconus", 490, 550),
+        ("Clotarius I Rex Francorum", 497, 561),
+        ("Facondus Hermianensis Episcopus", 500, 571),
+        ("Justus Urgellensis Episcopus", 500, 550),
+        ("Aurelianus Arelatensis Episcopus", 520, 551),
+        ("Benedictus I", 520, 579),
+        ("Augustinus Apostolus Anglorum", 530, 604),
+        ("Dynamus Patricius", 535, 601),
+        ("Columbanus Hibernus", 543, 615),
+        ("Ethelbertus Anglorum Rex", 550, 616),
+        ("Bertichramnus Cenomanensis Episcopus", 553, 623),
+        ("Chidelbertus II Rex Francorum", 570, 596),
+        ("Chlotarius II Francorum Rex", 584, 629),
+        ("Braulio Caesaraugustiani Episcopus", 585, 651),
+        ("Dagobertus Francorum Rex", 603, 639),
+        ("Adamnan, Saint", 624, 704),
+        ("Bede the Venerable", 673, 735),
+        ("Alcuinus", 735, 804),
+        ("Agnellus Ravennas Episcopus", 800, 846),
+        ("Drepanius Florus", 800, 860),
+        ("Anastasius Bibliothecarius", 810, 878),
+        ("Remigius, of Auxerre", 841, 908),
+        ("Petrus Diaconus, of Monte Cassino", 1107, 1159),
+
+        ("Paul, the Apostle, Saint", 5, 67),
+        ("Jean Bodin", 1530, 1596),
     };
 
     /// <summary>
@@ -283,6 +386,13 @@ public static class AuthorEraData
     /// runs afterward, unchanged, for older entries deliberately keyed on a
     /// short form ("Sidney" catching "Sir Philip Sidney").
     /// </summary>
+    /// <summary>
+    /// Every name the table is keyed on, so its own consistency can be checked - no
+    /// entry listed twice, no range running backwards. Hand-maintained tables acquire
+    /// both, and neither shows up as anything but a quietly wrong timeline.
+    /// </summary>
+    public static IEnumerable<string> Keys => Entries.Select(e => e.Key);
+
     public static (int StartYear, int EndYear)? Lookup(string authorName)
     {
         var normalized = authorName.Trim();
