@@ -35,6 +35,20 @@ public class EditionRepository
         return Convert.ToInt32(result);
     }
 
+    /// <summary>One edition by id, or null if it has since been removed.</summary>
+    public async Task<Edition?> GetByIdAsync(int editionId, CancellationToken cancellationToken = default)
+    {
+        await using var conn = await DbConnectionFactory.OpenConnectionAsync(cancellationToken);
+        await using var cmd = conn.CreateCommand();
+        cmd.CommandText =
+            @"SELECT EditionId, WorkId, CtsUrn, Kind, Language, Translator, SourcePath, Orthography, Collection
+              FROM Editions WHERE EditionId = @EditionId;";
+        cmd.Parameters.AddWithValue("@EditionId", editionId);
+
+        await using var reader = await cmd.ExecuteReaderAsync(cancellationToken);
+        return await reader.ReadAsync(cancellationToken) ? Read(reader) : null;
+    }
+
     public async Task<List<Edition>> GetByWorkAsync(int workId, CancellationToken cancellationToken = default)
     {
         var results = new List<Edition>();
@@ -49,22 +63,29 @@ public class EditionRepository
         await using var reader = await cmd.ExecuteReaderAsync(cancellationToken);
         while (await reader.ReadAsync(cancellationToken))
         {
-            results.Add(new Edition
-            {
-                EditionId = reader.GetInt32(0),
-                WorkId = reader.GetInt32(1),
-                CtsUrn = reader.GetString(2),
-                Kind = Enum.TryParse<EditionKind>(reader.GetString(3), out var kind) ? kind : EditionKind.Unknown,
-                Language = reader.IsDBNull(4) ? null : reader.GetString(4),
-                Translator = reader.IsDBNull(5) ? null : reader.GetString(5),
-                SourcePath = reader.IsDBNull(6) ? null : reader.GetString(6),
-                Orthography = reader.IsDBNull(7) ? null : reader.GetString(7),
-                Collection = reader.IsDBNull(8) ? null : reader.GetString(8)
-            });
+            results.Add(Read(reader));
         }
 
         return results;
     }
+
+    /// <summary>
+    /// Maps a row selected by the column list the two readers above share.
+    /// One mapper because they must agree: an ordinal corrected in one and
+    /// missed in the other reads every field after it out of the wrong column.
+    /// </summary>
+    private static Edition Read(System.Data.Common.DbDataReader reader) => new()
+    {
+        EditionId = reader.GetInt32(0),
+        WorkId = reader.GetInt32(1),
+        CtsUrn = reader.GetString(2),
+        Kind = Enum.TryParse<EditionKind>(reader.GetString(3), out var kind) ? kind : EditionKind.Unknown,
+        Language = reader.IsDBNull(4) ? null : reader.GetString(4),
+        Translator = reader.IsDBNull(5) ? null : reader.GetString(5),
+        SourcePath = reader.IsDBNull(6) ? null : reader.GetString(6),
+        Orthography = reader.IsDBNull(7) ? null : reader.GetString(7),
+        Collection = reader.IsDBNull(8) ? null : reader.GetString(8)
+    };
 
     /// <summary>
     /// Deletes all TextNodes for an edition, ahead of a re-ingest.

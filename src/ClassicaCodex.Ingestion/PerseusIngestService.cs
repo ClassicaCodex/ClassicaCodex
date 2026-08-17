@@ -1,3 +1,4 @@
+using System.Text.RegularExpressions;
 using System.Xml.Linq;
 using ClassicaCodex.Core.Models;
 using ClassicaCodex.Data.Repositories;
@@ -333,18 +334,24 @@ public class PerseusIngestService
             // div as type="edition" or type="translation", which is a real
             // statement about the text rather than a list of languages
             // occurring in it.
+            //
+            // type="commentary" is the third one CTS defines, for the notes
+            // and appendices published alongside a text. It is not a
+            // translation, but the reader has two panes and this belongs in
+            // the second - the one holding whatever is read against the
+            // original. Unknown would mean no pane at all.
             if (kind == EditionKind.Unknown)
             {
                 var bodyDiv = doc.Descendants(tei + "div")
                     .FirstOrDefault(d =>
                     {
                         var type = d.Attribute("type")?.Value;
-                        return type is "edition" or "translation";
+                        return type is "edition" or "translation" or "commentary";
                     });
 
                 var divType = bodyDiv?.Attribute("type")?.Value;
                 if (divType == "edition") kind = EditionKind.Original;
-                else if (divType == "translation") kind = EditionKind.Translation;
+                else if (divType is "translation" or "commentary") kind = EditionKind.Translation;
 
                 versionLanguage ??= bodyDiv?.Attribute(XNamespace.Xml + "lang")?.Value;
             }
@@ -362,8 +369,23 @@ public class PerseusIngestService
     /// <summary>
     /// Pulls the language code out of a CTS version identifier: the last
     /// dot-segment of the name, after its final hyphen, with the trailing
-    /// version number removed. "tlg0028.tlg005.perseus-eng2" gives "eng";
+    /// version marker removed. "tlg0028.tlg005.perseus-eng2" gives "eng";
     /// "phi0448.phi002.digilibLT-lat1" gives "lat".
+    ///
+    /// That marker can carry a letter as well as a number. A companion volume
+    /// published with a text - notes, an appendix, an index - is versioned off
+    /// its parent rather than given a number of its own, so the Cambridge
+    /// Septuagint Isaiah is 1st1K-eng1 and its notes are 1st1K-eng1a.
+    ///
+    /// Reading that as three letters plus a number alone got "eng1a" wrong in
+    /// the quietest possible way: not a wrong language but no language, which
+    /// left the edition's Kind unresolved, which left it in neither reader
+    /// dropdown. The text ingested, and searched, and could not be opened -
+    /// results pointing into a volume the reader would not show.
+    ///
+    /// Deliberately narrow: three letters, then nothing, or digits with at
+    /// most one letter after them. A looser pattern would start reading the
+    /// first three letters of any version identifier as a language code.
     /// </summary>
     private static string? ExtractVersionLanguage(string fileNameWithoutExtension)
     {
@@ -373,7 +395,7 @@ public class PerseusIngestService
         var hyphenIndex = version.LastIndexOf('-');
         if (hyphenIndex < 0 || hyphenIndex == version.Length - 1) return null;
 
-        var code = version[(hyphenIndex + 1)..].TrimEnd("0123456789".ToCharArray());
-        return code.Length == 3 ? code.ToLowerInvariant() : null;
+        var match = Regex.Match(version[(hyphenIndex + 1)..], @"^([A-Za-z]{3})(\d+[A-Za-z]?)?$");
+        return match.Success ? match.Groups[1].Value.ToLowerInvariant() : null;
     }
 }

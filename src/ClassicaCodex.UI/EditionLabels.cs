@@ -32,20 +32,31 @@ public static class EditionLabels
     /// </summary>
     public static string Descriptor(Edition edition)
     {
-        if (edition.Kind == EditionKind.Translation)
+        if (edition.Kind == EditionKind.Original)
         {
-            if (!string.IsNullOrWhiteSpace(edition.Translator)) return $"trans. {edition.Translator}";
-
-            var suffix = edition.CtsUrn.Split(new[] { '.', ':' }, StringSplitOptions.RemoveEmptyEntries).LastOrDefault();
-            return string.IsNullOrEmpty(suffix) ? "Translation" : $"Translation ({suffix})";
+            return edition.Language?.ToUpperInvariant() switch
+            {
+                "GRC" => "Greek (original)",
+                "LAT" => "Latin (original)",
+                not null => $"{edition.Language} (original)",
+                null => "Original"
+            };
         }
 
-        return edition.Language?.ToUpperInvariant() switch
+        if (edition.Kind == EditionKind.Translation && !string.IsNullOrWhiteSpace(edition.Translator))
         {
-            "GRC" => "Greek (original)",
-            "LAT" => "Latin (original)",
-            not null => $"{edition.Language} (original)",
-            null => "Original"
-        };
+            return $"trans. {edition.Translator}";
+        }
+
+        // An edition ingest could not classify is named by its CTS version
+        // identifier and called nothing more. Reaching the Original branch on
+        // the strength of a null language used to label the notes volume
+        // published with a text "Original" - in the translations dropdown,
+        // which is where it appears - and calling it a translation instead
+        // would only be a different wrong answer. The identifier is the one
+        // thing here that is certainly true.
+        var noun = edition.Kind == EditionKind.Translation ? "Translation" : "Other edition";
+        var suffix = edition.CtsUrn.Split(new[] { '.', ':' }, StringSplitOptions.RemoveEmptyEntries).LastOrDefault();
+        return string.IsNullOrEmpty(suffix) ? noun : $"{noun} ({suffix})";
     }
 }

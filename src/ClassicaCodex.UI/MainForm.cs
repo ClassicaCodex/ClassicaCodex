@@ -2473,11 +2473,49 @@ public class MainForm : ScaledForm
                 }
             }
 
-            SelectItemByTextNodeId(_originalPane, textNodeId);
-            SelectItemByTextNodeId(_translationPane, textNodeId);
+            if (!SelectItemByTextNodeId(_originalPane, textNodeId) &&
+                !SelectItemByTextNodeId(_translationPane, textNodeId))
+            {
+                await ExplainUnreachablePassageAsync(textNodeId);
+            }
         }
 
         return true;
+    }
+
+    /// <summary>
+    /// Says why a jump landed on the work but not on the line.
+    ///
+    /// This is reachable whenever the passage exists in the database but is
+    /// not among the items in either pane - the reader has hidden that kind of
+    /// line, or it is front matter held back for the Preface command. Both are
+    /// the reader's own settings doing exactly what was asked of them, but
+    /// arriving at the top of a long work with no explanation reads as the
+    /// jump being broken, and there is nothing on screen to suggest otherwise.
+    ///
+    /// Named rather than described: knowing it is in "Other edition
+    /// (1st1K-eng1a)" is what makes it findable in the dropdown.
+    /// </summary>
+    private async Task ExplainUnreachablePassageAsync(long textNodeId)
+    {
+        var editionId = await _textNodeRepo.GetEditionIdAsync(textNodeId);
+        var edition = editionId == null ? null : await _editionRepo.GetByIdAsync(editionId.Value);
+
+        var where = edition == null
+            ? "This passage"
+            : $"This passage is in “{GetEditionDescriptor(edition)}”, and it";
+
+        MessageBox.Show(
+            this,
+            $"{where} isn't shown in the reader at the moment.\n\n" +
+            "That is usually because the kind of line it is - a speaker name, a stage direction, " +
+            "a heading - is currently hidden: right-click either pane and use Show to bring it " +
+            "back. A translator's preface is held back too, and is on the same menu under " +
+            "View Preface.\n\n" +
+            "The work itself is open, so nothing is lost.",
+            "Passage not on screen",
+            MessageBoxButtons.OK,
+            MessageBoxIcon.Information);
     }
 
     /// <summary>
@@ -2820,8 +2858,18 @@ public class MainForm : ScaledForm
     private async Task LoadEditionSelectorsAsync(int workId)
     {
         var editions = await _editionRepo.GetByWorkAsync(workId);
+
+        // Everything that is not the original goes in the second pane's
+        // dropdown, including an edition whose Kind ingest could not settle.
+        //
+        // Asking for Translation exactly meant an Unknown edition appeared in
+        // neither dropdown and so could not be opened at all, while its text
+        // sat in the database being returned by searches - a result you could
+        // read in the results list and not in the reader. Whatever we failed
+        // to classify, it is still a text of this work, and the second pane is
+        // where a text that is not the original belongs.
         var originals = editions.Where(ed => ed.Kind == EditionKind.Original).ToList();
-        var translations = editions.Where(ed => ed.Kind == EditionKind.Translation).ToList();
+        var translations = editions.Where(ed => ed.Kind != EditionKind.Original).ToList();
 
         // The library tree already holds both names - the work on its node,
         // the author on that node's parent - so no extra query is needed.
