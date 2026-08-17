@@ -185,13 +185,28 @@ suspecting.
 
 ## Status
 
-Version 3.1.0.
+Version 3.2.0.
 
 Version 1 was a reader. Version 2 made it a searchable, taggable,
 cross-referenced library and added the translation workbench. Version 3 adds the
 Medieval Nordic manuscript reader and its editorial apparatus — a different kind
 of text from the printed editions the rest of the library holds, and the first
 material here where the manuscript evidence is visible rather than settled.
+
+3.2.0 takes the library from three collections to seven — CSEL, the Patrologia
+Latina, and Bodin — and then deals with the consequence of that, which is that
+collections overlap. Two of them can hold the same work, and once that is true
+the app has to answer questions it never had to before: which collection am I
+searching, which one does this work open on, which collection is this passage
+even from. Search, the library tree and the recent-search list all narrow by
+collection now, and a default collection settles which edition opens.
+
+The overlap also exposed a text the reader could not show at all. First1KGreek
+carries the notes published alongside the Septuagint Isaiah as a separate
+edition, and a gap in how CTS version identifiers were read left it classified
+as neither original nor translation — so it was ingested, indexed, returned by
+searches, and impossible to open. Three thousand lines you could read in a
+results list and nowhere else.
 
 3.1.0 adds a validation bench for the stylometry: leave-one-out validation, a
 parameter-stability grid, and controlled perturbation with synthetic
