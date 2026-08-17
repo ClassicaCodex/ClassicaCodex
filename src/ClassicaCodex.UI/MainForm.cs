@@ -101,6 +101,8 @@ public class MainForm : ScaledForm
     private (string CitationRef, string Text)? _translationPrefaceMatch;
     private readonly TagRepository _tagRepo = new();
     private readonly BookmarkRepository _bookmarkRepo = new();
+    private readonly PassageMarkRepository _passageMarkRepo = new();
+    private readonly PassageInquiryRepository _inquiryRepo = new();
 
     private bool _syncingScroll;
 
@@ -187,26 +189,31 @@ public class MainForm : ScaledForm
         StartPosition = FormStartPosition.CenterScreen;
 
         var tagsButton = new IconButton { Text = "Tags...", Left = 532, Top = 10, Width = 80, Height = 30 };
-        tagsButton.Click += (_, _) =>
+        // Refreshed on close because tags can be deleted in there as well as
+        // added, and a passage still showing its mark after the tag behind it
+        // is gone would be worse than not marking it at all.
+        tagsButton.Click += async (_, _) =>
         {
-            using var tagBrowser = new TagBrowserForm
+            using (var tagBrowser = new TagBrowserForm { OnNavigate = NavigateToPassageAsync })
             {
-                OnNavigate = NavigateToPassageAsync
-            };
-            tagBrowser.ShowDialog(this);
+                tagBrowser.ShowDialog(this);
+            }
+
+            await RefreshPassageMarksAsync();
         };
 
         _searchButton = new IconButton { Text = "Search...", Left = 10, Top = 12, Width = 110 };
         _searchButton.Click += (_, _) => OpenSearchWindow();
 
         var bookmarksButton = new IconButton { Text = "Bookmarks...", Left = 416, Top = 10, Width = 110, Height = 30 };
-        bookmarksButton.Click += (_, _) =>
+        bookmarksButton.Click += async (_, _) =>
         {
-            using var bookmarksForm = new BookmarksForm
+            using (var bookmarksForm = new BookmarksForm { OnNavigate = NavigateToPassageAsync })
             {
-                OnNavigate = NavigateToPassageAsync
-            };
-            bookmarksForm.ShowDialog(this);
+                bookmarksForm.ShowDialog(this);
+            }
+
+            await RefreshPassageMarksAsync();
         };
 
         var mythNetworkButton = new IconButton { Text = "Myth Network...", Left = 622, Top = 10, Width = 140, Height = 30 };
@@ -1455,7 +1462,7 @@ public class MainForm : ScaledForm
         showAll.Click += async (_, _) =>
         {
             NodeKindVisibility.ShowAll();
-            await RefreshReaderPanesAsync();
+            await RefreshPassageMarksAsync();
         };
         showItem.DropDownItems.Add(showAll);
     }
@@ -1472,6 +1479,27 @@ public class MainForm : ScaledForm
         foreach (var (pane, source) in _paneSource.ToList())
         {
             await PopulateReaderAsync(pane, source.Edition, source.EmptyMessage);
+        }
+    }
+
+    /// <summary>
+    /// Re-reads which passages are marked, without rebuilding the panes.
+    ///
+    /// Deliberately not RefreshReaderPanesAsync. That repopulates from scratch,
+    /// which resets both panes to the top - and these run when the Tags and
+    /// Bookmarks windows close, which are exactly the windows you jump to a
+    /// passage from. Rebuilding there would undo the jump the reader had just
+    /// made on the way out.
+    /// </summary>
+    private async Task RefreshPassageMarksAsync()
+    {
+        foreach (var (pane, source) in _paneSource.ToList())
+        {
+            if (source.Edition == null) continue;
+
+            pane.SetPassageMarks(
+                await _passageMarkRepo.GetForEditionAsync(source.Edition.EditionId, source.Edition.CtsUrn));
+            pane.Invalidate();
         }
     }
 
@@ -1557,6 +1585,8 @@ public class MainForm : ScaledForm
         var tagId = await _tagRepo.GetOrCreateAsync(prompt.TagName, prompt.Category);
         await _tagRepo.TagTextNodeAsync(node.TextNodeId, tagId);
 
+        list.AddPassageMark(node.CitationRef, PassageMarks.Tag);
+
         MessageBox.Show(this, $"Tagged [{node.CitationRef}] with \"{prompt.TagName}\".", "Tagged",
             MessageBoxButtons.OK, MessageBoxIcon.Information);
     }
@@ -1574,6 +1604,8 @@ public class MainForm : ScaledForm
         if (prompt.ShowDialog(this) != DialogResult.OK) return;
 
         await _bookmarkRepo.AddAsync(node.TextNodeId, prompt.Note);
+
+        list.AddPassageMark(node.CitationRef, PassageMarks.Bookmark);
 
         MessageBox.Show(this, $"Bookmarked [{node.CitationRef}].", "Bookmarked",
             MessageBoxButtons.OK, MessageBoxIcon.Information);
@@ -1597,8 +1629,19 @@ public class MainForm : ScaledForm
         }
 
         using var inquiry = new PassageInquiryForm(passage);
-        if (inquiry.ShowDialog(this) != DialogResult.OK || inquiry.OpenProjectId is not { } projectId)
-            return;
+        var result = inquiry.ShowDialog(this);
+
+        // Asked of the database rather than inferred from the dialog result.
+        // OK there means "promote this to a project", and an inquiry saved
+        // without being promoted - which is the ordinary case, and the whole
+        // point of inquiries being a lighter thing than projects - closes with
+        // Cancel. Reading the result would mark only the ones that got promoted.
+        if (await _inquiryRepo.GetAsync(passage.EditionCtsUrn, passage.CitationRef) != null)
+        {
+            list.AddPassageMark(node.CitationRef, PassageMarks.Inquiry);
+        }
+
+        if (result != DialogResult.OK || inquiry.OpenProjectId is not { } projectId) return;
 
         var work = _openWork?.WorkId == passage.WorkId
             ? _openWork
@@ -2336,12 +2379,18 @@ public class MainForm : ScaledForm
             // clearing the pane entirely) doesn't leave a stale preface
             // pointing at the previous work.
             SetPrefaceMatch(pane, null);
+            pane.SetPassageMarks(new Dictionary<string, PassageMarks>(StringComparer.Ordinal));
 
             if (edition == null)
             {
                 pane.Items.Add(emptyMessage);
                 return;
             }
+
+            // Before the items, not after: the marks are part of what each row
+            // is measured against.
+            pane.SetPassageMarks(
+                await _passageMarkRepo.GetForEditionAsync(edition.EditionId, edition.CtsUrn));
 
             var nodes = await _textNodeRepo.GetByEditionAsync(edition.EditionId);
 

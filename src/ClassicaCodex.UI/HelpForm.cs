@@ -52,6 +52,19 @@ Scrolling and selection are synced between the panes. That works best on verse, 
 
 Hover any line to see its citation reference.
 
+Marks at the end of a line
+   ?  an inquiry has been started from this passage
+   #  it carries at least one tag
+   ★  it is bookmarked
+
+   All three appear together, in that order, on a line that has all three. A line tagged five times still shows one #: the mark says there is something recorded here, not how much.
+
+   They are drawn, not stored - copying, exporting or searching a line gives you the text and nothing else, the same way an athetized line is shown in italic rather than by putting brackets into the words. Three plain characters rather than icons because the reading panes use whatever font you have chosen, and an ornamental glyph would arrive as an empty box in exactly the Greek and medieval faces this app exists to display.
+
+   They are per edition, not per work. A passage bookmarked in the Greek does not show a star opposite it in the translation, because that is a different passage with its own annotations - even though both sides carry the same citation reference. And because tags and bookmarks are recorded against that reference rather than an internal id, the marks come back after a corpus is re-ingested, along with the annotations they stand for.
+
+   Marks added from the right-click menu appear at once. Deleting a tag or bookmark from the Tags or Bookmarks window clears its mark when that window closes.
+
 Right-click a line for:
    Copy to Clipboard - the line's text on its own
    Start inquiry from this passage - begin with your own observation and a small question
