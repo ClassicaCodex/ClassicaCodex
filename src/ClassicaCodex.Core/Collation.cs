@@ -19,6 +19,12 @@ public enum CollationStatus
     /// <summary>Same words; different accents, breathings, or u/v and i/j.</summary>
     OrthographyDiffers,
 
+    /// <summary>
+    /// Same words, broken across the two lines at a different point - one
+    /// edition ending a line mid-word and hyphenating it, most often.
+    /// </summary>
+    LineationDiffers,
+
     /// <summary>Different words. The thing a collation is for.</summary>
     TextDiffers,
 
@@ -49,20 +55,36 @@ public sealed record CollationResult(
     int Identical,
     int PresentationDiffers,
     int OrthographyDiffers,
+    int LineationDiffers,
     int TextDiffers,
     int OnlyInLeft,
     int OnlyInRight)
 {
     /// <summary>Passages both editions have, however they print them.</summary>
-    public int Shared => Identical + PresentationDiffers + OrthographyDiffers + TextDiffers;
+    public int Shared =>
+        Identical + PresentationDiffers + OrthographyDiffers + LineationDiffers + TextDiffers;
+
+    /// <summary>Shared passages where the two print the same words.</summary>
+    public int Agreeing => Identical + PresentationDiffers + OrthographyDiffers + LineationDiffers;
 
     /// <summary>
-    /// Whether the two can be compared at all. Two editions dividing a work
-    /// differently share no references, and the honest answer there is that
-    /// this pairing cannot be collated - not a list of several thousand
-    /// passages each missing from the other side.
+    /// Whether the two can be compared at all.
+    ///
+    /// Sharing references is not enough, and assuming it was produced the
+    /// worst results in the first run against the real library. Two editions
+    /// that divide a work differently still collide on plain numeric
+    /// references - both number their passages 1, 2, 3 - so they appear to
+    /// align perfectly and then disagree at every single one. Several of the
+    /// CSEL and Patrologia Latina pairings do exactly this.
+    ///
+    /// The guard is that some of the aligned passages have to actually agree.
+    /// Two printings of the same work disagreeing about every line of it is
+    /// not a collation with a great many variants; it is two things that were
+    /// never lined up. The threshold is a judgement rather than a fact, and is
+    /// set low deliberately - it exists to catch total mismatch, not to rule
+    /// on how divergent two genuine editions may be.
     /// </summary>
-    public bool IsAlignable => Shared > 0;
+    public bool IsAlignable => Shared > 0 && Agreeing * 10 >= Shared;
 }
 
 /// <summary>
@@ -150,9 +172,73 @@ public static class Collation
             onlyRight++;
         }
 
+        var lineation = ReclassifyLineation(rows, language);
+        text -= lineation;
+
         return new CollationResult(
-            rows, identical, presentation, orthography, text, onlyLeft, onlyRight);
+            rows, identical, presentation, orthography, lineation, text, onlyLeft, onlyRight);
     }
+
+    /// <summary>
+    /// Finds pairs of adjacent rows that differ only in where the line break
+    /// falls, and downgrades both out of TextDiffers.
+    ///
+    /// One edition ends a line mid-word and hyphenates it - Aeschylus' lyric
+    /// passages are full of this, "Ἀχαι-" then "ῶν" against the other's
+    /// "Ἀχαιῶν" - which makes two adjacent lines differ where the text does
+    /// not. Left alone it is the second-largest source of false variants after
+    /// the elision mark, and unlike a real reading it always comes in pairs.
+    ///
+    /// Detected by joining each side's two lines and comparing them with the
+    /// spaces removed, which covers the hyphen (already gone as punctuation)
+    /// and any word that simply moved across the break.
+    ///
+    /// Deliberately only adjacent pairs. A displacement running over more
+    /// lines than that is a systematic difference in how the two editions
+    /// divide the text, and calling it a lineation detail would be a claim
+    /// about the editions this cannot support.
+    /// </summary>
+    private static int ReclassifyLineation(List<CollationRow> rows, string? language)
+    {
+        var found = 0;
+
+        for (var i = 0; i < rows.Count - 1; i++)
+        {
+            if (rows[i].Status != CollationStatus.TextDiffers ||
+                rows[i + 1].Status != CollationStatus.TextDiffers)
+            {
+                continue;
+            }
+
+            var left = Join(rows[i].Left, rows[i + 1].Left);
+            var right = Join(rows[i].Right, rows[i + 1].Right);
+
+            if (!string.Equals(Squash(left, language), Squash(right, language), StringComparison.Ordinal))
+            {
+                continue;
+            }
+
+            rows[i] = rows[i] with { Status = CollationStatus.LineationDiffers };
+            rows[i + 1] = rows[i + 1] with { Status = CollationStatus.LineationDiffers };
+            found += 2;
+
+            // Past the pair just claimed, so one line cannot be read as
+            // rejoining both its neighbours.
+            i++;
+        }
+
+        return found;
+    }
+
+    private static string Join(string? first, string? second) =>
+        (first ?? string.Empty) + " " + (second ?? string.Empty);
+
+    /// <summary>
+    /// Folded as far as it goes and then stripped of spaces, so that where the
+    /// words were divided stops mattering while which words they are does not.
+    /// </summary>
+    private static string Squash(string text, string? language) =>
+        CollationNormalizer.Normalize(text, CollationLevel.Orthography, language).Replace(" ", "");
 
     /// <summary>
     /// Groups an edition's passages by reference, preserving the order they

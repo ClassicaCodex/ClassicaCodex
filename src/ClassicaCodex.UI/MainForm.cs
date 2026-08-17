@@ -279,6 +279,13 @@ public class MainForm : ScaledForm
             compareTranslationsForm.ShowDialog(this);
         };
 
+        var collateButton = new IconButton { Text = "Collate...", Left = 1322, Top = 10, Width = 130, Height = 30 };
+        collateButton.Click += (_, _) =>
+        {
+            using var collationForm = new CollationForm();
+            collationForm.ShowDialog(this);
+        };
+
         var placesMapButton = new IconButton { Text = "Places Map...", Left = 1322, Top = 10, Width = 130, Height = 30 };
         placesMapButton.Click += (_, _) =>
         {
@@ -621,6 +628,7 @@ public class MainForm : ScaledForm
         };
         Controls.Add(concordanceButton);
         Controls.Add(compareTranslationsButton);
+        Controls.Add(collateButton);
         Controls.Add(placesMapButton);
         Controls.Add(morphologyButton);
         Controls.Add(aboutButton);
@@ -664,6 +672,7 @@ public class MainForm : ScaledForm
             (stylometryCompareButton, "Compare Saved Runs", "StylometryCompare"),
             (concordanceButton, "Concordance", "Concordance"),
             (compareTranslationsButton, "Compare Translations", "CompareTexts"),
+            (collateButton, "Collate Editions", "CompareTexts"),
             (placesMapButton, "Places Map", "PlaceMap"),
             (morphologyButton, "Morphology", "Morphology")
         };

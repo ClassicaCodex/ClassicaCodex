@@ -126,6 +126,100 @@ public class CollationTests
     }
 
     /// <summary>
+    /// The harder version of the same problem, and the one the real library
+    /// actually has. Two editions that divide a work differently still collide
+    /// on plain numeric references - both number their passages 1, 2, 3 - so
+    /// they appear to align perfectly and then disagree at every one. Several
+    /// CSEL and Patrologia Latina pairings do exactly this, and reported every
+    /// shared passage as a textual variant.
+    /// </summary>
+    [Fact]
+    public void SharingReferenceNumbersIsNotEnoughToBeAlignable()
+    {
+        var result = Compare(
+            Enumerable.Range(1, 30).Select(i => ($"{i}", $"left passage {i}")).ToArray(),
+            Enumerable.Range(1, 30).Select(i => ($"{i}", $"right passage {i}")).ToArray());
+
+        Assert.Equal(30, result.Shared);
+        Assert.Equal(30, result.TextDiffers);
+        Assert.False(result.IsAlignable);
+    }
+
+    /// <summary>
+    /// And the guard has to leave genuinely divergent editions alone. It exists
+    /// to catch two things that were never lined up, not to rule on how much
+    /// two real editions may disagree.
+    /// </summary>
+    [Fact]
+    public void AGenuinelyDivergentPairIsStillAlignable()
+    {
+        // Half the passages differ in the words - far more than any real pair
+        // in this library - and this is still a collation worth reading.
+        var result = Compare(
+            Enumerable.Range(1, 30).Select(i => ($"{i}", i % 2 == 0 ? "shared" : $"left {i}")).ToArray(),
+            Enumerable.Range(1, 30).Select(i => ($"{i}", i % 2 == 0 ? "shared" : $"right {i}")).ToArray());
+
+        Assert.Equal(15, result.TextDiffers);
+        Assert.Equal(15, result.Agreeing);
+        Assert.True(result.IsAlignable);
+    }
+
+    /// <summary>
+    /// One edition ending a line mid-word and hyphenating it makes two adjacent
+    /// lines differ where the text does not. Measured against the real library
+    /// this is the second-largest source of false variants after the elision
+    /// mark, and unlike a real reading it always comes in pairs.
+    /// </summary>
+    [Fact]
+    public void AWordHyphenatedAcrossALineBreakIsNotAVariant()
+    {
+        var result = Compare(
+            [("108", "ὅπως Ἀχαιῶν"), ("109", "δίθρονον κράτος")],
+            [("108", "ὅπως Ἀχαι-"), ("109", "ῶν δίθρονον κράτος")]);
+
+        Assert.Equal(CollationStatus.LineationDiffers, result.Rows[0].Status);
+        Assert.Equal(CollationStatus.LineationDiffers, result.Rows[1].Status);
+        Assert.Equal(2, result.LineationDiffers);
+        Assert.Equal(0, result.TextDiffers);
+
+        // Same words, so it counts as agreement - but it is still shown as its
+        // own kind, because where a line breaks is worth seeing.
+        Assert.Equal(2, result.Agreeing);
+    }
+
+    /// <summary>
+    /// A real variant sitting next to another real variant must not be folded
+    /// away as lineation just because it has a neighbour.
+    /// </summary>
+    [Fact]
+    public void TwoAdjacentRealVariantsAreNotMistakenForLineation()
+    {
+        var result = Compare(
+            [("1", "λήμασιν ἴσους"), ("2", "ξύμφρονε ταγώ")],
+            [("1", "λήμασι δισσοὺς"), ("2", "ξύμφρονα ταγάν")]);
+
+        Assert.Equal(2, result.TextDiffers);
+        Assert.Equal(0, result.LineationDiffers);
+    }
+
+    /// <summary>
+    /// Three consecutive differing lines must not have the middle one claimed
+    /// twice - once as the end of the first pair and again as the start of the
+    /// next.
+    /// </summary>
+    [Fact]
+    public void ALineIsClaimedByAtMostOneLineationPair()
+    {
+        var result = Compare(
+            [("1", "alpha beta"), ("2", "gamma delta"), ("3", "epsilon")],
+            [("1", "alpha"), ("2", "beta gamma delta"), ("3", "zeta")]);
+
+        Assert.Equal(CollationStatus.LineationDiffers, result.Rows[0].Status);
+        Assert.Equal(CollationStatus.LineationDiffers, result.Rows[1].Status);
+        Assert.Equal(CollationStatus.TextDiffers, result.Rows[2].Status);
+    }
+
+    /// <summary>
     /// An edition splitting one citation across several elements has one
     /// passage there, not several rival readings of each other.
     /// </summary>
