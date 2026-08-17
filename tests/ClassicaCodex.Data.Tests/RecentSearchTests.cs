@@ -24,6 +24,7 @@ public class RecentSearchTests
         Query = "Προμηθεύς",
         MatchMode = nameof(SearchMatchMode.WholeWord),
         Languages = "grc",
+        Collections = "perseus-greek,first1k-greek",
         OriginalsOnly = true,
         AuthorName = "Aeschylus",
         TagName = "Prometheus",
@@ -44,6 +45,7 @@ public class RecentSearchTests
         Assert.Equal("Προμηθεύς", loaded.Query);
         Assert.Equal(nameof(SearchMatchMode.WholeWord), loaded.MatchMode);
         Assert.Equal("grc", loaded.Languages);
+        Assert.Equal("perseus-greek,first1k-greek", loaded.Collections);
         Assert.True(loaded.OriginalsOnly);
         Assert.Equal("Aeschylus", loaded.AuthorName);
         Assert.Equal("Prometheus", loaded.TagName);
@@ -86,12 +88,18 @@ public class RecentSearchTests
         var updated = Sample();
         updated.Query = "changed";
         updated.AuthorName = null;
+        updated.Collections = string.Empty;
         await repo.RecordAsync(updated);
 
         var loaded = Assert.Single(await repo.GetAllAsync());
 
         Assert.Equal("changed", loaded.Query);
         Assert.Null(loaded.AuthorName);
+
+        // Narrowing a search and then widening it again has to be recorded as
+        // widened. An update that only ever set filters and never cleared them
+        // would leave the entry claiming a collection filter nobody chose.
+        Assert.Equal(string.Empty, loaded.Collections);
     }
 
     [Fact]
@@ -292,6 +300,39 @@ public class RecentSearchTests
         await SchemaInitializer.EnsureSchemaAsync();
 
         Assert.Equal(fresh, await migrated.ColumnNamesAsync("RecentSearches"));
+    }
+
+    /// <summary>
+    /// Migration 34, which rebuilds the table to add Collections, on a database
+    /// that already has searches in it.
+    ///
+    /// Rebuilding means DROP, and the searches recorded before the upgrade have
+    /// to come through it - they are the only thing in this table anyone would
+    /// miss. What they cannot have is a collection filter: nothing recorded one
+    /// before now, so the honest value is empty, meaning the whole library.
+    /// </summary>
+    [Fact]
+    public async Task ExistingSearchesSurviveGainingTheCollectionsColumn()
+    {
+        using var db = await TempDatabase.CreateAsync();
+
+        await new RecentSearchRepository().RecordAsync(new RecentSearch
+        {
+            Name = "recorded before the upgrade",
+            Query = "ira",
+            Collections = "csel"
+        });
+
+        await db.ExecuteAsync("ALTER TABLE RecentSearches DROP COLUMN Collections;");
+        await db.RewindSchemaAsync(33);
+
+        await SchemaInitializer.EnsureSchemaAsync();
+
+        var loaded = Assert.Single(await new RecentSearchRepository().GetAllAsync());
+
+        Assert.Equal("recorded before the upgrade", loaded.Name);
+        Assert.Equal("ira", loaded.Query);
+        Assert.Equal(string.Empty, loaded.Collections);
     }
 
     /// <summary>

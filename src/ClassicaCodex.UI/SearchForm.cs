@@ -429,6 +429,7 @@ public class SearchForm : ScaledForm
             SelectByText(_authorBox, recent.AuthorName);
             SelectByText(_tagBox, recent.TagName);
             SelectByText(_eraBox, recent.EraLabel);
+            SelectCollections(recent.Collections);
         }
         finally
         {
@@ -464,6 +465,25 @@ public class SearchForm : ScaledForm
     }
 
     /// <summary>
+    /// Ticks the collections a recorded search was narrowed to, and unticks the
+    /// rest - restoring a filter has to be able to clear one as well as set one.
+    ///
+    /// A key naming a collection no longer installed has no menu item and so is
+    /// simply dropped, on the same principle as the author box above: the entry
+    /// finds less than it once did rather than something different.
+    /// </summary>
+    private void SelectCollections(string keys)
+    {
+        var wanted = keys.Split(',', StringSplitOptions.RemoveEmptyEntries)
+            .Select(k => k.Trim())
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var item in _collectionsMenu.Items.OfType<ToolStripMenuItem>())
+            if (item.CheckOnClick && item.Tag is string key)
+                item.Checked = wanted.Contains(key);
+    }
+
+    /// <summary>
     /// Files the search that just ran into the recent list.
     ///
     /// Its description is its identity - DescribeSearch already renders the
@@ -493,6 +513,7 @@ public class SearchForm : ScaledForm
             },
             Languages = string.Join(",", languages),
             Corpora = string.Empty,
+            Collections = string.Join(",", CheckedCollections()),
             OriginalsOnly = _kindBox.SelectedIndex switch { 1 => true, 2 => false, _ => null },
             AuthorName = _authorBox.SelectedIndex > 0 ? _authorBox.SelectedItem?.ToString() : null,
             TagName = _tagBox.SelectedIndex > 0 ? _tagBox.SelectedItem?.ToString() : null,
@@ -671,6 +692,13 @@ public class SearchForm : ScaledForm
         if (_eraBox.SelectedIndex > 0) parts.Add(_eraBox.SelectedItem?.ToString() ?? string.Empty);
         if (_tagBox.SelectedIndex > 0) parts.Add($"tagged \u201c{_tagBox.SelectedItem}\u201d");
         if (_bookmarkedCheck.Checked) parts.Add("bookmarked");
+
+        // The description is also the recent list's identity, so the collections
+        // have to appear in it. Without them "wrath" across the whole library and
+        // "wrath" in CSEL are one name, and the second run overwrites the first.
+        var chosen = CheckedCollections();
+        if (chosen.Count > 0)
+            parts.Add("in " + string.Join("/", chosen.Select(SetupDataSourceCatalog.DescribeCollection)));
 
         var query = _queryBox.Text.Trim();
         return parts.Count == 0

@@ -55,7 +55,7 @@ public static class SchemaInitializer
     /// 7 to 13 until version 3 was cut, at which point they all failed at
     /// once and said nothing about what had actually broken.
     /// </summary>
-    public const int TargetSchemaVersion = 33;
+    public const int TargetSchemaVersion = 34;
 
     public static async Task EnsureSchemaAsync(CancellationToken cancellationToken = default)
     {
@@ -1162,6 +1162,46 @@ public static class SchemaInitializer
             "ALTER TABLE ResearchHypothesisAssessments_v32 RENAME TO ResearchHypothesisAssessments;",
             "CREATE INDEX IF NOT EXISTS IX_ResearchHypothesisAssessments_Hypothesis ON ResearchHypothesisAssessments (ResearchHypothesisId, SourceKind, SourceId);",
             "CREATE UNIQUE INDEX IF NOT EXISTS UX_ResearchHypothesisAssessments_Source ON ResearchHypothesisAssessments (ResearchHypothesisId, SourceKind, SourceId);"
+        },
+
+        // A recent search remembers which collections it was narrowed to.
+        //
+        // It remembered every other filter already, so replaying one silently widened it
+        // back to the whole library - the single filter that quietly did not come back,
+        // in a list whose entire promise is that it reflects what you actually ran.
+        //
+        // Stored as the collection keys, comma separated, for the same reason the author
+        // is kept by name and the era by label: those outlive a re-ingest, and a row id
+        // does not.
+        //
+        // Rebuilt rather than ALTERed, per the convention above - selecting only the
+        // pre-34 columns keeps it idempotent whatever shape it meets.
+        [34] = new[]
+        {
+            @"CREATE TABLE RecentSearches_v34 (
+                RecentSearchId INTEGER PRIMARY KEY AUTOINCREMENT,
+                Name           TEXT NOT NULL,
+                Query          TEXT NOT NULL,
+                MatchMode      TEXT NOT NULL,
+                Languages      TEXT NOT NULL DEFAULT '',
+                Corpora        TEXT NOT NULL DEFAULT '',
+                Collections    TEXT NOT NULL DEFAULT '',
+                OriginalsOnly  INTEGER NULL,
+                AuthorName     TEXT NULL,
+                TagName        TEXT NULL,
+                BookmarkedOnly INTEGER NOT NULL DEFAULT 0,
+                EraLabel       TEXT NULL,
+                CreatedAt      TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                CONSTRAINT UQ_RecentSearches_Name UNIQUE (Name)
+            );",
+            @"INSERT INTO RecentSearches_v34
+                (RecentSearchId, Name, Query, MatchMode, Languages, Corpora, OriginalsOnly,
+                 AuthorName, TagName, BookmarkedOnly, EraLabel, CreatedAt)
+              SELECT RecentSearchId, Name, Query, MatchMode, Languages, Corpora, OriginalsOnly,
+                     AuthorName, TagName, BookmarkedOnly, EraLabel, CreatedAt
+              FROM RecentSearches;",
+            "DROP TABLE RecentSearches;",
+            "ALTER TABLE RecentSearches_v34 RENAME TO RecentSearches;"
         }
     };
 
@@ -1907,6 +1947,7 @@ public static class SchemaInitializer
                 MatchMode      TEXT NOT NULL,
                 Languages      TEXT NOT NULL DEFAULT '',
                 Corpora        TEXT NOT NULL DEFAULT '',
+                Collections    TEXT NOT NULL DEFAULT '',
                 OriginalsOnly  INTEGER NULL,
                 AuthorName     TEXT NULL,
                 TagName        TEXT NULL,

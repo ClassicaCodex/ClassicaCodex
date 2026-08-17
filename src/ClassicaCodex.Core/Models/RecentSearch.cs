@@ -31,6 +31,13 @@ public class RecentSearch
     /// <summary>Comma-separated corpus namespaces; empty means no corpus filter.</summary>
     public string Corpora { get; set; } = string.Empty;
 
+    /// <summary>
+    /// Comma-separated collection keys - "csel", "patrologia-latina" - or empty for no
+    /// collection filter. Keys rather than ids, like the author name and era label
+    /// beside them, so the entry still means the same thing after a re-ingest.
+    /// </summary>
+    public string Collections { get; set; } = string.Empty;
+
     /// <summary>True for originals only, false for translations only, null for both.</summary>
     public bool? OriginalsOnly { get; set; }
 
