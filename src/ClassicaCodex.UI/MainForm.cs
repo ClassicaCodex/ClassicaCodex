@@ -1031,6 +1031,11 @@ public class MainForm : ScaledForm
                 {
                     "engLit" => $"{author.Name}  (English)",
                     "greekLit" or "latinLit" => author.Name,
+
+                    // Perseus's own namespace for its political science collection.
+                    // Spelled out rather than shown raw: the fallback below would put
+                    // "(pdlpsci)" beside Bodin's name, which tells a reader nothing.
+                    "pdlpsci" => $"{author.Name}  (Political theory)",
                     null or "" => author.Name,
                     _ => $"{author.Name}  ({author.Namespace})"
                 };

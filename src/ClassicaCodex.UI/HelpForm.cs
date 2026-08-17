@@ -20,6 +20,7 @@ Classica Codex reads the Perseus Digital Library - the Greek and Latin classics,
    Latin Church Fathers (CSEL) - the critical editions of Augustine, Ambrose, Jerome, Cyprian and their contemporaries, from the volumes out of copyright.
    Patrologia Latina - Migne's collection, Tertullian to the twelfth century, and much the largest thing here. A 19th-century reprint rather than a critical edition: where a work appears in both, CSEL is the text scholars cite and this is the wider net. Both can sit side by side, and the same work simply gains a second edition in the dropdown.
    Renaissance English - Shakespeare and the other writers who reworked classical material in English.
+   Political Theory - Bodin's Six Books of the Commonwealth in French, Latin and English. One work rather than a corpus, and worth having because the French of 1577 and the Latin of 1586 are both Bodin: putting his own two versions side by side in the reader is a comparison you cannot usually make.
    Medieval Nordic manuscripts - see Manuscripts and editorial notes.
 
 Everything starts in Setup Wizard, on the main toolbar. It asks how you'd like to set things up:

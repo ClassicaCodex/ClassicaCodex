@@ -210,6 +210,17 @@ public class AboutForm : ScaledForm
 
         AddSourceSection(
             scrollHost, ref y,
+            "Political Theory",
+            "Jean Bodin's Six Books of the Commonwealth in French, Latin and English - the founding text of " +
+            "modern sovereignty, in the author's own two versions and its first English translation.",
+            "Perseus Digital Library (PerseusDL/canonical-pdlpsci)",
+            "Creative Commons Attribution-ShareAlike 4.0 International",
+            "https://github.com/PerseusDL/canonical-pdlpsci",
+            "The same Perseus and Tufts terms as the Greek and Latin texts above. The printed editions " +
+            "digitised here date from 1577, 1586 and 1606 and are long out of copyright.");
+
+        AddSourceSection(
+            scrollHost, ref y,
             "Medieval Nordic Manuscripts",
             "Old Norse, Old Icelandic, Old Swedish and Old Danish manuscripts, transcribed word by word " +
             "from the parchment - Heimskringla, Laxdœla saga, the Codex Wormianus, the Old Norwegian " +

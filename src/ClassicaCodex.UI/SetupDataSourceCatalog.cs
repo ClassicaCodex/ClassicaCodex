@@ -33,6 +33,7 @@ public static class SetupDataSourceCatalog
         public const string First1KGreek = "first1k-greek";
         public const string Csel = "csel";
         public const string PatrologiaLatina = "patrologia-latina";
+        public const string PoliticalTheory = "pdl-politics";
         public const string Renaissance = "renaissance";
         public const string Menota = "menota";
     }
@@ -50,6 +51,7 @@ public static class SetupDataSourceCatalog
         CollectionKeys.First1KGreek => "Post-Classical Greek (First1KGreek)",
         CollectionKeys.Csel => "Latin Church Fathers (CSEL)",
         CollectionKeys.PatrologiaLatina => "Patrologia Latina (Migne)",
+        CollectionKeys.PoliticalTheory => "Political Theory (Bodin)",
         CollectionKeys.Renaissance => "English Literature (Renaissance)",
         CollectionKeys.Menota => "Medieval Nordic (Menota)",
         _ => key
@@ -66,6 +68,7 @@ public static class SetupDataSourceCatalog
         var first1kDestination = Path.Combine(dataRoot, "first1k-greek");
         var cselDestination = Path.Combine(dataRoot, "csel");
         var patrologiaDestination = Path.Combine(dataRoot, "patrologia-latina");
+        var politicalDestination = Path.Combine(dataRoot, "political-theory");
 
         return new List<SetupDataSource>
         {
@@ -703,6 +706,39 @@ public static class SetupDataSourceCatalog
                 },
 
                 CheckComplete = async () => await editionRepo.CountBySourcePathPrefixAsync(patrologiaDestination) > 0
+            },
+
+            new SetupDataSource
+            {
+                Title = "Political Theory: Bodin (optional)",
+                RepoUrl = "https://github.com/PerseusDL/canonical-pdlpsci",
+                DisplayNote = "one work in three languages - small, and the only thing in this collection",
+                DefaultDestination = politicalDestination,
+                PlainLanguageDescription =
+                    "Jean Bodin's Six Books of the Commonwealth, the founding text of modern sovereignty, " +
+                    "in all three of the versions that matter: the French of 1577 he wrote first, the Latin " +
+                    "of 1586 he made himself, and Richard Knolles's English of 1606. Reading his own Latin " +
+                    "against his own French is the kind of comparison the reader panes were built for. " +
+                    "About nine megabytes - it is one work, not a corpus.",
+                RunIngest = async (root, progress, ct) =>
+                {
+                    // Same CTS layout as everything else here, in its own namespace:
+                    // urn:cts:pdlpsci:bodin rather than latinLit. Passed through as
+                    // declared rather than folded into Latin, because it is not Latin
+                    // literature - the French is the original and the Latin is Bodin
+                    // translating himself, which is exactly the distinction the
+                    // edition/translation split exists to keep.
+                    var service = new PerseusIngestService();
+                    var wrapped = new Progress<IngestProgress>(p =>
+                        progress.Report($"{p.CurrentAuthor}: {p.CurrentWork} ({p.WorksProcessed}/{p.TotalWorks})"));
+                    await service.IngestAsync(
+                        new[] { (Path.Combine(root, "data"), "pdlpsci") }, wrapped, ct);
+
+                    await editionRepo.StampCollectionAsync(root, CollectionKeys.PoliticalTheory, ct);
+                    return IngestOutcome.From(service.FailedFiles);
+                },
+
+                CheckComplete = async () => await editionRepo.CountBySourcePathPrefixAsync(politicalDestination) > 0
             }
         };
     }
