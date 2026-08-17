@@ -2245,6 +2245,12 @@ public class MainForm : ScaledForm
     /// Sorted by the edition descriptor rather than the whole label, since
     /// the author/work prefix is identical across every entry here and would
     /// contribute nothing to the ordering.
+    ///
+    /// Which one counts as "the first" is the reader's to decide when several
+    /// collections carry the same work - see PreferredEdition. The ordering
+    /// itself is untouched by that preference: what changes is only which row
+    /// is already selected, so the dropdown a reader has learned the shape of
+    /// does not rearrange itself underneath them.
     /// </summary>
     private static void PopulateEditionCombo(
         ComboBox combo, List<Edition> editions, string? authorName, string? workTitle,
@@ -2267,9 +2273,12 @@ public class MainForm : ScaledForm
             .SelectMany(g => g)
             .ToHashSet();
 
-        foreach (var edition in editions
-                     .OrderBy(GetEditionDescriptor, StringComparer.OrdinalIgnoreCase)
-                     .ThenBy(e => e.CtsUrn, StringComparer.OrdinalIgnoreCase))
+        var ordered = editions
+            .OrderBy(GetEditionDescriptor, StringComparer.OrdinalIgnoreCase)
+            .ThenBy(e => e.CtsUrn, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        foreach (var edition in ordered)
         {
             coverageNotes.TryGetValue(edition.EditionId, out var coverageNote);
 
@@ -2282,7 +2291,8 @@ public class MainForm : ScaledForm
             });
         }
 
-        if (combo.Items.Count > 0) combo.SelectedIndex = 0;
+        var index = PreferredEdition.IndexOfDefault(ordered, PreferredCollectionSettings.Preferred);
+        if (index >= 0) combo.SelectedIndex = index;
     }
 
     private async Task OnOriginalEditionChangedAsync()
