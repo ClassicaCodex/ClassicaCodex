@@ -186,7 +186,7 @@ suspecting.
 
 ## Status
 
-Version 3.3.0.
+Version 3.3.1.
 
 Version 1 was a reader. Version 2 made it a searchable, taggable,
 cross-referenced library and added the translation workbench. Version 3 adds the
@@ -204,6 +204,13 @@ that is a reading — the words. Measured across this library that is the
 difference between "58% of lines differ" and "19% do", and the 19% are real
 variants. Every collation exports to CSV, text or Excel with its counts and its
 cautions attached.
+
+3.3.1 extends that to the rest of the result screens. Twelve of them could
+already export their passages as prose — plain text, Word, PDF, for quoting —
+and four could export a table. The two had never been laid over each other, so
+bookmarks could be written as a document but not as rows, and the stylometry
+screen that produces the actual result could not be exported at all, though
+every bench built to check that result could.
 
 3.2.0 takes the library from three collections to seven — CSEL, the Patrologia
 Latina, and Bodin — and then deals with the consequence of that, which is that
