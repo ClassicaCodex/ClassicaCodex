@@ -101,10 +101,10 @@ public class SpeakerAndNodeKindTests
         var nodes = new TeiParser().ParseXml(Wrap(
             @"<p><said who=""#Σωκράτης""><label>ΣΩ.</label> ἐξ ἀγορᾶς ἢ πόθεν;</said></p>"));
 
-        var speaker = Assert.Single(nodes.Where(n => n.NodeKind == TextNodeKinds.Speaker));
+        var speaker = Assert.Single(nodes, n => n.NodeKind == TextNodeKinds.Speaker);
         Assert.Equal("ΣΩ.", speaker.Text);
 
-        var line = Assert.Single(nodes.Where(n => n.NodeKind == TextNodeKinds.Line));
+        var line = Assert.Single(nodes, n => n.NodeKind == TextNodeKinds.Line);
         Assert.Equal("ἐξ ἀγορᾶς ἢ πόθεν;", line.Text);
         Assert.DoesNotContain("ΣΩ.", line.Text);
     }
@@ -153,7 +153,7 @@ public class SpeakerAndNodeKindTests
             @"<p><said who=""#Ἑρμογένης""><label>Hermogenes.</label> Here is Socrates.</said></p>"));
 
         Assert.Equal("Hermogenes.",
-            Assert.Single(nodes.Where(n => n.NodeKind == TextNodeKinds.Speaker)).Text);
+            Assert.Single(nodes, n => n.NodeKind == TextNodeKinds.Speaker).Text);
     }
 
     // ------------------------------------------- the block-element family

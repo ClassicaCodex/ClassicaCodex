@@ -672,7 +672,7 @@ public class MainForm : ScaledForm
             (stylometryCompareButton, "Compare Saved Runs", "StylometryCompare"),
             (concordanceButton, "Concordance", "Concordance"),
             (compareTranslationsButton, "Compare Translations", "CompareTexts"),
-            (collateButton, "Collate Editions", "CompareTexts"),
+            (collateButton, "Collate Editions", "Collate"),
             (placesMapButton, "Places Map", "PlaceMap"),
             (morphologyButton, "Morphology", "Morphology")
         };

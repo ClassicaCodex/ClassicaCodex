@@ -156,7 +156,7 @@ public static class ReadingTheme
 
     /// <summary>
     /// Draws a row's background and grid lines in theme colours.
-    ///
+    /// </summary>
 
     private static void DrawThemedListItem(object? sender, DrawListViewItemEventArgs e)
     {

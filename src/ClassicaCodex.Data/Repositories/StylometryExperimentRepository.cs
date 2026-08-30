@@ -68,11 +68,10 @@ public record ExperimentRow(
     int Recovered,
     int Trials,
     string? NearestAuthor,
-    /// <summary>
-    /// How many of the level's mixtures agreed on that nearest author. Zero on
-    /// rows written before v16, which did not record it - displayed as a bare
-    /// author name, which is what they honestly are.
-    /// </summary>
+    // How many of the level's mixtures agreed on that nearest author. Zero on
+    // rows written before v16, which did not record it - displayed as a bare
+    // author name, which is what they honestly are. A doc comment cannot sit on
+    // a positional record parameter; only the record itself takes those.
     int NearestCount,
     int TokenCount);
 

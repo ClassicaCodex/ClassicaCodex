@@ -310,6 +310,38 @@ public class SearchFilterTests
             Assert.Single((await repo.SearchFilteredAsync(originals)).Rows).Text);
     }
 
+    /// <summary>
+    /// An edition ingest could not classify is not an original, so it belongs
+    /// on the translations side of the kind filter rather than nowhere.
+    ///
+    /// Asking for Kind = 'Translation' exactly made such a passage findable
+    /// with the filter off and invisible with it set to translations - while
+    /// the reader, which sorts editions into its two panes on the same
+    /// question, had already started showing them. The notes published
+    /// alongside the Septuagint Isaiah are the real case: three thousand lines
+    /// that only reached the reader once that rule was made one rule.
+    /// </summary>
+    [Fact]
+    public async Task AnUnclassifiedEditionCountsAsNotAnOriginal()
+    {
+        using var db = await SeedLibraryAsync();
+
+        var editionId = await db.SeedFullEditionAsync(
+            "notes", "Old Testament", "greekLit", "Isaias", "Unknown", "eng");
+        await db.InsertLinesAsync(editionId, ("1702.1", "Here Heb. has Lilith, a wrath-bearing demon"));
+
+        var repo = new TextNodeRepository();
+
+        var translations = Query("Lilith");
+        translations.OriginalsOnly = false;
+        Assert.Single((await repo.SearchFilteredAsync(translations)).Rows);
+
+        // And it must not have leaked onto the originals side while doing it.
+        var originals = Query("Lilith");
+        originals.OriginalsOnly = true;
+        Assert.Empty((await repo.SearchFilteredAsync(originals)).Rows);
+    }
+
     [Fact]
     public async Task AuthorFilterRestrictsToThatAuthor()
     {

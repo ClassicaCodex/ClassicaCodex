@@ -66,6 +66,75 @@ public static class DeltaEngine
     }
 
     /// <summary>
+    /// Splits a set of works into comparison units once, for reuse.
+    ///
+    /// A perturbation series calls Compute once per sample per iteration per
+    /// level - around 375 times for one work at the coarse preset - and every
+    /// one of those calls re-splits the ENTIRE pool, though only the target's
+    /// tokens have changed. On a 34-work tragic pool that is a quarter of a
+    /// million tokens shuffled and bagged per call, thrown away, and done
+    /// again. Across nineteen works it is billions of token copies to answer a
+    /// question about nineteen texts.
+    ///
+    /// Caching is behaviour-preserving by construction rather than by care:
+    /// SplitIntoChunks is deterministic in (tokens, chunk size, work id), so a
+    /// cached bag is the same bag it would have recomputed. The target must NOT
+    /// be cached - its tokens are what the experiment changes.
+    /// </summary>
+    public static Dictionary<int, List<StylometryChunk>> ChunkWorks(
+        IReadOnlyList<WorkTokens> works, int chunkSize)
+    {
+        var cache = new Dictionary<int, List<StylometryChunk>>();
+
+        foreach (var work in works.GroupBy(w => w.WorkId).Select(g => g.First()))
+            cache[work.WorkId] = ChunksFor(work, chunkSize);
+
+        return cache;
+    }
+
+    private static List<StylometryChunk> ChunksFor(WorkTokens work, int chunkSize)
+    {
+        var chunks = new List<StylometryChunk>();
+
+        if (chunkSize <= 0)
+        {
+            var counts = new Dictionary<string, int>();
+            foreach (var t in work.Tokens) counts[t] = counts.GetValueOrDefault(t) + 1;
+            chunks.Add(new StylometryChunk
+            {
+                WorkId = work.WorkId,
+                AuthorName = work.AuthorName,
+                WorkTitle = work.WorkTitle,
+                ChunkIndex = 0,
+                ChunkCount = 1,
+                Counts = counts,
+                TotalTokens = Math.Max(work.Tokens.Count, 1)
+            });
+            return chunks;
+        }
+
+        var bags = SplitIntoChunks(work.Tokens, chunkSize, work.WorkId);
+
+        for (var i = 0; i < bags.Count; i++)
+        {
+            var counts = new Dictionary<string, int>();
+            foreach (var t in bags[i]) counts[t] = counts.GetValueOrDefault(t) + 1;
+            chunks.Add(new StylometryChunk
+            {
+                WorkId = work.WorkId,
+                AuthorName = work.AuthorName,
+                WorkTitle = work.WorkTitle,
+                ChunkIndex = i + 1,
+                ChunkCount = bags.Count,
+                Counts = counts,
+                TotalTokens = chunkSize
+            });
+        }
+
+        return chunks;
+    }
+
+    /// <summary>
     /// Burrows' Delta from a target work to every other unit in the pool.
     ///
     /// WHY CHUNKING EXISTS. Without it, depth to first outsider tracks text
@@ -135,75 +204,6 @@ public static class DeltaEngine
     /// settle by argument, which is the whole reason this is a parameter and
     /// the validator reports which setting produced a result.
     /// </param>
-    /// <summary>
-    /// Splits a set of works into comparison units once, for reuse.
-    ///
-    /// A perturbation series calls Compute once per sample per iteration per
-    /// level - around 375 times for one work at the coarse preset - and every
-    /// one of those calls re-splits the ENTIRE pool, though only the target's
-    /// tokens have changed. On a 34-work tragic pool that is a quarter of a
-    /// million tokens shuffled and bagged per call, thrown away, and done
-    /// again. Across nineteen works it is billions of token copies to answer a
-    /// question about nineteen texts.
-    ///
-    /// Caching is behaviour-preserving by construction rather than by care:
-    /// SplitIntoChunks is deterministic in (tokens, chunk size, work id), so a
-    /// cached bag is the same bag it would have recomputed. The target must NOT
-    /// be cached - its tokens are what the experiment changes.
-    /// </summary>
-    public static Dictionary<int, List<StylometryChunk>> ChunkWorks(
-        IReadOnlyList<WorkTokens> works, int chunkSize)
-    {
-        var cache = new Dictionary<int, List<StylometryChunk>>();
-
-        foreach (var work in works.GroupBy(w => w.WorkId).Select(g => g.First()))
-            cache[work.WorkId] = ChunksFor(work, chunkSize);
-
-        return cache;
-    }
-
-    private static List<StylometryChunk> ChunksFor(WorkTokens work, int chunkSize)
-    {
-        var chunks = new List<StylometryChunk>();
-
-        if (chunkSize <= 0)
-        {
-            var counts = new Dictionary<string, int>();
-            foreach (var t in work.Tokens) counts[t] = counts.GetValueOrDefault(t) + 1;
-            chunks.Add(new StylometryChunk
-            {
-                WorkId = work.WorkId,
-                AuthorName = work.AuthorName,
-                WorkTitle = work.WorkTitle,
-                ChunkIndex = 0,
-                ChunkCount = 1,
-                Counts = counts,
-                TotalTokens = Math.Max(work.Tokens.Count, 1)
-            });
-            return chunks;
-        }
-
-        var bags = SplitIntoChunks(work.Tokens, chunkSize, work.WorkId);
-
-        for (var i = 0; i < bags.Count; i++)
-        {
-            var counts = new Dictionary<string, int>();
-            foreach (var t in bags[i]) counts[t] = counts.GetValueOrDefault(t) + 1;
-            chunks.Add(new StylometryChunk
-            {
-                WorkId = work.WorkId,
-                AuthorName = work.AuthorName,
-                WorkTitle = work.WorkTitle,
-                ChunkIndex = i + 1,
-                ChunkCount = bags.Count,
-                Counts = counts,
-                TotalTokens = chunkSize
-            });
-        }
-
-        return chunks;
-    }
-
     /// <param name="cachedChunks">
     /// Chunks already computed for works whose tokens have not changed, from
     /// <see cref="ChunkWorks"/>. Optional, and never required for correctness -

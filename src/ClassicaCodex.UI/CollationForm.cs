@@ -38,7 +38,7 @@ public class CollationForm : ScaledForm
     public CollationForm()
     {
         Text = "Classica Codex - Collate Editions";
-        AppIcons.ApplyWindowIcon(this, "CompareTexts");
+        AppIcons.ApplyWindowIcon(this, "Collate");
         ClientSize = new Size(1180, 760);
         MinimumSize = new Size(820, 520);
         StartPosition = FormStartPosition.CenterParent;
@@ -287,18 +287,22 @@ public class CollationForm : ScaledForm
                 ? $"   ({result.OnlyInLeft:N0} only on the left, {result.OnlyInRight:N0} only on the right)"
                 : string.Empty);
 
-        // A caution rather than a refusal. Some pairings here come out at
-        // four-fifths of shared lines differing in the words, which is not
-        // something two printings of one text do - they are far more likely
-        // offset by a line, or not the same text at all. That is worth saying,
-        // and it is not worth deciding on the reader's behalf: the collation is
-        // still there to be read, and reading a few rows settles it faster than
-        // any rule here could.
-        const double implausible = 0.6;
-        if (result.Shared > 0 && result.TextDiffers > result.Shared * implausible)
+        // A note about what a high rate means, not a warning that something is
+        // wrong. Sophocles' Ajax comes out at 89% here, and looking at the rows
+        // shows that rate is honest: a dialectal kunagia against kunegia, an
+        // anexei against an anexei subjunctive, differing word division. Those
+        // are two editors' texts, not two printings of one.
+        //
+        // Which is the useful thing to say. At this rate the two editions
+        // disagree wholesale rather than at points, so the list is a
+        // description of the distance between them and not a shortlist of
+        // cruxes - and it should not be read as one.
+        const double wholesale = 0.6;
+        if (result.Shared > 0 && result.TextDiffers > result.Shared * wholesale)
         {
-            _summary.Text += "   ⚠ That is a very high rate - two printings of one text rarely " +
-                             "differ this much. Check the first few rows for an offset.";
+            _summary.Text += "   ⚠ At this rate the two disagree wholesale rather than at points - " +
+                             "different editors' texts, or one transcribed less carefully. Read it as " +
+                             "the distance between them, not a shortlist of cruxes.";
         }
     }
 
@@ -437,8 +441,10 @@ public class CollationForm : ScaledForm
 
             if (result.Shared > 0 && result.TextDiffers > result.Shared * 0.6)
             {
-                notes.Add("WARNING: a very high substantive rate. Two printings of one text rarely " +
-                          "differ this much; check for an offset before citing any of this.");
+                notes.Add("NOTE: at this rate the two editions disagree wholesale rather than at " +
+                          "points - different editors' texts, or one transcribed less carefully. " +
+                          "These rows describe the distance between them; they are not a shortlist " +
+                          "of cruxes.");
             }
         }
 
