@@ -30,6 +30,17 @@ public class ConcordanceForm : ScaledForm
     private List<ExportPassage> _currentPassages = new();
     private List<string> _rowFullText = new();
 
+    /// <summary>
+    /// Each hit as it would be written out, kept alongside the rows rather than
+    /// read back off them.
+    ///
+    /// The left context on screen is deliberately truncated - that is what
+    /// keeps the keyword column aligned down the page, which is the whole point
+    /// of a concordance view - so the visible cells are not the data. Exporting
+    /// them would hand over a left context cut to fit a column.
+    /// </summary>
+    private readonly List<(string Left, string Keyword, string Right, string Source, string CitationRef, string FullLine)> _rowExport = new();
+
     /// <summary>Set by MainForm before showing this dialog.</summary>
     public Func<int, long, Task>? OnNavigate { get; set; }
 
@@ -107,6 +118,23 @@ public class ConcordanceForm : ScaledForm
             $"Concordance: {_wordBox.Text.Trim()}", _currentPassages), this,
             "the keyword in context");
 
+        // And the same results as a table, added to that menu rather than
+        // replacing it. A concordance is read as prose and analysed as rows -
+        // sorting a thousand occurrences by what precedes the keyword is a
+        // spreadsheet question, and the passage export cannot answer it.
+        ResultExport.AddTo(
+            _resultsList.ContextMenuStrip!,
+            () => $"concordance-{_wordBox.Text.Trim()}",
+            KwicRows,
+            () => new[]
+            {
+                $"Classica Codex concordance - {DateTime.Now:yyyy-MM-dd HH:mm}",
+                $"Keyword: {_wordBox.Text.Trim()}   ({_rowExport.Count:N0} occurrences)",
+                "One row per occurrence, so a line containing the word twice appears twice. " +
+                "Left and right context are the full line either side of the keyword, not the " +
+                "truncated form the screen shows."
+            });
+
         Controls.Add(wordLabel);
         Controls.Add(_wordBox);
         Controls.Add(_searchButton);
@@ -120,6 +148,21 @@ public class ConcordanceForm : ScaledForm
         WindowShortcuts.CloseOnEscape(this);
     }
 
+    private IReadOnlyList<IReadOnlyList<string>> KwicRows()
+    {
+        var table = new List<IReadOnlyList<string>>
+        {
+            new[] { "LeftContext", "Keyword", "RightContext", "Source", "Citation", "FullLine" }
+        };
+
+        foreach (var (left, keyword, right, source, citation, fullLine) in _rowExport)
+        {
+            table.Add(new[] { left, keyword, right, source, citation, fullLine });
+        }
+
+        return table;
+    }
+
     private async Task RunConcordanceAsync()
     {
         var word = _wordBox.Text.Trim();
@@ -130,6 +173,7 @@ public class ConcordanceForm : ScaledForm
         _resultsList.Items.Clear();
         _rowTargets.Clear();
         _rowFullText.Clear();
+        _rowExport.Clear();
         _currentPassages.Clear();
 
         try
@@ -229,6 +273,7 @@ public class ConcordanceForm : ScaledForm
         _resultsList.Items.Add(item);
         _rowTargets.Add((workId, textNodeId));
         _rowFullText.Add($"{authorName}, {workTitle} [{citationRef}]: {fullLineText}");
+        _rowExport.Add((left, keyword, right, $"{authorName}, {workTitle}", citationRef, fullLineText));
     }
 
     /// <summary>

@@ -68,6 +68,37 @@ public class TagBrowserForm : ScaledForm
             _currentResults.Select(r => new ExportPassage(
                 r.WorkId, r.TextNodeId, r.AuthorName, r.WorkTitle, r.CitationRef, r.Text)).ToList()), this);
 
+        // The same passages as rows, for the questions a document cannot answer
+        // - which authors a tag actually spans, how it is distributed across a
+        // work - which is most of why someone tags a hundred passages.
+        ResultExport.AddTo(
+            _resultsList.ContextMenuStrip!,
+            () => _tagList.SelectedItem is Tag t ? $"tag-{t.Name}" : "tagged-passages",
+            () =>
+            {
+                var table = new List<IReadOnlyList<string>>
+                {
+                    new[] { "Tag", "Author", "Work", "Citation", "Text" }
+                };
+
+                var tagName = _tagList.SelectedItem is Tag tag ? tag.Name : string.Empty;
+
+                foreach (var r in _currentResults)
+                {
+                    table.Add(new[] { tagName, r.AuthorName, r.WorkTitle, r.CitationRef, r.Text });
+                }
+
+                return table;
+            },
+            () => new[]
+            {
+                $"Classica Codex tagged passages - {DateTime.Now:yyyy-MM-dd HH:mm}",
+                _tagList.SelectedItem is Tag t2
+                    ? $"Tag: {t2.Name}   ({_currentResults.Count:N0} passages)"
+                    : $"{_currentResults.Count:N0} passages.",
+                "One tag, the one selected when this was written - not the whole tag set."
+            });
+
         var compareButton = new Button
         {
             Text = "Compare Sources...",

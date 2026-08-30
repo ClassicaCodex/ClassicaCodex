@@ -1,3 +1,4 @@
+using System.Globalization;
 using ClassicaCodex.Data.Repositories;
 
 namespace ClassicaCodex.UI;
@@ -51,6 +52,16 @@ public class StylometryAnalysisForm : ScaledForm
 
     private List<StylometrySettings> _profiles = new();
     private List<StylometryRunMetrics> _currentMetrics = new();
+
+    /// <summary>
+    /// The rows as rendered, at full precision, captured while they are built.
+    ///
+    /// Recomputing them for the export would mean a second copy of the z-score
+    /// logic, which depends on the author filter and would quietly diverge from
+    /// the screen the first time either changed. Filling it here costs nothing
+    /// and cannot drift.
+    /// </summary>
+    private readonly List<IReadOnlyList<string>> _metricExport = new();
     private StylometryRunMetrics? _focusRun;
     private bool _loadingProfiles;
 
@@ -221,6 +232,36 @@ public class StylometryAnalysisForm : ScaledForm
         Controls.Add(_tabs);
 
         Load += async (_, _) => await LoadProfilesAsync();
+        // The saved runs as a table. Every validation bench could already
+        // export and this could not - the one screen showing the results those
+        // benches exist to check.
+        //
+        // From the metrics rather than the cells, because the screen rounds
+        // hard: the Delta floor to three decimals, purity to a whole percent,
+        // z to two. Handing an analyst those and letting them recompute is how
+        // two slightly different answers to the same question get into
+        // circulation.
+        ResultExport.AttachTo(
+            _metricsList,
+            () => $"stylometry-{_authorCombo.SelectedItem as string ?? "all"}",
+            () => new[]
+                {
+                    new[] { "Author", "Work", "DepthToFirstOutsider", "z", "DeltaFloor",
+                            "AuthorPurityAt10", "NearestAuthor", "NearestWork" }
+                }
+                .Concat(_metricExport).ToList(),
+            () => new[]
+            {
+                $"Classica Codex stylometry runs - {DateTime.Now:yyyy-MM-dd HH:mm}",
+                $"Author filter: {_authorCombo.SelectedItem as string ?? "(all)"}",
+                "z is the work's depth against the mean depth of the other works shown, so it " +
+                "depends on the filter above - a different selection gives a different z for the " +
+                "same run. Empty where a depth could not be computed.",
+                "See docs/stylometry-notes.md for what Delta can and cannot tell you; on this " +
+                "corpus it cannot reliably detect a second hand contributing less than about a " +
+                "third of a work."
+            });
+
         ReadingTheme.AttachTo(this);
         WindowShortcuts.CloseOnEscape(this);
     }
@@ -300,6 +341,7 @@ public class StylometryAnalysisForm : ScaledForm
     private void RenderMetrics()
     {
         _metricsList.Items.Clear();
+        _metricExport.Clear();
 
         var selectedAuthor = _authorCombo.SelectedItem as string;
         var filtered = (selectedAuthor == null || selectedAuthor.StartsWith("("))
@@ -354,6 +396,18 @@ public class StylometryAnalysisForm : ScaledForm
                     : Color.FromArgb(255, 235, 235);
 
             _metricsList.Items.Add(item);
+
+            _metricExport.Add(new[]
+            {
+                m.TargetAuthorName,
+                m.TargetWorkTitle,
+                m.DepthToFirstOutsider?.ToString(CultureInfo.InvariantCulture) ?? string.Empty,
+                z?.ToString("R", CultureInfo.InvariantCulture) ?? string.Empty,
+                m.DeltaFloor.ToString("R", CultureInfo.InvariantCulture),
+                m.AuthorPurityAt10.ToString("R", CultureInfo.InvariantCulture),
+                m.NearestAuthor,
+                m.NearestTitle
+            });
 
             if (_focusRunId == m.RunId)
             {

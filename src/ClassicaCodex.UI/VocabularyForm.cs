@@ -1,3 +1,4 @@
+using System.Globalization;
 using ClassicaCodex.Core;
 using ClassicaCodex.Core.Models;
 using ClassicaCodex.Data.Repositories;
@@ -32,6 +33,69 @@ public class VocabularyForm : ScaledForm
     private readonly string _language;
 
     private VocabularyProfile.Result? _result;
+
+    /// <summary>
+    /// The list at full precision, header first.
+    ///
+    /// Coverage is written as a plain fraction rather than the "62.4%" the
+    /// screen shows, so a spreadsheet sorts and charts it as a number without
+    /// the percent sign having to be stripped first - and so the value carried
+    /// out is the one that was computed rather than the one that was rounded
+    /// for a column 110 pixels wide.
+    /// </summary>
+    private IReadOnlyList<IReadOnlyList<string>> ExportRows()
+    {
+        var table = new List<IReadOnlyList<string>>
+        {
+            new[] { "Rank", "Headword", "Occurrences", "CumulativeCoverage", "FormIsAmbiguous" }
+        };
+
+        if (_result == null) return table;
+
+        foreach (var entry in _result.Entries)
+        {
+            table.Add(new[]
+            {
+                entry.Rank.ToString(CultureInfo.InvariantCulture),
+                entry.Headword,
+                entry.Occurrences.ToString(CultureInfo.InvariantCulture),
+                entry.CumulativeCoverage.ToString("R", CultureInfo.InvariantCulture),
+                entry.Ambiguous ? "yes" : "no"
+            });
+        }
+
+        return table;
+    }
+
+    /// <summary>
+    /// What the coverage figures are a share of.
+    ///
+    /// The unknown-token share belongs with them and not in a footnote
+    /// somewhere: those words can never be covered by learning headwords from
+    /// this list, so a coverage number read without it promises more than it
+    /// can deliver.
+    /// </summary>
+    private IReadOnlyList<string> ExportNotes()
+    {
+        var notes = new List<string>
+        {
+            $"Classica Codex core vocabulary - {DateTime.Now:yyyy-MM-dd HH:mm}",
+            $"{_authorName}, {_work.Title} ({_language})"
+        };
+
+        if (_result != null)
+        {
+            notes.Add($"{_result.TotalTokens:N0} running words, {_result.Entries.Count:N0} headwords.");
+            notes.Add($"{_result.UnknownTokens:N0} running words have no lemma data at all and can " +
+                      "never be covered by learning headwords from this list.");
+        }
+
+        notes.Add("CumulativeCoverage is a fraction of all running words, counting this entry and " +
+                  "everything above it. A headword marked ambiguous has a form that could belong to " +
+                  "another word, so its count is an upper bound.");
+
+        return notes;
+    }
 
     public VocabularyForm(Work work, string authorName, int editionId, string? language)
     {
@@ -106,6 +170,11 @@ public class VocabularyForm : ScaledForm
         CancelButton = closeButton;
 
         Load += async (_, _) => await BuildProfileAsync();
+
+        // Exported from the result rather than the visible cells: the screen
+        // rounds coverage to one decimal, and a vocabulary list is exactly the
+        // kind of table someone takes away to build a study deck from.
+        ResultExport.AttachTo(_list, () => $"vocabulary-{_work.Title}", ExportRows, ExportNotes);
 
         ReadingTheme.AttachTo(this, () => _statusLabel.ForeColor = ReadingTheme.MutedText);
     }

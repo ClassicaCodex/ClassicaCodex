@@ -68,6 +68,40 @@ public class BookmarksForm : ScaledForm
             _currentBookmarks.Select(b => new ExportPassage(
                 b.WorkId, b.TextNodeId, b.AuthorName, b.WorkTitle, b.CitationRef, b.Text)).ToList()), this);
 
+        // And as rows, alongside the document export rather than instead of it.
+        // The passage export writes prose to quote from; this writes the note
+        // and the date too, which is what someone sorting or filtering their own
+        // reading actually wants and which no prose format carries usefully.
+        ResultExport.AddTo(
+            _bookmarkList.ContextMenuStrip!,
+            () => "bookmarks",
+            () =>
+            {
+                var table = new List<IReadOnlyList<string>>
+                {
+                    new[] { "Author", "Work", "Citation", "Text", "Note", "CreatedUtc" }
+                };
+
+                foreach (var b in _currentBookmarks)
+                {
+                    table.Add(new[]
+                    {
+                        b.AuthorName, b.WorkTitle, b.CitationRef, b.Text,
+                        b.Note ?? string.Empty,
+                        b.CreatedAt.ToString("yyyy-MM-dd HH:mm")
+                    });
+                }
+
+                return table;
+            },
+            () => new[]
+            {
+                $"Classica Codex bookmarks - {DateTime.Now:yyyy-MM-dd HH:mm}",
+                $"{_currentBookmarks.Count:N0} bookmarks.",
+                "The citation is the durable identity - bookmarks are stored against it rather " +
+                "than an internal id, so they survive a corpus being re-ingested."
+            });
+
         _deleteButton = new Button
         {
             Text = "Delete Selected",
