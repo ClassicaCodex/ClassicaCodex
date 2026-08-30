@@ -63,6 +63,17 @@ internal static class ResultExport
         menu.Items.Add("Export to tab-separated text...", null, (_, _) => Export(list, suggestedName(), rows, notes, "txt"));
         menu.Items.Add("Export to Excel...", null, (_, _) => Export(list, suggestedName(), rows, notes, "xlsx"));
 
+        // Themed on open, and here rather than at each call site.
+        //
+        // A ContextMenuStrip is not in the control tree a theme toggle walks,
+        // so a menu themed once when its form was built keeps the mode that was
+        // current then. Three of the four benches using this had never themed
+        // theirs at all - dark ink on a dark surface, and only found by knowing
+        // the menu was there. Doing it on Opening fixes those, survives a
+        // toggle made while the window is open, and means the next caller
+        // cannot forget.
+        menu.Opening += (_, _) => ReadingTheme.ApplyToContextMenu(menu);
+
         list.ContextMenuStrip = menu;
     }
 

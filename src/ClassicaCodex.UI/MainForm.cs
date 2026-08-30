@@ -347,6 +347,11 @@ public class MainForm : ScaledForm
         _treeFilterIcon.Click += (_, _) =>
         {
             if (_collectionsMenu.Items.Count == 0) return;
+
+            // See the note in BuildKindMenu: a context menu is not in the
+            // control tree a theme toggle walks, and this one is filled once
+            // when the library loads.
+            ReadingTheme.ApplyToContextMenu(_collectionsMenu);
             _collectionsMenu.Show(_treeFilterIcon, new Point(0, _treeFilterIcon.Height));
         };
 
@@ -1472,6 +1477,19 @@ public class MainForm : ScaledForm
             await RefreshPassageMarksAsync();
         };
         showItem.DropDownItems.Add(showAll);
+
+        // Themed here, not with the rest of the menu at startup.
+        //
+        // This submenu is empty until the moment the menu opens, so the walk
+        // that themes every context menu reaches a "Show" with no drop-down and
+        // returns without touching it. Its panel then paints with the default
+        // renderer - a light strip down the icon margin, in dark mode - and the
+        // entries built above have never been themed at all.
+        //
+        // Doing it at the end of every rebuild also means a theme toggled while
+        // the reader is open is picked up the next time the menu is shown,
+        // without anything having to notify this.
+        ReadingTheme.ApplyToMenuItem(showItem);
     }
 
     /// <summary>

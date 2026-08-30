@@ -122,7 +122,6 @@ public class CollationForm : ScaledForm
         Controls.Add(explainer);
 
         ResultExport.AttachTo(_rows, SuggestedFileName, ExportRows, ExportNotes);
-        if (_rows.ContextMenuStrip != null) ReadingTheme.ApplyToContextMenu(_rows.ContextMenuStrip);
 
         WindowShortcuts.CloseOnEscape(this);
         ReadingTheme.AttachTo(this);
