@@ -77,6 +77,69 @@ internal static class ResultExport
         list.ContextMenuStrip = menu;
     }
 
+    /// <summary>
+    /// Adds the table exports to a menu a list already has, rather than
+    /// replacing it.
+    ///
+    /// Twelve result lists in this app already carry "Export All Passages..."
+    /// from ListResultHelpers, which writes prose - plain text, Word, PDF, with
+    /// citations intact, for quoting. That is a different thing from a
+    /// spreadsheet, and both are wanted: the same bookmarks a reader exports as
+    /// a document to cite, they may want as rows to sort. Attaching a fresh
+    /// strip would silently drop whichever was attached first, which is the
+    /// trap ListResultHelpers documents and avoids the same way.
+    /// </summary>
+    public static void AddTo(
+        ContextMenuStrip menu,
+        Func<string> suggestedName,
+        Func<IReadOnlyList<IReadOnlyList<string>>> rows,
+        Func<IReadOnlyList<string>>? notes = null)
+    {
+        if (menu.Items.Count > 0) menu.Items.Add(new ToolStripSeparator());
+
+        menu.Items.Add("Export as a table (CSV)...", null,
+            (_, _) => ExportRows(rows(), suggestedName(), notes, "csv"));
+        menu.Items.Add("Export as a table (tab-separated)...", null,
+            (_, _) => ExportRows(rows(), suggestedName(), notes, "txt"));
+        menu.Items.Add("Export as a table (Excel)...", null,
+            (_, _) => ExportRows(rows(), suggestedName(), notes, "xlsx"));
+
+        menu.Opening += (_, _) => ReadingTheme.ApplyToContextMenu(menu);
+    }
+
+    /// <summary>
+    /// The same menu on a ListBox, for the lists that were never tables.
+    ///
+    /// Rows are REQUIRED here rather than optional, and that is the difference.
+    /// A ListView has columns, so falling back to its visible cells produces
+    /// something with a shape. A ListBox holds one formatted string per row -
+    /// "Homer, Iliad 1.1 - sing goddess... (note: check Monro)" - and exporting
+    /// those would hand back a single column that has to be picked apart with a
+    /// regular expression to be used for anything.
+    ///
+    /// The caller has the real fields. Bookmarks know their author, work,
+    /// citation, text, note and date; a tag's passages know theirs. Those make
+    /// a spreadsheet. The display string does not.
+    /// </summary>
+    public static void AttachTo(
+        ListBox list,
+        Func<string> suggestedName,
+        Func<IReadOnlyList<IReadOnlyList<string>>> rows,
+        Func<IReadOnlyList<string>>? notes = null)
+    {
+        var menu = new ContextMenuStrip();
+
+        menu.Items.Add("Copy all rows", null, (_, _) => CopyRows(rows()));
+        menu.Items.Add(new ToolStripSeparator());
+        menu.Items.Add("Export to CSV...", null, (_, _) => ExportRows(rows(), suggestedName(), notes, "csv"));
+        menu.Items.Add("Export to tab-separated text...", null, (_, _) => ExportRows(rows(), suggestedName(), notes, "txt"));
+        menu.Items.Add("Export to Excel...", null, (_, _) => ExportRows(rows(), suggestedName(), notes, "xlsx"));
+
+        menu.Opening += (_, _) => ReadingTheme.ApplyToContextMenu(menu);
+
+        list.ContextMenuStrip = menu;
+    }
+
     private static IReadOnlyList<IReadOnlyList<string>> Gather(
         ListView list, Func<IReadOnlyList<IReadOnlyList<string>>>? rows, bool selectedOnly)
     {
@@ -98,9 +161,11 @@ internal static class ResultExport
     }
 
     private static void Copy(
-        ListView list, Func<IReadOnlyList<IReadOnlyList<string>>>? rows, bool selectedOnly)
+        ListView list, Func<IReadOnlyList<IReadOnlyList<string>>>? rows, bool selectedOnly) =>
+        CopyRows(Gather(list, rows, selectedOnly));
+
+    private static void CopyRows(IReadOnlyList<IReadOnlyList<string>> table)
     {
-        var table = Gather(list, rows, selectedOnly);
         if (table.Count == 0) return;
 
         // Tab-separated, because that is what pastes into a spreadsheet as
@@ -123,10 +188,18 @@ internal static class ResultExport
         string suggestedName,
         Func<IReadOnlyList<IReadOnlyList<string>>>? rows,
         Func<IReadOnlyList<string>>? notes,
+        string extension) =>
+        ExportRows(Gather(list, rows, selectedOnly: false), suggestedName, notes, extension);
+
+    private static void ExportRows(
+        IReadOnlyList<IReadOnlyList<string>> table,
+        string suggestedName,
+        Func<IReadOnlyList<string>>? notes,
         string extension)
     {
-        var table = Gather(list, rows, selectedOnly: false);
-        if (table.Count == 0)
+        // A header row on its own is not a result. Exporting it would produce a
+        // file that looks like an answer and contains none.
+        if (table.Count <= 1)
         {
             MessageBox.Show("Nothing to export - run something first.",
                 "No results", MessageBoxButtons.OK, MessageBoxIcon.Information);
