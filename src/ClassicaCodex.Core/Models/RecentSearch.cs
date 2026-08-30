@@ -28,7 +28,22 @@ public class RecentSearch
     /// <summary>Comma-separated language codes; empty means no language filter.</summary>
     public string Languages { get; set; } = string.Empty;
 
-    /// <summary>Comma-separated corpus namespaces; empty means no corpus filter.</summary>
+    /// <summary>
+    /// Comma-separated corpus namespaces - "greekLit", "latinLit" - or empty
+    /// for no namespace filter.
+    ///
+    /// ALWAYS EMPTY TODAY, AND NOT DEAD. SearchFilters.Corpora is a real,
+    /// tested filter on the author's namespace; what it lacks is a control in
+    /// the search window, so nothing ever puts a value here. The column stays
+    /// because it is the place that filter's setting would be persisted the
+    /// day it gets one, and dropping it would mean rebuilding this table now
+    /// and rebuilding it again later.
+    ///
+    /// It is NOT the collection filter. Namespace and collection are different
+    /// axes and that is the whole reason Collections below exists: CSEL and
+    /// classical Latin are both "latinLit", so "search only CSEL" cannot be
+    /// said in namespaces at all. Anything meaning a collection goes there.
+    /// </summary>
     public string Corpora { get; set; } = string.Empty;
 
     /// <summary>

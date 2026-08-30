@@ -156,7 +156,7 @@ public static class ReadingTheme
 
     /// <summary>
     /// Draws a row's background and grid lines in theme colours.
-    ///
+    /// </summary>
 
     private static void DrawThemedListItem(object? sender, DrawListViewItemEventArgs e)
     {
@@ -262,8 +262,15 @@ public static class ReadingTheme
     ///
     /// The renderer has to be set on each drop-down as well as on the menu:
     /// ToolStripDropDown does not inherit its owner's.
+    ///
+    /// PUBLIC because recursion from the top is not enough on its own. A
+    /// submenu built when the menu opens is empty when this walk reaches it, so
+    /// the walk returns before touching a drop-down that does not exist yet -
+    /// and the items that appear a moment later have never been themed at all.
+    /// Whoever fills such a menu has to call this on the parent afterwards; see
+    /// MainForm.BuildKindMenu.
     /// </summary>
-    private static void ApplyToMenuItem(ToolStripItem item)
+    public static void ApplyToMenuItem(ToolStripItem item)
     {
         item.ForeColor = Text;
         item.BackColor = Surface;

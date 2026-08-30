@@ -700,38 +700,6 @@ public static class PerturbationRunner
     }
 
     /// <summary>
-    /// How much contamination this method could actually find, on this corpus.
-    ///
-    /// THE QUESTION A NULL RESULT IS WORTHLESS WITHOUT. A sweep that finds no
-    /// anomaly has said nothing until it also says what it could have found.
-    /// "This work shows no sign of foreign material" and "this work shows no
-    /// sign of foreign material, and material below thirty percent would have
-    /// been invisible" are different statements, and only the second is worth
-    /// reporting.
-    ///
-    /// The comparison is between two spreads. Genuine works scatter around the
-    /// length line for reasons that have nothing to do with authorship - date,
-    /// genre, subject, transmission, the editor. That scatter is the noise any
-    /// real signal has to clear. Contamination moves a work by some other
-    /// amount. If the movement is small against the scatter, nothing can be
-    /// distinguished however precisely each work is measured.
-    ///
-    /// On nineteen Euripides plays contaminated with Aeschylus and Sophocles,
-    /// the reference scatter is 0.031 and 20% injection moves a work 0.023 -
-    /// three quarters of one deviation, an AUC of 0.70. Pick one clean and one
-    /// heavily contaminated play and this method ranks them correctly seven
-    /// times in ten. At 10% it is six. At 5% it is a coin flip.
-    ///
-    /// AUC rather than a p-value because the question is discrimination, not
-    /// significance: with enough iterations a mean shift of any size becomes
-    /// significant, and none of that helps identify which text is which.
-    /// </summary>
-    /// <param name="referenceScatter">
-    /// From <see cref="ReferenceScatter"/>: how much the UNCONTAMINATED works
-    /// differ from each other. Not the scatter of their drops, which is twenty
-    /// times smaller and makes every level look detectable.
-    /// </param>
-    /// <summary>
     /// How much genuine works differ from each other, once length is accounted
     /// for. The denominator of every detection figure.
     ///
@@ -780,6 +748,38 @@ public static class PerturbationRunner
         return Math.Sqrt(residuals.Average(r => (r - mean) * (r - mean)));
     }
 
+    /// <summary>
+    /// How much contamination this method could actually find, on this corpus.
+    ///
+    /// THE QUESTION A NULL RESULT IS WORTHLESS WITHOUT. A sweep that finds no
+    /// anomaly has said nothing until it also says what it could have found.
+    /// "This work shows no sign of foreign material" and "this work shows no
+    /// sign of foreign material, and material below thirty percent would have
+    /// been invisible" are different statements, and only the second is worth
+    /// reporting.
+    ///
+    /// The comparison is between two spreads. Genuine works scatter around the
+    /// length line for reasons that have nothing to do with authorship - date,
+    /// genre, subject, transmission, the editor. That scatter is the noise any
+    /// real signal has to clear. Contamination moves a work by some other
+    /// amount. If the movement is small against the scatter, nothing can be
+    /// distinguished however precisely each work is measured.
+    ///
+    /// On nineteen Euripides plays contaminated with Aeschylus and Sophocles,
+    /// the reference scatter is 0.031 and 20% injection moves a work 0.023 -
+    /// three quarters of one deviation, an AUC of 0.70. Pick one clean and one
+    /// heavily contaminated play and this method ranks them correctly seven
+    /// times in ten. At 10% it is six. At 5% it is a coin flip.
+    ///
+    /// AUC rather than a p-value because the question is discrimination, not
+    /// significance: with enough iterations a mean shift of any size becomes
+    /// significant, and none of that helps identify which text is which.
+    /// </summary>
+    /// <param name="referenceScatter">
+    /// From <see cref="ReferenceScatter"/>: how much the UNCONTAMINATED works
+    /// differ from each other. Not the scatter of their drops, which is twenty
+    /// times smaller and makes every level look detectable.
+    /// </param>
     public static List<DetectionPower> MeasurePower(
         double referenceScatter,
         IReadOnlyList<(double Level, double MeanShift)> shifts)

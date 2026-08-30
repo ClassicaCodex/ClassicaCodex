@@ -120,7 +120,7 @@ public class LemmaIngestService
                     }
                 }
             }
-            catch (Exception) when (true)
+            catch (Exception)
             {
                 // Same policy as the text ingest: one unparseable file
                 // shouldn't kill a long run.

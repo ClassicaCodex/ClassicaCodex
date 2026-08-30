@@ -3,9 +3,9 @@
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
     <Nullable>enable</Nullable>
-    <Version>3.2.0</Version>
-    <AssemblyVersion>3.2.0.0</AssemblyVersion>
-    <FileVersion>3.2.0.0</FileVersion>
+    <Version>3.3.0</Version>
+    <AssemblyVersion>3.3.0.0</AssemblyVersion>
+    <FileVersion>3.3.0.0</FileVersion>
     <ImplicitUsings>enable</ImplicitUsings>
     <RootNamespace>ClassicaCodex.Data</RootNamespace>
     <!-- Enables the compiler's structural checks on /// doc comments -
@@ -17,9 +17,15 @@
          suppressed: this project documents public members selectively, not
          universally, so demanding one on every public method would flood
          the build with thousands of warnings unrelated to the actual
-         problem this is here to catch. -->
+         problem this is here to catch.
+         CS1573 ("parameter has no matching param tag, but other parameters
+         do") is suppressed for the same reason one level down: a comment
+         here explains the parameters that need explaining and leaves the
+         obvious ones alone. Satisfying it would mean a tag for every
+         cancellationToken in the codebase - noise that would bury the
+         structural warnings above, which are the ones worth reading. -->
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
-    <NoWarn>$(NoWarn);CS1591</NoWarn>
+    <NoWarn>$(NoWarn);CS1591;CS1573</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>

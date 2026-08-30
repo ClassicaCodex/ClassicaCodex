@@ -279,6 +279,13 @@ public class MainForm : ScaledForm
             compareTranslationsForm.ShowDialog(this);
         };
 
+        var collateButton = new IconButton { Text = "Collate...", Left = 1322, Top = 10, Width = 130, Height = 30 };
+        collateButton.Click += (_, _) =>
+        {
+            using var collationForm = new CollationForm();
+            collationForm.ShowDialog(this);
+        };
+
         var placesMapButton = new IconButton { Text = "Places Map...", Left = 1322, Top = 10, Width = 130, Height = 30 };
         placesMapButton.Click += (_, _) =>
         {
@@ -340,6 +347,11 @@ public class MainForm : ScaledForm
         _treeFilterIcon.Click += (_, _) =>
         {
             if (_collectionsMenu.Items.Count == 0) return;
+
+            // See the note in BuildKindMenu: a context menu is not in the
+            // control tree a theme toggle walks, and this one is filled once
+            // when the library loads.
+            ReadingTheme.ApplyToContextMenu(_collectionsMenu);
             _collectionsMenu.Show(_treeFilterIcon, new Point(0, _treeFilterIcon.Height));
         };
 
@@ -621,6 +633,7 @@ public class MainForm : ScaledForm
         };
         Controls.Add(concordanceButton);
         Controls.Add(compareTranslationsButton);
+        Controls.Add(collateButton);
         Controls.Add(placesMapButton);
         Controls.Add(morphologyButton);
         Controls.Add(aboutButton);
@@ -664,6 +677,7 @@ public class MainForm : ScaledForm
             (stylometryCompareButton, "Compare Saved Runs", "StylometryCompare"),
             (concordanceButton, "Concordance", "Concordance"),
             (compareTranslationsButton, "Compare Translations", "CompareTexts"),
+            (collateButton, "Collate Editions", "Collate"),
             (placesMapButton, "Places Map", "PlaceMap"),
             (morphologyButton, "Morphology", "Morphology")
         };
@@ -768,8 +782,6 @@ public class MainForm : ScaledForm
         void RelayoutReaderArea()
         {
             const int margin = 20;
-            const int labelHeight = 24;
-            const int gap = 6;
             const int collapsedToggleWidth = 36;
 
             // Same reasoning applies to the top-right buttons - pinned here
@@ -1465,6 +1477,19 @@ public class MainForm : ScaledForm
             await RefreshPassageMarksAsync();
         };
         showItem.DropDownItems.Add(showAll);
+
+        // Themed here, not with the rest of the menu at startup.
+        //
+        // This submenu is empty until the moment the menu opens, so the walk
+        // that themes every context menu reaches a "Show" with no drop-down and
+        // returns without touching it. Its panel then paints with the default
+        // renderer - a light strip down the icon margin, in dark mode - and the
+        // entries built above have never been themed at all.
+        //
+        // Doing it at the end of every rebuild also means a theme toggled while
+        // the reader is open is picked up the next time the menu is shown,
+        // without anything having to notify this.
+        ReadingTheme.ApplyToMenuItem(showItem);
     }
 
     /// <summary>

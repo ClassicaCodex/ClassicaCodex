@@ -262,8 +262,18 @@ public class TextNodeRepository
 
         if (filters.OriginalsOnly != null)
         {
-            where.Add("e.Kind = @Kind");
-            cmd.Parameters.AddWithValue("@Kind", filters.OriginalsOnly.Value ? "Original" : "Translation");
+            // Asymmetric on purpose. "Originals only" means exactly the
+            // original-language text. "Translations only" means everything that
+            // is not it - which is what a reader picking that option is asking
+            // for, and which matters because an edition ingest could not
+            // classify is not an original either.
+            //
+            // Asking for Kind = 'Translation' exactly made those editions
+            // findable with the filter off and invisible with it set, while the
+            // reader - which sorts the same editions into its two panes on the
+            // same question - had already started showing them. One rule, so a
+            // filter cannot hide a text the reader will happily open.
+            where.Add(filters.OriginalsOnly.Value ? "e.Kind = 'Original'" : "e.Kind <> 'Original'");
         }
 
         if (filters.AuthorId != null)

@@ -48,6 +48,26 @@ Two editions of the same thing
 
    Which of them a work opens on is yours to set. "Open works from:" under Reading in the Setup Wizard picks a collection, and any work carried by more than one opens on that collection's edition - Perseus and First1KGreek both have the Agamemnon, CSEL and Patrologia Latina share a good deal of Augustine. It is a preference, not a filter: the other editions stay in the dropdown in the same order, and only which one is already selected changes. Works that collection doesn't have open exactly as before, so a preference set once needs no maintenance as the library grows.
 
+Collate Editions
+   Where a work is held by two collections, the Collate button on the toolbar shows what the two editions disagree about. It is the one thing here that needs more than one collection to exist at all: a single corpus gives you one printing of a text and no way to know what it settled.
+
+   Comparing two editions character by character reports almost every line as different, which is worse than no comparison because it looks like evidence. So differences are graded, and each passage is filed under the first kind that explains it:
+
+      punctuation - spacing, case, brackets, the elision mark. Editorial brackets count here on purpose: one editor bracketing a word another prints plainly disagrees about the word's standing, not about whether the word is there.
+      spelling - Greek accents and breathings, final sigma, Latin u/v and i/j, the ae digraph however it is written. Conventions editors differ on without changing which word is printed.
+      line division - the same words broken across two lines at a different point, usually one edition hyphenating a word at a line end.
+      THE WORDS - the editions print something different. This is the only one that is a reading, and the view opens on it.
+
+   The counts above the list say whether a pairing is worth reading before you read any of it. On the Aeschylus pairings in a full library, roughly a fifth of shared lines differ in the words and the rest is typography.
+
+   A work with more than two editions offers every pairing of them, and two editions from the same collection pair like any other — Perseus alone carries two editions of Ajax and of a dozen Plutarch works, which are two independent printings of one text and exactly what this is for. Where the collection names do not tell two pairings apart, the CTS version identifier is added.
+
+   Some pairs cannot be collated, and the window says so rather than inventing a result. Two editions that divide a work differently can still collide on plain numbers - both label their passages 1, 2, 3 - so they look aligned and then disagree at every one. Where that happens the collation is refused with the reason.
+
+   Export... writes what you are looking at to CSV, tab-separated text, or Excel — and right-clicking the list does the same, plus copying rows to the clipboard. The file carries the filter you had applied, both editions with their CTS identifiers, the counts, and any warning shown above the table. That matters more here than in most exports: four columns of Greek with no note of which two editions produced them, or that 89% of the lines differed, is a file that will be misread later.
+
+   Nothing here says which reading is right. That is not a question the app can answer and it does not pretend to.
+
 Scrolling and selection are synced between the panes. That works best on verse, where a translation keeps roughly the same line structure as the original. Prose translations often carry far fewer citation points than the original does, so the two sides drift apart; that's how the texts were digitized, not a fault in the alignment. The ⇅ button on the toolbar turns that off: linked panes suit verse, where a translation keeps roughly the original's line structure, but on prose one Greek sentence can become three English ones and the two sides drift apart until the mirroring is dragging you away from the line you were reading. Your choice is remembered.
 
 Hover any line to see its citation reference.

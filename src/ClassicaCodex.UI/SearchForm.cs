@@ -233,7 +233,14 @@ public class SearchForm : ScaledForm
             Text = "Collections: all", Left = 870, Top = 61, Width = 178, Height = 26
         };
         _collectionsButton.Click += (_, _) =>
+        {
+            // Re-themed at the moment of showing. A context menu is not in the
+            // control tree a theme toggle walks, so one themed when it was
+            // filled would still be painted for whichever mode was current
+            // then - and this menu is filled once, when the window opens.
+            ReadingTheme.ApplyToContextMenu(_collectionsMenu);
             _collectionsMenu.Show(_collectionsButton, new Point(0, _collectionsButton.Height));
+        };
 
         filterPanel.Controls.AddRange(new Control[]
         {
