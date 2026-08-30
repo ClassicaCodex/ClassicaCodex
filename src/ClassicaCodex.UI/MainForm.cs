@@ -777,8 +777,6 @@ public class MainForm : ScaledForm
         void RelayoutReaderArea()
         {
             const int margin = 20;
-            const int labelHeight = 24;
-            const int gap = 6;
             const int collapsedToggleWidth = 36;
 
             // Same reasoning applies to the top-right buttons - pinned here

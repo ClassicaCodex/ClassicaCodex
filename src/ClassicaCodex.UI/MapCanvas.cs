@@ -47,7 +47,10 @@ public class MapCanvas : Panel
     // every optional-data feature here already accepts, not a bug.
     private const double MinLon = -12, MaxLon = 56;
     private const double MinLat = 22, MaxLat = 59;
-    private const int Margin = 40;
+    // Not "Margin": that name hides Control.Margin, which is a Padding and means
+    // something else entirely. Anyone later writing layout code in here and
+    // reaching for the inherited property would silently get this number instead.
+    private const int MapInset = 40;
 
     private readonly Color _seaColor;
     private readonly Color _landColor;
@@ -235,8 +238,8 @@ public class MapCanvas : Panel
     /// </summary>
     private PointF LatLonToPoint(double lat, double lon)
     {
-        var usableWidth = Math.Max(Width - Margin * 2, 100);
-        var usableHeight = Math.Max(Height - Margin * 2, 100);
+        var usableWidth = Math.Max(Width - MapInset * 2, 100);
+        var usableHeight = Math.Max(Height - MapInset * 2, 100);
 
         var lonRange = MaxLon - MinLon;
         var latRange = MaxLat - MinLat;
@@ -244,8 +247,8 @@ public class MapCanvas : Panel
 
         var mapWidth = lonRange * scale;
         var mapHeight = latRange * scale;
-        var offsetX = Margin + (usableWidth - mapWidth) / 2;
-        var offsetY = Margin + (usableHeight - mapHeight) / 2;
+        var offsetX = MapInset + (usableWidth - mapWidth) / 2;
+        var offsetY = MapInset + (usableHeight - mapHeight) / 2;
 
         var x = offsetX + (lon - MinLon) * scale;
         var y = offsetY + (MaxLat - lat) * scale;
@@ -274,7 +277,7 @@ public class MapCanvas : Panel
             e.Graphics.DrawString(
                 "No place tags matched yet - tag a line with a place name (e.g. \"Athens\", \"Troy\", \"Rome\") " +
                 "and reopen this, or check \"Show all known places\" above to browse the full reference catalog.",
-                emptyFont, emptyBrush, new PointF(Margin + 8, Margin + 8));
+                emptyFont, emptyBrush, new PointF(MapInset + 8, MapInset + 8));
             return;
         }
 
