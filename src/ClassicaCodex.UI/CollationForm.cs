@@ -23,6 +23,7 @@ public class CollationForm : ScaledForm
 
     private readonly ComboBox _pairBox = new();
     private readonly ComboBox _showBox = new();
+    private readonly Button _exportButton = new();
     private readonly Label _summary = new();
     private readonly ListView _rows = new();
     private readonly TextBox _leftDetail = new();
@@ -75,6 +76,17 @@ public class CollationForm : ScaledForm
         controls.Controls.Add(new Label { Text = "Show:", Width = 46, TextAlign = ContentAlignment.MiddleLeft, Margin = new Padding(16, 0, 0, 0) });
         controls.Controls.Add(_showBox);
 
+        // The same menu the list carries on right-click, reachable from a
+        // button as well. A collation is a table someone will want in a
+        // spreadsheet, and an export you can only find by right-clicking a
+        // list is an export most people never find.
+        _exportButton.Text = "Export...";
+        _exportButton.Width = 96;
+        _exportButton.Margin = new Padding(16, 2, 0, 0);
+        _exportButton.Click += (_, _) =>
+            _rows.ContextMenuStrip?.Show(_exportButton, new Point(0, _exportButton.Height));
+        controls.Controls.Add(_exportButton);
+
         _summary.Dock = DockStyle.Top;
         _summary.Height = 34;
         _summary.Padding = new Padding(10, 6, 10, 0);
@@ -108,6 +120,9 @@ public class CollationForm : ScaledForm
         Controls.Add(_summary);
         Controls.Add(controls);
         Controls.Add(explainer);
+
+        ResultExport.AttachTo(_rows, SuggestedFileName, ExportRows, ExportNotes);
+        if (_rows.ContextMenuStrip != null) ReadingTheme.ApplyToContextMenu(_rows.ContextMenuStrip);
 
         WindowShortcuts.CloseOnEscape(this);
         ReadingTheme.AttachTo(this);
@@ -339,6 +354,99 @@ public class CollationForm : ScaledForm
         CollationStatus.OnlyInLeft => "only on the left",
         _ => "only on the right"
     };
+
+    /// <summary>
+    /// Named for the pairing rather than the work, because a work can pair up
+    /// several ways and two files called "collation-Ajax.csv" holding different
+    /// comparisons would be worse than one badly named file.
+    /// </summary>
+    private string SuggestedFileName()
+    {
+        if (_pairBox.SelectedItem is not PairOption { Pair: var pair }) return "collation";
+
+        return $"collation-{pair.WorkTitle}-{pair.LeftVersion}-{pair.RightVersion}";
+    }
+
+    /// <summary>
+    /// The rows as shown, filter included.
+    ///
+    /// What is on screen is what someone means by "export this". Writing the
+    /// full comparison instead would hand back thousands of punctuation
+    /// differences nobody asked to see - and the note above the table says
+    /// which view produced it, so the file cannot be mistaken for the whole
+    /// collation.
+    ///
+    /// Built from the row objects rather than the list cells because the cells
+    /// carry a dash where an edition has nothing at a reference. That dash is
+    /// right on screen and wrong in a file, where it would read as a passage
+    /// whose text is "—" rather than as an absence.
+    /// </summary>
+    private IReadOnlyList<IReadOnlyList<string>> ExportRows()
+    {
+        var table = new List<IReadOnlyList<string>>
+        {
+            new[] { "Passage", "Difference", _leftHeader.Text, _rightHeader.Text }
+        };
+
+        if (_result is not { } result) return table;
+
+        foreach (var row in result.Rows.Where(Included))
+        {
+            table.Add(new[]
+            {
+                row.PassageRef,
+                Describe(row.Status),
+                row.Left ?? string.Empty,
+                row.Right ?? string.Empty
+            });
+        }
+
+        return table;
+    }
+
+    /// <summary>
+    /// What the table means, written above it.
+    ///
+    /// A collation exported without this is four columns of Greek whose
+    /// provenance has to be remembered - which two editions, graded how,
+    /// filtered to what. The counts go in as well, because the substantive
+    /// figure is what says whether the pairing is worth trusting, and a file
+    /// showing 89% without it looks like a discovery rather than a warning.
+    /// </summary>
+    private IReadOnlyList<string> ExportNotes()
+    {
+        var notes = new List<string> { $"Classica Codex collation - {DateTime.Now:yyyy-MM-dd HH:mm}" };
+
+        if (_pairBox.SelectedItem is PairOption option)
+        {
+            var pair = option.Pair;
+            notes.Add($"{pair.AuthorName}, {pair.WorkTitle}");
+            notes.Add($"Left:  {_leftHeader.Text}   ({pair.LeftEditionUrn})");
+            notes.Add($"Right: {_rightHeader.Text}   ({pair.RightEditionUrn})");
+        }
+
+        if (_result is { } result)
+        {
+            notes.Add(result.IsAlignable
+                ? $"{result.Shared:N0} shared passages: {result.Identical:N0} identical, " +
+                  $"{result.PresentationDiffers:N0} punctuation, {result.OrthographyDiffers:N0} spelling, " +
+                  $"{result.LineationDiffers:N0} line division, {result.TextDiffers:N0} in the words. " +
+                  $"{result.OnlyInLeft:N0} only on the left, {result.OnlyInRight:N0} only on the right."
+                : "These editions are not alignable - their citation references do not name the " +
+                  "same passages - so the rows below are not a collation.");
+
+            if (result.Shared > 0 && result.TextDiffers > result.Shared * 0.6)
+            {
+                notes.Add("WARNING: a very high substantive rate. Two printings of one text rarely " +
+                          "differ this much; check for an offset before citing any of this.");
+            }
+        }
+
+        notes.Add($"Showing: {_showBox.SelectedItem}. Differences are graded - only \"THE WORDS\" is a " +
+                  "difference in what the text says. Nothing here rules on which reading is right.");
+
+        return notes;
+    }
 
     private void ShowSelectedDetail()
     {

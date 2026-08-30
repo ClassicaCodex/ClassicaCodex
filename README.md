@@ -81,7 +81,7 @@ security warning you'll hit on first run.
 - **Patrologia Latina** — Migne's collection of Latin Christian writing, Tertullian to the twelfth century, and much the largest thing the app can install. A 19th-century reprint rather than a critical edition, and the setup step says so: where a work appears in both, CSEL is the text a scholar cites and this is the wider net. Both sit side by side, the same work gaining a second edition rather than being overwritten
 - **Political theory** — Bodin's *Six Books of the Commonwealth* in the French of 1577, the Latin of 1586 he made himself, and Knolles's English of 1606. One work rather than a corpus, and the rare case where an author's own translation of his own book can be read against the original
 - **Search or browse one collection at a time** — with several collections installed, "search only the Church Fathers" is a question the language filter cannot answer, since they and the classical Latin texts are both Latin. Both the search window and the library tree narrow to any number of collections, and the tree filters works as well as authors, so an author in two collections shows only the works you asked for
-- **Collate two editions of one work** — where the library holds a text twice, whether from two collections or two editions in one, see what the editors disagreed about. Differences are graded rather than counted: punctuation, spelling, line division, and — the only one that is a reading — the words. Measured against a full library, about a fifth of the shared lines in the Aeschylus pairings differ in the words and the rest is typography, which is exactly why an ungraded diff would be useless
+- **Collate two editions of one work** — where the library holds a text twice, whether from two collections or two editions in one, see what the editors disagreed about. Differences are graded rather than counted: punctuation, spelling, line division, and — the only one that is a reading — the words. Measured against a full library, about a fifth of the shared lines in the Aeschylus pairings differ in the words and the rest is typography, which is exactly why an ungraded diff would be useless. Exports to CSV, text or Excel with both editions, the counts and any caution written above the table
 - **Marks in the margin of the line** — a `?`, `#` or `★` at the end of a passage says an inquiry has been started from it, that it carries a tag, or that it is bookmarked. Drawn rather than stored, so copying or exporting the line still gives you only the text
 - **A default collection** — overlap between collections is normal: Perseus and First1KGreek both carry the Agamemnon, CSEL and Patrologia Latina share a good deal of Augustine. Pick which one a work opens on and it applies everywhere, rather than the choice falling to whichever edition happens to sort first. A preference and not a filter — the other editions stay in the dropdown, only the selection changes
 - **Results by document** — switch the search between every matching passage and one row per work with its match count, for when the question is where a word is concentrated rather than what each occurrence says
@@ -186,13 +186,24 @@ suspecting.
 
 ## Status
 
-Version 3.2.0.
+Version 3.3.0.
 
 Version 1 was a reader. Version 2 made it a searchable, taggable,
 cross-referenced library and added the translation workbench. Version 3 adds the
 Medieval Nordic manuscript reader and its editorial apparatus — a different kind
 of text from the printed editions the rest of the library holds, and the first
 material here where the manuscript evidence is visible rather than settled.
+
+3.3.0 spends what 3.2.0 bought. Holding seven collections means holding some
+works twice, and two independent printings of one text are the raw material of a
+collation — so the app now compares them and says where their editors disagreed.
+The whole difficulty is that a byte-for-byte comparison calls almost every line
+different, which is worse than no comparison because it looks like evidence. So
+differences are graded: punctuation, spelling, line division, and — the only one
+that is a reading — the words. Measured across this library that is the
+difference between "58% of lines differ" and "19% do", and the 19% are real
+variants. Every collation exports to CSV, text or Excel with its counts and its
+cautions attached.
 
 3.2.0 takes the library from three collections to seven — CSEL, the Patrologia
 Latina, and Bodin — and then deals with the consequence of that, which is that

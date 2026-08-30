@@ -64,6 +64,8 @@ Collate Editions
 
    Some pairs cannot be collated, and the window says so rather than inventing a result. Two editions that divide a work differently can still collide on plain numbers - both label their passages 1, 2, 3 - so they look aligned and then disagree at every one. Where that happens the collation is refused with the reason.
 
+   Export... writes what you are looking at to CSV, tab-separated text, or Excel — and right-clicking the list does the same, plus copying rows to the clipboard. The file carries the filter you had applied, both editions with their CTS identifiers, the counts, and any warning shown above the table. That matters more here than in most exports: four columns of Greek with no note of which two editions produced them, or that 89% of the lines differed, is a file that will be misread later.
+
    Nothing here says which reading is right. That is not a question the app can answer and it does not pretend to.
 
 Scrolling and selection are synced between the panes. That works best on verse, where a translation keeps roughly the same line structure as the original. Prose translations often carry far fewer citation points than the original does, so the two sides drift apart; that's how the texts were digitized, not a fault in the alignment. The ⇅ button on the toolbar turns that off: linked panes suit verse, where a translation keeps roughly the original's line structure, but on prose one Greek sentence can become three English ones and the two sides drift apart until the mirroring is dragging you away from the line you were reading. Your choice is remembered.
