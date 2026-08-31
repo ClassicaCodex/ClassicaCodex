@@ -235,6 +235,68 @@ public class CatalogRecoveryTests : IDisposable
         Assert.NotEmpty(service.FailedFiles);
     }
 
+    /// <summary>
+    /// A folder with no catalogue AND nothing readable in it produces no work
+    /// at all, rather than one named after its identifier.
+    ///
+    /// The fallback used to be the URN, and on a real library that put two
+    /// rows in the library tree reading "urn:cts:latinLit:phi0692.phi009" -
+    /// the Catalepton and Petronius' Poemata, whose only files are malformed,
+    /// so the file that would have given both the title and the text is the
+    /// one that will not parse. A work a reader cannot identify, cannot open
+    /// and cannot act on is worse than no work; the files are reported as
+    /// skipped either way, which is where that news belongs.
+    /// </summary>
+    [Fact]
+    public async Task AFolderWithNothingReadableInItProducesNoWork()
+    {
+        var (data, db) = await NewCorpusAsync();
+        using var _ = db;
+
+        // The textgroup IS catalogued here, so the failure is isolated to the
+        // work folder. A textgroup that cannot be named either is skipped one
+        // level higher up, and recorded there - see
+        // AFolderThatCannotBeNamedAtAllIsRecordedRatherThanDropped.
+        var group = Path.Combine(data, "phi0692");
+        WriteTextGroupCatalog(group, "urn:cts:latinLit:phi0692", "Appendix Vergiliana");
+
+        var dir = Path.Combine(group, "phi009");
+        Directory.CreateDirectory(dir);
+        File.WriteAllText(Path.Combine(dir, "phi0692.phi009.perseus-lat1.xml"),
+            "<TEI.2><teiHeader><fileDesc><titleStmt><title>Catalepton</title>");
+
+        var service = new PerseusIngestService();
+        await service.IngestAsync(new[] { (data, "latinLit") });
+
+        Assert.Empty(await LibraryAsync());
+        Assert.Contains(service.FailedFiles, f => f.FilePath.EndsWith("perseus-lat1.xml"));
+    }
+
+    /// <summary>
+    /// One malformed file among good ones costs only itself. The title comes
+    /// from whichever file yields one, and the bad file is reported by the
+    /// ordinary parse path.
+    /// </summary>
+    [Fact]
+    public async Task OneBadFileAmongGoodOnesDoesNotCostTheWork()
+    {
+        var (data, db) = await NewCorpusAsync();
+        using var _ = db;
+
+        var dir = Path.Combine(data, "phi0914", "phi0011");
+        WriteEdition(dir, "phi0914.phi0011.perseus-lat2.xml",
+            "Titus Livius (Livy)", "Ab Urbe Condita, books 1-2 - 1", "facturusne operae pretium sim");
+        File.WriteAllText(Path.Combine(dir, "phi0914.phi0011.perseus-eng1.xml"), "<TEI.2><text><body>");
+
+        var service = new PerseusIngestService();
+        await service.IngestAsync(new[] { (data, "latinLit") });
+
+        var library = await LibraryAsync();
+        Assert.Contains(library, r => r.Work == "Ab Urbe Condita, books 1-2 - 1");
+        Assert.DoesNotContain(library, r => r.Work.StartsWith("urn:"));
+        Assert.Contains(service.FailedFiles, f => f.FilePath.EndsWith("perseus-eng1.xml"));
+    }
+
     // ------------------------------------------- and where it has to stop
 
     /// <summary>

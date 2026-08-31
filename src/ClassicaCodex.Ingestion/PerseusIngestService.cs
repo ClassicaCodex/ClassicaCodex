@@ -1,3 +1,4 @@
+using ClassicaCodex.Core;
 using System.Text.RegularExpressions;
 using System.Xml.Linq;
 using ClassicaCodex.Core.Models;
@@ -237,6 +238,19 @@ public class PerseusIngestService
                         RecoveredWithoutCatalog.Add((workDir,
                             $"no readable __cts__.xml for the work; read \"{derived.Title}\" from the TEI headers instead"));
                     }
+                    else
+                    {
+                        // No catalogue and nothing in the files to name the work
+                        // with, so there is no work - but the files are still
+                        // there and still unreadable, and the ordinary parse
+                        // path will never reach them to say so. Recorded here
+                        // instead, once each, so the report is the same either
+                        // way round.
+                        foreach (var orphan in EditionFilesUnder(workDir, SearchOption.TopDirectoryOnly))
+                        {
+                            FailedFiles.Add((orphan, DescribeUnreadable(orphan)));
+                        }
+                    }
                 }
 
                 foreach (var workInfo in workInfos)
@@ -421,9 +435,22 @@ public class PerseusIngestService
     /// placeholder: "Ab Urbe Condita, books 1-2 - 1", "De agri cultura",
     /// "Historiam ecclesiasticam gentis Anglorum".
     ///
-    /// Falls back to the URN as the title, the same way ReadWorks does when a
-    /// catalogue has no title element. A work named by its identifier is worse
-    /// than one named properly and much better than one that is not there.
+    /// Returns null when not one file in the folder will give up a title,
+    /// which in practice means every file in it is malformed.
+    ///
+    /// The alternative was falling back to the URN, and it looked like this in
+    /// a real library: a work called
+    /// "urn:cts:latinLit:phi0692.phi009" sitting in the library tree with no
+    /// text behind it, because the one file that would have supplied both the
+    /// title and the text is the one that would not parse. Two of those
+    /// appeared - the Catalepton and Petronius' Poemata - and both are worse
+    /// than nothing: a row a reader cannot identify, cannot open, and cannot
+    /// act on. The files are reported as skipped either way, which is where
+    /// that news belongs.
+    ///
+    /// A folder with one bad file among good ones is unaffected: the title
+    /// comes from any file that yields one, and the bad file is reported by
+    /// the ordinary parse path.
     ///
     /// Same two guards as DeriveTextGroup, for the same reason: only the files
     /// sitting directly in the folder count, and the folder name has to be the
@@ -444,13 +471,48 @@ public class PerseusIngestService
             return null;
         }
 
-        var urn = $"urn:cts:{ns}:{segments[0]}.{segments[1]}";
-
         var title = editionFiles
             .Select(f => TeiHeaderReader.TryRead(f)?.Title)
             .FirstOrDefault(t => !string.IsNullOrWhiteSpace(t));
 
-        return new CtsCatalogReader.WorkInfo(urn, title?.Trim() ?? urn, null);
+        if (string.IsNullOrWhiteSpace(title)) return null;
+
+        return new CtsCatalogReader.WorkInfo(
+            $"urn:cts:{ns}:{segments[0]}.{segments[1]}", title.Trim(), null);
+    }
+
+    /// <summary>
+    /// Why a file in a catalogue-less folder could not be read, in the words
+    /// the XML parser used.
+    ///
+    /// Reported rather than summarised because the detail is the useful part.
+    /// "The 'group' start tag on line 76 does not match the end tag of 'TEI.2'
+    /// on line 419" is something a reader can act on - it is a defect in the
+    /// Perseus file and can be reported upstream with a line number attached.
+    /// "Could not be read" is not.
+    ///
+    /// The load is repeated here because TeiHeaderReader swallows the
+    /// exception, as it should - it answers whether a header could be read,
+    /// not why not. Only ever reached for a folder with no catalogue whose
+    /// files all failed, which across both Perseus corpora is two folders.
+    /// </summary>
+    private static string DescribeUnreadable(string filePath)
+    {
+        try
+        {
+            // Through the sanitiser, because that is the path the ingest takes
+            // and the fault reported has to be the one that actually stops it.
+            // A plain Load on the Catalepton reports an undeclared &mdash; on
+            // line 111 - which the sanitiser resolves, and which is therefore
+            // not why the file fails. It fails on a mismatched tag 300 lines
+            // further down, and that is the line worth quoting.
+            XDocument.Parse(XmlEntitySanitizer.Sanitize(File.ReadAllText(filePath)));
+            return "no catalogue for the work, and nothing in this file to name it from";
+        }
+        catch (Exception ex)
+        {
+            return ex.Message;
+        }
     }
 
     /// <summary>

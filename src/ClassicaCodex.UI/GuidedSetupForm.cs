@@ -677,9 +677,10 @@ public class GuidedSetupForm : ScaledForm
             var outcome = await Task.Run(
                 () => action(source.DefaultDestination, progress, _cts.Token), _cts.Token);
 
-            _statusLabel.Text = outcome.HasSkippedFiles
-                ? $"{source.Title} is ready, but {outcome.SkippedCount:N0} file(s) were skipped."
-                : $"{source.Title} is ready.";
+            // The status line carries both outcomes; the dialog below opens
+            // only for the one worth interrupting someone for. See
+            // SetupSkipReport for why those are different questions.
+            _statusLabel.Text = outcome.Describe(source.Title);
 
             SetupSkipReport.ShowIfAny(this, source.Title, outcome);
         }

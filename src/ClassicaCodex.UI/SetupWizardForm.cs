@@ -538,9 +538,7 @@ public class SetupWizardForm : ScaledForm
             row.StatusLabel.Text = "Ingesting...";
             var outcome = await Task.Run(() => row.RunIngest(destination, progress, _cts.Token), _cts.Token);
 
-            row.StatusLabel.Text = outcome.HasSkippedFiles
-                ? $"Done - {row.Title} is ready, but {outcome.SkippedCount:N0} file(s) were skipped."
-                : $"Done - {row.Title} is ready.";
+            row.StatusLabel.Text = "Done - " + outcome.Describe(row.Title);
 
             SetupSkipReport.ShowIfAny(this, row.Title, outcome);
         }

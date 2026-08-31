@@ -26,70 +26,71 @@ internal static class SetupSkipReport
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
         "ClassicaCodex", "ingest-skipped.log");
 
+    /// <summary>
+    /// Tells the reader what a setup step could not read, and stops there.
+    ///
+    /// A recovered folder does NOT open this box, and that distinction is the
+    /// whole design. The two outcomes are not the same news: a skipped file is
+    /// a work that is not in the library, which is worth interrupting someone
+    /// for; a recovered folder is a work that IS in the library under a name
+    /// taken from the text rather than the catalogue, which is worth recording
+    /// and not worth a modal.
+    ///
+    /// Collapsing them was worse than either. The Latin corpus recovers 71
+    /// folders and skips 3 files, and reporting both in one box - under the
+    /// heading "files skipped", with the skips first and 71 lines of
+    /// recoveries after them - made a step that had just worked correctly read
+    /// as a failure on a first run. The Patrologia Latina would have made that
+    /// several hundred lines.
+    ///
+    /// So the recoveries go to the log and to the step's own status line, and
+    /// are summarised in one sentence here when this box is opening anyway.
+    /// </summary>
     public static void ShowIfAny(IWin32Window owner, string stepTitle, IngestOutcome outcome)
     {
-        if (!outcome.HasAnythingToReport) return;
+        // Always logged, whether or not anything is shown - the log is what
+        // makes this recoverable later, and it costs nothing.
+        var logged = outcome.HasAnythingToReport && TryWriteLog(stepTitle, outcome);
 
-        var logged = TryWriteLog(stepTitle, outcome);
-        var message = new StringBuilder();
+        if (!outcome.HasSkippedFiles) return;
 
-        if (outcome.HasSkippedFiles)
+        var message = new StringBuilder()
+            .AppendLine($"{stepTitle} finished. {outcome.SkippedCount:N0} file(s) couldn't be read and were skipped.")
+            .AppendLine()
+            .AppendLine("Everything else was ingested normally. These are usually malformed or unusual")
+            .AppendLine("source files rather than a problem with your setup - but the works they contain")
+            .AppendLine("won't be in your library.")
+            .AppendLine();
+
+        foreach (var (filePath, error) in outcome.SkippedFiles.Take(MaxShown))
         {
-            message
-                .AppendLine($"{stepTitle} finished, but {outcome.SkippedCount:N0} file(s) couldn't be read and were skipped.")
-                .AppendLine()
-                .AppendLine("Everything else was ingested normally. These are usually malformed or unusual")
-                .AppendLine("source files rather than a problem with your setup - but the works they contain")
-                .AppendLine("won't be in your library.")
-                .AppendLine();
-
-            foreach (var (filePath, error) in outcome.SkippedFiles.Take(MaxShown))
-            {
-                message.AppendLine($"  {Path.GetFileName(filePath)} - {error}");
-            }
-
-            if (outcome.SkippedCount > MaxShown)
-            {
-                message.AppendLine($"  ...and {outcome.SkippedCount - MaxShown:N0} more.");
-            }
+            message.AppendLine($"  {Path.GetFileName(filePath)} - {error}");
         }
 
-        // Deliberately worded as news rather than as a warning. These folders
-        // ARE in the library; what is uncertain is only whether their author
-        // and title read the way the catalogue would have named them.
+        if (outcome.SkippedCount > MaxShown)
+        {
+            message.AppendLine($"  ...and {outcome.SkippedCount - MaxShown:N0} more.");
+        }
+
+        // One sentence, no list. The reader is here about the skips.
         if (outcome.HasRecoveredFolders)
         {
-            if (message.Length > 0) message.AppendLine();
-
             message
-                .AppendLine($"{outcome.RecoveredCount:N0} folder(s) had no catalogue file, so the author and title")
-                .AppendLine("were read from the texts themselves. Those works ARE in your library - the only")
-                .AppendLine("thing to watch is that a title may not be the standard one.")
-                .AppendLine();
-
-            foreach (var (filePath, note) in outcome.RecoveredFolders.Take(MaxShown))
-            {
-                message.AppendLine($"  {Path.GetFileName(filePath.TrimEnd(Path.DirectorySeparatorChar))} - {note}");
-            }
-
-            if (outcome.RecoveredCount > MaxShown)
-            {
-                message.AppendLine($"  ...and {outcome.RecoveredCount - MaxShown:N0} more.");
-            }
+                .AppendLine()
+                .AppendLine($"Separately, and not a problem: {outcome.RecoveredCount:N0} folder(s) had no catalogue")
+                .AppendLine("file, so their author and title were read from the texts instead. Those works are")
+                .AppendLine("in your library; a title may just not be the standard one.");
         }
 
         if (logged)
         {
-            message.AppendLine().Append("The full list is in:").AppendLine().Append(LogPath);
+            message.AppendLine().Append("The full list of both is in:").AppendLine().Append(LogPath);
         }
 
-        var caption = outcome.HasSkippedFiles
-            ? $"{stepTitle} - files skipped"
-            : $"{stepTitle} - names read from the texts";
-
-        MessageBox.Show(owner, message.ToString(), caption,
+        MessageBox.Show(owner, message.ToString(), $"{stepTitle} - files skipped",
             MessageBoxButtons.OK, MessageBoxIcon.Information);
     }
+
 
     private static bool TryWriteLog(string stepTitle, IngestOutcome outcome)
     {

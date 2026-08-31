@@ -67,4 +67,29 @@ public sealed record IngestOutcome(
 
     /// <summary>Whether there is anything at all worth telling the reader.</summary>
     public bool HasAnythingToReport => HasSkippedFiles || HasRecoveredFolders;
+
+    /// <summary>
+    /// The step's one-line summary, naming both outcomes.
+    ///
+    /// This is where a recovery gets said out loud, because it does not open a
+    /// dialog - see SetupSkipReport. The two are different news: a skipped
+    /// file is a work that is NOT in the library and is worth interrupting
+    /// someone for; a recovered folder is a work that IS, under a name read
+    /// from the text rather than the catalogue, and is worth a line and a log
+    /// entry.
+    ///
+    /// Lives on the outcome rather than on the reporter because it is a
+    /// question about the outcome, and because the reporter is a WinForms type
+    /// that no test can reach.
+    /// </summary>
+    public string Describe(string stepTitle)
+    {
+        if (!HasAnythingToReport) return $"{stepTitle} is ready.";
+
+        var parts = new List<string>(2);
+        if (HasSkippedFiles) parts.Add($"{SkippedCount:N0} file(s) skipped");
+        if (HasRecoveredFolders) parts.Add($"{RecoveredCount:N0} named from their texts");
+
+        return $"{stepTitle} is ready - {string.Join(", ", parts)}.";
+    }
 }
