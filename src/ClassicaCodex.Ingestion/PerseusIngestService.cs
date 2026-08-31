@@ -57,6 +57,13 @@ public class PerseusIngestService
     public List<(string FilePath, string Error)> RecoveredWithoutCatalog { get; } = new();
 
     /// <summary>
+    /// Every source file this run opened, successfully or not - the
+    /// denominator a skip should be reported against. See
+    /// IngestOutcome.FilesAttempted.
+    /// </summary>
+    public int FilesAttempted { get; private set; }
+
+    /// <summary>
     /// The one author to file every textgroup under whose catalog names nobody. Null -
     /// the default - passes them over, which is right for a corpus where a missing name
     /// means a malformed file.
@@ -246,8 +253,14 @@ public class PerseusIngestService
                         // path will never reach them to say so. Recorded here
                         // instead, once each, so the report is the same either
                         // way round.
+                        // Counted as attempted as well as failed - the loop that
+                        // normally does the counting is the one this folder
+                        // never reaches, and a skip missing from the
+                        // denominator makes the proportion that decides
+                        // whether to interrupt the reader wrong.
                         foreach (var orphan in EditionFilesUnder(workDir, SearchOption.TopDirectoryOnly))
                         {
+                            FilesAttempted++;
                             FailedFiles.Add((orphan, DescribeUnreadable(orphan)));
                         }
                     }
@@ -281,6 +294,7 @@ public class PerseusIngestService
         foreach (var editionFile in editionFiles)
         {
             cancellationToken.ThrowIfCancellationRequested();
+            FilesAttempted++;
 
             try
             {

@@ -28,9 +28,19 @@ namespace ClassicaCodex.Ingestion;
 /// wrong; not reporting it at all would repeat the mistake this whole type
 /// exists to correct, one step down.
 /// </param>
+/// <param name="FilesAttempted">
+/// How many source files the step opened, so a skip can be reported against
+/// the whole rather than on its own.
+///
+/// "3 files couldn't be read" and "684 of 687 files installed" describe the
+/// same run and land completely differently, and the second is the true one:
+/// the step worked. Zero means the step does not count files - most do not -
+/// and the wording falls back to the bare number.
+/// </param>
 public sealed record IngestOutcome(
     IReadOnlyList<(string FilePath, string Error)> SkippedFiles,
-    IReadOnlyList<(string FilePath, string Error)> RecoveredFolders)
+    IReadOnlyList<(string FilePath, string Error)> RecoveredFolders,
+    int FilesAttempted = 0)
 {
     /// <summary>For steps that either succeed wholesale or throw - most of them.</summary>
     public static IngestOutcome Clean { get; } =
@@ -38,12 +48,13 @@ public sealed record IngestOutcome(
 
     public static IngestOutcome From(
         IReadOnlyList<(string FilePath, string Error)> skipped,
-        IReadOnlyList<(string FilePath, string Error)>? recovered = null)
+        IReadOnlyList<(string FilePath, string Error)>? recovered = null,
+        int attempted = 0)
     {
         var recoveredList = recovered ?? Array.Empty<(string, string)>();
-        return skipped.Count == 0 && recoveredList.Count == 0
+        return skipped.Count == 0 && recoveredList.Count == 0 && attempted == 0
             ? Clean
-            : new IngestOutcome(skipped.ToList(), recoveredList.ToList());
+            : new IngestOutcome(skipped.ToList(), recoveredList.ToList(), attempted);
     }
 
     /// <summary>Combines the results of several passes within one setup step.</summary>
@@ -51,11 +62,39 @@ public sealed record IngestOutcome(
     {
         var skipped = outcomes.SelectMany(o => o.SkippedFiles).ToList();
         var recovered = outcomes.SelectMany(o => o.RecoveredFolders).ToList();
+        var attempted = outcomes.Sum(o => o.FilesAttempted);
 
-        return skipped.Count == 0 && recovered.Count == 0
+        return skipped.Count == 0 && recovered.Count == 0 && attempted == 0
             ? Clean
-            : new IngestOutcome(skipped, recovered);
+            : new IngestOutcome(skipped, recovered, attempted);
     }
+
+    /// <summary>Files that went in - what the step is actually for.</summary>
+    public int InstalledCount => Math.Max(0, FilesAttempted - SkippedCount);
+
+    /// <summary>
+    /// Whether the skips are worth stopping the reader to say.
+    ///
+    /// They are not, usually. The three files the Latin corpus refuses are
+    /// malformed in the Perseus repository itself - the same three every run,
+    /// on every machine, until somebody upstream fixes the XML - so a modal
+    /// about them is a modal about somebody else's typo, shown forever. Three
+    /// files in 687 is a fact about the data, not a problem with the setup,
+    /// and reporting it as though the reader could act on it is what made a
+    /// step that worked read as a failure.
+    ///
+    /// A clone that went wrong looks nothing like that. It fails in bulk -
+    /// hundreds of files, or a large share of a small corpus - and that IS
+    /// worth interrupting for, because re-running fixes it.
+    ///
+    /// So: one in twenty, or twenty-five files, whichever comes first. Below
+    /// that the status line and the log carry it, which is not silence - the
+    /// thing this whole type exists to prevent - just proportion. A step that
+    /// does not count its files keeps the old behaviour and always shows.
+    /// </summary>
+    public bool SkipsAreWorthInterrupting =>
+        HasSkippedFiles
+        && (FilesAttempted == 0 || SkippedCount >= 25 || SkippedCount * 20 >= FilesAttempted);
 
     public int SkippedCount => SkippedFiles.Count;
 
@@ -84,12 +123,26 @@ public sealed record IngestOutcome(
     /// </summary>
     public string Describe(string stepTitle)
     {
-        if (!HasAnythingToReport) return $"{stepTitle} is ready.";
-
         var parts = new List<string>(2);
-        if (HasSkippedFiles) parts.Add($"{SkippedCount:N0} file(s) skipped");
+
+        // Led with the count that went in, not the count that did not. Both
+        // numbers are true and only one of them is what the reader wanted to
+        // know.
+        if (FilesAttempted > 0)
+        {
+            parts.Add(HasSkippedFiles
+                ? $"{InstalledCount:N0} of {FilesAttempted:N0} files installed"
+                : $"{InstalledCount:N0} files installed");
+        }
+        else if (HasSkippedFiles)
+        {
+            parts.Add($"{SkippedCount:N0} file(s) skipped");
+        }
+
         if (HasRecoveredFolders) parts.Add($"{RecoveredCount:N0} named from their texts");
 
-        return $"{stepTitle} is ready - {string.Join(", ", parts)}.";
+        return parts.Count == 0
+            ? $"{stepTitle} is ready."
+            : $"{stepTitle} is ready - {string.Join(", ", parts)}.";
     }
 }

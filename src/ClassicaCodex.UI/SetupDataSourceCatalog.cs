@@ -88,7 +88,7 @@ public static class SetupDataSourceCatalog
                     await service.IngestAsync(
                         new[] { (Path.Combine(root, "data"), "greekLit") }, wrapped, ct);
                     await editionRepo.StampCollectionAsync(root, CollectionKeys.PerseusGreek, ct);
-                    return IngestOutcome.From(service.FailedFiles, service.RecoveredWithoutCatalog);
+                    return IngestOutcome.From(service.FailedFiles, service.RecoveredWithoutCatalog, service.FilesAttempted);
                 },
                 // Checked by collection, which is the only thing that answers
                 // for this step alone.
@@ -123,7 +123,7 @@ public static class SetupDataSourceCatalog
                     await service.IngestAsync(
                         new[] { (Path.Combine(root, "data"), "latinLit") }, wrapped, ct);
                     await editionRepo.StampCollectionAsync(root, CollectionKeys.PerseusLatin, ct);
-                    return IngestOutcome.From(service.FailedFiles, service.RecoveredWithoutCatalog);
+                    return IngestOutcome.From(service.FailedFiles, service.RecoveredWithoutCatalog, service.FilesAttempted);
                 },
                 // Same reasoning as the Greek row above, and this is the row
                 // where it was actually observed. A library holding only the
@@ -315,7 +315,7 @@ public static class SetupDataSourceCatalog
                     if (!Directory.Exists(renaissance))
                     {
                         await editionRepo.StampCollectionAsync(root, CollectionKeys.Renaissance, ct);
-                        return IngestOutcome.From(cts.FailedFiles, cts.RecoveredWithoutCatalog);
+                        return IngestOutcome.From(cts.FailedFiles, cts.RecoveredWithoutCatalog, cts.FilesAttempted);
                     }
 
                     var preCts = new RenaissanceIngestService();
@@ -326,7 +326,7 @@ public static class SetupDataSourceCatalog
                     await editionRepo.StampCollectionAsync(root, CollectionKeys.Renaissance, ct);
 
                     return IngestOutcome.Combine(
-                        IngestOutcome.From(cts.FailedFiles, cts.RecoveredWithoutCatalog),
+                        IngestOutcome.From(cts.FailedFiles, cts.RecoveredWithoutCatalog, cts.FilesAttempted),
                         IngestOutcome.From(preCts.FailedFiles));
                 },
                 CheckComplete = async () =>
@@ -574,7 +574,7 @@ public static class SetupDataSourceCatalog
                     }, ct);
 
                     await editionRepo.StampCollectionAsync(root, CollectionKeys.First1KGreek, ct);
-                    return IngestOutcome.From(service.FailedFiles, service.RecoveredWithoutCatalog);
+                    return IngestOutcome.From(service.FailedFiles, service.RecoveredWithoutCatalog, service.FilesAttempted);
                 },
                 // Authors.Namespace="greekLit" is already >0 from the
                 // classical corpus alone, so the namespace check the Greek and
@@ -648,7 +648,7 @@ public static class SetupDataSourceCatalog
                         new[] { (Path.Combine(root, "data"), "latinLit") }, wrapped, ct);
 
                     await editionRepo.StampCollectionAsync(root, CollectionKeys.Csel, ct);
-                    return IngestOutcome.From(service.FailedFiles, service.RecoveredWithoutCatalog);
+                    return IngestOutcome.From(service.FailedFiles, service.RecoveredWithoutCatalog, service.FilesAttempted);
                 },
 
                 // Same reasoning as First1KGreek above: Authors.Namespace="latinLit" is
@@ -718,7 +718,7 @@ public static class SetupDataSourceCatalog
                         new[] { (Path.Combine(root, "data"), "latinLit") }, wrapped, ct);
 
                     await editionRepo.StampCollectionAsync(root, CollectionKeys.PatrologiaLatina, ct);
-                    return IngestOutcome.From(service.FailedFiles, service.RecoveredWithoutCatalog);
+                    return IngestOutcome.From(service.FailedFiles, service.RecoveredWithoutCatalog, service.FilesAttempted);
                 },
 
                 CheckComplete = async () =>
@@ -752,7 +752,7 @@ public static class SetupDataSourceCatalog
                         new[] { (Path.Combine(root, "data"), "pdlpsci") }, wrapped, ct);
 
                     await editionRepo.StampCollectionAsync(root, CollectionKeys.PoliticalTheory, ct);
-                    return IngestOutcome.From(service.FailedFiles, service.RecoveredWithoutCatalog);
+                    return IngestOutcome.From(service.FailedFiles, service.RecoveredWithoutCatalog, service.FilesAttempted);
                 },
 
                 CheckComplete = async () =>

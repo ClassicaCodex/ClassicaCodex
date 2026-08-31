@@ -140,19 +140,23 @@ public class IngestForm : ScaledForm
 
             // Both lists, and through the same reporter the Guided path uses,
             // rather than a second hand-built message that can drift from it.
-            var outcome = IngestOutcome.From(service.FailedFiles, service.RecoveredWithoutCatalog);
+            var outcome = IngestOutcome.From(service.FailedFiles, service.RecoveredWithoutCatalog, service.FilesAttempted);
 
-            _statusLabel.Text = service.FailedFiles.Count > 0
-                ? $"Done, but {service.FailedFiles.Count} file(s) were skipped."
-                : "Ingest complete.";
+            _statusLabel.Text = outcome.Describe("Ingest");
 
-            if (outcome.HasAnythingToReport)
+            // ShowIfAny decides for itself whether the skips are worth a box -
+            // see IngestOutcome.SkipsAreWorthInterrupting. When they are not,
+            // this still confirms the run finished, because a manual ingest was
+            // started by a button and wants an answer.
+            if (outcome.SkipsAreWorthInterrupting)
             {
                 SetupSkipReport.ShowIfAny(this, "Ingest", outcome);
             }
             else
             {
-                MessageBox.Show(this, "Ingest finished.", "Done", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                SetupSkipReport.ShowIfAny(this, "Ingest", outcome);
+                MessageBox.Show(this, outcome.Describe("Ingest"), "Done",
+                    MessageBoxButtons.OK, MessageBoxIcon.Information);
             }
         }
         catch (OperationCanceledException)

@@ -82,4 +82,63 @@ public class SetupReportTests
         Assert.Equal(3, combined.SkippedCount);
         Assert.Equal(8, combined.RecoveredCount);
     }
+
+    // ------------------------------- when a skip is worth interrupting for
+
+    /// <summary>
+    /// The Latin corpus exactly. Three files in 687 are malformed in the
+    /// Perseus repository itself - the same three on every machine, every run,
+    /// until somebody upstream fixes the XML. A modal about them is a modal
+    /// about another project's typo, shown forever, and it is what made a step
+    /// that worked read as a failure.
+    /// </summary>
+    [Fact]
+    public void AHandfulOfBadFilesInALargeCorpusDoesNotInterrupt() =>
+        Assert.False(Attempted(687, skipped: 3).SkipsAreWorthInterrupting);
+
+    /// <summary>
+    /// A clone that went wrong looks nothing like that - it fails in bulk, and
+    /// re-running fixes it, so it is worth stopping for.
+    /// </summary>
+    [Theory]
+    [InlineData(687, 200)]
+    [InlineData(687, 40)]
+    [InlineData(60, 6)]
+    public void BulkFailureDoesInterrupt(int attempted, int skipped) =>
+        Assert.True(Attempted(attempted, skipped).SkipsAreWorthInterrupting);
+
+    /// <summary>
+    /// A step that does not count its files keeps the old behaviour and always
+    /// shows, because without a denominator there is no way to tell three bad
+    /// files from three that were all there was.
+    /// </summary>
+    [Fact]
+    public void AStepThatCountsNothingStillInterrupts() =>
+        Assert.True(Outcome(skipped: 3, recovered: 0).SkipsAreWorthInterrupting);
+
+    [Fact]
+    public void NoSkipsNeverInterrupts() =>
+        Assert.False(Attempted(687, skipped: 0).SkipsAreWorthInterrupting);
+
+    /// <summary>
+    /// The status line leads with what went in, not with what did not.
+    /// </summary>
+    [Fact]
+    public void TheStatusLineLeadsWithWhatWasInstalled() =>
+        Assert.Equal(
+            "Ancient Latin Texts is ready - 684 of 687 files installed, 69 named from their texts.",
+            new IngestOutcome(
+                Enumerable.Range(0, 3).Select(i => ($"bad{i}.xml", "malformed")).ToList(),
+                Enumerable.Range(0, 69).Select(i => ($"folder{i}", "read from the headers")).ToList(),
+                687).Describe("Ancient Latin Texts"));
+
+    [Fact]
+    public void ACleanRunThatCountedFilesSaysHowMany() =>
+        Assert.Equal("Ancient Greek Texts is ready - 1,612 files installed.",
+            Attempted(1612, skipped: 0).Describe("Ancient Greek Texts"));
+
+    private static IngestOutcome Attempted(int attempted, int skipped) =>
+        new(Enumerable.Range(0, skipped).Select(i => ($"bad{i}.xml", "malformed")).ToList(),
+            Array.Empty<(string, string)>(),
+            attempted);
 }
