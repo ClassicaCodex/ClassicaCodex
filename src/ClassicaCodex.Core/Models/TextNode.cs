@@ -65,6 +65,35 @@ public class TextNode
     /// kind should degrade to "shown but not counted", not throw.
     /// </summary>
     public string NodeKind { get; set; } = TextNodeKinds.Line;
+
+    /// <summary>
+    /// True when the source marked this node as a line of verse - TEI
+    /// &lt;l&gt;, or an &lt;lg&gt; emitted whole because it holds no
+    /// &lt;l&gt; of its own.
+    ///
+    /// Separate from <see cref="NodeKind"/> rather than a value of it,
+    /// because the two answer different questions and a node answers both at
+    /// once. A speaker attribution in a verse play is a Speaker and is not
+    /// verse; a chorus line is a Line and is. Folding verse into NodeKind
+    /// would have made every line of poetry in the library something other
+    /// than <see cref="TextNodeKinds.Line"/>, and the frequency-based
+    /// features filter to exactly that - so word counts, core vocabulary and
+    /// Burrows's Delta would have quietly stopped seeing Homer.
+    ///
+    /// The distinction was in the TEI all along and was being dropped at the
+    /// parser: &lt;l&gt; and &lt;p&gt; are both leaves, both became Line, and
+    /// nothing downstream could tell an epic from a treatise. Anything that
+    /// wants to scan a line, count a metre or offer verse-only results needs
+    /// this, and none of it can be recovered from Text - Latin and Greek as
+    /// Perseus prints them carry no vowel-length marks and no line-shape hint
+    /// beyond the markup.
+    ///
+    /// False on an existing library until it is re-ingested, exactly as
+    /// NodeKind was. False is also the honest default: not-known-to-be-verse
+    /// is what an unlabelled row actually is, and a feature that reads this
+    /// should say "no verse found here" rather than guess.
+    /// </summary>
+    public bool IsVerse { get; set; }
 }
 
 /// <summary>

@@ -88,7 +88,7 @@ public class TextNodeRepository
             for (var i = 0; i < batchSize; i++)
             {
                 var node = nodes[offset + i];
-                valueRows.Add($"(@e{i},@c{i},@s{i},@t{i},@a{i},@k{i})");
+                valueRows.Add($"(@e{i},@c{i},@s{i},@t{i},@a{i},@k{i},@v{i})");
                 cmd.Parameters.AddWithValue($"@e{i}", node.EditionId);
                 cmd.Parameters.AddWithValue($"@c{i}", node.CitationRef);
                 cmd.Parameters.AddWithValue($"@s{i}", node.SortOrder);
@@ -96,10 +96,11 @@ public class TextNodeRepository
                 cmd.Parameters.AddWithValue($"@a{i}", node.IsAthetized ? 1 : 0);
                 cmd.Parameters.AddWithValue($"@k{i}",
                     string.IsNullOrWhiteSpace(node.NodeKind) ? TextNodeKinds.Line : node.NodeKind);
+                cmd.Parameters.AddWithValue($"@v{i}", node.IsVerse ? 1 : 0);
             }
 
             cmd.CommandText =
-                $"INSERT INTO TextNodes (EditionId, CitationRef, SortOrder, Text, IsAthetized, NodeKind) VALUES {string.Join(",", valueRows)};";
+                $"INSERT INTO TextNodes (EditionId, CitationRef, SortOrder, Text, IsAthetized, NodeKind, IsVerse) VALUES {string.Join(",", valueRows)};";
             await cmd.ExecuteNonQueryAsync(cancellationToken);
         }
 
@@ -128,7 +129,8 @@ public class TextNodeRepository
             : string.Empty;
 
         var sql = @"SELECT TextNodeId, EditionId, CitationRef, SortOrder, Text,
-                           COALESCE(IsAthetized, 0), COALESCE(NodeKind, 'line')
+                           COALESCE(IsAthetized, 0), COALESCE(NodeKind, 'line'),
+                           COALESCE(IsVerse, 0)
                     FROM TextNodes
                     WHERE EditionId = @EditionId " + kindFilter + "ORDER BY SortOrder;";
 
@@ -147,7 +149,8 @@ public class TextNodeRepository
                 SortOrder = reader.GetInt32(3),
                 Text = reader.GetString(4),
                 IsAthetized = reader.GetInt32(5) != 0,
-                NodeKind = reader.GetString(6)
+                NodeKind = reader.GetString(6),
+                IsVerse = reader.GetInt32(7) != 0
             });
         }
 
@@ -687,7 +690,7 @@ public class TextNodeRepository
 
         const string sql = @"
             SELECT TextNodeId, EditionId, CitationRef, SortOrder, Text,
-                   COALESCE(NodeKind, 'line')
+                   COALESCE(NodeKind, 'line'), COALESCE(IsVerse, 0)
             FROM TextNodes
             WHERE EditionId = @EditionId
               AND SortOrder >= (SELECT SortOrder FROM TextNodes WHERE TextNodeId = @StartId)
@@ -710,7 +713,8 @@ public class TextNodeRepository
                 CitationRef = reader.GetString(2),
                 SortOrder = reader.GetInt32(3),
                 Text = reader.GetString(4),
-                NodeKind = reader.GetString(5)
+                NodeKind = reader.GetString(5),
+                IsVerse = reader.GetInt32(6) != 0
             });
         }
 

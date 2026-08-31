@@ -102,6 +102,26 @@ public class TeiParser
         BlockKinds.TryGetValue(localName, out var kind) ? kind : TextNodeKinds.Line;
 
     /// <summary>
+    /// The elements that mean "this is a line of verse". See
+    /// <see cref="TextNode.IsVerse"/> for why this is asked separately from
+    /// <see cref="KindFor"/> rather than being one more kind.
+    ///
+    /// &lt;lg&gt; is here for the case the leaf branch actually sees: a verse
+    /// group whose text sits directly in it rather than in &lt;l&gt;
+    /// children. A group that does hold lines is descended into well before
+    /// this is asked, and each line answers for itself.
+    ///
+    /// Deliberately not inferred from anything but the markup. A prose
+    /// paragraph that happens to scan is not verse, an unmarked verse text is
+    /// not something this can recover, and guessing from the text would make
+    /// the flag mean "looked like verse to us" - which is a measurement, and
+    /// belongs to whatever does the measuring, not to the parser.
+    /// </summary>
+    private static bool IsVerseElement(string localName) =>
+        string.Equals(localName, "l", StringComparison.OrdinalIgnoreCase)
+        || string.Equals(localName, "lg", StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>
     /// Whether an element contains anything WalkDiv would recognise.
     ///
     /// This is the test that decides between descending and emitting. A
@@ -425,6 +445,9 @@ public class TeiParser
 
         /// <summary>See <see cref="TextNode.NodeKind"/>.</summary>
         public string NodeKind { get; set; } = TextNodeKinds.Line;
+
+        /// <summary>See <see cref="TextNode.IsVerse"/>.</summary>
+        public bool IsVerse { get; set; }
     }
 
     /// <summary>
@@ -999,7 +1022,8 @@ public class TeiParser
                     CitationRef = leafRef,
                     SortOrder = sortCounter++,
                     Text = text.Trim(),
-                    NodeKind = TextNodeKinds.Line
+                    NodeKind = TextNodeKinds.Line,
+                    IsVerse = IsVerseElement(child.Name.LocalName)
                 });
             }
             else if (!HasHandledDescendant(child))
@@ -1385,7 +1409,8 @@ public class TeiParser
             SortOrder = p.SortOrder,
             Text = p.Text,
             IsAthetized = p.IsAthetized,
-            NodeKind = p.NodeKind
+            NodeKind = p.NodeKind,
+            IsVerse = p.IsVerse
         }).ToList();
     }
 }

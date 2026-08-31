@@ -55,7 +55,7 @@ public static class SchemaInitializer
     /// 7 to 13 until version 3 was cut, at which point they all failed at
     /// once and said nothing about what had actually broken.
     /// </summary>
-    public const int TargetSchemaVersion = 34;
+    public const int TargetSchemaVersion = 35;
 
     public static async Task EnsureSchemaAsync(CancellationToken cancellationToken = default)
     {
@@ -1202,6 +1202,33 @@ public static class SchemaInitializer
               FROM RecentSearches;",
             "DROP TABLE RecentSearches;",
             "ALTER TABLE RecentSearches_v34 RENAME TO RecentSearches;"
+        },
+
+        // v35: which lines are verse.
+        //
+        // TEI distinguishes a verse line from a prose paragraph - <l> against
+        // <p> - and the parser has been discarding that since the first
+        // ingest. Both are leaves, both became a node of kind 'line', and
+        // nothing downstream could tell the Aeneid from the Institutio
+        // Oratoria. It is not recoverable from the stored text either: the
+        // Greek and Latin as Perseus prints it carries no vowel-length marks,
+        // so a line's shape lives in the markup and nowhere else.
+        //
+        // A column of its own rather than a NodeKind value, because the two
+        // are different axes and a node has both. A speaker attribution in a
+        // verse play is a Speaker and is not verse; a chorus line is a Line
+        // and is. Making verse a kind would have moved every line of poetry
+        // out of 'line', which is the exact value the frequency-based
+        // features filter to - Homer would have vanished from word counts,
+        // core vocabulary and Burrows's Delta, silently and everywhere.
+        //
+        // Defaulting to 0 leaves an existing library reading exactly as it
+        // did, and is the honest value besides: an unlabelled row is not
+        // known to be verse, which is what 0 says. Only a re-ingest fills it
+        // in, as with NodeKind in migration 14.
+        [35] = new[]
+        {
+            @"ALTER TABLE TextNodes ADD COLUMN IsVerse INTEGER NOT NULL DEFAULT 0;"
         }
     };
 
@@ -1831,6 +1858,7 @@ public static class SchemaInitializer
             Text        TEXT NOT NULL,
             IsAthetized INTEGER NOT NULL DEFAULT 0,
             NodeKind    TEXT NOT NULL DEFAULT 'line',
+            IsVerse     INTEGER NOT NULL DEFAULT 0,
             CONSTRAINT FK_TextNodes_Editions FOREIGN KEY (EditionId) REFERENCES Editions(EditionId)
         );",
 

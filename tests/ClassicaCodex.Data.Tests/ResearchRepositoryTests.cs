@@ -221,6 +221,11 @@ public class ResearchRepositoryTests
         await workRepo.SetAttributionAsync(workId, AttributionStatus.Disputed, "My considered view");
 
         await db.ExecuteAsync("DROP TABLE ResearchHypothesisAssessments; DROP TABLE ResearchExperiments; DROP TABLE ResearchHypotheses; DROP TABLE ResearchEchoParallelAnalyses; DROP TABLE ResearchEchoResults; DROP TABLE ResearchEchoInvestigations; DROP TABLE ResearchFindingEvidence; DROP TABLE ResearchFindings; DROP TABLE ResearchReadingItems; DROP TABLE ResearchCorpusSnapshotEntries; DROP TABLE ResearchCorpusSnapshots; DROP TABLE EvidenceBibliographyMetadata; DROP TABLE EvidencePageAnnotations; DROP TABLE EvidenceAttachments; DROP TABLE ScholarlyClaims; DROP TABLE EvidenceGenerationMetadata; DROP TABLE ResearchLogEntries; DROP TABLE EvidenceItems; DROP TABLE ResearchQuestions; DROP TABLE ResearchProjects; PRAGMA user_version=17;");
+
+        // Rewinding by hand leaves behind every column a later ALTER migration
+        // added, because a fresh database is built from the current schema. This
+        // drops them - see TempDatabase.RewindSchemaAsync.
+        await db.RewindSchemaAsync(17);
         await SchemaInitializer.EnsureSchemaAsync();
 
         var attribution = await workRepo.GetAttributionAsync(workId);
@@ -261,6 +266,11 @@ public class ResearchRepositoryTests
         await repo.SaveEvidenceAsync(evidence);
 
         await db.ExecuteAsync("DROP TABLE ResearchHypothesisAssessments; DROP TABLE ResearchExperiments; DROP TABLE ResearchHypotheses; DROP TABLE ResearchEchoParallelAnalyses; DROP TABLE ResearchEchoResults; DROP TABLE ResearchEchoInvestigations; DROP TABLE ResearchFindingEvidence; DROP TABLE ResearchFindings; DROP TABLE ResearchReadingItems; DROP TABLE ResearchCorpusSnapshotEntries; DROP TABLE ResearchCorpusSnapshots; DROP TABLE EvidenceBibliographyMetadata; DROP TABLE EvidencePageAnnotations; DROP TABLE EvidenceAttachments; DROP TABLE ScholarlyClaims; DROP TABLE EvidenceGenerationMetadata; DROP TABLE ResearchLogEntries; PRAGMA user_version=18;");
+
+        // Rewinding by hand leaves behind every column a later ALTER migration
+        // added, because a fresh database is built from the current schema. This
+        // drops them - see TempDatabase.RewindSchemaAsync.
+        await db.RewindSchemaAsync(18);
         await SchemaInitializer.EnsureSchemaAsync();
 
         Assert.Equal("Existing project",
@@ -461,6 +471,11 @@ public class ResearchRepositoryTests
         await repo.SaveProjectAsync(project);
 
         await db.ExecuteAsync("DROP TABLE ResearchHypothesisAssessments; DROP TABLE ResearchExperiments; DROP TABLE ResearchHypotheses; DROP TABLE ResearchEchoParallelAnalyses; DROP TABLE ResearchEchoResults; DROP TABLE ResearchEchoInvestigations; DROP TABLE ResearchFindingEvidence; DROP TABLE ResearchFindings; DROP TABLE ResearchReadingItems; DROP TABLE ResearchCorpusSnapshotEntries; DROP TABLE ResearchCorpusSnapshots; DROP TABLE EvidenceBibliographyMetadata; DROP TABLE EvidencePageAnnotations; DROP TABLE EvidenceAttachments; DROP TABLE ScholarlyClaims; PRAGMA user_version=20;");
+
+        // Rewinding by hand leaves behind every column a later ALTER migration
+        // added, because a fresh database is built from the current schema. This
+        // drops them - see TempDatabase.RewindSchemaAsync.
+        await db.RewindSchemaAsync(20);
         await SchemaInitializer.EnsureSchemaAsync();
 
         Assert.Equal("Existing project", Assert.Single(
@@ -551,6 +566,11 @@ public class ResearchRepositoryTests
         await repo.SaveProjectAsync(project);
 
         await db.ExecuteAsync("DROP TABLE ResearchHypothesisAssessments; DROP TABLE ResearchExperiments; DROP TABLE ResearchHypotheses; DROP TABLE ResearchEchoParallelAnalyses; DROP TABLE ResearchEchoResults; DROP TABLE ResearchEchoInvestigations; DROP TABLE ResearchFindingEvidence; DROP TABLE ResearchFindings; DROP TABLE ResearchReadingItems; DROP TABLE ResearchCorpusSnapshotEntries; DROP TABLE ResearchCorpusSnapshots; DROP TABLE EvidenceBibliographyMetadata; DROP TABLE EvidencePageAnnotations; DROP TABLE EvidenceAttachments; PRAGMA user_version=21;");
+
+        // Rewinding by hand leaves behind every column a later ALTER migration
+        // added, because a fresh database is built from the current schema. This
+        // drops them - see TempDatabase.RewindSchemaAsync.
+        await db.RewindSchemaAsync(21);
         await SchemaInitializer.EnsureSchemaAsync();
 
         Assert.Equal("Existing project", Assert.Single(
@@ -600,6 +620,11 @@ public class ResearchRepositoryTests
         var repo = new ResearchRepository(); var project = new ResearchProject { WorkId = await db.WorkIdForAsync("test1"), Name = "Existing project" };
         await repo.SaveProjectAsync(project);
         await db.ExecuteAsync("DROP TABLE ResearchHypothesisAssessments; DROP TABLE ResearchExperiments; DROP TABLE ResearchHypotheses; DROP TABLE ResearchEchoParallelAnalyses; DROP TABLE ResearchEchoResults; DROP TABLE ResearchEchoInvestigations; DROP TABLE ResearchFindingEvidence; DROP TABLE ResearchFindings; DROP TABLE ResearchReadingItems; DROP TABLE ResearchCorpusSnapshotEntries; DROP TABLE ResearchCorpusSnapshots; DROP TABLE EvidenceBibliographyMetadata; PRAGMA user_version=22;");
+
+        // Rewinding by hand leaves behind every column a later ALTER migration
+        // added, because a fresh database is built from the current schema. This
+        // drops them - see TempDatabase.RewindSchemaAsync.
+        await db.RewindSchemaAsync(22);
         await SchemaInitializer.EnsureSchemaAsync();
 
         Assert.Equal("Existing project", Assert.Single(await repo.GetProjectsForWorkAsync(project.WorkId!.Value)).Name);
@@ -685,6 +710,11 @@ public class ResearchRepositoryTests
         using var db = await TempDatabase.CreateAsync(); await db.SeedEditionAsync(); var repo = new ResearchRepository();
         var project = new ResearchProject { WorkId = await db.WorkIdForAsync("test1"), Name = "Existing project" }; await repo.SaveProjectAsync(project);
         await db.ExecuteAsync("DROP TABLE ResearchHypothesisAssessments; DROP TABLE ResearchExperiments; DROP TABLE ResearchHypotheses; DROP TABLE ResearchEchoParallelAnalyses; DROP TABLE ResearchEchoResults; DROP TABLE ResearchEchoInvestigations; DROP TABLE ResearchFindingEvidence; DROP TABLE ResearchFindings; DROP TABLE ResearchReadingItems; DROP TABLE ResearchCorpusSnapshotEntries; DROP TABLE ResearchCorpusSnapshots; PRAGMA user_version=23;");
+
+        // Rewinding by hand leaves behind every column a later ALTER migration
+        // added, because a fresh database is built from the current schema. This
+        // drops them - see TempDatabase.RewindSchemaAsync.
+        await db.RewindSchemaAsync(23);
         await SchemaInitializer.EnsureSchemaAsync();
 
         Assert.Equal("Existing project", Assert.Single(await repo.GetProjectsForWorkAsync(project.WorkId!.Value)).Name);
@@ -824,6 +854,11 @@ public class ResearchRepositoryTests
         await research.SaveProjectAsync(project);
         await db.ExecuteAsync("DROP TABLE ResearchHypothesisAssessments; DROP TABLE ResearchExperiments; DROP TABLE ResearchHypotheses; DROP TABLE ResearchEchoParallelAnalyses; DROP TABLE ResearchEchoResults; DROP TABLE ResearchEchoInvestigations; DROP TABLE ResearchFindingEvidence; DROP TABLE ResearchFindings; DROP TABLE ResearchReadingItems; PRAGMA user_version=24;");
 
+        // Rewinding by hand leaves behind every column a later ALTER migration
+        // added, because a fresh database is built from the current schema. This
+        // drops them - see TempDatabase.RewindSchemaAsync.
+        await db.RewindSchemaAsync(24);
+
         await SchemaInitializer.EnsureSchemaAsync();
 
         Assert.Equal("Existing project", Assert.Single(await research.GetProjectsForWorkAsync(project.WorkId!.Value)).Name);
@@ -927,6 +962,11 @@ public class ResearchRepositoryTests
         };
         await research.SaveProjectAsync(project);
         await db.ExecuteAsync("DROP TABLE ResearchHypothesisAssessments; DROP TABLE ResearchExperiments; DROP TABLE ResearchHypotheses; DROP TABLE ResearchEchoParallelAnalyses; DROP TABLE ResearchEchoResults; DROP TABLE ResearchEchoInvestigations; DROP TABLE ResearchFindingEvidence; DROP TABLE ResearchFindings; PRAGMA user_version=25;");
+
+        // Rewinding by hand leaves behind every column a later ALTER migration
+        // added, because a fresh database is built from the current schema. This
+        // drops them - see TempDatabase.RewindSchemaAsync.
+        await db.RewindSchemaAsync(25);
 
         await SchemaInitializer.EnsureSchemaAsync();
 
@@ -1033,6 +1073,11 @@ public class ResearchRepositoryTests
         using var db = await TempDatabase.CreateAsync();
         await db.ExecuteAsync("DROP TABLE ResearchHypothesisAssessments; DROP TABLE ResearchExperiments; DROP TABLE ResearchHypotheses; DROP TABLE ResearchEchoParallelAnalyses; DROP TABLE ResearchEchoResults; DROP TABLE ResearchEchoInvestigations; PRAGMA user_version=26;");
 
+        // Rewinding by hand leaves behind every column a later ALTER migration
+        // added, because a fresh database is built from the current schema. This
+        // drops them - see TempDatabase.RewindSchemaAsync.
+        await db.RewindSchemaAsync(26);
+
         await SchemaInitializer.EnsureSchemaAsync();
 
         Assert.True(await db.TableExistsAsync("ResearchEchoInvestigations"));
@@ -1052,6 +1097,11 @@ public class ResearchRepositoryTests
             ALTER TABLE ResearchEchoResults DROP COLUMN MotifTags;
             ALTER TABLE ResearchEchoResults DROP COLUMN ParallelNote;
             PRAGMA user_version=27;");
+
+        // Rewinding by hand leaves behind every column a later ALTER migration
+        // added, because a fresh database is built from the current schema. This
+        // drops them - see TempDatabase.RewindSchemaAsync.
+        await db.RewindSchemaAsync(27);
 
         await SchemaInitializer.EnsureSchemaAsync();
 
