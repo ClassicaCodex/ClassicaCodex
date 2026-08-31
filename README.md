@@ -207,6 +207,12 @@ a while to notice. A folder without a catalogue is now rebuilt from the files in
 it, and the Latin corpus ingests 687 of 687. **If you have a Latin library,
 re-run that setup step.**
 
+A second route to the same hole, found separately: each setup step decided
+whether it had already run by asking whether the library held any author in its
+namespace, and a namespace is shared. Once CSEL and the Patrologia Latina
+existed, installing either one answered for classical Latin, the step was
+skipped, and Virgil never arrived. Steps now ask about their own collection.
+
 The same audit found the *Satyricon* missing a fifth of its prose — Petronius
 quotes verse inside his narrative, and the parser took the poems and dropped
 what surrounded them — and 1,679 editor's notes keyed to citations no passage

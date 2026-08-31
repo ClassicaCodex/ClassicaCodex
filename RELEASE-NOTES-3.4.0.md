@@ -77,6 +77,29 @@ Delta run fail — they make it confident and wrong. The guard is the folder's o
 name: a real textgroup folder is named for the identifier its files carry, and a
 working directory is not.
 
+## One Latin collection was vouching for another
+
+A second way the same corpus went missing, found separately and fixed here too.
+
+Each setup step decides for itself whether it has already run. "Ancient Latin
+Texts" asked whether the library held any author in the `latinLit` namespace —
+which was the right question until 3.2.0, when classical Latin stopped being the
+only Latin in the app. CSEL and the Patrologia Latina are `latinLit` exactly as
+`canonical-latinLit` is. From then on, installing either one answered for the
+classical corpus, the step was skipped, and Virgil never arrived — with nothing
+looking wrong afterwards, because the library was full of Latin.
+
+On the library that turned this up: 335 `latinLit` authors, of which **zero**
+were from `canonical-latinLit`. The Greek rows carried the identical trap with
+First1KGreek standing in for `canonical-greekLit`; it simply hadn't fired yet.
+
+Every step now asks whether the library holds editions from *its own
+collection*, which is recorded on each edition as it is imported and rests on no
+naming convention. An Advanced Setup run pointed at a custom folder will offer
+to install again rather than skip — re-running is harmless, since editions
+upsert by their identifier, and that is the right direction to err for a step
+whose whole failure mode was skipping work that was needed.
+
 ## Petronius was missing a fifth of the Satyricon
 
 The parser recovers 99.92% of the reading text across the 194.8 million letters
@@ -194,7 +217,7 @@ untouched.
 
 ## Under the hood
 
-- 41 new tests, 667 passing.
+- 44 new tests, 670 passing.
 - Schema 36. The migration drops and recreates the word index rather than
   copying 26 million rows into a new table, which would need room for both at
   once. It is derived data and the Setup Wizard already reports when it needs

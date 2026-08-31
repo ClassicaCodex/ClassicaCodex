@@ -90,11 +90,20 @@ public static class SetupDataSourceCatalog
                     await editionRepo.StampCollectionAsync(root, CollectionKeys.PerseusGreek, ct);
                     return IngestOutcome.From(service.FailedFiles, service.RecoveredWithoutCatalog);
                 },
-                // Checked by corpus (Authors.Namespace), not by edition
-                // language - Perseus's Greek corpus legitimately contains
-                // some Latin-language editions (old Latin translations of
-                // Greek works), so a Language='grc' count alone can't tell
-                // "the Greek corpus is loaded" apart from "isn't yet".
+                // Checked by collection, which is the only thing that answers
+                // for this step alone.
+                //
+                // Not by edition language: Perseus's Greek corpus legitimately
+                // contains Latin-language editions - old Latin translations of
+                // Greek works - so a Language='grc' count cannot tell "the
+                // Greek corpus is loaded" from "isn't yet".
+                //
+                // And not by Authors.Namespace, which is what this used to
+                // ask. A namespace is shared - First1KGreek is greekLit
+                // exactly as canonical-greekLit is - so from 3.2.0 on,
+                // installing either one reported the other as present and the
+                // wizard skipped a corpus that had never been fetched. See
+                // AuthorRepository.CountByNamespaceAsync.
                 CheckComplete = async () =>
                     await editionRepo.CountByCollectionAsync(CollectionKeys.PerseusGreek) > 0
             },
@@ -116,12 +125,13 @@ public static class SetupDataSourceCatalog
                     await editionRepo.StampCollectionAsync(root, CollectionKeys.PerseusLatin, ct);
                     return IngestOutcome.From(service.FailedFiles, service.RecoveredWithoutCatalog);
                 },
-                // Same reasoning as the Greek row above, inverted - and this
-                // is exactly the direction that actually bites: ingesting
-                // only the Greek corpus already creates some Language='lat'
-                // editions (the Latin translations it carries), which
-                // wrongly reported this row as already done before the
-                // Latin corpus had ever been fetched.
+                // Same reasoning as the Greek row above, and this is the row
+                // where it was actually observed. A library holding only the
+                // Patrologia Latina and CSEL has 335 latinLit authors and none
+                // of the ones this step exists to fetch, so the old namespace
+                // check reported "Ancient Latin Texts" as already installed
+                // and Virgil never arrived - with nothing looking wrong
+                // afterwards, because the library was full of Latin.
                 CheckComplete = async () =>
                     await editionRepo.CountByCollectionAsync(CollectionKeys.PerseusLatin) > 0
             },
