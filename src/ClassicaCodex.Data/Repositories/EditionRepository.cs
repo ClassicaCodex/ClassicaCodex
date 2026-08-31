@@ -368,6 +368,46 @@ public class EditionRepository
         .Replace("%", "\\%")
         .Replace("_", "\\_");
 
+    /// <summary>
+    /// How many editions came from a given collection - the setup wizard's
+    /// way of telling whether a step has actually been run.
+    ///
+    /// This is the question the wizard means, and the two things it asked
+    /// instead were each right only until they were not.
+    ///
+    /// A corpus namespace stopped answering it in 3.2.0. "Has the Latin been
+    /// downloaded" was read as "are there any latinLit authors", which was
+    /// the same question while classical Latin was the only Latin in the
+    /// app. CSEL and the Patrologia Latina are latinLit too, so installing
+    /// either one now reports Caesar, Cicero and Virgil as already present -
+    /// and the step is skipped, and they never arrive. The same trap is set
+    /// for Greek, where First1KGreek would vouch for canonical-greekLit.
+    ///
+    /// A source-path prefix answers it accurately and does not travel. The
+    /// path records where the file was, not what the text is: install to a
+    /// custom folder, move the data directory, or open the same library on
+    /// another machine, and every path stops matching while the texts sit
+    /// there unchanged. Migration 33 made the same argument when it put
+    /// Collection on the edition in the first place.
+    ///
+    /// Being wrong here is not symmetrical, which is why this is worth the
+    /// column. Reporting an installed collection as missing costs a re-run
+    /// that changes nothing; reporting a missing one as installed hides a
+    /// corpus for as long as nobody thinks to look for it.
+    /// </summary>
+    public async Task<int> CountByCollectionAsync(
+        string collection, CancellationToken cancellationToken = default)
+    {
+        await using var conn = await DbConnectionFactory.OpenConnectionAsync(cancellationToken);
+        await using var cmd = conn.CreateCommand();
+
+        cmd.CommandText = "SELECT COUNT(*) FROM Editions WHERE Collection = @Collection;";
+        cmd.Parameters.AddWithValue("@Collection", collection);
+        cmd.CommandTimeout = 60;
+
+        return Convert.ToInt32(await cmd.ExecuteScalarAsync(cancellationToken));
+    }
+
     public async Task<int> CountBySourcePathPrefixAsync(
         string folder, CancellationToken cancellationToken = default)
     {
