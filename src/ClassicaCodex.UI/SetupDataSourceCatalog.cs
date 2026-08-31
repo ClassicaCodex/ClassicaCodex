@@ -95,7 +95,8 @@ public static class SetupDataSourceCatalog
                 // some Latin-language editions (old Latin translations of
                 // Greek works), so a Language='grc' count alone can't tell
                 // "the Greek corpus is loaded" apart from "isn't yet".
-                CheckComplete = async () => await authorRepo.CountByNamespaceAsync("greekLit") > 0
+                CheckComplete = async () =>
+                    await editionRepo.CountByCollectionAsync(CollectionKeys.PerseusGreek) > 0
             },
 
             new SetupDataSource
@@ -121,7 +122,8 @@ public static class SetupDataSourceCatalog
                 // editions (the Latin translations it carries), which
                 // wrongly reported this row as already done before the
                 // Latin corpus had ever been fetched.
-                CheckComplete = async () => await authorRepo.CountByNamespaceAsync("latinLit") > 0
+                CheckComplete = async () =>
+                    await editionRepo.CountByCollectionAsync(CollectionKeys.PerseusLatin) > 0
             },
 
             new SetupDataSource
@@ -316,7 +318,8 @@ public static class SetupDataSourceCatalog
                         IngestOutcome.From(cts.FailedFiles),
                         IngestOutcome.From(preCts.FailedFiles));
                 },
-                CheckComplete = async () => await authorRepo.CountByNamespaceAsync("engLit") > 0
+                CheckComplete = async () =>
+                    await editionRepo.CountByCollectionAsync(CollectionKeys.Renaissance) > 0
             },
 
             new SetupDataSource
@@ -491,8 +494,8 @@ public static class SetupDataSourceCatalog
                     return outcome;
                 },
 
-                CheckComplete = async () => await authorRepo.CountByNamespaceAsync(
-                    MenotaIngestService.Namespace) > 0
+                CheckComplete = async () =>
+                    await editionRepo.CountByCollectionAsync(CollectionKeys.Menota) > 0
             },
 
 
@@ -589,7 +592,8 @@ public static class SetupDataSourceCatalog
                 // offering redundant work rather than skipping needed work,
                 // which is the right direction for a step whose whole failure
                 // mode was silently skipping.
-                CheckComplete = async () => await editionRepo.CountBySourcePathPrefixAsync(first1kDestination) > 0
+                CheckComplete = async () =>
+                    await editionRepo.CountByCollectionAsync(CollectionKeys.First1KGreek) > 0
             },
 
             new SetupDataSource
@@ -640,7 +644,8 @@ public static class SetupDataSourceCatalog
                 // already non-zero from the classical Latin corpus, so it cannot tell
                 // "loaded" from "this step has not run". Editions record the file they
                 // were built from, and this corpus downloads to a folder of its own.
-                CheckComplete = async () => await editionRepo.CountBySourcePathPrefixAsync(cselDestination) > 0
+                CheckComplete = async () =>
+                    await editionRepo.CountByCollectionAsync(CollectionKeys.Csel) > 0
             },
 
             new SetupDataSource
@@ -705,7 +710,8 @@ public static class SetupDataSourceCatalog
                     return IngestOutcome.From(service.FailedFiles);
                 },
 
-                CheckComplete = async () => await editionRepo.CountBySourcePathPrefixAsync(patrologiaDestination) > 0
+                CheckComplete = async () =>
+                    await editionRepo.CountByCollectionAsync(CollectionKeys.PatrologiaLatina) > 0
             },
 
             new SetupDataSource
@@ -738,7 +744,8 @@ public static class SetupDataSourceCatalog
                     return IngestOutcome.From(service.FailedFiles);
                 },
 
-                CheckComplete = async () => await editionRepo.CountBySourcePathPrefixAsync(politicalDestination) > 0
+                CheckComplete = async () =>
+                    await editionRepo.CountByCollectionAsync(CollectionKeys.PoliticalTheory) > 0
             }
         };
     }
