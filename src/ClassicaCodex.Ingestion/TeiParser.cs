@@ -509,12 +509,26 @@ public class TeiParser
     private static bool CarriesInformation(string content) =>
         !string.IsNullOrWhiteSpace(content) && content.Any(char.IsLetter);
 
-    private static List<ParsedApparatus> ExtractApparatus(XElement leaf, string citationRef)
+    private static List<ParsedApparatus> ExtractApparatus(XElement leaf, string citationRef) =>
+        ExtractApparatus(leaf.Descendants(), citationRef);
+
+    /// <summary>
+    /// Same, over a sequence of elements rather than one leaf's descendants -
+    /// what a mixed block's inline children are.
+    ///
+    /// Callers pass DescendantsAndSelf for those, because there the
+    /// &lt;note&gt; IS the child rather than something inside one. A leaf can
+    /// keep passing Descendants: an &lt;l&gt; or &lt;p&gt; is never itself an
+    /// apparatus entry, so including it would only ask the question and get
+    /// the same answer.
+    /// </summary>
+    private static List<ParsedApparatus> ExtractApparatus(
+        IEnumerable<XElement> elements, string citationRef)
     {
         var entries = new List<ParsedApparatus>();
         var order = 0;
 
-        foreach (var el in leaf.Descendants())
+        foreach (var el in elements)
         {
             var name = el.Name.LocalName;
 
@@ -825,6 +839,26 @@ public class TeiParser
     {
         foreach (var child in element.Elements())
         {
+            WalkChild(child, citationTrail, nodes, ref sortCounter, leafCounters);
+        }
+    }
+
+    /// <summary>
+    /// One child of a division, routed to whichever branch fits it.
+    ///
+    /// Split out of <see cref="WalkDiv"/>'s loop so that
+    /// <see cref="WalkMixedBlock"/> can send a block's structural children
+    /// through exactly the same routing while handling the block's own words
+    /// itself. Two copies of this decision would be two parsers.
+    /// </summary>
+    private void WalkChild(
+        XElement child,
+        List<string> citationTrail,
+        List<ParsedNode> nodes,
+        ref int sortCounter,
+        Dictionary<string, int> leafCounters)
+    {
+        {
             // Before anything else: an editorial element is not part of the
             // text and must not become a node. The fallback branch at the
             // bottom of this loop descends into whatever it does not
@@ -853,30 +887,36 @@ public class TeiParser
             // it there leaves EditorialElements untouched - the skip that
             // keeps 17,000 characters of Agamemnon's apparatus out of the word
             // counts still holds for every note inside a line.
+            //
+            // Held for the next node rather than given a reference of its own,
+            // which is what it used to get: a minted "1.2.note1" that no
+            // TextNode answers to. The Editor's Notes pane opens on the line
+            // the reader is standing on and looks its entries up by that line's
+            // citation, so 1,679 entries across 116 editions - Thucydides'
+            // French chapter summaries among them - were stored, correct, and
+            // unreachable except by opening the apparatus somewhere else and
+            // switching to the whole-edition view.
+            //
+            // The rule this now follows is _pendingApparatus's own, and its
+            // comment already argued the case: a reference invented for an
+            // element that mints no citation resolves to nothing, which is
+            // worse than the loss it was fixing.
             if (string.Equals(child.Name.LocalName, "note", StringComparison.OrdinalIgnoreCase))
             {
                 var noteText = FlattenText(child);
-                if (!CarriesInformation(noteText)) continue;
+                if (!CarriesInformation(noteText)) return;
 
-                var noteKey = string.Join(".", citationTrail) + ":note";
-                leafCounters.TryGetValue(noteKey, out var notesSeen);
-                leafCounters[noteKey] = notesSeen + 1;
-
-                var noteTrail = new List<string>(citationTrail) { $"note{notesSeen + 1}" };
-
-                _apparatus.Add(new ParsedApparatus
+                _pendingApparatus.Add(new ParsedApparatus
                 {
-                    CitationRef = CapCitationRef(string.Join(".", noteTrail)),
-                    SortOrder = notesSeen,
                     Kind = "note",
                     Witness = (string?)child.Attribute("resp"),
                     Content = noteText
                 });
 
-                continue;
+                return;
             }
 
-            if (EditorialElements.Contains(child.Name.LocalName)) continue;
+            if (EditorialElements.Contains(child.Name.LocalName)) return;
 
             if (IsDivElement(child))
             {
@@ -1008,7 +1048,7 @@ public class TeiParser
                     // is often the whole point of such a line. Held for the
                     // next node.
                     _pendingApparatus.AddRange(ExtractApparatus(child, string.Empty));
-                    continue;
+                    return;
                 }
 
                 // Disambiguated before the apparatus is keyed to it, so a note
@@ -1055,6 +1095,31 @@ public class TeiParser
                 EmitBlock(child, citationTrail, $"{name.ToLowerInvariant()}{seen}",
                           KindFor(name), nodes, ref sortCounter);
             }
+            else if (CarriesOwnText(child))
+            {
+                // A block holding BOTH its own words and something worth
+                // descending for. Descending alone loses the words: WalkDiv
+                // reads child elements and nothing else, so a block's own text
+                // nodes go nowhere. This is the same failure the <note> entry
+                // in HandledElements used to cause and the family branch above
+                // was written to close - it simply arrives one level higher,
+                // where the element has a reachable child as well as text.
+                //
+                // Petronius is the case in this corpus. The Satyricon encodes
+                // each section as an <ab> of prose with the verse quoted inline
+                // in <lg>, so the <lg> made this the descent branch and 34,097
+                // letters - the narrative, a fifth of the work - were dropped.
+                // What survived was the poems, which is the one part of the
+                // Satyricon nobody reads it for.
+                //
+                // Measured across canonical-greekLit and canonical-latinLit,
+                // three files reach here: that one, one <quote> in Cicero's
+                // Epistulae ad Brutum, and one <q> inside the Petronius. Every
+                // other element carrying its own text alongside handled
+                // children sits inside a leaf already, where FlattenText takes
+                // the lot and nothing is lost.
+                WalkMixedBlock(child, citationTrail, nodes, ref sortCounter, leafCounters);
+            }
             else
             {
                 // Unrecognized wrapper element (e.g. <sp>, <castGroup>) -
@@ -1062,6 +1127,147 @@ public class TeiParser
                 WalkDiv(child, citationTrail, nodes, ref sortCounter, leafCounters);
             }
         }
+    }
+
+    /// <summary>
+    /// Whether an element has words of its own, rather than only holding other
+    /// elements.
+    ///
+    /// Direct text children only. Text further down belongs to whatever
+    /// element it sits in, and that element gets its own turn.
+    /// </summary>
+    private static bool CarriesOwnText(XElement element) =>
+        element.Nodes().OfType<XText>().Any(t => !string.IsNullOrWhiteSpace(t.Value));
+
+    /// <summary>
+    /// Elements that break a block's running text rather than sitting inside
+    /// it - the ones <see cref="WalkChild"/> turns into citable nodes of their
+    /// own.
+    ///
+    /// The distinction is what keeps a mixed block from being shredded. A
+    /// &lt;lg&gt; of quoted verse interrupts the prose around it and has to be
+    /// its own node; a &lt;note&gt;, &lt;hi&gt;, &lt;pb&gt; or &lt;foreign&gt;
+    /// sits within a sentence, and flushing at those would split one prose
+    /// paragraph into a node per footnote.
+    /// </summary>
+    private static bool IsStructuralChild(XElement element) =>
+        IsDivElement(element) || HandledElements.Contains(element.Name.LocalName);
+
+    /// <summary>
+    /// A block with both its own words and structural children, read in source
+    /// order: the block's text becomes nodes, and each structural child is
+    /// routed through <see cref="WalkChild"/> where it falls.
+    ///
+    /// Order is the reason this walks nodes rather than emitting the block's
+    /// text in one piece and then descending. Petronius alternates prose and
+    /// verse within a single &lt;ab&gt;, and taking all the prose first would
+    /// hand back the section rearranged - present, in the wrong sequence, and
+    /// silently so.
+    ///
+    /// Inline children are flattened into the running text with the same
+    /// filter every other leaf uses, so a &lt;note&gt; goes to the apparatus
+    /// and a &lt;hi&gt; contributes its words.
+    /// </summary>
+    private void WalkMixedBlock(
+        XElement element,
+        List<string> citationTrail,
+        List<ParsedNode> nodes,
+        ref int sortCounter,
+        Dictionary<string, int> leafCounters)
+    {
+        var pending = new StringBuilder();
+        var interrupted = false;
+        var inlineChildren = new List<XElement>();
+
+        foreach (var node in element.Nodes())
+        {
+            if (node is XText text)
+            {
+                AppendText(pending, text.Value, ref interrupted);
+                continue;
+            }
+
+            if (node is not XElement child) continue;
+
+            if (IsStructuralChild(child))
+            {
+                FlushOwnText(element, pending, inlineChildren, citationTrail,
+                             nodes, ref sortCounter, leafCounters);
+                interrupted = false;
+                WalkChild(child, citationTrail, nodes, ref sortCounter, leafCounters);
+                continue;
+            }
+
+            inlineChildren.Add(child);
+
+            // Editorial children contribute nothing to the text and are only
+            // recorded above, for the apparatus. FlattenElement skips these
+            // when it MEETS them on the way down, but it is being handed one
+            // directly here, and its skip is a test on the children it walks
+            // rather than on the element it was called with - so calling it on
+            // a <note> would read the note's own words straight into the prose.
+            // Petronius has 224 of them; unfiltered they added 1,524 letters of
+            // nineteenth-century apparatus to the Satyricon's narrative.
+            if (EditorialElements.Contains(child.Name.LocalName)) continue;
+
+            FlattenElement(child, pending, ref interrupted);
+        }
+
+        FlushOwnText(element, pending, inlineChildren, citationTrail,
+                     nodes, ref sortCounter, leafCounters);
+    }
+
+    /// <summary>
+    /// Emits one run of a mixed block's own text as a node and resets the
+    /// buffer.
+    ///
+    /// Apparatus is taken from the inline children of THIS run only, never
+    /// from the whole element: the structural children have their own nodes
+    /// and collect their own, and reading the element whole here would record
+    /// every one of those a second time against this run.
+    ///
+    /// A run that is only whitespace - the gap between two quoted stanzas -
+    /// emits nothing, and any apparatus it carried waits for the next node
+    /// rather than being keyed to a citation with no line behind it. Same rule
+    /// as an empty leaf.
+    /// </summary>
+    private void FlushOwnText(
+        XElement element,
+        StringBuilder pending,
+        List<XElement> inlineChildren,
+        List<string> citationTrail,
+        List<ParsedNode> nodes,
+        ref int sortCounter,
+        Dictionary<string, int> leafCounters)
+    {
+        var text = CollapseWhitespace(pending.ToString()).Trim();
+        pending.Clear();
+
+        var carried = inlineChildren.ToList();
+        inlineChildren.Clear();
+
+        if (text.Length == 0)
+        {
+            _pendingApparatus.AddRange(
+                ExtractApparatus(carried.SelectMany(e => e.DescendantsAndSelf()), string.Empty));
+            return;
+        }
+
+        var name = element.Name.LocalName.ToLowerInvariant();
+        var seen = NextSegmentNumber(citationTrail, name, leafCounters);
+        var reference = _citations.Unique(
+            CapCitationRef(string.Join(".", new List<string>(citationTrail) { $"{name}{seen}" })));
+
+        AttachApparatus(carried.SelectMany(e => e.DescendantsAndSelf()), reference);
+
+        nodes.Add(new ParsedNode
+        {
+            CitationRef = reference,
+            SortOrder = sortCounter++,
+            Text = text,
+            NodeKind = KindFor(element.Name.LocalName),
+            IsVerse = IsVerseElement(element.Name.LocalName)
+        });
     }
 
     /// <summary>
@@ -1086,7 +1292,19 @@ public class TeiParser
     /// ExtractApparatus counts from zero on every call and two calls landing
     /// on one reference would otherwise both claim entry 0.
     /// </summary>
-    private void AttachApparatus(XElement element, string reference)
+    private void AttachApparatus(XElement element, string reference) =>
+        AttachApparatus(element.Descendants(), reference);
+
+    /// <summary>
+    /// Same, for a node assembled from several elements - the inline children
+    /// of one run of a mixed block's text.
+    ///
+    /// Those are passed as DescendantsAndSelf by their caller: there the
+    /// &lt;note&gt; is the child itself rather than something inside a line,
+    /// and a leaf's own element is never an apparatus entry, so the two callers
+    /// disagree about self on purpose.
+    /// </summary>
+    private void AttachApparatus(IEnumerable<XElement> elements, string reference)
     {
         var entries = new List<ParsedApparatus>();
 
@@ -1097,7 +1315,7 @@ public class TeiParser
         }
 
         _pendingApparatus.Clear();
-        entries.AddRange(ExtractApparatus(element, reference));
+        entries.AddRange(ExtractApparatus(elements, reference));
 
         for (var i = 0; i < entries.Count; i++) entries[i].SortOrder = i;
 

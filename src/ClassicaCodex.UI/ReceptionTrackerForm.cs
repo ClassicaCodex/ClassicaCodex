@@ -45,7 +45,7 @@ public class ReceptionTrackerForm : ScaledForm
 
         _sourceLabel = new Label
         {
-            Text = $"Source: [{sourceNode.CitationRef}] {sourceNode.Text}",
+            Text = $"Source: [{PassageCitation.Display(sourceNode.CitationRef)}] {sourceNode.Text}",
             Left = 12,
             Top = 10,
             Width = 1260,
@@ -64,10 +64,10 @@ public class ReceptionTrackerForm : ScaledForm
             i => i < _later.Count ? _later[i].CitationRef : null);
         ListResultHelpers.AttachCopyToClipboardMenu(_laterList,
             i => i < _later.Count
-                ? $"{_later[i].AuthorName}, {_later[i].WorkTitle} [{_later[i].CitationRef}]: {_later[i].Text}"
+                ? $"{_later[i].AuthorName}, {_later[i].WorkTitle} [{PassageCitation.Display(_later[i].CitationRef)}]: {_later[i].Text}"
                 : null);
         ListResultHelpers.AttachExportMenu(_laterList, () => (
-            $"Reception of [{_sourceNode.CitationRef}] - later authors",
+            $"Reception of [{PassageCitation.Display(_sourceNode.CitationRef)}] - later authors",
             _later.Select(r => new ExportPassage(
                 r.WorkId, r.TextNodeId, r.AuthorName, r.WorkTitle, r.CitationRef, r.Text)).ToList()), this);
 
@@ -82,10 +82,10 @@ public class ReceptionTrackerForm : ScaledForm
             i => i < _earlier.Count ? _earlier[i].CitationRef : null);
         ListResultHelpers.AttachCopyToClipboardMenu(_earlierList,
             i => i < _earlier.Count
-                ? $"{_earlier[i].AuthorName}, {_earlier[i].WorkTitle} [{_earlier[i].CitationRef}]: {_earlier[i].Text}"
+                ? $"{_earlier[i].AuthorName}, {_earlier[i].WorkTitle} [{PassageCitation.Display(_earlier[i].CitationRef)}]: {_earlier[i].Text}"
                 : null);
         ListResultHelpers.AttachExportMenu(_earlierList, () => (
-            $"Reception of [{_sourceNode.CitationRef}] - earlier authors",
+            $"Reception of [{PassageCitation.Display(_sourceNode.CitationRef)}] - earlier authors",
             _earlier.Select(r => new ExportPassage(
                 r.WorkId, r.TextNodeId, r.AuthorName, r.WorkTitle, r.CitationRef, r.Text)).ToList()), this);
 
@@ -100,10 +100,10 @@ public class ReceptionTrackerForm : ScaledForm
             i => i < _unknown.Count ? _unknown[i].CitationRef : null);
         ListResultHelpers.AttachCopyToClipboardMenu(_unknownList,
             i => i < _unknown.Count
-                ? $"{_unknown[i].AuthorName}, {_unknown[i].WorkTitle} [{_unknown[i].CitationRef}]: {_unknown[i].Text}"
+                ? $"{_unknown[i].AuthorName}, {_unknown[i].WorkTitle} [{PassageCitation.Display(_unknown[i].CitationRef)}]: {_unknown[i].Text}"
                 : null);
         ListResultHelpers.AttachExportMenu(_unknownList, () => (
-            $"Reception of [{_sourceNode.CitationRef}] - undated authors",
+            $"Reception of [{PassageCitation.Display(_sourceNode.CitationRef)}] - undated authors",
             _unknown.Select(r => new ExportPassage(
                 r.WorkId, r.TextNodeId, r.AuthorName, r.WorkTitle, r.CitationRef, r.Text)).ToList()), this);
 

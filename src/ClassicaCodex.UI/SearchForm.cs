@@ -301,7 +301,7 @@ public class SearchForm : ScaledForm
             i => i >= _displayedCount ? null
                 : DocumentView
                     ? $"{_documents[i].AuthorName}, {_documents[i].WorkTitle} — {_documents[i].Matches} match(es)"
-                    : $"{_visible[i].AuthorName}, {_visible[i].WorkTitle} [{_visible[i].CitationRef}]: {_visible[i].Text}");
+                    : $"{_visible[i].AuthorName}, {_visible[i].WorkTitle} [{PassageCitation.Display(_visible[i].CitationRef)}]: {_visible[i].Text}");
 
         // Export stays passage-level in both views: a list of documents and their
         // counts is not something anyone wants to paste into a notebook, and the

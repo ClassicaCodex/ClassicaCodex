@@ -145,6 +145,28 @@ public static class LatinProsody
         Syllabifications(line)[0];
 
     /// <summary>
+    /// The line's words as this reads them, in the order
+    /// <see cref="ProsodicSyllable.WordIndex"/> counts.
+    ///
+    /// Needed because a syllable's Text is its vowel nucleus - "a", "ae" -
+    /// rather than the letters around it, so a word cannot be put back
+    /// together from its syllables. Anything wanting to say "this word
+    /// scans so" has to be told which word each index is, and guessing by
+    /// splitting the line again is not safe: this tokeniser breaks at every
+    /// non-letter, so a written elision like "mult'ille" is two words here
+    /// and one to a whitespace split, and every index after it in that line
+    /// would be off by one. Being off by one means showing a reader the
+    /// quantities of the wrong word, which is worse than showing none.
+    ///
+    /// The letters come back as this reads them rather than as the edition
+    /// prints them: lowercased, with a capital V read as the u it was. Match
+    /// against them with WordNormalizer.NormalizeHeadword, which folds u/v
+    /// the same way on both sides.
+    /// </summary>
+    public static IReadOnlyList<string> Words(string line) =>
+        Tokenize(line).Select(w => w.Letters).ToList();
+
+    /// <summary>
     /// How many readings of one line's spelling will be offered at most. Two
     /// to the sixth, so a line with more than six ambiguous letters is read
     /// in fewer ways than it strictly has - reached by two lines in fifteen

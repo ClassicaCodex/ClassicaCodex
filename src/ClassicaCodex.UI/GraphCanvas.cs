@@ -253,7 +253,14 @@ public class GraphCanvas : Panel
             // both away to say something the label already says.
             DrawFigure(e.Graphics, node, pen);
 
-            var labelFont = isHovered ? new Font(Font, FontStyle.Bold) : Font;
+            // Disposed, and only the one this frame created. OnPaint runs on
+            // every MouseMove over the canvas, so a Font left to the finalizer
+            // here leaks a GDI handle per repaint for as long as the pointer is
+            // moving. MapCanvas.DrawLabels has always got this right; these two
+            // canvases were the copies that didn't.
+            using var hoverFont = isHovered ? new Font(Font, FontStyle.Bold) : null;
+            var labelFont = hoverFont ?? Font;
+
             var labelSize = e.Graphics.MeasureString(node.Name, labelFont);
             using var labelBrush = new SolidBrush(ReadingTheme.Text);
             e.Graphics.DrawString(node.Name, labelFont, labelBrush,

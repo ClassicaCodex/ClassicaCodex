@@ -1,3 +1,4 @@
+using ClassicaCodex.Core;
 using System.Globalization;
 using ClassicaCodex.Core.Models;
 using ClassicaCodex.Data.Repositories;
@@ -282,7 +283,7 @@ public class CompareTranslationsForm : ScaledForm
 
                 var menu = ListResultHelpers.AttachCopyToClipboardMenu(cl.List,
                     i => i < nodes.Count
-                        ? $"{TranslatorLabel(cl.Translation)} [{nodes[i].CitationRef}]: {nodes[i].Text}"
+                        ? $"{TranslatorLabel(cl.Translation)} [{PassageCitation.Display(nodes[i].CitationRef)}]: {nodes[i].Text}"
                         : null);
 
                 AttachExportMenu(menu, cl.Translation, nodes);

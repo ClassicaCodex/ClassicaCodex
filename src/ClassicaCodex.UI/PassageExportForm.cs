@@ -93,7 +93,7 @@ public class PassageExportForm : ScaledForm
 
         var headerLabel = new Label
         {
-            Text = $"{authorName}, {workTitle} - starting at [{startNode.CitationRef}]",
+            Text = $"{authorName}, {workTitle} - starting at [{PassageCitation.Display(startNode.CitationRef)}]",
             Left = 16,
             Top = 14,
             Width = 580,
@@ -401,8 +401,8 @@ public class PassageExportForm : ScaledForm
         if (_combineCheckbox.Checked)
         {
             var rangeLabel = !_showCitationsCheckbox.Checked ? string.Empty
-                : _currentLines.Count == 1 ? $"[{_currentLines[0].CitationRef}]"
-                : $"[{_currentLines.First().CitationRef}\u2013{_currentLines.Last().CitationRef}]";
+                : _currentLines.Count == 1 ? $"[{PassageCitation.Display(_currentLines[0].CitationRef)}]"
+                : $"[{PassageCitation.Display(_currentLines.First().CitationRef)}\u2013{PassageCitation.Display(_currentLines.Last().CitationRef)}]";
 
             var primaryText = string.Join(" ", _currentLines.Select(l => l.Text));
 
@@ -432,7 +432,7 @@ public class PassageExportForm : ScaledForm
         {
             foreach (var line in _currentLines)
             {
-                var soloLabel = _showCitationsCheckbox.Checked ? $"[{line.CitationRef}]" : string.Empty;
+                var soloLabel = _showCitationsCheckbox.Checked ? $"[{PassageCitation.Display(line.CitationRef)}]" : string.Empty;
                 chunks.Add((soloLabel, line.Text));
             }
             return chunks;
@@ -468,7 +468,7 @@ public class PassageExportForm : ScaledForm
                 for (; cursor < firstIndex; cursor++) EmitCounterpart(cursor);
             }
 
-            var label = _showCitationsCheckbox.Checked ? $"[{line.CitationRef}]" : string.Empty;
+            var label = _showCitationsCheckbox.Checked ? $"[{PassageCitation.Display(line.CitationRef)}]" : string.Empty;
             chunks.Add((label, line.Text));
 
             if (indices == null) continue;
@@ -499,7 +499,7 @@ public class PassageExportForm : ScaledForm
             : _docxRadio.Checked ? "Word document (*.docx)|*.docx"
             : "PDF file (*.pdf)|*.pdf";
 
-        var suggestedName = $"{_authorName} - {_workTitle} {_startNode.CitationRef}".Replace(":", "_");
+        var suggestedName = $"{_authorName} - {_workTitle} {PassageCitation.Display(_startNode.CitationRef)}".Replace(":", "_");
         foreach (var invalid in Path.GetInvalidFileNameChars())
         {
             suggestedName = suggestedName.Replace(invalid, '_');
@@ -514,7 +514,7 @@ public class PassageExportForm : ScaledForm
         if (saveDialog.ShowDialog(this) != DialogResult.OK) return;
 
         var title = _showCitationsCheckbox.Checked
-            ? $"{_authorName}, {_workTitle} [{_currentLines.First().CitationRef}\u2013{_currentLines.Last().CitationRef}]"
+            ? $"{_authorName}, {_workTitle} [{PassageCitation.Display(_currentLines.First().CitationRef)}\u2013{PassageCitation.Display(_currentLines.Last().CitationRef)}]"
             : $"{_authorName}, {_workTitle}";
         var sourceUrl = "Perseus Digital Library (via Classica Codex) - see About for full attribution and licensing.";
         var chunks = BuildRenderChunks();

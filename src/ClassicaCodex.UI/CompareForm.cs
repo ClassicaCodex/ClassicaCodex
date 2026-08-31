@@ -1,3 +1,4 @@
+using ClassicaCodex.Core;
 using ClassicaCodex.Data.Repositories;
 
 namespace ClassicaCodex.UI;
@@ -168,7 +169,7 @@ public class CompareForm : ScaledForm
                     i => i < passages.Count ? passages[i].CitationRef : null);
                 ListResultHelpers.AttachCopyToClipboardMenu(list,
                     i => i < passages.Count
-                        ? $"{source.AuthorName}, {source.WorkTitle} [{passages[i].CitationRef}]: {passages[i].Text}"
+                        ? $"{source.AuthorName}, {source.WorkTitle} [{PassageCitation.Display(passages[i].CitationRef)}]: {passages[i].Text}"
                         : null);
             }
 

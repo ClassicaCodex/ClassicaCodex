@@ -20,7 +20,18 @@ public class CtsCatalogReader
     {
         if (!File.Exists(cetsFilePath)) return null;
 
-        var doc = XDocument.Load(cetsFilePath);
+        // A catalogue that will not parse is a catalogue that is not there, and
+        // is answered the same way - with null, for the caller to recover from.
+        //
+        // It used to throw straight out of an ingest run that has no try/catch
+        // above it until the setup step itself, so one malformed file would
+        // abandon the whole corpus and take every author sorting after it. None
+        // of the 1,314 catalogues in the Perseus repos is malformed today, which
+        // is exactly the kind of fact that holds until it doesn't.
+        XDocument doc;
+        try { doc = XDocument.Load(cetsFilePath); }
+        catch (System.Xml.XmlException) { return null; }
+
         var textGroup = doc.Root;
         if (textGroup == null) return null;
 
@@ -60,7 +71,11 @@ public class CtsCatalogReader
         var results = new List<WorkInfo>();
         if (!File.Exists(cetsFilePath)) return results;
 
-        var doc = XDocument.Load(cetsFilePath);
+        // Unparseable is treated as absent - see ReadTextGroup.
+        XDocument doc;
+        try { doc = XDocument.Load(cetsFilePath); }
+        catch (System.Xml.XmlException) { return results; }
+
         var work = doc.Root;
         if (work == null || work.Name != Ti + "work") return results;
 

@@ -97,7 +97,7 @@ public class CrossLanguageEchoForm : ScaledForm
             Left = 12,
             Top = 10,
             Width = 780,
-            Text = $"Looking for echoes of: {sourceAuthorName}, {sourceWorkTitle} [{sourceNode.CitationRef}]"
+            Text = $"Looking for echoes of: {sourceAuthorName}, {sourceWorkTitle} [{PassageCitation.Display(sourceNode.CitationRef)}]"
         };
         _sourceBox = new TextBox
         {
@@ -196,7 +196,7 @@ public class CrossLanguageEchoForm : ScaledForm
         // without it would throw away the only part that isn't already
         // reachable from the reader.
         ListResultHelpers.AttachExportMenu(_resultsListBox, () => (
-            $"Cross-language echoes of [{_sourceNode.CitationRef}]",
+            $"Cross-language echoes of [{PassageCitation.Display(_sourceNode.CitationRef)}]",
             _verifiedResults.Select(r => new ExportPassage(
                 _comparisonWorkId,
                 r.Node.TextNodeId,
@@ -393,7 +393,7 @@ public class CrossLanguageEchoForm : ScaledForm
                     (_lastTruncatedAtRef == null ? " (complete ingested edition)" : $" (through {_lastTruncatedAtRef})");
         var request = new EchoCaptureRequest(
             ResearchEchoMethod.AiCrossLanguage, source,
-            $"Cross-language echoes: {source.WorkTitle} {source.CitationRef} → {_comparisonWorkTitle}",
+            $"Cross-language echoes: {source.WorkTitle} {PassageCitation.Display(source.CitationRef)} → {_comparisonWorkTitle}",
             scope,
             "Gemini thematic/imagistic comparison. Returned citations were resolved exactly against local reading-text nodes; unsupported words in rationales remain flagged for human checking.",
             _lastAiResult.Model, _lastAiResult.PromptProvenance, _lastAiGeneratedUtc,
@@ -419,6 +419,10 @@ public class CrossLanguageEchoForm : ScaledForm
         {
             if (string.IsNullOrWhiteSpace(node.Text)) continue;
 
+            // Stored form, deliberately - see GeminiTranslationService's note
+            // on the batch prompt. Every candidate the model returns is checked
+            // back against a real TextNode by this reference before it is shown
+            // as a result, so what goes out has to be what a lookup matches.
             var line = $"[{node.CitationRef}] {node.Text}\n";
             if (builder.Length + line.Length > MaxComparisonChars)
             {
@@ -692,7 +696,7 @@ public class CrossLanguageEchoForm : ScaledForm
             }
 
             _resultsListBox.Items.Add(
-                $"[{candidate.Confidence}] {node.CitationRef}: {preview}  \u2014  {candidate.Rationale}{flag}");
+                $"[{candidate.Confidence}] {PassageCitation.Display(node.CitationRef)}: {preview}  \u2014  {candidate.Rationale}{flag}");
         }
 
         var statusParts = new List<string>();

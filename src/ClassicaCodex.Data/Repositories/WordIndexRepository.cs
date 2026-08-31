@@ -77,32 +77,26 @@ public class WordIndexRepository
             await createCmd.ExecuteNonQueryAsync(cancellationToken);
         }
 
-        // Deliberately NOT creating the index here. Every INSERT into an
-        // indexed table has to update that index's B-tree as it goes, and
-        // this table takes tens of millions of rows - paying that cost per
-        // row is far more expensive than building the index once, in a
-        // single sort pass, after the data is all in. CreateIndexAsync
-        // below is called at the end of the build instead.
+        // There is no second index to defer any more. The table IS the index -
+        // see SchemaInitializer.WordIndexTableDdl - so the deferred build that
+        // used to run after the bulk load has nothing left to do.
     }
 
     /// <summary>
-    /// Builds the lookup index, after the bulk load rather than before it -
-    /// see the note in ClearAsync for why the order matters. IF NOT EXISTS
-    /// so that an interrupted build followed by a re-run can't fail here;
-    /// a build that's cancelled partway simply leaves the table unindexed,
-    /// which makes searches slow but never wrong, and the next full run
-    /// recreates everything from scratch anyway.
+    /// Kept as a no-op rather than removed, because it is the seam the build
+    /// reports "Building lookup index..." at, and because a caller asking for
+    /// the index to exist is asking for something that is now true by the time
+    /// the table does.
+    ///
+    /// The work it used to do - a single large sort over everything just
+    /// written, to build a covering index over both columns - is gone with the
+    /// index. The rows now land in their final B-tree as they are inserted,
+    /// which is why BulkInsertAsync sorts each batch first.
     /// </summary>
-    public async Task CreateIndexAsync(CancellationToken cancellationToken = default)
+    public Task CreateIndexAsync(CancellationToken cancellationToken = default)
     {
-        await using var conn = await DbConnectionFactory.OpenConnectionAsync(cancellationToken);
-        await using var indexCmd = conn.CreateCommand();
-        indexCmd.CommandText = SchemaInitializer.WordIndexIndexDdl;
-
-        // The index build over a full corpus is a single large sort - it can
-        // legitimately take minutes, and the default timeout would abort it.
-        indexCmd.CommandTimeout = 600;
-        await indexCmd.ExecuteNonQueryAsync(cancellationToken);
+        cancellationToken.ThrowIfCancellationRequested();
+        return Task.CompletedTask;
     }
 
     /// <summary>
@@ -143,7 +137,26 @@ public class WordIndexRepository
         if (entries.Count == 0) return;
 
         const int rowsPerStatement = 400;
-        var entriesList = entries as IReadOnlyList<(string Word, long TextNodeId)> ?? entries.ToList();
+
+        // Sorted into key order before insertion, which is new and is what pays
+        // for the WITHOUT ROWID table. Rows arriving in random key order make
+        // every insert a seek into the middle of a B-tree; sorted, each batch
+        // appends to a handful of pages. Measured over a full corpus, sorting
+        // took the build from 273.9 s to 223.0 s - faster than the old shape
+        // managed at more than twice the size.
+        //
+        // Per batch rather than globally: the caller hands over 200,000 entries
+        // at a time, and sorting those costs a few milliseconds, where holding
+        // all 26 million to sort at once would cost about 1.5 GB of memory for
+        // a few seconds more. Locality within a batch is most of the win.
+        //
+        // Ordinal, to match the collation the primary key is built on. Sorting
+        // by anything else would hand SQLite an order it does not recognise as
+        // one, and the locality would be imaginary.
+        var entriesList = entries
+            .OrderBy(e => e.Word, StringComparer.Ordinal)
+            .ThenBy(e => e.TextNodeId)
+            .ToList();
 
         await using var conn = await DbConnectionFactory.OpenConnectionAsync(cancellationToken);
         await using var transaction = await conn.BeginTransactionAsync(cancellationToken);
@@ -171,7 +184,14 @@ public class WordIndexRepository
                 cmd.Parameters.AddWithValue($"@n{i}", entry.TextNodeId);
             }
 
-            cmd.CommandText = $"INSERT INTO WordIndex (NormalizedWord, TextNodeId) VALUES {string.Join(",", valueRows)};";
+            // OR IGNORE, because (word, line) is now a primary key rather than
+            // two ordinary columns. TokenizeLine already takes Distinct() words
+            // per line so a collision should not arise - but ReindexEditionAsync
+            // can be called twice over an edition whose delete did not remove
+            // everything, and a duplicate there should cost nothing rather than
+            // abort the write and lose the batch.
+            cmd.CommandText =
+                $"INSERT OR IGNORE INTO WordIndex (NormalizedWord, TextNodeId) VALUES {string.Join(",", valueRows)};";
             await cmd.ExecuteNonQueryAsync(cancellationToken);
         }
 

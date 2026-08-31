@@ -28,26 +28,54 @@ internal static class SetupSkipReport
 
     public static void ShowIfAny(IWin32Window owner, string stepTitle, IngestOutcome outcome)
     {
-        if (!outcome.HasSkippedFiles) return;
+        if (!outcome.HasAnythingToReport) return;
 
         var logged = TryWriteLog(stepTitle, outcome);
+        var message = new StringBuilder();
 
-        var message = new StringBuilder()
-            .AppendLine($"{stepTitle} finished, but {outcome.SkippedCount:N0} file(s) couldn't be read and were skipped.")
-            .AppendLine()
-            .AppendLine("Everything else was ingested normally. These are usually malformed or unusual")
-            .AppendLine("source files rather than a problem with your setup - but the works they contain")
-            .AppendLine("won't be in your library.")
-            .AppendLine();
-
-        foreach (var (filePath, error) in outcome.SkippedFiles.Take(MaxShown))
+        if (outcome.HasSkippedFiles)
         {
-            message.AppendLine($"  {Path.GetFileName(filePath)} - {error}");
+            message
+                .AppendLine($"{stepTitle} finished, but {outcome.SkippedCount:N0} file(s) couldn't be read and were skipped.")
+                .AppendLine()
+                .AppendLine("Everything else was ingested normally. These are usually malformed or unusual")
+                .AppendLine("source files rather than a problem with your setup - but the works they contain")
+                .AppendLine("won't be in your library.")
+                .AppendLine();
+
+            foreach (var (filePath, error) in outcome.SkippedFiles.Take(MaxShown))
+            {
+                message.AppendLine($"  {Path.GetFileName(filePath)} - {error}");
+            }
+
+            if (outcome.SkippedCount > MaxShown)
+            {
+                message.AppendLine($"  ...and {outcome.SkippedCount - MaxShown:N0} more.");
+            }
         }
 
-        if (outcome.SkippedCount > MaxShown)
+        // Deliberately worded as news rather than as a warning. These folders
+        // ARE in the library; what is uncertain is only whether their author
+        // and title read the way the catalogue would have named them.
+        if (outcome.HasRecoveredFolders)
         {
-            message.AppendLine($"  ...and {outcome.SkippedCount - MaxShown:N0} more.");
+            if (message.Length > 0) message.AppendLine();
+
+            message
+                .AppendLine($"{outcome.RecoveredCount:N0} folder(s) had no catalogue file, so the author and title")
+                .AppendLine("were read from the texts themselves. Those works ARE in your library - the only")
+                .AppendLine("thing to watch is that a title may not be the standard one.")
+                .AppendLine();
+
+            foreach (var (filePath, note) in outcome.RecoveredFolders.Take(MaxShown))
+            {
+                message.AppendLine($"  {Path.GetFileName(filePath.TrimEnd(Path.DirectorySeparatorChar))} - {note}");
+            }
+
+            if (outcome.RecoveredCount > MaxShown)
+            {
+                message.AppendLine($"  ...and {outcome.RecoveredCount - MaxShown:N0} more.");
+            }
         }
 
         if (logged)
@@ -55,7 +83,11 @@ internal static class SetupSkipReport
             message.AppendLine().Append("The full list is in:").AppendLine().Append(LogPath);
         }
 
-        MessageBox.Show(owner, message.ToString(), $"{stepTitle} - files skipped",
+        var caption = outcome.HasSkippedFiles
+            ? $"{stepTitle} - files skipped"
+            : $"{stepTitle} - names read from the texts";
+
+        MessageBox.Show(owner, message.ToString(), caption,
             MessageBoxButtons.OK, MessageBoxIcon.Information);
     }
 
@@ -69,11 +101,17 @@ internal static class SetupSkipReport
             var entry = new StringBuilder()
                 .AppendLine(new string('-', 72))
                 .Append(DateTimeOffset.Now.ToString("u")).Append("  ").Append(stepTitle)
-                .Append("  - ").Append(outcome.SkippedCount).AppendLine(" file(s) skipped");
+                .Append("  - ").Append(outcome.SkippedCount).Append(" file(s) skipped, ")
+                .Append(outcome.RecoveredCount).AppendLine(" folder(s) named from their texts");
 
             foreach (var (filePath, error) in outcome.SkippedFiles)
             {
-                entry.Append(filePath).Append("\t").AppendLine(error);
+                entry.Append("SKIPPED\t").Append(filePath).Append('\t').AppendLine(error);
+            }
+
+            foreach (var (filePath, note) in outcome.RecoveredFolders)
+            {
+                entry.Append("NAMED\t").Append(filePath).Append('\t').AppendLine(note);
             }
 
             entry.AppendLine();

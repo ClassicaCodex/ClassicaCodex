@@ -456,8 +456,8 @@ public class SyncListView : ListBox
             // appended because the italic styling shows that something is
             // different without saying what.
             _toolTip.SetToolTip(this, node.IsAthetized
-                ? $"[{node.CitationRef}] - bracketed by the editor as probably not authentic"
-                : $"[{node.CitationRef}]");
+                ? $"[{PassageCitation.Display(node.CitationRef)}] - bracketed by the editor as probably not authentic"
+                : $"[{PassageCitation.Display(node.CitationRef)}]");
         }
         else
         {

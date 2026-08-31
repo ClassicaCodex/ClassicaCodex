@@ -1,3 +1,4 @@
+using ClassicaCodex.Core;
 using ClassicaCodex.Data.Repositories;
 
 namespace ClassicaCodex.UI;
@@ -59,7 +60,7 @@ public class BookmarksForm : ScaledForm
         {
             if (i >= _currentBookmarks.Count) return null;
             var b = _currentBookmarks[i];
-            var full = $"{b.AuthorName}, {b.WorkTitle} [{b.CitationRef}]: {b.Text}";
+            var full = $"{b.AuthorName}, {b.WorkTitle} [{PassageCitation.Display(b.CitationRef)}]: {b.Text}";
             return string.IsNullOrEmpty(b.Note) ? full : $"{full}\nNote: {b.Note}";
         });
 

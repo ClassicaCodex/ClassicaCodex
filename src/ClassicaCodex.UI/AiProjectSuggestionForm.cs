@@ -52,7 +52,7 @@ public sealed class AiProjectSuggestionForm : ScaledForm
     {
         _passages.Clear();var editions=await _editions.GetByWorkAsync(_work.WorkId);var edition=editions.FirstOrDefault(e=>e.Kind==EditionKind.Original&&(e.Orthography==null||e.Orthography.Equals("normalised",StringComparison.OrdinalIgnoreCase)))??editions.FirstOrDefault(e=>e.Kind==EditionKind.Original);
         if(edition==null)return "(No original-language edition is ingested.)";var text=new StringBuilder();var n=0;
-        foreach(var node in await _nodes.GetByEditionAsync(edition.EditionId,true)){if(string.IsNullOrWhiteSpace(node.Text))continue;var key=$"P{n+1:00000}";var line=$"[{key}] [{node.CitationRef}] {node.Text}\n";if(text.Length+line.Length>MaxCorpusChars)break;n++;text.Append(line);_passages[key]=(node,edition);}return text.ToString();
+        foreach(var node in await _nodes.GetByEditionAsync(edition.EditionId,true)){if(string.IsNullOrWhiteSpace(node.Text))continue;var key=$"P{n+1:00000}";var line=$"[{key}] [{PassageCitation.Display(node.CitationRef)}] {node.Text}\n";if(text.Length+line.Length>MaxCorpusChars)break;n++;text.Append(line);_passages[key]=(node,edition);}return text.ToString();
     }
 
     private void ShowSuggestion()

@@ -187,7 +187,7 @@ public class PlacesMapForm : ScaledForm
             i => i < _currentPassages.Count ? _currentPassages[i].CitationRef : null);
         ListResultHelpers.AttachCopyToClipboardMenu(_passageList,
             i => i < _currentPassages.Count
-                ? $"{_currentPassages[i].AuthorName}, {_currentPassages[i].WorkTitle} [{_currentPassages[i].CitationRef}]: {_currentPassages[i].Text}"
+                ? $"{_currentPassages[i].AuthorName}, {_currentPassages[i].WorkTitle} [{PassageCitation.Display(_currentPassages[i].CitationRef)}]: {_currentPassages[i].Text}"
                 : null);
         ListResultHelpers.AttachExportMenu(_passageList, () => (
             $"Passages mentioning {_selectedPlaceName}",

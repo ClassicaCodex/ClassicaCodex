@@ -186,13 +186,36 @@ suspecting.
 
 ## Status
 
-Version 3.3.1.
+Version 3.4.0.
 
 Version 1 was a reader. Version 2 made it a searchable, taggable,
 cross-referenced library and added the translation workbench. Version 3 adds the
 Medieval Nordic manuscript reader and its editorial apparatus — a different kind
 of text from the printed editions the rest of the library holds, and the first
 material here where the manuscript evidence is visible rather than settled.
+
+3.4.0 came out of an audit rather than a plan, and its largest finding is that
+a good deal of the Latin corpus was never being ingested. Perseus catalogues
+each folder in a file naming what is inside it; 65 of `canonical-latinLit`'s 399
+work folders and six of its author folders carry no such file, and the ingest
+passed over them without recording anything. 197 edition files went nowhere
+while setup reported success — Bede's *Historia ecclesiastica*, Cato's *De agri
+cultura*, Apicius, Sidonius, Augustine's letters, the whole Appendix Vergiliana,
+Petronius' fragments, Livy's *Periochae* and four of the six Livy editions
+Perseus carries. The Greek corpus catalogues everything, which is why this took
+a while to notice. A folder without a catalogue is now rebuilt from the files in
+it, and the Latin corpus ingests 687 of 687. **If you have a Latin library,
+re-run that setup step.**
+
+The same audit found the *Satyricon* missing a fifth of its prose — Petronius
+quotes verse inside his narrative, and the parser took the poems and dropped
+what surrounded them — and 1,679 editor's notes keyed to citations no passage
+answered to. Both are fixed and both were measured, before and after, against
+the corpus rather than against a test case. The word index also stopped storing
+itself twice, which takes a finished install from about 1.7 GB to 1.1 GB, and
+the hexameter scanner reached the surface: Word Study now says what the metre
+makes of the word you picked, which for Latin is the only thing that can, since
+no edition prints the vowel lengths that tell a nominative from an ablative.
 
 3.3.0 spends what 3.2.0 bought. Holding seven collections means holding some
 works twice, and two independent printings of one text are the raw material of a

@@ -18,22 +18,53 @@ namespace ClassicaCodex.Ingestion;
 /// because those editions are then missing from the library with nothing
 /// anywhere to say so - and re-running ingest reproduces the same silence.
 /// </summary>
-public sealed record IngestOutcome(IReadOnlyList<(string FilePath, string Error)> SkippedFiles)
+/// <param name="RecoveredFolders">
+/// Folders that were ingested despite a missing or unreadable CTS catalogue,
+/// with their author and work names read out of the TEI headers instead.
+///
+/// Separate from SkippedFiles because it is a different piece of news: nothing
+/// was lost, but a title here came from the file rather than the catalogue and
+/// may not be the canonical one. Reporting it as a skip would be alarming and
+/// wrong; not reporting it at all would repeat the mistake this whole type
+/// exists to correct, one step down.
+/// </param>
+public sealed record IngestOutcome(
+    IReadOnlyList<(string FilePath, string Error)> SkippedFiles,
+    IReadOnlyList<(string FilePath, string Error)> RecoveredFolders)
 {
     /// <summary>For steps that either succeed wholesale or throw - most of them.</summary>
-    public static IngestOutcome Clean { get; } = new(Array.Empty<(string, string)>());
+    public static IngestOutcome Clean { get; } =
+        new(Array.Empty<(string, string)>(), Array.Empty<(string, string)>());
 
-    public static IngestOutcome From(IReadOnlyList<(string FilePath, string Error)> skipped) =>
-        skipped.Count == 0 ? Clean : new IngestOutcome(skipped.ToList());
+    public static IngestOutcome From(
+        IReadOnlyList<(string FilePath, string Error)> skipped,
+        IReadOnlyList<(string FilePath, string Error)>? recovered = null)
+    {
+        var recoveredList = recovered ?? Array.Empty<(string, string)>();
+        return skipped.Count == 0 && recoveredList.Count == 0
+            ? Clean
+            : new IngestOutcome(skipped.ToList(), recoveredList.ToList());
+    }
 
     /// <summary>Combines the results of several passes within one setup step.</summary>
     public static IngestOutcome Combine(params IngestOutcome[] outcomes)
     {
-        var all = outcomes.SelectMany(o => o.SkippedFiles).ToList();
-        return all.Count == 0 ? Clean : new IngestOutcome(all);
+        var skipped = outcomes.SelectMany(o => o.SkippedFiles).ToList();
+        var recovered = outcomes.SelectMany(o => o.RecoveredFolders).ToList();
+
+        return skipped.Count == 0 && recovered.Count == 0
+            ? Clean
+            : new IngestOutcome(skipped, recovered);
     }
 
     public int SkippedCount => SkippedFiles.Count;
 
     public bool HasSkippedFiles => SkippedFiles.Count > 0;
+
+    public int RecoveredCount => RecoveredFolders.Count;
+
+    public bool HasRecoveredFolders => RecoveredFolders.Count > 0;
+
+    /// <summary>Whether there is anything at all worth telling the reader.</summary>
+    public bool HasAnythingToReport => HasSkippedFiles || HasRecoveredFolders;
 }

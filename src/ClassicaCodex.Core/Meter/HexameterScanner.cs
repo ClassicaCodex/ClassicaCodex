@@ -65,6 +65,38 @@ public sealed class Scansion
     public IReadOnlyList<ProsodicSyllable> Syllables { get; init; }
         = Array.Empty<ProsodicSyllable>();
 
+    /// <summary>
+    /// What the METRE makes each syllable, index for index with
+    /// <see cref="Syllables"/>. Unknown where it does not say.
+    ///
+    /// This is the half of a scansion that is worth something to a reader,
+    /// and it is not the same list as the quantities on the syllables
+    /// themselves. Those are what the spelling forces, and about half of them
+    /// are Unknown, because Perseus prints no macrons and a vowel before a
+    /// single consonant is as often long as short. These are what the line's
+    /// shape forces on top of that - so a final -a that the letters cannot
+    /// call comes back Long, and the word is an ablative rather than a
+    /// nominative.
+    ///
+    /// Unknown here means one of three honest things, and the caller cannot
+    /// tell them apart because for its purposes they are the same: the line
+    /// did not scan, several shapes survived and disagree about this
+    /// syllable, or it is the last syllable of the line - brevis in longo,
+    /// free by convention, where the metre genuinely does not say.
+    ///
+    /// Elided syllables are Unknown too. They do not belong to a foot.
+    /// </summary>
+    public IReadOnlyList<Quantity> MetricalQuantities { get; init; }
+        = Array.Empty<Quantity>();
+
+    /// <summary>
+    /// The line's words, indexed the way
+    /// <see cref="ProsodicSyllable.WordIndex"/> counts - see
+    /// <see cref="LatinProsody.Words"/> for why a word cannot simply be put
+    /// back together from its syllables.
+    /// </summary>
+    public IReadOnlyList<string> Words { get; init; } = Array.Empty<string>();
+
     /// <summary>Syllables the metre counts - the line after elision.</summary>
     public int MetricalSyllables { get; init; }
 
@@ -148,6 +180,7 @@ public static class HexameterScanner
     public static Scansion Scan(string line)
     {
         var spellings = LatinProsody.Syllabifications(line);
+        var words = LatinProsody.Words(line);
 
         Scansion? best = null;
         var readings = new List<Foot[]>();
@@ -155,8 +188,15 @@ public static class HexameterScanner
         var scannedLive = 0;
         var scannedElisions = 0;
 
+        // Which of the surviving readings came from the spelling that gets
+        // reported. Quantities can only be resolved against those: a different
+        // syllabification of the same line can have a different NUMBER of
+        // syllables, so its feet cannot be laid over this one's list.
+        var scannedReadings = new List<Foot[]>();
+
         foreach (var spelling in spellings)
         {
+            var before = readings.Count;
             var attempt = ScanOne(spelling, readings);
 
             // The failure worth reporting is the most informative one: a line
@@ -173,10 +213,26 @@ public static class HexameterScanner
                 scanned = spelling;
                 scannedLive = spelling.Count(s => !s.Elided);
                 scannedElisions = spelling.Count - scannedLive;
+                scannedReadings.AddRange(readings.Skip(before));
             }
         }
 
-        if (readings.Count == 0) return best ?? new Scansion { Failure = ScansionFailure.Empty };
+        // A line that did not scan still knows what its words were, and the
+        // caller still wants to name one - so the word list is carried onto
+        // the failure too, rather than only onto the success.
+        if (readings.Count == 0)
+        {
+            if (best == null) return new Scansion { Failure = ScansionFailure.Empty, Words = words };
+
+            return new Scansion
+            {
+                Syllables = best.Syllables,
+                MetricalSyllables = best.MetricalSyllables,
+                Elisions = best.Elisions,
+                Failure = best.Failure,
+                Words = words
+            };
+        }
 
         var agreed = new Foot?[VariableFeet + 1];
         for (var f = 0; f <= VariableFeet; f++)
@@ -185,15 +241,91 @@ public static class HexameterScanner
             agreed[f] = readings.All(r => r[f] == first) ? first : null;
         }
 
+        var syllables = scanned ?? Array.Empty<ProsodicSyllable>();
+
         return new Scansion
         {
             ReadingCount = readings.Count,
             Feet = agreed,
-            Syllables = scanned ?? Array.Empty<ProsodicSyllable>(),
+            Syllables = syllables,
+            MetricalQuantities = ResolveQuantities(syllables, scannedReadings),
+            Words = words,
             MetricalSyllables = scannedLive,
             Elisions = scannedElisions,
             Failure = ScansionFailure.None
         };
+    }
+
+    /// <summary>
+    /// What the surviving shapes agree each syllable must be.
+    ///
+    /// Laid out over the live syllables foot by foot - a dactyl is long,
+    /// short, short and a spondee is long, long - and then agreed across
+    /// every reading, the same way the feet themselves are. A syllable the
+    /// readings disagree about is Unknown, which is the honest answer and the
+    /// reason this is not simply read off Feet: two shapes can agree about a
+    /// foot's identity while a third disagrees, and a reader wants to know
+    /// which SYLLABLES are settled rather than which feet are.
+    ///
+    /// The line's last syllable is left Unknown whatever the shapes say.
+    /// Every hexameter ends in a foot the scanner writes as a spondee, but
+    /// the final syllable is brevis in longo - short syllables stand there
+    /// freely - so calling it long would be reporting a convention as a
+    /// measurement. Fits() already declines to test it for the same reason.
+    /// </summary>
+    private static IReadOnlyList<Quantity> ResolveQuantities(
+        IReadOnlyList<ProsodicSyllable> syllables, IReadOnlyList<Foot[]> readings)
+    {
+        var resolved = new Quantity[syllables.Count];
+        if (readings.Count == 0) return resolved;
+
+        // Where each live syllable sits in the full list, so elided ones can
+        // be skipped on the way out and left Unknown.
+        var live = new List<int>(syllables.Count);
+        for (var i = 0; i < syllables.Count; i++)
+        {
+            if (!syllables[i].Elided) live.Add(i);
+        }
+
+        var agreed = new Quantity?[live.Count];
+
+        foreach (var feet in readings)
+        {
+            var at = 0;
+
+            foreach (var foot in feet)
+            {
+                if (at >= live.Count) break;
+
+                Record(at++, Quantity.Long);
+
+                if (foot == Foot.Dactyl)
+                {
+                    if (at < live.Count) Record(at++, Quantity.Short);
+                    if (at < live.Count) Record(at++, Quantity.Short);
+                }
+                else if (at < live.Count)
+                {
+                    Record(at++, Quantity.Long);
+                }
+            }
+
+            void Record(int index, Quantity quantity)
+            {
+                if (agreed[index] == null) agreed[index] = quantity;
+                else if (agreed[index] != quantity) agreed[index] = Quantity.Unknown;
+            }
+        }
+
+        // Brevis in longo.
+        if (live.Count > 0) agreed[^1] = Quantity.Unknown;
+
+        for (var i = 0; i < live.Count; i++)
+        {
+            resolved[live[i]] = agreed[i] ?? Quantity.Unknown;
+        }
+
+        return resolved;
     }
 
     /// <summary>Which of two failures says more about the line.</summary>

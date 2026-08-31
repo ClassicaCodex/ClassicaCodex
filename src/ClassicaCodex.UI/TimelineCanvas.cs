@@ -96,7 +96,12 @@ public class TimelineCanvas : Panel
             using var pen = new Pen(Color.DimGray, isHovered ? 2 : 1);
             e.Graphics.DrawRectangle(pen, barRect.X, barRect.Y, barRect.Width, barRect.Height);
 
-            var labelFont = isHovered ? new Font(Font, FontStyle.Bold) : Font;
+            // Disposed - see GraphCanvas. A hover font left to the finalizer
+            // leaks a GDI handle on every repaint, and this repaints on every
+            // MouseMove.
+            using var hoverFont = isHovered ? new Font(Font, FontStyle.Bold) : null;
+            var labelFont = hoverFont ?? Font;
+
             using var labelBrush = new SolidBrush(ReadingTheme.Text);
             e.Graphics.DrawString(entry.Name, labelFont, labelBrush, new PointF(4, y + 4));
         }

@@ -88,7 +88,7 @@ public static class SetupDataSourceCatalog
                     await service.IngestAsync(
                         new[] { (Path.Combine(root, "data"), "greekLit") }, wrapped, ct);
                     await editionRepo.StampCollectionAsync(root, CollectionKeys.PerseusGreek, ct);
-                    return IngestOutcome.From(service.FailedFiles);
+                    return IngestOutcome.From(service.FailedFiles, service.RecoveredWithoutCatalog);
                 },
                 // Checked by corpus (Authors.Namespace), not by edition
                 // language - Perseus's Greek corpus legitimately contains
@@ -113,7 +113,7 @@ public static class SetupDataSourceCatalog
                     await service.IngestAsync(
                         new[] { (Path.Combine(root, "data"), "latinLit") }, wrapped, ct);
                     await editionRepo.StampCollectionAsync(root, CollectionKeys.PerseusLatin, ct);
-                    return IngestOutcome.From(service.FailedFiles);
+                    return IngestOutcome.From(service.FailedFiles, service.RecoveredWithoutCatalog);
                 },
                 // Same reasoning as the Greek row above, inverted - and this
                 // is exactly the direction that actually bites: ingesting
@@ -162,6 +162,7 @@ public static class SetupDataSourceCatalog
                 PlainLanguageDescription =
                     "Maps inflected Greek word forms back to their dictionary headword - what lets " +
                     "search and Word Study understand a word regardless of which form it's in. " +
+                    "This is a large amount of data and may take a while. " +
                     "This dataset is free to use but can't be sold, which is fine - ClassicaCodex is free too.",
                 RunIngest = async (root, progress, ct) =>
                 {
@@ -302,7 +303,7 @@ public static class SetupDataSourceCatalog
                     if (!Directory.Exists(renaissance))
                     {
                         await editionRepo.StampCollectionAsync(root, CollectionKeys.Renaissance, ct);
-                        return IngestOutcome.From(cts.FailedFiles);
+                        return IngestOutcome.From(cts.FailedFiles, cts.RecoveredWithoutCatalog);
                     }
 
                     var preCts = new RenaissanceIngestService();
@@ -313,7 +314,7 @@ public static class SetupDataSourceCatalog
                     await editionRepo.StampCollectionAsync(root, CollectionKeys.Renaissance, ct);
 
                     return IngestOutcome.Combine(
-                        IngestOutcome.From(cts.FailedFiles),
+                        IngestOutcome.From(cts.FailedFiles, cts.RecoveredWithoutCatalog),
                         IngestOutcome.From(preCts.FailedFiles));
                 },
                 CheckComplete = async () => await authorRepo.CountByNamespaceAsync("engLit") > 0
@@ -560,7 +561,7 @@ public static class SetupDataSourceCatalog
                     }, ct);
 
                     await editionRepo.StampCollectionAsync(root, CollectionKeys.First1KGreek, ct);
-                    return IngestOutcome.From(service.FailedFiles);
+                    return IngestOutcome.From(service.FailedFiles, service.RecoveredWithoutCatalog);
                 },
                 // Authors.Namespace="greekLit" is already >0 from the
                 // classical corpus alone, so the namespace check the Greek and
@@ -633,7 +634,7 @@ public static class SetupDataSourceCatalog
                         new[] { (Path.Combine(root, "data"), "latinLit") }, wrapped, ct);
 
                     await editionRepo.StampCollectionAsync(root, CollectionKeys.Csel, ct);
-                    return IngestOutcome.From(service.FailedFiles);
+                    return IngestOutcome.From(service.FailedFiles, service.RecoveredWithoutCatalog);
                 },
 
                 // Same reasoning as First1KGreek above: Authors.Namespace="latinLit" is
@@ -702,7 +703,7 @@ public static class SetupDataSourceCatalog
                         new[] { (Path.Combine(root, "data"), "latinLit") }, wrapped, ct);
 
                     await editionRepo.StampCollectionAsync(root, CollectionKeys.PatrologiaLatina, ct);
-                    return IngestOutcome.From(service.FailedFiles);
+                    return IngestOutcome.From(service.FailedFiles, service.RecoveredWithoutCatalog);
                 },
 
                 CheckComplete = async () => await editionRepo.CountBySourcePathPrefixAsync(patrologiaDestination) > 0
@@ -735,7 +736,7 @@ public static class SetupDataSourceCatalog
                         new[] { (Path.Combine(root, "data"), "pdlpsci") }, wrapped, ct);
 
                     await editionRepo.StampCollectionAsync(root, CollectionKeys.PoliticalTheory, ct);
-                    return IngestOutcome.From(service.FailedFiles);
+                    return IngestOutcome.From(service.FailedFiles, service.RecoveredWithoutCatalog);
                 },
 
                 CheckComplete = async () => await editionRepo.CountBySourcePathPrefixAsync(politicalDestination) > 0
