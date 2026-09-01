@@ -124,6 +124,17 @@ public class WordIndexService
         progress?.Report(new WordIndexProgress(nodesProcessed, totalNodes, entriesWritten, "Building lookup index..."));
         await _wordIndexRepo.CreateIndexAsync(cancellationToken);
 
+        // The last thing setup does is build this index, which makes it the
+        // point at which the library has stopped changing size - so it is also
+        // where the query planner is told what it now contains. A freshly
+        // created database was empty when the schema went in and had nothing
+        // worth measuring then; without this it would keep planning against
+        // built-in guesses forever, and dictionary and lemma lookups run
+        // hundreds of times slower on guesses than on counts. About ten
+        // milliseconds, against the minutes the step above just took.
+        progress?.Report(new WordIndexProgress(nodesProcessed, totalNodes, entriesWritten, "Recording index statistics..."));
+        await SchemaInitializer.UpdateQueryStatisticsAsync(cancellationToken);
+
         progress?.Report(new WordIndexProgress(nodesProcessed, totalNodes, entriesWritten));
     }
 

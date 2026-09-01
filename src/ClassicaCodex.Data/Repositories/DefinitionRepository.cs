@@ -108,17 +108,29 @@ public class DefinitionRepository
 
         await using var conn = await DbConnectionFactory.OpenConnectionAsync(cancellationToken);
 
+        // Language is part of the question, not just of the normalizing. It
+        // was missing from this WHERE clause, and 2,999 normalized headwords
+        // in this library belong to more than one language - so asking for the
+        // Latin "Batrachomyomachia" returned its two Lewis & Short entries and
+        // then WordNet's English one underneath them, in a dictionary pane
+        // that had been told which language it was reading.
+        //
+        // It is also the leading column of IX_Definitions_Normalized, which
+        // makes this the difference between seeking the index and reading all
+        // 423,551 definitions.
+        //
         // LIMIT goes at the end in SQLite, not TOP (N) at the start.
         const string sql = @"
             SELECT Headword, Entry, Source
             FROM Definitions
-            WHERE NormalizedHeadword = @Normalized
+            WHERE Language = @Language AND NormalizedHeadword = @Normalized
             ORDER BY Headword
             LIMIT 10;";
 
         await using var cmd = conn.CreateCommand();
         cmd.CommandText = sql;
         cmd.CommandTimeout = 60;
+        cmd.Parameters.AddWithValue("@Language", language);
         cmd.Parameters.AddWithValue("@Normalized", normalized);
 
         await using var reader = await cmd.ExecuteReaderAsync(cancellationToken);

@@ -113,6 +113,79 @@ public static class SchemaInitializer
         {
             await SetSchemaVersionAsync(conn, TargetSchemaVersion, cancellationToken);
         }
+
+        await EnsureQueryStatisticsAsync(conn, cancellationToken);
+    }
+
+    /// <summary>
+    /// Gives SQLite's query planner statistics about this library, once, if it
+    /// has none.
+    ///
+    /// Without them the planner works from built-in guesses, and on a library
+    /// this size the guesses are wrong in a way that is expensive rather than
+    /// merely suboptimal. Three examples, all measured on the full 3GB
+    /// library: looking a word up in the dictionary took 115ms because the
+    /// planner read all 423,551 definitions rather than seeking the index;
+    /// finding a form's headwords took 349ms scanning 585,225 Latin lemmas
+    /// through the wrong index of the two available; expanding a form to its
+    /// paradigm took 59ms scanning the whole 1,028,748-row lemma table. With
+    /// statistics those are 0.04ms, 0.03ms and 0.11ms. Nothing measured got
+    /// slower.
+    ///
+    /// analysis_limit caps the rows sampled per index, which is what makes
+    /// this affordable at all - the whole pass takes about ten milliseconds
+    /// against seventy million word-index rows, where an uncapped ANALYZE
+    /// would read all of them.
+    ///
+    /// Only when there is nothing there already, and only when there is
+    /// content to describe. Statistics gathered from an empty database say
+    /// every table is tiny, which is worse than none at all - and a freshly
+    /// created library is empty until setup has run, so the word index build
+    /// refreshes these again once the corpus is actually in.
+    /// </summary>
+    private static async Task EnsureQueryStatisticsAsync(
+        SqliteConnection conn, CancellationToken cancellationToken)
+    {
+        if (await TableExistsAsync(conn, "sqlite_stat1", cancellationToken)) return;
+
+        await using (var check = conn.CreateCommand())
+        {
+            check.CommandText =
+                "SELECT EXISTS(SELECT 1 FROM TextNodes LIMIT 1) " +
+                "    OR EXISTS(SELECT 1 FROM Lemmas LIMIT 1) " +
+                "    OR EXISTS(SELECT 1 FROM Definitions LIMIT 1);";
+            var hasContent = Convert.ToInt64(await check.ExecuteScalarAsync(cancellationToken) ?? 0L) != 0;
+            if (!hasContent) return;
+        }
+
+        await AnalyzeAsync(conn, cancellationToken);
+    }
+
+    /// <summary>
+    /// Re-reads the statistics after the library's contents have changed by
+    /// enough to matter - which in practice means after an ingest. Cheap
+    /// enough to call whenever that has happened rather than reasoning about
+    /// whether it was needed.
+    ///
+    /// Deliberately ANALYZE and not PRAGMA optimize, which is the usual
+    /// advice and does nothing here: optimize only re-analyzes tables it has
+    /// seen modified on the same connection, so on a connection that has just
+    /// been opened to do this one job it exits without writing anything.
+    /// Measured - it produced no sqlite_stat1 and left all three queries above
+    /// exactly as slow as they were.
+    /// </summary>
+    public static async Task UpdateQueryStatisticsAsync(CancellationToken cancellationToken = default)
+    {
+        await using var conn = await DbConnectionFactory.OpenConnectionAsync(cancellationToken);
+        await AnalyzeAsync(conn, cancellationToken);
+    }
+
+    private static async Task AnalyzeAsync(SqliteConnection conn, CancellationToken cancellationToken)
+    {
+        await using var cmd = conn.CreateCommand();
+        cmd.CommandText = "PRAGMA analysis_limit = 400; ANALYZE;";
+        cmd.CommandTimeout = 300;
+        await cmd.ExecuteNonQueryAsync(cancellationToken);
     }
 
     private static async Task<bool> TableExistsAsync(
