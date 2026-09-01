@@ -1,3 +1,4 @@
+using ClassicaCodex.Core;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Xml.Linq;
@@ -76,6 +77,22 @@ public static class MenotaXmlLoader
                 var name = m.Groups[1].Value;
                 if (XmlBuiltinEntities.Contains(name)) return m.Value;
                 if (entities.TryGetValue(name, out var replacement)) return replacement;
+
+                // The ordinary named entities, before giving up. This is a
+                // backstop and is honest about being one: menota-entities.txt
+                // defines 1,971 entities and already covers &thorn;, &eth; and
+                // the accented vowels, so measured over all 91 manuscripts
+                // this recovers exactly one reference - a &sbquo; in AM 242
+                // fol. Kept because it costs nothing and the next file to use
+                // a standard entity the MUFI table happens to omit should not
+                // lose a character over it.
+                //
+                // It is NOT what fixes a manuscript loaded before that file was
+                // saved. Nothing here can: without it, 1,076,623 of the
+                // corpus's 1,780,562 entity references resolve to nothing. See
+                // MenotaPlanReview, which now refuses to plan in that state
+                // rather than writing the damage into a file.
+                if (XmlEntitySanitizer.TryResolve(name, out var standard)) return standard;
 
                 // Substituted rather than dropped, so the character's absence
                 // stays visible instead of silently closing a gap in the word.
