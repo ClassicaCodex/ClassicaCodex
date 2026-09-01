@@ -5,10 +5,37 @@ using ClassicaCodex.Ingestion;
 namespace ClassicaCodex.UI;
 
 /// <summary>
-/// Builds the five SetupDataSource definitions - what SetupWizardForm and
+/// Builds the SetupDataSource definitions - what SetupWizardForm and
 /// GuidedSetupForm both actually do their work through. Moved out of
 /// SetupWizardForm so a change to how, say, dictionaries get ingested only
 /// has to happen in one place.
+///
+/// THE ORDER OF THIS LIST IS THE ORDER OF THE WIZARD, and both forms present
+/// it as written here, so it is worth keeping deliberate. It runs:
+///
+///   the texts        Greek and Latin from Perseus first, because they are
+///                    what the application is for and everything after them
+///                    is an extension of one or the other; then the two that
+///                    extend those corpora into late antiquity, First1KGreek
+///                    and CSEL; then Migne, which is the widest net and the
+///                    largest download; then the collections that are their
+///                    own thing - the Renaissance English, Bodin, and last
+///                    Menota, which is the only source that cannot be fetched
+///                    for you and asks the most of a reader.
+///
+///   the dictionary   what Word Study looks a word up in, and the first step
+///                    that is about the texts rather than more of them.
+///
+///   the lemma data   Greek, Latin, then English - what lets a search for one
+///                    form find the others. Ordered to match the texts above,
+///                    and after them because they are useless without one.
+///
+///   the rest         the map and the artefact catalogue, which serve two
+///                    windows rather than the reading itself.
+///
+/// Nothing depends on the positions - the wizard indexes into this list
+/// within a single run and stores no step numbers - so this is a judgement
+/// about what to offer someone first, and can be revised as one.
 /// </summary>
 public static class SetupDataSourceCatalog
 {
@@ -135,380 +162,6 @@ public static class SetupDataSourceCatalog
                 CheckComplete = async () =>
                     await editionRepo.CountByCollectionAsync(CollectionKeys.PerseusLatin) > 0
             },
-
-            new SetupDataSource
-            {
-                Title = "Dictionaries (LSJ + Lewis & Short)",
-                RepoUrl = "https://github.com/PerseusDL/lexica",
-                DefaultDestination = Path.Combine(dataRoot, "lexica"),
-                PlainLanguageDescription =
-                    "The dictionary definitions Word Study looks words up in while you're reading - " +
-                    "one dictionary for Greek, one for Latin, both loaded in this one step. This is about five hundred megabytes.",
-                RunIngest = async (root, progress, ct) =>
-                {
-                    var service = new LexiconIngestService();
-                    var wrapped = new Progress<LexiconIngestProgress>(p =>
-                        progress.Report($"{p.CurrentFile} ({p.FilesProcessed}/{p.TotalFiles} files, {p.EntriesLoaded:N0} entries)"));
-
-                    progress.Report("Ingesting Greek (LSJ)...");
-                    await service.IngestAsync(Path.Combine(root, "CTS_XML_TEI", "perseus", "pdllex", "grc"), "grc", "LSJ", wrapped, ct);
-
-                    progress.Report("Ingesting Latin (Lewis & Short)...");
-                    await service.IngestAsync(Path.Combine(root, "CTS_XML_TEI", "perseus", "pdllex", "lat"), "lat", "Lewis & Short", wrapped, ct);
-                    return IngestOutcome.Clean;
-                },
-                CheckComplete = async () =>
-                {
-                    var byLanguage = await definitionRepo.CountByLanguageAsync();
-                    return byLanguage.Any(l => l.Language == "grc" && l.Count > 0)
-                        && byLanguage.Any(l => l.Language == "lat" && l.Count > 0);
-                }
-            },
-
-            new SetupDataSource
-            {
-                Title = "Greek Lemma Data",
-                RepoUrl = "https://github.com/gcelano/LemmatizedAncientGreekXML",
-                DisplayNote = "CC BY-NC - see About",
-                DefaultDestination = Path.Combine(dataRoot, "greek-lemmas"),
-                PlainLanguageDescription =
-                    "Maps inflected Greek word forms back to their dictionary headword - what lets " +
-                    "search and Word Study understand a word regardless of which form it's in. " +
-                    "This is a large amount of data (3.6 gigabytes) and may take about an hour to gather. " +
-                    "This dataset is free to use but can't be sold, which is fine - ClassicaCodex is free too.",
-                RunIngest = async (root, progress, ct) =>
-                {
-                    var service = new LemmaIngestService();
-                    var wrapped = new Progress<LemmaIngestProgress>(p =>
-                        progress.Report($"{p.CurrentFile} ({p.FilesProcessed}/{p.TotalFiles} files, {p.LemmasLoaded:N0} mappings)"));
-                    await service.IngestAsync(root, "grc", wrapped, ct);
-                    return IngestOutcome.Clean;
-                },
-                CheckComplete = async () => await lemmaRepo.CountByLanguageAsync("grc") > 0
-            },
-
-            new SetupDataSource
-            {
-                Title = "Latin Lemma Data",
-                RepoUrl = "https://github.com/lascivaroma/latin-lemmatized-texts",
-                DefaultDestination = Path.Combine(dataRoot, "latin-lemmas"),
-                PlainLanguageDescription = "The same kind of word-form mapping as the Greek lemma data, for Latin. This will take about six minutes and is about two gigabytes.",
-                RunIngest = async (root, progress, ct) =>
-                {
-                    var service = new LemmaIngestService();
-                    var wrapped = new Progress<LemmaIngestProgress>(p =>
-                        progress.Report($"{p.CurrentFile} ({p.FilesProcessed}/{p.TotalFiles} files, {p.LemmasLoaded:N0} mappings)"));
-                    await service.IngestAsync(root, "lat", wrapped, ct);
-                    return IngestOutcome.Clean;
-                },
-                CheckComplete = async () => await lemmaRepo.CountByLanguageAsync("lat") > 0
-            },
-
-            new SetupDataSource
-            {
-                Title = "World Map Data (Natural Earth)",
-                RepoUrl = "https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/ne_110m_land.geojson",
-                DisplayNote = "public domain - single-file download, not a clone",
-                DefaultDestination = Path.Combine(dataRoot, "map"),
-                FetchMode = SetupFetchMode.DirectDownload,
-                DownloadFileName = "ne_110m_land.geojson",
-                PlainLanguageDescription =
-                    "Real coastline shapes for the Places Map, from the public-domain Natural Earth " +
-                    "project - a single small file, not a big repository. Entirely optional: without it " +
-                    "the map still works, just with rougher hand-drawn landmasses.",
-                RunIngest = (root, progress, ct) =>
-                {
-                    // No database ingest - "installing" here means making
-                    // sure the file sits at the one canonical path the map
-                    // reads from (which only differs from the download
-                    // location if Advanced Setup pointed at a custom
-                    // folder), then dropping any cached "file wasn't
-                    // there" so an already-open session picks it up.
-                    var downloaded = Path.Combine(root, "ne_110m_land.geojson");
-                    var canonical = NaturalEarthCoastline.CanonicalPath;
-                    if (!string.Equals(Path.GetFullPath(downloaded), Path.GetFullPath(canonical),
-                            StringComparison.OrdinalIgnoreCase))
-                    {
-                        Directory.CreateDirectory(Path.GetDirectoryName(canonical)!);
-                        File.Copy(downloaded, canonical, overwrite: true);
-                    }
-
-                    NaturalEarthCoastline.InvalidateCache();
-                    var loaded = NaturalEarthCoastline.Load();
-                    progress.Report(loaded != null
-                        ? $"Map data ready - {loaded.Count} landmasses in range."
-                        : "Downloaded, but the file did not parse - the map will use its built-in shapes.");
-                    return Task.FromResult(IngestOutcome.Clean);
-                },
-                CheckComplete = () => Task.FromResult(File.Exists(NaturalEarthCoastline.CanonicalPath))
-            },
-
-            new SetupDataSource
-            {
-                Title = "Art & Archaeology Data (Perseus)",
-                RepoUrl = "https://github.com/perseus-aa/json",
-                DisplayNote = "images stay on Perseus's own server, never downloaded",
-                DefaultDestination = Path.Combine(dataRoot, "artifacts"),
-                FetchMode = SetupFetchMode.SelfManaged,
-                PlainLanguageDescription =
-                    "Real objects from the ancient world - vases, coins, gems, sculptures, sites, and " +
-                    "buildings - with descriptions and photos, for the Places Map and Myth Network. " +
-                    "The catalog data downloads here; the photos themselves are always loaded live from " +
-                    "Perseus's own server when you view one, never saved to your computer, since Perseus's " +
-                    "copyright terms don't allow redistributing their images outside their own site.",
-                RunIngest = async (root, progress, ct) =>
-                {
-                    var service = new ArtifactIngestService();
-                    await service.IngestAsync(root, progress, ct);
-                    return IngestOutcome.Clean;
-                },
-                CheckComplete = async () => await artifactRepo.HasDataAsync()
-            },
-
-            new SetupDataSource
-            {
-                Title = "English Lemma Data & Dictionary (WordNet)",
-                RepoUrl = "https://wordnet.princeton.edu",
-                DisplayNote = "(Princeton WordNet - free for any use)",
-                DefaultDestination = Path.Combine(dataRoot, "wordnet"),
-                FetchMode = SetupFetchMode.SelfManaged,
-                PlainLanguageDescription =
-                    "Maps English word forms back to their dictionary headword, and supplies definitions - " +
-                    "the same thing the Greek and Latin lemma data does, but for the English translations " +
-                    "you already have loaded. Makes search find \"spoke\" when you type \"speak\", and makes " +
-                    "Word Study work on the translation side as well as the original. This is about sixty megabytes and takes about a minute.",
-                RunIngest = async (root, progress, ct) =>
-                {
-                    var service = new WordNetIngestService();
-                    await service.IngestAsync(root, progress, ct);
-                    return IngestOutcome.Clean;
-                },
-                CheckComplete = async () => await lemmaRepo.CountByLanguageAsync("eng") > 0
-            },
-
-            new SetupDataSource
-            {
-                Title = "English Literature (Renaissance, optional)",
-                RepoUrl = "https://github.com/PerseusDL/canonical-engLit",
-                DisplayNote = "(Marlowe, Shakespeare, Hakluyt - needs English Lemma Data above)",
-                DefaultDestination = Path.Combine(dataRoot, "english-texts"),
-                PlainLanguageDescription =
-                    "Perseus's Renaissance and early modern collection - Marlowe, Shakespeare, Holinshed, " +
-                    "Hakluyt. Useful mainly for reception: how later writers reworked classical material. " +
-                    "Note that these are 16th and 17th century English, while the English dictionary above " +
-                    "is modern, so archaic forms like \"hath\" and \"doth\" won't find a headword. This will take about a minute and is less than one hundred megabytes.",
-                RunIngest = async (root, progress, ct) =>
-                {
-                    var wrapped = new Progress<IngestProgress>(p =>
-                        progress.Report($"{p.CurrentAuthor}: {p.CurrentWork} ({p.WorksProcessed}/{p.TotalWorks})"));
-
-                    // CTS layout (english-texts/data) - Sidney, James I.
-                    var cts = new PerseusIngestService();
-                    await cts.IngestAsync(
-                        new[] { (Path.Combine(root, "data"), "engLit") }, wrapped, ct);
-
-                    // Pre-CTS layout (english-texts/Renaissance/**/opensource) -
-                    // the Shakespeare canon, Marlowe, Holinshed, Hakluyt, etc.
-                    // Runs second so its name-based de-dup can fold Sidney and
-                    // James I into the author rows the CTS pass just created.
-                    var renaissance = Path.Combine(root, "Renaissance");
-                    if (!Directory.Exists(renaissance))
-                    {
-                        await editionRepo.StampCollectionAsync(root, CollectionKeys.Renaissance, ct);
-                        return IngestOutcome.From(cts.FailedFiles, cts.RecoveredWithoutCatalog, cts.FilesAttempted);
-                    }
-
-                    var preCts = new RenaissanceIngestService();
-                    await preCts.IngestAsync(renaissance, wrapped, ct);
-
-                    // Both passes land under the same download folder, so one stamp
-                    // covers the CTS works and the pre-CTS ones alike.
-                    await editionRepo.StampCollectionAsync(root, CollectionKeys.Renaissance, ct);
-
-                    return IngestOutcome.Combine(
-                        IngestOutcome.From(cts.FailedFiles, cts.RecoveredWithoutCatalog, cts.FilesAttempted),
-                        IngestOutcome.From(preCts.FailedFiles));
-                },
-                CheckComplete = async () =>
-                    await editionRepo.CountByCollectionAsync(CollectionKeys.Renaissance) > 0
-            },
-
-            new SetupDataSource
-            {
-                Title = "Medieval Nordic Texts (Menota)",
-                RepoUrl = "https://www.menota.org/EN_forside.xhtml",
-                DisplayNote = "manuscripts are downloaded by hand from the Menota catalogue",
-                DefaultDestination = Path.Combine(dataRoot, "menota"),
-
-                // Not GitClone and not DirectDownload: Menota publishes per-manuscript XML
-                // through a catalogue on its website, with no archive or repository to
-                // fetch. Every other source here can be pulled in one request; this one
-                // cannot, and pretending otherwise would mean inventing a URL.
-                FetchMode = SetupFetchMode.SelfManaged,
-
-                Links =
-                {
-                    new SetupLink
-                    {
-                        Text = "1. Open the Menota catalogue to download manuscripts",
-                        Url = "https://www.menota.org/EN_forside.xhtml"
-                    },
-                    new SetupLink
-                    {
-                        // Menota manuscripts reference their special characters
-                        // by name rather than encoding them directly - &thorn;,
-                        // &oslashsupfinal;, seventy-odd distinct ones in a single
-                        // manuscript and twenty thousand references. The names are
-                        // defined in one file that every manuscript assumes you
-                        // have. Without it those characters can only be counted,
-                        // not shown, and an offline reader must not fetch it
-                        // mid-parse to find out.
-                        Text = "2. Download menota-entities.txt into the same folder (see below)",
-                        Url = "https://www.menota.org/menota-entities.txt"
-                    }
-                },
-
-                // The folder is the thing this step is about, so it goes on the form
-                // rather than into a sentence.
-                ShowDestinationPath = true,
-
-                // Whether menota-entities.txt is there and is what it should be.
-                //
-                // Checked by parsing it rather than by File.Exists, because the
-                // likeliest failure is a file of the right name with the wrong
-                // contents: clicking a .txt link opens it in the browser, and
-                // saving that page gives you HTML. Exists would say yes, every
-                // manuscript would still import full of replacement characters,
-                // and nothing on screen would connect the two.
-                CheckReadiness = root =>
-                {
-                    var path = Path.Combine(root, "menota-entities.txt");
-
-                    if (!File.Exists(path))
-                        return new SetupReadiness(SetupReadinessState.Missing, "menota-entities.txt not found");
-
-                    var entities = MenotaXmlLoader.LoadEntities(root);
-
-                    return entities.Count == 0
-                        ? new SetupReadiness(SetupReadinessState.Problem,
-                            "File found but defines no characters")
-                        : new SetupReadiness(SetupReadinessState.Ready,
-                            $"{entities.Count:N0} characters ready");
-                },
-
-                ActionButtonText = "Open Folder",
-                SecondaryButtonText = "Import Manuscripts",
-
-                // Shows the division proposal for each manuscript not yet
-                // confirmed, before the import starts. The .plan.json is still
-                // written and still the record of what was confirmed - it is
-                // just no longer something anyone has to open in an editor.
-                PrepareSecondary = owner => MenotaPlanReview.Run(
-                    owner, Path.Combine(dataRoot, "menota")),
-
-                PlainLanguageDescription =
-                    "Medieval texts in Old Norse, Old Norwegian and Old Swedish - sagas, the Eddic poems, " +
-                    "and the Norwegian law manuscripts - from the Medieval Nordic Text Archive. You can download all 91 xml files using the Download all XML Files button on Menota's site. It will only take a minute to download but you will need to click through all 91 XML files to confirm if you want to merge or not.  \n\n" +
-                    "Menota publishes one file per manuscript, with no single archive to fetch, so these " +
-                    "are downloaded by hand. Save the XML files into the folder below, then import them.\n\n" +
-                    "Save menota-entities.txt into that same folder as well. These manuscripts use medieval " +
-                    "letters and abbreviation marks that they refer to by name, and that file is what turns " +
-                    "the names into characters - without it they read as \u25AF. Right-click the second link " +
-                    "and choose Save link as. It is worth doing before importing, because whatever is " +
-                    "unreadable at import time stays unreadable in your library.",
-
-                // Open Folder. Nothing more - it opens the destination in Explorer so the
-                // downloaded XML can be dropped in, and reports if the folder is empty.
-                RunIngest = (root, progress, ct) =>
-                {
-                    Directory.CreateDirectory(root);
-
-                    try
-                    {
-                        System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(root)
-                        { UseShellExecute = true });
-                    }
-                    catch (Exception ex)
-                    {
-                        progress.Report($"Couldn't open the folder ({ex.Message}): {root}");
-                        return Task.FromResult(IngestOutcome.Clean);
-                    }
-
-                    var count = Directory.EnumerateFiles(root, "*.xml", SearchOption.AllDirectories).Count();
-                    progress.Report(count == 0
-                        ? "Folder is empty. Download manuscripts from the link above into it."
-                        : $"{count} XML file(s) in the folder.");
-
-                    return Task.FromResult(IngestOutcome.Clean);
-                },
-
-                // Import Manuscripts. Surveys first and prints the report - which
-                // orthographic level each manuscript carries, how many words, which MUFI
-                // characters could not be resolved - then imports.
-                //
-                // On a manuscript it has not seen before the import writes an unconfirmed
-                // .plan.json beside the XML and imports nothing from that file, reporting
-                // it as skipped. So the first press never adds a text to the library, by
-                // design: a Menota file is a manuscript containing several works, nothing
-                // in it links the catalogue entries to the body divisions, so the division
-                // is proposed and a person confirms it. See MenotaIngestPlan.
-                RunSecondary = async (root, progress, ct) =>
-                {
-                    Directory.CreateDirectory(root);
-
-                    if (!Directory.EnumerateFiles(root, "*.xml", SearchOption.AllDirectories).Any())
-                    {
-                        progress.Report("No XML files in the folder yet.");
-                        progress.Report("Use the link above to download manuscripts, then Open Folder to drop them in.");
-                        return IngestOutcome.Clean;
-                    }
-
-                    var report = new MenotaCorpusReport();
-                    var surveyed = await Task.Run(() => report.Survey(root, progress), ct);
-
-                    foreach (var line in MenotaCorpusReport.Format(surveyed)
-                                 .Split(Environment.NewLine, StringSplitOptions.RemoveEmptyEntries))
-                    {
-                        progress.Report(line);
-                    }
-
-                    progress.Report("---");
-
-                    var service = new MenotaIngestService();
-                    var outcome = await service.IngestAsync(root, progress, ct);
-                    await editionRepo.StampCollectionAsync(root, CollectionKeys.Menota, ct);
-
-                    // Reaching this branch means a manuscript arrived in the folder
-                    // after the review dialogs ran, or its review was skipped. The
-                    // plan is on disk either way; pressing Import again reviews it.
-                    if (service.ApparatusEntries > 0)
-                    {
-                        progress.Report(
-                            $"{service.ApparatusEntries:N0} editorial note(s) kept as apparatus rather than " +
-                            "read as text. See Editor's Notes in the reader.");
-                    }
-
-                    if (service.RemovedEditions > 0)
-                    {
-                        progress.Report(
-                            $"Removed {service.RemovedEditions:N0} edition(s) the confirmed plans no longer " +
-                            "produce - merged or split works, or rows unticked.");
-                    }
-
-                    if (service.PlansWritten.Count > 0)
-                    {
-                        progress.Report(
-                            $"{service.PlansWritten.Count} manuscript(s) were not reviewed and so not " +
-                            "imported. Press Import Manuscripts again to review them.");
-                    }
-
-                    return outcome;
-                },
-
-                CheckComplete = async () =>
-                    await editionRepo.CountByCollectionAsync(CollectionKeys.Menota) > 0
-            },
-
 
             new SetupDataSource
             {
@@ -727,6 +380,53 @@ public static class SetupDataSourceCatalog
 
             new SetupDataSource
             {
+                Title = "English Literature (Renaissance, optional)",
+                RepoUrl = "https://github.com/PerseusDL/canonical-engLit",
+                DisplayNote = "(Marlowe, Shakespeare, Hakluyt - needs English Lemma Data above)",
+                DefaultDestination = Path.Combine(dataRoot, "english-texts"),
+                PlainLanguageDescription =
+                    "Perseus's Renaissance and early modern collection - Marlowe, Shakespeare, Holinshed, " +
+                    "Hakluyt. Useful mainly for reception: how later writers reworked classical material. " +
+                    "Note that these are 16th and 17th century English, while the English dictionary above " +
+                    "is modern, so archaic forms like \"hath\" and \"doth\" won't find a headword. This will take about a minute and is less than one hundred megabytes.",
+                RunIngest = async (root, progress, ct) =>
+                {
+                    var wrapped = new Progress<IngestProgress>(p =>
+                        progress.Report($"{p.CurrentAuthor}: {p.CurrentWork} ({p.WorksProcessed}/{p.TotalWorks})"));
+
+                    // CTS layout (english-texts/data) - Sidney, James I.
+                    var cts = new PerseusIngestService();
+                    await cts.IngestAsync(
+                        new[] { (Path.Combine(root, "data"), "engLit") }, wrapped, ct);
+
+                    // Pre-CTS layout (english-texts/Renaissance/**/opensource) -
+                    // the Shakespeare canon, Marlowe, Holinshed, Hakluyt, etc.
+                    // Runs second so its name-based de-dup can fold Sidney and
+                    // James I into the author rows the CTS pass just created.
+                    var renaissance = Path.Combine(root, "Renaissance");
+                    if (!Directory.Exists(renaissance))
+                    {
+                        await editionRepo.StampCollectionAsync(root, CollectionKeys.Renaissance, ct);
+                        return IngestOutcome.From(cts.FailedFiles, cts.RecoveredWithoutCatalog, cts.FilesAttempted);
+                    }
+
+                    var preCts = new RenaissanceIngestService();
+                    await preCts.IngestAsync(renaissance, wrapped, ct);
+
+                    // Both passes land under the same download folder, so one stamp
+                    // covers the CTS works and the pre-CTS ones alike.
+                    await editionRepo.StampCollectionAsync(root, CollectionKeys.Renaissance, ct);
+
+                    return IngestOutcome.Combine(
+                        IngestOutcome.From(cts.FailedFiles, cts.RecoveredWithoutCatalog, cts.FilesAttempted),
+                        IngestOutcome.From(preCts.FailedFiles));
+                },
+                CheckComplete = async () =>
+                    await editionRepo.CountByCollectionAsync(CollectionKeys.Renaissance) > 0
+            },
+
+            new SetupDataSource
+            {
                 Title = "Political Theory: Bodin (optional)",
                 RepoUrl = "https://github.com/PerseusDL/canonical-pdlpsci",
                 DisplayNote = "one work in three languages - small, and the only thing in this collection",
@@ -757,6 +457,332 @@ public static class SetupDataSourceCatalog
 
                 CheckComplete = async () =>
                     await editionRepo.CountByCollectionAsync(CollectionKeys.PoliticalTheory) > 0
+            },
+
+            new SetupDataSource
+            {
+                Title = "Medieval Nordic Texts (Menota)",
+                RepoUrl = "https://www.menota.org/EN_forside.xhtml",
+                DisplayNote = "manuscripts are downloaded by hand from the Menota catalogue",
+                DefaultDestination = Path.Combine(dataRoot, "menota"),
+
+                // Not GitClone and not DirectDownload: Menota publishes per-manuscript XML
+                // through a catalogue on its website, with no archive or repository to
+                // fetch. Every other source here can be pulled in one request; this one
+                // cannot, and pretending otherwise would mean inventing a URL.
+                FetchMode = SetupFetchMode.SelfManaged,
+
+                Links =
+                {
+                    new SetupLink
+                    {
+                        Text = "1. Open the Menota catalogue to download manuscripts",
+                        Url = "https://www.menota.org/EN_forside.xhtml"
+                    },
+                    new SetupLink
+                    {
+                        // Menota manuscripts reference their special characters
+                        // by name rather than encoding them directly - &thorn;,
+                        // &oslashsupfinal;, seventy-odd distinct ones in a single
+                        // manuscript and twenty thousand references. The names are
+                        // defined in one file that every manuscript assumes you
+                        // have. Without it those characters can only be counted,
+                        // not shown, and an offline reader must not fetch it
+                        // mid-parse to find out.
+                        Text = "2. Download menota-entities.txt into the same folder (see below)",
+                        Url = "https://www.menota.org/menota-entities.txt"
+                    }
+                },
+
+                // The folder is the thing this step is about, so it goes on the form
+                // rather than into a sentence.
+                ShowDestinationPath = true,
+
+                // Whether menota-entities.txt is there and is what it should be.
+                //
+                // Checked by parsing it rather than by File.Exists, because the
+                // likeliest failure is a file of the right name with the wrong
+                // contents: clicking a .txt link opens it in the browser, and
+                // saving that page gives you HTML. Exists would say yes, every
+                // manuscript would still import full of replacement characters,
+                // and nothing on screen would connect the two.
+                CheckReadiness = root =>
+                {
+                    var path = Path.Combine(root, "menota-entities.txt");
+
+                    if (!File.Exists(path))
+                        return new SetupReadiness(SetupReadinessState.Missing, "menota-entities.txt not found");
+
+                    var entities = MenotaXmlLoader.LoadEntities(root);
+
+                    return entities.Count == 0
+                        ? new SetupReadiness(SetupReadinessState.Problem,
+                            "File found but defines no characters")
+                        : new SetupReadiness(SetupReadinessState.Ready,
+                            $"{entities.Count:N0} characters ready");
+                },
+
+                ActionButtonText = "Open Folder",
+                SecondaryButtonText = "Import Manuscripts",
+
+                // Shows the division proposal for each manuscript not yet
+                // confirmed, before the import starts. The .plan.json is still
+                // written and still the record of what was confirmed - it is
+                // just no longer something anyone has to open in an editor.
+                PrepareSecondary = owner => MenotaPlanReview.Run(
+                    owner, Path.Combine(dataRoot, "menota")),
+
+                PlainLanguageDescription =
+                    "Medieval texts in Old Norse, Old Norwegian and Old Swedish - sagas, the Eddic poems, " +
+                    "and the Norwegian law manuscripts - from the Medieval Nordic Text Archive. You can download all 91 xml files using the Download all XML Files button on Menota's site. It will only take a minute to download but you will need to click through all 91 XML files to confirm if you want to merge or not.  \n\n" +
+                    "Menota publishes one file per manuscript, with no single archive to fetch, so these " +
+                    "are downloaded by hand. Save the XML files into the folder below, then import them.\n\n" +
+                    "Save menota-entities.txt into that same folder as well. These manuscripts use medieval " +
+                    "letters and abbreviation marks that they refer to by name, and that file is what turns " +
+                    "the names into characters - without it they read as \u25AF. Right-click the second link " +
+                    "and choose Save link as. It is worth doing before importing, because whatever is " +
+                    "unreadable at import time stays unreadable in your library.",
+
+                // Open Folder. Nothing more - it opens the destination in Explorer so the
+                // downloaded XML can be dropped in, and reports if the folder is empty.
+                RunIngest = (root, progress, ct) =>
+                {
+                    Directory.CreateDirectory(root);
+
+                    try
+                    {
+                        System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(root)
+                        { UseShellExecute = true });
+                    }
+                    catch (Exception ex)
+                    {
+                        progress.Report($"Couldn't open the folder ({ex.Message}): {root}");
+                        return Task.FromResult(IngestOutcome.Clean);
+                    }
+
+                    var count = Directory.EnumerateFiles(root, "*.xml", SearchOption.AllDirectories).Count();
+                    progress.Report(count == 0
+                        ? "Folder is empty. Download manuscripts from the link above into it."
+                        : $"{count} XML file(s) in the folder.");
+
+                    return Task.FromResult(IngestOutcome.Clean);
+                },
+
+                // Import Manuscripts. Surveys first and prints the report - which
+                // orthographic level each manuscript carries, how many words, which MUFI
+                // characters could not be resolved - then imports.
+                //
+                // On a manuscript it has not seen before the import writes an unconfirmed
+                // .plan.json beside the XML and imports nothing from that file, reporting
+                // it as skipped. So the first press never adds a text to the library, by
+                // design: a Menota file is a manuscript containing several works, nothing
+                // in it links the catalogue entries to the body divisions, so the division
+                // is proposed and a person confirms it. See MenotaIngestPlan.
+                RunSecondary = async (root, progress, ct) =>
+                {
+                    Directory.CreateDirectory(root);
+
+                    if (!Directory.EnumerateFiles(root, "*.xml", SearchOption.AllDirectories).Any())
+                    {
+                        progress.Report("No XML files in the folder yet.");
+                        progress.Report("Use the link above to download manuscripts, then Open Folder to drop them in.");
+                        return IngestOutcome.Clean;
+                    }
+
+                    var report = new MenotaCorpusReport();
+                    var surveyed = await Task.Run(() => report.Survey(root, progress), ct);
+
+                    foreach (var line in MenotaCorpusReport.Format(surveyed)
+                                 .Split(Environment.NewLine, StringSplitOptions.RemoveEmptyEntries))
+                    {
+                        progress.Report(line);
+                    }
+
+                    progress.Report("---");
+
+                    var service = new MenotaIngestService();
+                    var outcome = await service.IngestAsync(root, progress, ct);
+                    await editionRepo.StampCollectionAsync(root, CollectionKeys.Menota, ct);
+
+                    // Reaching this branch means a manuscript arrived in the folder
+                    // after the review dialogs ran, or its review was skipped. The
+                    // plan is on disk either way; pressing Import again reviews it.
+                    if (service.ApparatusEntries > 0)
+                    {
+                        progress.Report(
+                            $"{service.ApparatusEntries:N0} editorial note(s) kept as apparatus rather than " +
+                            "read as text. See Editor's Notes in the reader.");
+                    }
+
+                    if (service.RemovedEditions > 0)
+                    {
+                        progress.Report(
+                            $"Removed {service.RemovedEditions:N0} edition(s) the confirmed plans no longer " +
+                            "produce - merged or split works, or rows unticked.");
+                    }
+
+                    if (service.PlansWritten.Count > 0)
+                    {
+                        progress.Report(
+                            $"{service.PlansWritten.Count} manuscript(s) were not reviewed and so not " +
+                            "imported. Press Import Manuscripts again to review them.");
+                    }
+
+                    return outcome;
+                },
+
+                CheckComplete = async () =>
+                    await editionRepo.CountByCollectionAsync(CollectionKeys.Menota) > 0
+            },
+
+            new SetupDataSource
+            {
+                Title = "Dictionaries (LSJ + Lewis & Short)",
+                RepoUrl = "https://github.com/PerseusDL/lexica",
+                DefaultDestination = Path.Combine(dataRoot, "lexica"),
+                PlainLanguageDescription =
+                    "The dictionary definitions Word Study looks words up in while you're reading - " +
+                    "one dictionary for Greek, one for Latin, both loaded in this one step. This is about five hundred megabytes.",
+                RunIngest = async (root, progress, ct) =>
+                {
+                    var service = new LexiconIngestService();
+                    var wrapped = new Progress<LexiconIngestProgress>(p =>
+                        progress.Report($"{p.CurrentFile} ({p.FilesProcessed}/{p.TotalFiles} files, {p.EntriesLoaded:N0} entries)"));
+
+                    progress.Report("Ingesting Greek (LSJ)...");
+                    await service.IngestAsync(Path.Combine(root, "CTS_XML_TEI", "perseus", "pdllex", "grc"), "grc", "LSJ", wrapped, ct);
+
+                    progress.Report("Ingesting Latin (Lewis & Short)...");
+                    await service.IngestAsync(Path.Combine(root, "CTS_XML_TEI", "perseus", "pdllex", "lat"), "lat", "Lewis & Short", wrapped, ct);
+                    return IngestOutcome.Clean;
+                },
+                CheckComplete = async () =>
+                {
+                    var byLanguage = await definitionRepo.CountByLanguageAsync();
+                    return byLanguage.Any(l => l.Language == "grc" && l.Count > 0)
+                        && byLanguage.Any(l => l.Language == "lat" && l.Count > 0);
+                }
+            },
+
+            new SetupDataSource
+            {
+                Title = "Greek Lemma Data",
+                RepoUrl = "https://github.com/gcelano/LemmatizedAncientGreekXML",
+                DisplayNote = "CC BY-NC - see About",
+                DefaultDestination = Path.Combine(dataRoot, "greek-lemmas"),
+                PlainLanguageDescription =
+                    "Maps inflected Greek word forms back to their dictionary headword - what lets " +
+                    "search and Word Study understand a word regardless of which form it's in. " +
+                    "This is a large amount of data (3.6 gigabytes) and may take about an hour to gather. " +
+                    "This dataset is free to use but can't be sold, which is fine - ClassicaCodex is free too.",
+                RunIngest = async (root, progress, ct) =>
+                {
+                    var service = new LemmaIngestService();
+                    var wrapped = new Progress<LemmaIngestProgress>(p =>
+                        progress.Report($"{p.CurrentFile} ({p.FilesProcessed}/{p.TotalFiles} files, {p.LemmasLoaded:N0} mappings)"));
+                    await service.IngestAsync(root, "grc", wrapped, ct);
+                    return IngestOutcome.Clean;
+                },
+                CheckComplete = async () => await lemmaRepo.CountByLanguageAsync("grc") > 0
+            },
+
+            new SetupDataSource
+            {
+                Title = "Latin Lemma Data",
+                RepoUrl = "https://github.com/lascivaroma/latin-lemmatized-texts",
+                DefaultDestination = Path.Combine(dataRoot, "latin-lemmas"),
+                PlainLanguageDescription = "The same kind of word-form mapping as the Greek lemma data, for Latin. This will take about six minutes and is about two gigabytes.",
+                RunIngest = async (root, progress, ct) =>
+                {
+                    var service = new LemmaIngestService();
+                    var wrapped = new Progress<LemmaIngestProgress>(p =>
+                        progress.Report($"{p.CurrentFile} ({p.FilesProcessed}/{p.TotalFiles} files, {p.LemmasLoaded:N0} mappings)"));
+                    await service.IngestAsync(root, "lat", wrapped, ct);
+                    return IngestOutcome.Clean;
+                },
+                CheckComplete = async () => await lemmaRepo.CountByLanguageAsync("lat") > 0
+            },
+
+            new SetupDataSource
+            {
+                Title = "English Lemma Data & Dictionary (WordNet)",
+                RepoUrl = "https://wordnet.princeton.edu",
+                DisplayNote = "(Princeton WordNet - free for any use)",
+                DefaultDestination = Path.Combine(dataRoot, "wordnet"),
+                FetchMode = SetupFetchMode.SelfManaged,
+                PlainLanguageDescription =
+                    "Maps English word forms back to their dictionary headword, and supplies definitions - " +
+                    "the same thing the Greek and Latin lemma data does, but for the English translations " +
+                    "you already have loaded. Makes search find \"spoke\" when you type \"speak\", and makes " +
+                    "Word Study work on the translation side as well as the original. This is about sixty megabytes and takes about a minute.",
+                RunIngest = async (root, progress, ct) =>
+                {
+                    var service = new WordNetIngestService();
+                    await service.IngestAsync(root, progress, ct);
+                    return IngestOutcome.Clean;
+                },
+                CheckComplete = async () => await lemmaRepo.CountByLanguageAsync("eng") > 0
+            },
+
+            new SetupDataSource
+            {
+                Title = "World Map Data (Natural Earth)",
+                RepoUrl = "https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/ne_110m_land.geojson",
+                DisplayNote = "public domain - single-file download, not a clone",
+                DefaultDestination = Path.Combine(dataRoot, "map"),
+                FetchMode = SetupFetchMode.DirectDownload,
+                DownloadFileName = "ne_110m_land.geojson",
+                PlainLanguageDescription =
+                    "Real coastline shapes for the Places Map, from the public-domain Natural Earth " +
+                    "project - a single small file, not a big repository. Entirely optional: without it " +
+                    "the map still works, just with rougher hand-drawn landmasses.",
+                RunIngest = (root, progress, ct) =>
+                {
+                    // No database ingest - "installing" here means making
+                    // sure the file sits at the one canonical path the map
+                    // reads from (which only differs from the download
+                    // location if Advanced Setup pointed at a custom
+                    // folder), then dropping any cached "file wasn't
+                    // there" so an already-open session picks it up.
+                    var downloaded = Path.Combine(root, "ne_110m_land.geojson");
+                    var canonical = NaturalEarthCoastline.CanonicalPath;
+                    if (!string.Equals(Path.GetFullPath(downloaded), Path.GetFullPath(canonical),
+                            StringComparison.OrdinalIgnoreCase))
+                    {
+                        Directory.CreateDirectory(Path.GetDirectoryName(canonical)!);
+                        File.Copy(downloaded, canonical, overwrite: true);
+                    }
+
+                    NaturalEarthCoastline.InvalidateCache();
+                    var loaded = NaturalEarthCoastline.Load();
+                    progress.Report(loaded != null
+                        ? $"Map data ready - {loaded.Count} landmasses in range."
+                        : "Downloaded, but the file did not parse - the map will use its built-in shapes.");
+                    return Task.FromResult(IngestOutcome.Clean);
+                },
+                CheckComplete = () => Task.FromResult(File.Exists(NaturalEarthCoastline.CanonicalPath))
+            },
+
+            new SetupDataSource
+            {
+                Title = "Art & Archaeology Data (Perseus)",
+                RepoUrl = "https://github.com/perseus-aa/json",
+                DisplayNote = "images stay on Perseus's own server, never downloaded",
+                DefaultDestination = Path.Combine(dataRoot, "artifacts"),
+                FetchMode = SetupFetchMode.SelfManaged,
+                PlainLanguageDescription =
+                    "Real objects from the ancient world - vases, coins, gems, sculptures, sites, and " +
+                    "buildings - with descriptions and photos, for the Places Map and Myth Network. " +
+                    "The catalog data downloads here; the photos themselves are always loaded live from " +
+                    "Perseus's own server when you view one, never saved to your computer, since Perseus's " +
+                    "copyright terms don't allow redistributing their images outside their own site.",
+                RunIngest = async (root, progress, ct) =>
+                {
+                    var service = new ArtifactIngestService();
+                    await service.IngestAsync(root, progress, ct);
+                    return IngestOutcome.Clean;
+                },
+                CheckComplete = async () => await artifactRepo.HasDataAsync()
             }
         };
     }

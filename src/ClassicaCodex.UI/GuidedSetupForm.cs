@@ -550,7 +550,7 @@ public class GuidedSetupForm : ScaledForm
                 _descriptionLabel.Text =
                     "Makes searching fast once the texts above are loaded - without it, every search has " +
                     "to scan the whole library from scratch. Run this once everything above is done; safe " +
-                    "to run again any time.";
+                    "to run again any time. Takes about fifteen minutes.";
                 _statusIcon.Image = AppIcons.Get(_wordIndexComplete ? "Complete" : "Error", 32);
                 _actionButton.Text = _wordIndexComplete ? "Rebuild Index" : "Build Word Index";
                 _statusLabel.Text = _wordIndexComplete ? "Already built." : "Not built yet.";

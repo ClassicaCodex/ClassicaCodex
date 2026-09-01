@@ -56,7 +56,7 @@ public class WordIndexForm : ScaledForm
         {
             Text = "This is what makes lemma-aware search fast - without it, each search scans the whole " +
                    "corpus once per word form. Run it after loading or adding a corpus. Safe to rerun " +
-                   "any time; it always rebuilds from scratch.",
+                   "any time; it always rebuilds from scratch. Takes about fifteen minutes.",
             Left = 12,
             Top = 36,
             Width = 736,
