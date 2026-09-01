@@ -509,14 +509,15 @@ public static class ReadingTheme
                 //
                 // Re-tested since, against the library rather than against a
                 // guess: all 279,195 Menota passages, all 20,412 passages
-                // anywhere in the corpus that carry a private-use character,
-                // and every work title and author name - 299,607 rows through
-                // both Graphics.MeasureString and a list with this property
-                // set. Nothing failed. Lone surrogates, reversed pairs, NUL,
-                // and 64k-character rows do not reproduce it either. Whatever
-                // took the map down, the diagnosis recorded for it does not
-                // hold, and the whole corpus is a better witness than the
-                // inference was.
+                // anywhere in the corpus carrying a private-use character, all
+                // 4,024 work titles and all 748 author names - 304,379
+                // measurements, the two passage sets overlapping - through both
+                // Graphics.MeasureString and a list with this property set.
+                // Nothing failed. Lone surrogates, reversed pairs, NUL, and
+                // 64k-character rows do not reproduce it either. Whatever took
+                // the map down, the diagnosis recorded for it does not hold,
+                // and the whole corpus is a better witness than the inference
+                // was.
                 //
                 // Set here rather than per form for the reason the search
                 // results said it best: one rule for every list is easier to
