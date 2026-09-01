@@ -287,7 +287,10 @@ public class PlacesMapForm : ScaledForm
         _selectedPlaceLabel.Text = $"Search results for \"{placeName}\" (double-click to jump):";
         _passageList.Items.Clear();
 
-        var hits = await _textNodeRepo.SearchAsync(placeName);
+        // Off the UI thread - see the note in SearchForm. Clicking a place ran
+        // a substring search over the whole corpus on the thread painting the
+        // map, so the map stopped responding until it finished.
+        var hits = await Task.Run(() => _textNodeRepo.SearchAsync(placeName));
         _currentPassages = hits.Rows;
 
         _tagsByNode = await _tagRepo.GetTagNamesForNodesAsync(

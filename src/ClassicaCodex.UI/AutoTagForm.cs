@@ -266,16 +266,26 @@ public class AutoTagForm : ScaledForm
             // inflected Greek/Latin forms where lemma coverage exists) and
             // merge into one combined form list. For a plain English name
             // with no lemma match, this just falls back to the term itself.
+            //
+            // The expansion and the search go to the thread pool together -
+            // see the note in SearchForm. Microsoft.Data.Sqlite's async
+            // methods run synchronously, so awaiting these on the UI thread
+            // held the window for the whole round: one lemma query per typed
+            // term, then a corpus-wide search for every form they expanded to.
             var allForms = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-            foreach (var term in terms)
+            var hits = await Task.Run(async () =>
             {
-                foreach (var form in await _lemmaRepo.ExpandFormAsync(term))
+                foreach (var term in terms)
                 {
-                    allForms.Add(form);
+                    foreach (var form in await _lemmaRepo.ExpandFormAsync(term))
+                    {
+                        allForms.Add(form);
+                    }
                 }
-            }
 
-            var hits = await _textNodeRepo.SearchByFormsAsync(allForms.ToList());
+                return await _textNodeRepo.SearchByFormsAsync(allForms.ToList());
+            });
+
             _currentResults = hits.Rows;
 
             // Kept so the results list can highlight exactly what matched -

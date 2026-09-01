@@ -235,7 +235,12 @@ public class MorphologyForm : ScaledForm
     {
         try
         {
-            var count = await _lemmaRepo.CountTaggedFormsAsync(SelectedLanguageCode);
+            // Off the UI thread - see the note in SearchForm. Counting the
+            // distinct tagged forms means a pass over every lemma in the
+            // language, 585,225 of them for Latin, and it runs on opening the
+            // form and again on every language change: about seven tenths of a
+            // second of frozen window each time, to fill in a status line.
+            var count = await Task.Run(() => _lemmaRepo.CountTaggedFormsAsync(SelectedLanguageCode));
 
             if (count == 0)
             {

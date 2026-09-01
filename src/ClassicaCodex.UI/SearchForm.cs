@@ -649,7 +649,24 @@ public class SearchForm : ScaledForm
                 .Where(w => w.Length > 0)
                 .ToList();
 
-            var hits = await _textNodeRepo.SearchFilteredAsync(filters);
+            // Task.Run, because the await above it is not one. SQLite has no
+            // asynchronous I/O and Microsoft.Data.Sqlite says so: its Async
+            // methods run to completion synchronously and hand back a task
+            // that is already finished. Awaiting one on the UI thread yields
+            // nothing and returns to nobody - so "Searching..." never painted,
+            // the wait cursor never appeared, and the window sat frozen for
+            // however long the query took, which in this form's default mode
+            // - "Anywhere in the line", a substring match across 594MB of
+            // text - is about two and a half seconds. Long enough for Windows
+            // to offer to close it for you.
+            //
+            // Measured rather than assumed: the call spent 2,477ms of 2,477ms
+            // inside itself and came back with IsCompleted already true.
+            //
+            // The same convention the ingest, word index, and stylometry
+            // screens already use for their long work. Everything after the
+            // await is back on the UI thread, as before.
+            var hits = await Task.Run(() => _textNodeRepo.SearchFilteredAsync(filters));
             _results = hits.Rows;
             _openDocumentWorkId = null;
             _truncated = hits.Truncated;

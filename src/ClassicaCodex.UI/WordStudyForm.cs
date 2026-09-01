@@ -566,7 +566,11 @@ public class WordStudyForm : ScaledForm
             .Where(f => f.Length > 0)
             .ToHashSet(StringComparer.Ordinal);
 
-        var hits = await _textNodeRepo.SearchByFormsAsync(forms, workIds: _scopeWorkIds);
+        // Off the UI thread - see the note in SearchForm. Microsoft.Data.Sqlite's
+        // async methods run synchronously, so awaiting this directly held the
+        // window while it gathered every occurrence of the word in the corpus,
+        // about a fifth of a second for a common one.
+        var hits = await Task.Run(() => _textNodeRepo.SearchByFormsAsync(forms, workIds: _scopeWorkIds));
         _currentOccurrences = hits.Rows;
 
         _occurrenceList.Items.Clear();

@@ -178,7 +178,10 @@ public class ConcordanceForm : ScaledForm
 
         try
         {
-            var hits = await _textNodeRepo.SearchAsync(word);
+            // Off the UI thread - see the note in SearchForm. This is the
+            // substring search, the slowest query in the app, and awaiting it
+            // directly froze the window for its whole duration.
+            var hits = await Task.Run(() => _textNodeRepo.SearchAsync(word));
             var matches = hits.Rows;
 
             var wordPattern = new Regex(Regex.Escape(word), RegexOptions.IgnoreCase);
