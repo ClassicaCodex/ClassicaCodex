@@ -139,7 +139,12 @@ public sealed record IngestOutcome(
             parts.Add($"{SkippedCount:N0} file(s) skipped");
         }
 
-        if (HasRecoveredFolders) parts.Add($"{RecoveredCount:N0} named from their texts");
+        // Deliberately not "named from their texts", which was true while that
+        // was the only thing this list held. It now also carries a text left
+        // out because the catalogued tree already supplied it, and a summary
+        // that describes one of two cases is worse than one that describes
+        // neither and points at the log, which describes both exactly.
+        if (HasRecoveredFolders) parts.Add($"{RecoveredCount:N0} noted in the log");
 
         return parts.Count == 0
             ? $"{stepTitle} is ready."

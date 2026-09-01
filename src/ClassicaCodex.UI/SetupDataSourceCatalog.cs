@@ -423,9 +423,14 @@ public static class SetupDataSourceCatalog
                     // covers the CTS works and the pre-CTS ones alike.
                     await editionRepo.StampCollectionAsync(root, CollectionKeys.Renaissance, ct);
 
+                    // A text this pass left out because the catalogued tree
+                    // already supplied it goes in beside the recoveries: both
+                    // mean the library has what it should and something was
+                    // decided on the reader's behalf that the log should
+                    // record.
                     return IngestOutcome.Combine(
                         IngestOutcome.From(cts.FailedFiles, cts.RecoveredWithoutCatalog, cts.FilesAttempted),
-                        IngestOutcome.From(preCts.FailedFiles));
+                        IngestOutcome.From(preCts.FailedFiles, preCts.SupersededByCatalogue));
                 },
                 CheckComplete = async () =>
                     await editionRepo.CountByCollectionAsync(CollectionKeys.Renaissance) > 0

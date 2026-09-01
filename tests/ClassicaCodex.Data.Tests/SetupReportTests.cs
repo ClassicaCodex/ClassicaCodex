@@ -36,7 +36,7 @@ public class SetupReportTests
     /// </summary>
     [Fact]
     public void BothOutcomesReachTheStatusLine() =>
-        Assert.Equal("Ancient Latin Texts is ready - 3 file(s) skipped, 71 named from their texts.",
+        Assert.Equal("Ancient Latin Texts is ready - 3 file(s) skipped, 71 noted in the log.",
             Outcome(skipped: 3, recovered: 71).Describe("Ancient Latin Texts"));
 
     /// <summary>
@@ -48,7 +48,7 @@ public class SetupReportTests
     {
         var described = Outcome(skipped: 0, recovered: 812).Describe("Patrologia Latina");
 
-        Assert.Contains("812 named from their texts", described);
+        Assert.Contains("812 noted in the log", described);
         Assert.DoesNotContain("skipped", described);
     }
 
@@ -126,7 +126,7 @@ public class SetupReportTests
     [Fact]
     public void TheStatusLineLeadsWithWhatWasInstalled() =>
         Assert.Equal(
-            "Ancient Latin Texts is ready - 684 of 687 files installed, 69 named from their texts.",
+            "Ancient Latin Texts is ready - 684 of 687 files installed, 69 noted in the log.",
             new IngestOutcome(
                 Enumerable.Range(0, 3).Select(i => ($"bad{i}.xml", "malformed")).ToList(),
                 Enumerable.Range(0, 69).Select(i => ($"folder{i}", "read from the headers")).ToList(),
