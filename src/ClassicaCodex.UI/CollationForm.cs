@@ -102,9 +102,11 @@ public class CollationForm : ScaledForm
         _rows.Columns.Add("", 440);
         _rows.SelectedIndexChanged += (_, _) => ShowSelectedDetail();
 
-        // The reading font, because these two columns are the text - and no
-        // horizontal scrollbar, which is what makes WinForms measure every item
-        // with GDI+ and throw on glyphs the font cannot resolve.
+        // The reading font, because these two columns are the text. This also
+        // carried the no-horizontal-scrollbar rule, on the grounds that the
+        // measurement it triggers throws on glyphs the font cannot resolve;
+        // that turned out not to hold against the corpus, and the note in
+        // ReadingTheme records the re-test.
         var detail = BuildDetailPanel();
 
         var split = new SplitContainer

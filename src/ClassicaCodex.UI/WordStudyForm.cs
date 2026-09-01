@@ -580,6 +580,9 @@ public class WordStudyForm : ScaledForm
             _occurrenceList.Items.Add("(no occurrences found)");
         }
 
+        ListResultHelpers.RefreshHorizontalExtent(
+            _occurrenceList, i => _occurrenceList.Items[i]?.ToString());
+
         _statusLabel.Text = hits.Truncated
             ? $"{hits.DisplayCount} occurrence(s) of {headword} across the corpus - stopped at the result limit, so this is a sample rather than the full count."
             : $"{_currentOccurrences.Count} occurrence(s) of {headword} across the corpus.";

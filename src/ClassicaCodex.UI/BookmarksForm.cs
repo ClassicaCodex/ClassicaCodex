@@ -138,6 +138,7 @@ public class BookmarksForm : ScaledForm
         if (_currentBookmarks.Count == 0 && dormant == 0)
         {
             _bookmarkList.Items.Add("(no bookmarks yet - right-click a line in the reader to add one)");
+            RefreshExtent();
             return;
         }
 
@@ -152,7 +153,33 @@ public class BookmarksForm : ScaledForm
                 ? "(1 more bookmark is waiting on a text that isn't ingested right now)"
                 : $"({dormant} more bookmarks are waiting on texts that aren't ingested right now)");
         }
+
+        RefreshExtent();
     }
+
+    /// <summary>
+    /// Unlike the other result lists, the rows here are bookmark objects
+    /// rather than the strings they draw as, so the drawing has to be
+    /// described rather than read back off the list.
+    /// </summary>
+    private void RefreshExtent() =>
+        ListResultHelpers.RefreshHorizontalExtent(_bookmarkList, i =>
+        {
+            // The trailing rows are the list's own messages - the empty state
+            // and the dormant-bookmark notice - which are plain strings.
+            if (i >= _currentBookmarks.Count) return _bookmarkList.Items[i]?.ToString();
+
+            var b = _currentBookmarks[i];
+            var line = $"{b.AuthorName}, {b.WorkTitle}: {b.Text}";
+            if (string.IsNullOrEmpty(b.Note)) return line;
+
+            // A row with a note is two lines and either can be the wider, so
+            // the longer one is what the row needs to be measured by. The two
+            // spaces stand in for the note's 16px indent; approximating it
+            // low only stops the scrollbar a few pixels early.
+            var noteLine = $"  Note: {b.Note}";
+            return noteLine.Length > line.Length ? noteLine : line;
+        });
 
     protected override void Dispose(bool disposing)
     {

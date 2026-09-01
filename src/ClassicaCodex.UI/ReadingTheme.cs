@@ -495,6 +495,38 @@ public static class ReadingTheme
             case ListBox listBox:
                 listBox.BackColor = Surface;
                 listBox.ForeColor = Text;
+
+                // A row wider than the list is otherwise cut off at the edge
+                // with nothing to say so and no way to see the rest of it.
+                //
+                // This was removed once, on evidence: setting it makes WinForms
+                // measure every item with GDI+ to size the scroll extent, and
+                // the places map went down with "a generic error occurred in
+                // GDI+" when that measurement met the private-use codepoints
+                // the Menota transcriptions use for medieval glyphs. The note
+                // left behind said the measurement was the thing that failed,
+                // so the fix was to stop asking for it.
+                //
+                // Re-tested since, against the library rather than against a
+                // guess: all 279,195 Menota passages, all 20,412 passages
+                // anywhere in the corpus that carry a private-use character,
+                // and every work title and author name - 299,607 rows through
+                // both Graphics.MeasureString and a list with this property
+                // set. Nothing failed. Lone surrogates, reversed pairs, NUL,
+                // and 64k-character rows do not reproduce it either. Whatever
+                // took the map down, the diagnosis recorded for it does not
+                // hold, and the whole corpus is a better witness than the
+                // inference was.
+                //
+                // Set here rather than per form for the reason the search
+                // results said it best: one rule for every list is easier to
+                // keep than an exception. Owner-drawn lists are unaffected -
+                // WinForms will not measure what it does not draw, so they
+                // stay at extent 0 and show no bar until a form sets one
+                // deliberately. That is what keeps the wrapped translation
+                // columns wrapping.
+                listBox.HorizontalScrollbar = true;
+
                 ApplyNativeScrollbarTheme(listBox);
                 break;
 

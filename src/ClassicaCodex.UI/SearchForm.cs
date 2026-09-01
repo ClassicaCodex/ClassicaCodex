@@ -276,17 +276,18 @@ public class SearchForm : ScaledForm
             Height = 414,
             Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right,
 
-            // No horizontal scrollbar. Setting it makes WinForms measure every item with
-            // GDI+ for the scroll extent, and that measurement throws on characters the
-            // font cannot resolve - which the Menota transcriptions carry, encoding
-            // medieval glyphs in the Unicode private use area. It took the places map
-            // down that way.
+            // This used to carry a note saying it had no horizontal scrollbar because
+            // measuring items for one threw on the private-use codepoints in the Menota
+            // transcriptions, and that owner-drawing "may well" skip that measurement -
+            // an inference the note itself said nobody had tested.
             //
-            // This list is owner-drawn, and owner-drawing may well skip that measurement
-            // - it has never failed here on the same corpus. But "may well" is the whole
-            // of the case for treating it differently, and this is the screen used most.
-            // One rule for every list that shows corpus text is easier to keep than an
-            // exception resting on an inference nobody has tested.
+            // Tested now. Owner-drawing does skip it: WinForms will not measure rows it
+            // does not draw, which is why this list needs RefreshHorizontalExtent after
+            // every repopulate to get a scrollbar at all. And the measurement does not
+            // throw - see the corpus-wide re-test recorded in ReadingTheme. Both halves
+            // of the note were wrong in the same direction, and the screen used most was
+            // the one paying for it: a long passage was cut off at the right edge with
+            // nothing to say the line continued.
             DrawMode = DrawMode.OwnerDrawFixed
         };
         _resultsList.DrawItem += Results_DrawItem;
@@ -826,6 +827,11 @@ public class SearchForm : ScaledForm
         {
             _resultsList.EndUpdate();
         }
+
+        // Every row here is the string that was added, which is also what
+        // Results_DrawItem draws, so the list can be measured from itself.
+        ListResultHelpers.RefreshHorizontalExtent(
+            _resultsList, i => _resultsList.Items[i]?.ToString());
 
         if (_results.Count == 0)
         {

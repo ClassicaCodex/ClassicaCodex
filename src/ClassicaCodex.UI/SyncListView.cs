@@ -29,6 +29,13 @@ public class SyncListView : ListBox
 
     public SyncListView()
     {
+        // Owner-drawn is what makes the wrapping possible, and it is also what
+        // keeps the reader out of the app-wide horizontal scrollbar. The theme
+        // sets HorizontalScrollbar on every ListBox, but WinForms sizes the
+        // scroll extent from rows it measures itself and it cannot measure
+        // rows a DrawItem handler paints - so the extent stays at zero here and
+        // no bar appears. Which is right: these panes wrap, and reading text
+        // that slid sideways would be the wrong control entirely.
         DrawMode = DrawMode.OwnerDrawVariable;
         IntegralHeight = false;
         DrawItem += OnDrawItem;

@@ -244,6 +244,16 @@ public class CompareTranslationsForm : ScaledForm
                 // Reading three translations side by side means reading down
                 // three columns, and a horizontal scrollbar per column makes
                 // that impossible.
+                //
+                // The theme now sets HorizontalScrollbar on every ListBox in
+                // the app, and this one is deliberately left out of that. It
+                // costs nothing to leave in: WinForms sizes the scroll extent
+                // by measuring rows it draws itself, an owner-drawn list gives
+                // it nothing to measure, and the extent stays at zero - so no
+                // bar appears unless a form asks for one with
+                // RefreshHorizontalExtent, which these columns never do. The
+                // wrapping is what keeps them readable and nothing here
+                // disturbs it.
                 var list = new ListBox
                 {
                     Dock = DockStyle.Fill,

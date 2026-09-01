@@ -293,6 +293,9 @@ public class AutoTagForm : ScaledForm
                 _resultsList.SetItemChecked(index, true);
             }
 
+            ListResultHelpers.RefreshHorizontalExtent(
+                _resultsList, i => _resultsList.Items[i]?.ToString());
+
             // Truncation matters more here than in a read-only view: this
             // form writes tags, so a capped result set means a tagging pass
             // that looks complete and isn't. Say so before anything is saved.

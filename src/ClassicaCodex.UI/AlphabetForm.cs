@@ -45,7 +45,13 @@ public class AlphabetForm : ScaledForm
             Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right,
             Multiline = true,
             ReadOnly = true,
-            ScrollBars = ScrollBars.Vertical,
+
+            // Both, not Vertical. This is a column-aligned reference table, so
+            // it turns wrapping off - and a box that does not wrap and does not
+            // scroll sideways simply cuts every long line off at the right edge
+            // with no way to reach the rest. WorkDetailsForm, the other
+            // no-wrap box in the app, already pairs the two correctly.
+            ScrollBars = ScrollBars.Both,
             WordWrap = false,
             Font = new Font("Palatino Linotype", 11F),
             Text = BuildReference(language)
