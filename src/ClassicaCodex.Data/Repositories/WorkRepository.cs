@@ -10,12 +10,31 @@ public class WorkRepository
     {
         await using var conn = await DbConnectionFactory.OpenConnectionAsync(cancellationToken);
 
+        // The first collection to carry a work names it, and later ones add
+        // their editions to it without renaming it.
+        //
+        // 147 works in a full library hold editions from more than one
+        // collection - Sophocles' Ajax from Perseus and First1KGreek,
+        // Augustine's letters from Perseus and CSEL - and that is the design
+        // working: a second edition to choose from rather than a second row.
+        // But every one of those ran through this upsert twice, so the title
+        // was whichever catalogue happened to be fetched last. Paulinus of
+        // Nola's Carmina was listed as "Carmen Adversos Gentes" because Migne
+        // was ingested after CSEL and Migne calls it that.
+        //
+        // COALESCE on the existing value rather than a WHERE, because the row
+        // still has to be updated: AuthorId and CitationScheme should follow
+        // the newest catalogue, and only the name is being held. The wizard
+        // fetches Perseus first for exactly this reason.
         const string sql = @"
             INSERT INTO Works (AuthorId, CtsUrn, Title, CitationScheme)
             VALUES (@AuthorId, @CtsUrn, @Title, @CitationScheme)
             ON CONFLICT(CtsUrn) DO UPDATE SET
-                Title = excluded.Title,
-                CitationScheme = excluded.CitationScheme,
+                Title = CASE
+                    WHEN TRIM(COALESCE(Works.Title, '')) = '' THEN excluded.Title
+                    ELSE Works.Title
+                END,
+                CitationScheme = COALESCE(excluded.CitationScheme, Works.CitationScheme),
                 AuthorId = excluded.AuthorId
             RETURNING WorkId;";
 

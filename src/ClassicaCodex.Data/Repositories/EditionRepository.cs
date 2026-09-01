@@ -9,16 +9,48 @@ public class EditionRepository
     {
         await using var conn = await DbConnectionFactory.OpenConnectionAsync(cancellationToken);
 
+        // An edition already claimed by another collection is left alone.
+        //
+        // Two collections can ship a file under the same CTS identifier and
+        // mean different books by it. CSEL and the Patrologia Latina do it
+        // three times - Paulinus of Nola's Carmina, Pseudo-Cyprian's Ad
+        // Vigilium, Commodianus' Instructiones - where CSEL has the critical
+        // edition and Migne has his nineteenth-century reprint of the same
+        // work under the same URN.
+        //
+        // Unconditional, this overwrote: the second ingest repointed the row
+        // at its own file, and because Migne is fetched after CSEL, the
+        // critical text of the Carmina - 9,380 lines - was replaced by the
+        // reprint, silently, leaving CSEL's work row behind with no edition
+        // under it. That is the exact opposite of what the README promises
+        // about the two sitting side by side, and it loses the better text of
+        // the two every time.
+        //
+        // First in wins, which given the wizard's order is CSEL, which is the
+        // text a scholar cites. The right answer is for an edition's identity
+        // to include its collection so both can be held at once; that is a
+        // schema change and this is not it. What this does is stop the loss
+        // and let the caller report it.
+        // Collection is written here as well as by StampCollectionAsync, which
+        // still runs afterwards and still backfills anything this did not
+        // name. It has to be on the row for the guard below to have anything
+        // to compare: stamped only after the whole corpus was ingested, the
+        // first edition of a clashing pair was still NULL when the second
+        // arrived, so the guard passed and the overwrite went ahead anyway.
         const string sql = @"
-            INSERT INTO Editions (WorkId, CtsUrn, Kind, Language, Translator, SourcePath, Orthography)
-            VALUES (@WorkId, @CtsUrn, @Kind, @Language, @Translator, @SourcePath, @Orthography)
+            INSERT INTO Editions (WorkId, CtsUrn, Kind, Language, Translator, SourcePath, Orthography, Collection)
+            VALUES (@WorkId, @CtsUrn, @Kind, @Language, @Translator, @SourcePath, @Orthography, @Collection)
             ON CONFLICT(CtsUrn) DO UPDATE SET
                 Kind = excluded.Kind,
                 Language = excluded.Language,
                 Translator = excluded.Translator,
                 SourcePath = excluded.SourcePath,
                 Orthography = excluded.Orthography,
-                WorkId = excluded.WorkId
+                WorkId = excluded.WorkId,
+                Collection = COALESCE(excluded.Collection, Editions.Collection)
+            WHERE Editions.Collection IS NULL
+               OR @Collection IS NULL
+               OR Editions.Collection = @Collection
             RETURNING EditionId;";
 
         await using var cmd = conn.CreateCommand();
@@ -30,9 +62,16 @@ public class EditionRepository
         cmd.Parameters.AddWithValue("@Translator", (object?)edition.Translator ?? DBNull.Value);
         cmd.Parameters.AddWithValue("@SourcePath", (object?)edition.SourcePath ?? DBNull.Value);
         cmd.Parameters.AddWithValue("@Orthography", (object?)edition.Orthography ?? DBNull.Value);
+        cmd.Parameters.AddWithValue("@Collection", (object?)edition.Collection ?? DBNull.Value);
 
         var result = await cmd.ExecuteScalarAsync(cancellationToken);
-        return Convert.ToInt32(result);
+
+        // No row back means the WHERE above declined the update: this URN
+        // belongs to a different collection already. Reported as zero rather
+        // than thrown, so the caller can note the clash and carry on with the
+        // rest of the corpus - which is what an ingest of a thousand files
+        // needs to do.
+        return result == null || result == DBNull.Value ? 0 : Convert.ToInt32(result);
     }
 
     /// <summary>One edition by id, or null if it has since been removed.</summary>

@@ -64,6 +64,16 @@ public class PerseusIngestService
     public int FilesAttempted { get; private set; }
 
     /// <summary>
+    /// Which collection this run's editions belong to, so an edition already
+    /// held by a different one is not overwritten.
+    ///
+    /// See EditionRepository.UpsertAsync. Null - the default - keeps the old
+    /// behaviour for callers that do not deal in collections, such as the
+    /// manual Ingest Corpus dialog.
+    /// </summary>
+    public string? CollectionKey { get; set; }
+
+    /// <summary>
     /// The one author to file every textgroup under whose catalog names nobody. Null -
     /// the default - passes them over, which is right for a corpus where a missing name
     /// means a malformed file.
@@ -308,8 +318,22 @@ public class PerseusIngestService
                     Kind = kind,
                     Language = language,
                     Translator = translator,
-                    SourcePath = editionFile
+                    SourcePath = editionFile,
+                    Collection = CollectionKey
                 }, cancellationToken);
+
+                // Zero means another collection already holds this identifier
+                // and the upsert declined to overwrite it - see
+                // EditionRepository.UpsertAsync. Said out loud, because a text
+                // this library will not be holding is exactly the thing that
+                // must not pass in silence.
+                if (editionId == 0)
+                {
+                    FailedFiles.Add((editionFile,
+                        $"another collection already holds {editionUrn}. That edition was kept and this " +
+                        "one skipped; the two carry the same identifier and cannot both be stored yet."));
+                    continue;
+                }
 
                 // Clear and re-insert so re-running ingestion after a repo
                 // update doesn't leave stale/duplicate text nodes behind.

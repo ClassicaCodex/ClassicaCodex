@@ -110,6 +110,7 @@ public static class SetupDataSourceCatalog
                 RunIngest = async (root, progress, ct) =>
                 {
                     var service = new PerseusIngestService();
+                    service.CollectionKey = CollectionKeys.PerseusGreek;
                     var wrapped = new Progress<IngestProgress>(p =>
                         progress.Report($"{p.CurrentAuthor}: {p.CurrentWork} ({p.WorksProcessed}/{p.TotalWorks})"));
                     await service.IngestAsync(
@@ -145,6 +146,7 @@ public static class SetupDataSourceCatalog
                 RunIngest = async (root, progress, ct) =>
                 {
                     var service = new PerseusIngestService();
+                    service.CollectionKey = CollectionKeys.PerseusLatin;
                     var wrapped = new Progress<IngestProgress>(p =>
                         progress.Report($"{p.CurrentAuthor}: {p.CurrentWork} ({p.WorksProcessed}/{p.TotalWorks})"));
                     await service.IngestAsync(
@@ -203,6 +205,7 @@ public static class SetupDataSourceCatalog
                     // editions land as additional rows under the existing
                     // work rather than clearing anyone's existing text.
                     var service = new PerseusIngestService();
+                    service.CollectionKey = CollectionKeys.First1KGreek;
                     var wrapped = new Progress<IngestProgress>(p =>
                         progress.Report($"{p.CurrentAuthor}: {p.CurrentWork} ({p.WorksProcessed}/{p.TotalWorks})"));
                     await service.IngestAsync(
@@ -295,6 +298,7 @@ public static class SetupDataSourceCatalog
                     // and is left alone: IngestRepoAsync walks data/ only, so the
                     // volume-level files cannot produce a second copy of anything.
                     var service = new PerseusIngestService();
+                    service.CollectionKey = CollectionKeys.Csel;
                     var wrapped = new Progress<IngestProgress>(p =>
                         progress.Report($"{p.CurrentAuthor}: {p.CurrentWork} ({p.WorksProcessed}/{p.TotalWorks})"));
                     await service.IngestAsync(
@@ -365,6 +369,7 @@ public static class SetupDataSourceCatalog
                         // gather under a single row rather than eight hundred alike.
                         UnnamedTextGroupAuthor = ("urn:cts:latinLit:pl.incertus", "Incertus")
                     };
+                    service.CollectionKey = CollectionKeys.PatrologiaLatina;
                     var wrapped = new Progress<IngestProgress>(p =>
                         progress.Report($"{p.CurrentAuthor}: {p.CurrentWork} ({p.WorksProcessed}/{p.TotalWorks})"));
                     await service.IngestAsync(
@@ -396,6 +401,7 @@ public static class SetupDataSourceCatalog
 
                     // CTS layout (english-texts/data) - Sidney, James I.
                     var cts = new PerseusIngestService();
+                    cts.CollectionKey = CollectionKeys.Renaissance;
                     await cts.IngestAsync(
                         new[] { (Path.Combine(root, "data"), "engLit") }, wrapped, ct);
 
@@ -446,6 +452,7 @@ public static class SetupDataSourceCatalog
                     // translating himself, which is exactly the distinction the
                     // edition/translation split exists to keep.
                     var service = new PerseusIngestService();
+                    service.CollectionKey = CollectionKeys.PoliticalTheory;
                     var wrapped = new Progress<IngestProgress>(p =>
                         progress.Report($"{p.CurrentAuthor}: {p.CurrentWork} ({p.WorksProcessed}/{p.TotalWorks})"));
                     await service.IngestAsync(
