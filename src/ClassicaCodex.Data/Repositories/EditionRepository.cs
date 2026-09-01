@@ -56,7 +56,7 @@ public class EditionRepository
         await using var cmd = conn.CreateCommand();
         cmd.CommandText = sql;
         cmd.Parameters.AddWithValue("@WorkId", edition.WorkId);
-        cmd.Parameters.AddWithValue("@CtsUrn", edition.CtsUrn);
+        cmd.Parameters.AddWithValue("@CtsUrn", edition.CtsUrn?.Trim() ?? string.Empty); // identity column - see WorkRepository
         cmd.Parameters.AddWithValue("@Kind", edition.Kind.ToString());
         cmd.Parameters.AddWithValue("@Language", (object?)edition.Language ?? DBNull.Value);
         cmd.Parameters.AddWithValue("@Translator", (object?)edition.Translator ?? DBNull.Value);
@@ -142,11 +142,50 @@ public class EditionRepository
     public async Task ClearTextNodesAsync(int editionId, CancellationToken cancellationToken = default)
     {
         await using var conn = await DbConnectionFactory.OpenConnectionAsync(cancellationToken);
-        const string sql = "DELETE FROM TextNodes WHERE EditionId = @EditionId;";
-        await using var cmd = conn.CreateCommand();
-        cmd.CommandText = sql;
-        cmd.Parameters.AddWithValue("@EditionId", editionId);
-        await cmd.ExecuteNonQueryAsync(cancellationToken);
+        await using var tx = await conn.BeginTransactionAsync(cancellationToken);
+
+        // The word index goes first, and that ordering is the whole point.
+        // WordIndex holds no foreign key to TextNodes - it is a WITHOUT ROWID
+        // table of (word, passage id) pairs and nothing enforces that the id
+        // still exists - so the only way to find an edition's entries is to
+        // look its passages up. Once the passages are deleted there is nothing
+        // left to look up, and the entries are unreachable for good.
+        //
+        // WordIndexRepository.DeleteByEditionAsync exists to do this cleanup
+        // and resolves ids exactly that way, so calling it after clearing
+        // matched nothing every time. 1,983,234 stranded entries in this
+        // library, 2.8% of the index, from re-ingests and from the
+        // translation workbench, which clears and re-inserts on every save.
+        //
+        // Harmless so far: a search asks the index for passage ids and joins
+        // them back to TextNodes, so ids that no longer exist drop out.
+        // Verified rather than assumed - 6,684 hits across fourteen Latin and
+        // Greek searches, none of them a passage that lacked the word. But
+        // SQLite hands out row ids as max+1 of what is currently there, so a
+        // stranded id is one deletion pattern away from belonging to a
+        // different passage, and then the index would be claiming a word for a
+        // line that never had it.
+        await using (var wordIndex = conn.CreateCommand())
+        {
+            wordIndex.Transaction = (SqliteTransaction)tx;
+            wordIndex.CommandText =
+                "DELETE FROM WordIndex WHERE TextNodeId IN " +
+                "(SELECT TextNodeId FROM TextNodes WHERE EditionId = @EditionId);";
+            wordIndex.Parameters.AddWithValue("@EditionId", editionId);
+            wordIndex.CommandTimeout = 120;
+            await wordIndex.ExecuteNonQueryAsync(cancellationToken);
+        }
+
+        await using (var cmd = conn.CreateCommand())
+        {
+            cmd.Transaction = (SqliteTransaction)tx;
+            cmd.CommandText = "DELETE FROM TextNodes WHERE EditionId = @EditionId;";
+            cmd.Parameters.AddWithValue("@EditionId", editionId);
+            cmd.CommandTimeout = 120;
+            await cmd.ExecuteNonQueryAsync(cancellationToken);
+        }
+
+        await tx.CommitAsync(cancellationToken);
     }
 
     /// <summary>
@@ -307,6 +346,13 @@ public class EditionRepository
         var authorId = await ScalarAsync(
             "SELECT IFNULL(AuthorId, 0) FROM Works WHERE WorkId = @WorkId;", "@WorkId", workId);
 
+        // Before the passages, for the reason spelled out in ClearTextNodesAsync:
+        // the index can only be found through them, so deleting them first
+        // strands its entries permanently. Removing an edition from the
+        // library left its whole word index behind.
+        await ExecuteAsync(
+            "DELETE FROM WordIndex WHERE TextNodeId IN " +
+            "(SELECT TextNodeId FROM TextNodes WHERE EditionId = @EditionId);", "@EditionId", editionId);
         await ExecuteAsync("DELETE FROM TextNodes WHERE EditionId = @EditionId;", "@EditionId", editionId);
         await ExecuteAsync("DELETE FROM ApparatusEntries WHERE EditionId = @EditionId;", "@EditionId", editionId);
         await ExecuteAsync("DELETE FROM Editions WHERE EditionId = @EditionId;", "@EditionId", editionId);

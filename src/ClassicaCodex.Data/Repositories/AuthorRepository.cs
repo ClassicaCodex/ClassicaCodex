@@ -40,7 +40,7 @@ public class AuthorRepository
 
         await using var cmd = conn.CreateCommand();
         cmd.CommandText = sql;
-        cmd.Parameters.AddWithValue("@CtsUrn", author.CtsUrn);
+        cmd.Parameters.AddWithValue("@CtsUrn", author.CtsUrn?.Trim() ?? string.Empty); // identity column - see WorkRepository
         cmd.Parameters.AddWithValue("@Name", author.Name);
         cmd.Parameters.AddWithValue("@Namespace", author.Namespace);
         cmd.Parameters.AddWithValue("@Language", (object?)author.Language ?? DBNull.Value);

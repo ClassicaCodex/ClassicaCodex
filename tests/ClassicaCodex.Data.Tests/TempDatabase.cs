@@ -165,6 +165,19 @@ public sealed class TempDatabase : IDisposable
     }
 
     /// <summary>
+    /// The same for text, which ScalarAsync cannot return - it is constrained
+    /// to structs so that a missing row can come back as default(T).
+    /// </summary>
+    public async Task<string?> ScalarStringAsync(string sql)
+    {
+        await using var conn = await DbConnectionFactory.OpenConnectionAsync();
+        await using var cmd = conn.CreateCommand();
+        cmd.CommandText = sql;
+        var result = await cmd.ExecuteScalarAsync();
+        return result == null || result == DBNull.Value ? null : Convert.ToString(result);
+    }
+
+    /// <summary>
     /// Runs SQL with foreign key enforcement off. Needed to plant the kind of
     /// dangling row an older file can genuinely be holding - the v1 schema
     /// declared those foreign keys, but enforcement is per-connection and off

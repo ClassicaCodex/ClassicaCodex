@@ -76,7 +76,7 @@ public static class SchemaInitializer
     /// 7 to 13 until version 3 was cut, at which point they all failed at
     /// once and said nothing about what had actually broken.
     /// </summary>
-    public const int TargetSchemaVersion = 36;
+    public const int TargetSchemaVersion = 37;
 
     public static async Task EnsureSchemaAsync(CancellationToken cancellationToken = default)
     {
@@ -1344,6 +1344,56 @@ public static class SchemaInitializer
         // is never wrong. SetupWizardForm already compares indexed lines
         // against total lines and says when the index needs building, so an
         // upgraded library reports itself as needing exactly what it needs.
+        // Four Patrologia Latina catalogue files carry a trailing space inside
+        // the urn attribute, upstream - stoa0096.stoa003, stoa0104p.stoa002,
+        // stoa0201d.stoa001 and stoa0223.stoa001, and no other file in any
+        // collection. A work's URN is its identity, so a stray space does not
+        // make an untidy work, it makes a second one: the same text listed
+        // twice in the library, one copy holding the edition and one empty,
+        // with nothing on screen to say why. Three of the four collided with
+        // the CSEL entry for the same text, which is where the empty
+        // "Carmina" and "Ad Vigilium" under Paulinus and Pseudo-Cyprian came
+        // from.
+        //
+        // The readers trim now, so new imports are clean, and the upsert trims
+        // as well so no future reader can undo that. Neither helps a library
+        // that already has the duplicates: the bad row keeps its edition, so
+        // nothing revisits it and it stays forever. Hence a repair.
+        //
+        // Editions move to the surviving twin first, then the emptied
+        // duplicate goes, then anything left with no twin is simply trimmed.
+        // That order matters - trimming first would collide with the twin on
+        // the unique index and take the whole migration down with it.
+        [37] = new[]
+        {
+            @"UPDATE Editions
+                 SET WorkId = (
+                     SELECT t.WorkId FROM Works t
+                     WHERE t.CtsUrn = TRIM((SELECT u.CtsUrn FROM Works u WHERE u.WorkId = Editions.WorkId))
+                       AND t.WorkId <> Editions.WorkId)
+               WHERE EXISTS (
+                     SELECT 1 FROM Works u
+                     WHERE u.WorkId = Editions.WorkId
+                       AND u.CtsUrn <> TRIM(u.CtsUrn)
+                       AND EXISTS (SELECT 1 FROM Works t
+                                   WHERE t.CtsUrn = TRIM(u.CtsUrn) AND t.WorkId <> u.WorkId));",
+
+            @"DELETE FROM Works
+               WHERE CtsUrn <> TRIM(CtsUrn)
+                 AND EXISTS (SELECT 1 FROM Works t
+                             WHERE t.CtsUrn = TRIM(Works.CtsUrn) AND t.WorkId <> Works.WorkId);",
+
+            "UPDATE Works SET CtsUrn = TRIM(CtsUrn) WHERE CtsUrn <> TRIM(CtsUrn);",
+
+            // The same identity columns, for completeness. No library has been
+            // seen with these, but they are upserted on exactly like Works and
+            // would split exactly the same way.
+            "UPDATE Authors SET CtsUrn = TRIM(CtsUrn) WHERE CtsUrn <> TRIM(CtsUrn) " +
+            "  AND NOT EXISTS (SELECT 1 FROM Authors t WHERE t.CtsUrn = TRIM(Authors.CtsUrn) AND t.AuthorId <> Authors.AuthorId);",
+            "UPDATE Editions SET CtsUrn = TRIM(CtsUrn) WHERE CtsUrn <> TRIM(CtsUrn) " +
+            "  AND NOT EXISTS (SELECT 1 FROM Editions t WHERE t.CtsUrn = TRIM(Editions.CtsUrn) AND t.EditionId <> Editions.EditionId);"
+        },
+
         [36] = new[]
         {
             "DROP INDEX IF EXISTS IX_WordIndex_Word;",

@@ -41,7 +41,19 @@ public class WorkRepository
         await using var cmd = conn.CreateCommand();
         cmd.CommandText = sql;
         cmd.Parameters.AddWithValue("@AuthorId", work.AuthorId);
-        cmd.Parameters.AddWithValue("@CtsUrn", work.CtsUrn);
+
+        // Trimmed here, at the one place a work URN is written, and not only
+        // in the readers. The URN is this row's identity - everything is
+        // upserted on it - so a stray space does not make a messy work, it
+        // makes a second one. Four Patrologia Latina catalogue files carry a
+        // trailing space inside the urn attribute, upstream, and each of them
+        // split a work in two: the same text listed twice in the library, once
+        // holding the edition and once empty, with nothing on screen to
+        // explain it. The catalogue reader trims, which fixes new imports; a
+        // library that already has the duplicates cannot fix itself, because
+        // the bad row keeps its edition and is never revisited. Migration 37
+        // repairs those. This makes sure no other reader can reintroduce them.
+        cmd.Parameters.AddWithValue("@CtsUrn", work.CtsUrn?.Trim() ?? string.Empty);
         cmd.Parameters.AddWithValue("@Title", work.Title);
         cmd.Parameters.AddWithValue("@CitationScheme", (object?)work.CitationScheme ?? DBNull.Value);
 
