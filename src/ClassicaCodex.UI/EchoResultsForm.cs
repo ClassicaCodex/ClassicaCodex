@@ -106,7 +106,11 @@ public class EchoResultsForm : ScaledForm
         _resultsList.Items.Clear();
         _resultsList.Items.Add("Searching...");
 
-        _currentResults = await _textNodeRepo.FindEchoesAsync(sourceTextNodeId);
+        // Off the UI thread - see the note in SearchForm. Finding echoes means
+        // looking every content word of the passage up across the corpus, a
+        // quarter of a second, and the "Searching..." set on the line above
+        // would not have appeared until it was over.
+        _currentResults = await Task.Run(() => _textNodeRepo.FindEchoesAsync(sourceTextNodeId));
 
         _resultsList.Items.Clear();
         if (_currentResults.Count == 0)

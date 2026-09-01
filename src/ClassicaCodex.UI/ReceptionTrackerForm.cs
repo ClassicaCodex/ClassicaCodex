@@ -125,7 +125,8 @@ public class ReceptionTrackerForm : ScaledForm
         var source = await _textNodeRepo.GetTextNodeSourceInfoAsync(_sourceNode.TextNodeId);
         var sourceEra = source != null ? AuthorEraData.Lookup(source.Value.AuthorName) : null;
 
-        var echoes = await _textNodeRepo.FindEchoesAsync(_sourceNode.TextNodeId);
+        // Off the UI thread - see the note in SearchForm.
+        var echoes = await Task.Run(() => _textNodeRepo.FindEchoesAsync(_sourceNode.TextNodeId));
 
         if (sourceEra == null)
         {
