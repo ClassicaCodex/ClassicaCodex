@@ -79,7 +79,7 @@ public static class SetupDataSourceCatalog
                 DefaultDestination = Path.Combine(dataRoot, "greek-texts"),
                 PlainLanguageDescription =
                     "The actual Greek texts themselves - everything from Homer to late antiquity. " +
-                    "This is the biggest download here, usually a few hundred megabytes.",
+                    "This is a few hundred megabytes.",
                 RunIngest = async (root, progress, ct) =>
                 {
                     var service = new PerseusIngestService();
@@ -114,7 +114,7 @@ public static class SetupDataSourceCatalog
                 RepoUrl = "https://github.com/PerseusDL/canonical-latinLit",
                 DefaultDestination = Path.Combine(dataRoot, "latin-texts"),
                 PlainLanguageDescription =
-                    "The Latin counterpart to the Greek texts above - Caesar, Cicero, Virgil, and the rest.",
+                    "The Latin counterpart to the Greek texts above - Caesar, Cicero, Virgil, and the rest. This is a few hundred megabytes.",
                 RunIngest = async (root, progress, ct) =>
                 {
                     var service = new PerseusIngestService();
@@ -143,7 +143,7 @@ public static class SetupDataSourceCatalog
                 DefaultDestination = Path.Combine(dataRoot, "lexica"),
                 PlainLanguageDescription =
                     "The dictionary definitions Word Study looks words up in while you're reading - " +
-                    "one dictionary for Greek, one for Latin, both loaded in this one step.",
+                    "one dictionary for Greek, one for Latin, both loaded in this one step. This is about five hundred megabytes.",
                 RunIngest = async (root, progress, ct) =>
                 {
                     var service = new LexiconIngestService();
@@ -174,7 +174,7 @@ public static class SetupDataSourceCatalog
                 PlainLanguageDescription =
                     "Maps inflected Greek word forms back to their dictionary headword - what lets " +
                     "search and Word Study understand a word regardless of which form it's in. " +
-                    "This is a large amount of data and may take a while. " +
+                    "This is a large amount of data (3.6 gigabytes) and may take about an hour to gather. " +
                     "This dataset is free to use but can't be sold, which is fine - ClassicaCodex is free too.",
                 RunIngest = async (root, progress, ct) =>
                 {
@@ -192,7 +192,7 @@ public static class SetupDataSourceCatalog
                 Title = "Latin Lemma Data",
                 RepoUrl = "https://github.com/lascivaroma/latin-lemmatized-texts",
                 DefaultDestination = Path.Combine(dataRoot, "latin-lemmas"),
-                PlainLanguageDescription = "The same kind of word-form mapping as the Greek lemma data, for Latin.",
+                PlainLanguageDescription = "The same kind of word-form mapping as the Greek lemma data, for Latin. This will take about six minutes and is about two gigabytes.",
                 RunIngest = async (root, progress, ct) =>
                 {
                     var service = new LemmaIngestService();
@@ -276,7 +276,7 @@ public static class SetupDataSourceCatalog
                     "Maps English word forms back to their dictionary headword, and supplies definitions - " +
                     "the same thing the Greek and Latin lemma data does, but for the English translations " +
                     "you already have loaded. Makes search find \"spoke\" when you type \"speak\", and makes " +
-                    "Word Study work on the translation side as well as the original.",
+                    "Word Study work on the translation side as well as the original. This is about sixty megabytes and takes about a minute.",
                 RunIngest = async (root, progress, ct) =>
                 {
                     var service = new WordNetIngestService();
@@ -296,7 +296,7 @@ public static class SetupDataSourceCatalog
                     "Perseus's Renaissance and early modern collection - Marlowe, Shakespeare, Holinshed, " +
                     "Hakluyt. Useful mainly for reception: how later writers reworked classical material. " +
                     "Note that these are 16th and 17th century English, while the English dictionary above " +
-                    "is modern, so archaic forms like \"hath\" and \"doth\" won't find a headword.",
+                    "is modern, so archaic forms like \"hath\" and \"doth\" won't find a headword. This will take about a minute and is less than one hundred megabytes.",
                 RunIngest = async (root, progress, ct) =>
                 {
                     var wrapped = new Progress<IngestProgress>(p =>
@@ -408,7 +408,7 @@ public static class SetupDataSourceCatalog
 
                 PlainLanguageDescription =
                     "Medieval texts in Old Norse, Old Norwegian and Old Swedish - sagas, the Eddic poems, " +
-                    "and the Norwegian law manuscripts - from the Medieval Nordic Text Archive.\n\n" +
+                    "and the Norwegian law manuscripts - from the Medieval Nordic Text Archive. You can download all 91 xml files using the Download all XML Files button on Menota's site. It will only take a minute to download but you will need to click through all 91 XML files to confirm if you want to merge or not.  \n\n" +
                     "Menota publishes one file per manuscript, with no single archive to fetch, so these " +
                     "are downloaded by hand. Save the XML files into the folder below, then import them.\n\n" +
                     "Save menota-entities.txt into that same folder as well. These manuscripts use medieval " +
@@ -512,7 +512,7 @@ public static class SetupDataSourceCatalog
 
             new SetupDataSource
             {
-                Title = "Post-Classical Greek Texts (optional)",
+                Title = "Post-Classical Greek Texts",
                 RepoUrl = "https://github.com/OpenGreekAndLatin/First1KGreek",
                 DisplayNote = "extends the Ancient Greek Texts above into late antiquity - same library, not a separate one",
                 DefaultDestination = first1kDestination,
@@ -521,8 +521,8 @@ public static class SetupDataSourceCatalog
                     "(and a little Latin) written after the classical period, into late antiquity. Authors " +
                     "and works already in your library (from a handful of famous plays this collection also " +
                     "carries alternate 19th/20th-century editions of) just gain an extra edition to choose " +
-                    "from in the original-language dropdown - nothing gets overwritten. Big download, several " +
-                    "hundred megabytes.",
+                    "from in the original-language dropdown - nothing gets overwritten. This is several " +
+                    "hundred megabytes and takes a few minutes.",
                 RunIngest = async (root, progress, ct) =>
                 {
                     // Verified against a real clone before writing this, not
@@ -609,7 +609,7 @@ public static class SetupDataSourceCatalog
 
             new SetupDataSource
             {
-                Title = "Latin Church Fathers (CSEL, optional)",
+                Title = "Latin Church Fathers (CSEL)",
                 RepoUrl = "https://github.com/OpenGreekAndLatin/csel-dev",
                 DisplayNote = "extends the Ancient Latin Texts above into late antiquity - same library, not a separate one",
                 DefaultDestination = cselDestination,
@@ -618,7 +618,7 @@ public static class SetupDataSourceCatalog
                     "Church Fathers, from the volumes old enough to be out of copyright. Augustine, Ambrose, " +
                     "Jerome, Cyprian and their contemporaries, in the editions scholars actually cite. " +
                     "Authors already in your library gain works and editions rather than duplicates. " +
-                    "Around 400 megabytes.",
+                    "Around 400 megabytes and takes a few minutes.",
                 RunIngest = async (root, progress, ct) =>
                 {
                     // Verified against the repository itself before writing this, not
@@ -661,7 +661,7 @@ public static class SetupDataSourceCatalog
 
             new SetupDataSource
             {
-                Title = "Patrologia Latina (Migne, optional)",
+                Title = "Patrologia Latina (Migne)",
                 RepoUrl = "https://github.com/OpenGreekAndLatin/patrologia_latina-dev",
                 DisplayNote = "the widest net for Latin Christian writing - a reprint, not a critical edition",
                 DefaultDestination = patrologiaDestination,
@@ -677,7 +677,7 @@ public static class SetupDataSourceCatalog
                     "The texts and their authors are sound, and nothing about reading them is affected - " +
                     "but if those numbers change and you re-import, notes tied to those particular " +
                     "passages will need re-attaching. Works whose author Migne could not name arrive " +
-                    "under “Incertus”, his own word for it. Around 1.4 gigabytes.",
+                    "under “Incertus”, his own word for it. Around 1.4 gigabytes and only takes a few minutes.",
                 RunIngest = async (root, progress, ct) =>
                 {
                     // The whole repository is imported, placeholders included.
@@ -736,7 +736,7 @@ public static class SetupDataSourceCatalog
                     "in all three of the versions that matter: the French of 1577 he wrote first, the Latin " +
                     "of 1586 he made himself, and Richard Knolles's English of 1606. Reading his own Latin " +
                     "against his own French is the kind of comparison the reader panes were built for. " +
-                    "About nine megabytes - it is one work, not a corpus.",
+                    "About nine megabytes and very quick - it is one work, not a corpus.",
                 RunIngest = async (root, progress, ct) =>
                 {
                     // Same CTS layout as everything else here, in its own namespace:
