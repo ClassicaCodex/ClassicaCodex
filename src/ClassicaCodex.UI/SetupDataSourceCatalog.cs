@@ -387,13 +387,15 @@ public static class SetupDataSourceCatalog
             {
                 Title = "English Literature (Renaissance, optional)",
                 RepoUrl = "https://github.com/PerseusDL/canonical-engLit",
-                DisplayNote = "(Marlowe, Shakespeare, Hakluyt - needs English Lemma Data above)",
+                DisplayNote = "(Shakespeare, Holinshed, Hakluyt - needs English Lemma Data above)",
                 DefaultDestination = Path.Combine(dataRoot, "english-texts"),
                 PlainLanguageDescription =
-                    "Perseus's Renaissance and early modern collection - Marlowe, Shakespeare, Holinshed, " +
-                    "Hakluyt. Useful mainly for reception: how later writers reworked classical material. " +
-                    "Note that these are 16th and 17th century English, while the English dictionary above " +
-                    "is modern, so archaic forms like \"hath\" and \"doth\" won't find a headword. This will take about a minute and is less than one hundred megabytes.",
+                    "Perseus's Renaissance and early modern collection - Shakespeare, Holinshed, Hakluyt, " +
+                    "Sidney, James I. Useful mainly for reception: how later writers reworked classical " +
+                    "material. Half of Perseus's copy is still in copyright and is not imported, which " +
+                    "means no Marlowe - see About. These are 16th and 17th century English, while the " +
+                    "English dictionary above is modern, so archaic forms like \"hath\" and \"doth\" won't " +
+                    "find a headword. About a minute, and under a hundred megabytes.",
                 RunIngest = async (root, progress, ct) =>
                 {
                     var wrapped = new Progress<IngestProgress>(p =>
