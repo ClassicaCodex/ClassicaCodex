@@ -427,10 +427,29 @@ public class TextNodeRepository
                     break;
                 }
 
-                where.Add($@"EXISTS (
-                    SELECT 1 FROM WordIndex wi
-                    WHERE wi.TextNodeId = tn.TextNodeId
-                      AND wi.NormalizedWord IN ({AddParameters(cmd, "ww", indexTargets)}))");
+                // IN over a subquery driven FROM the index, not EXISTS
+                // correlated back to it. The two return the same rows and are
+                // not the same query.
+                //
+                // EXISTS made the index the inner loop: SQLite scanned all
+                // 2,338,662 text nodes and probed WordIndex once per node, so
+                // the cost was the size of the corpus rather than the size of
+                // the answer. Driven the other way it is one seek on
+                // NormalizedWord - the leading column of the primary key -
+                // followed by a row lookup per hit.
+                //
+                // Measured on a full library, searching Latin "uirtus" for
+                // 1,284 hits: 962 ms against 6 ms. The plan shows why - SCAN
+                // tn USING COVERING INDEX with a CORRELATED SCALAR SUBQUERY
+                // becomes SEARCH wi USING PRIMARY KEY and SEARCH tn USING
+                // INTEGER PRIMARY KEY.
+                //
+                // SearchByFormsAsync and FindTextNodesContainingAnyWordAsync
+                // were already written this way. This one was not, and it is
+                // the search window's default mode.
+                where.Add($@"tn.TextNodeId IN (
+                    SELECT wi.TextNodeId FROM WordIndex wi
+                    WHERE wi.NormalizedWord IN ({AddParameters(cmd, "ww", indexTargets)}))");
                 break;
 
             case SearchMatchMode.WholeWord:
