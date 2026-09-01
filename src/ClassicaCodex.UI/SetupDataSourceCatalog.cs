@@ -385,7 +385,7 @@ public static class SetupDataSourceCatalog
 
             new SetupDataSource
             {
-                Title = "English Literature (Renaissance, optional)",
+                Title = "English Literature (Renaissance)",
                 RepoUrl = "https://github.com/PerseusDL/canonical-engLit",
                 DisplayNote = "(Shakespeare, Holinshed, Hakluyt - needs English Lemma Data above)",
                 DefaultDestination = Path.Combine(dataRoot, "english-texts"),
@@ -440,7 +440,7 @@ public static class SetupDataSourceCatalog
 
             new SetupDataSource
             {
-                Title = "Political Theory: Bodin (optional)",
+                Title = "Political Theory: Bodin",
                 RepoUrl = "https://github.com/PerseusDL/canonical-pdlpsci",
                 DisplayNote = "one work in three languages - small, and the only thing in this collection",
                 DefaultDestination = politicalDestination,
