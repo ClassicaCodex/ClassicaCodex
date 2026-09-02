@@ -2,6 +2,12 @@
 
 A desktop reader and research tool for the [Perseus Digital Library](http://www.perseus.tufts.edu/) — the Greek and Latin classics (plus optional Post-Classical Greek and the Renaissance authors who reworked the classics in English), their translations, dictionaries, and the linguistic data that makes searching them work properly. Also, Menota documents can be manually added. This is new and still a bit experimental.
 
+Everything is fetched once and kept in a database on your own machine, so after
+setup it runs entirely offline — no tab, no network, no waiting on a server. The
+classical core is 159 authors and 1,221 works; with every optional collection
+installed it comes to 748 authors, 4,021 works and around 2.3 million lines,
+with 423,000 dictionary entries and a million inflected forms alongside them.
+
 Built as a personal project, for reading and researching the classics more closely than a browser tab really allows.
 
 Why make it a Windows Forms application? 
@@ -16,43 +22,105 @@ Extract it, run `ClassicaCodex.UI.exe`, and the setup wizard does the rest — s
 [Getting started](#getting-started) for what to expect, including the Windows
 security warning you'll hit on first run.
 
-## Guided Setup 
-- Get what you want, skip what you don't want. For everything, including a Word Indexing for faster searches, it can take an hour but it is unattended.
-<img width="625" height="494" alt="GuidedSetupScreenshot" src="https://github.com/user-attachments/assets/8f6f405a-eebc-44db-a801-0ef0bcfe0a29" />
+## Read the original beside the translation
 
-## View
-- See the original next to the translation and the application can link the scrolling but it's not perfect so you can toggle scroll linking.
-<img width="1804" height="779" alt="Screenshot 2026-08-08 204119" src="https://github.com/user-attachments/assets/0bea6828-d5b7-40b6-9c89-2a166d4108fa" />
+Both panes scroll together, which suits verse; switch the linking off for prose,
+where the line counts diverge and the mirroring starts fighting you. The library
+tree on the left is every author you've installed. It reopens on the passage you
+were last reading.
 
-## Search
-- Search the whole library with a variety of filters. Recent searches are saved and you can export your results.
-<img width="1074" height="696" alt="SearchScreenshot" src="https://github.com/user-attachments/assets/6c34169c-ca03-4653-a0a5-281243afd17a" />
+<img width="900" alt="Aeschylus' Agamemnon, Greek on the left and Smyth's translation on the right, with the library tree beside them" src="docs/images/reading-side-by-side.png" />
 
-## Timeline
-- View a timeline of the authors and click to see what documents they authored.
-<img width="1170" height="777" alt="TimelineScreenshot" src="https://github.com/user-attachments/assets/6228dab0-7079-4f0d-a3e9-75b5dfac32d2" />
+## Click a word and get the answer, not a search box
 
-## Stylometric Analysis
-- Analyze the documents with a variety of filters and save your results for comparison. Feel free to contact me to discuss any accuracy concerns and how we can rectify them.
-- This tool was built purely for fun as a hobby but if it can help your research then that would be awesome and I'll try to assist any way I can by enhancing this tool for research.
-<img width="1120" height="773" alt="StylometricsScreenshot" src="https://github.com/user-attachments/assets/d88eb89d-c4d9-4017-b034-ff88e99118bb" />
+The thing that actually slows reading down is meeting a word and not being sure
+what part of speech it is or what headword to look up. Right-click any line for
+this: the words in it, the dictionary headwords the form could belong to,
+the full Lewis & Short or LSJ entry, every attested form of the word, and every
+other place it occurs in the library.
 
-## Myth Network 
-- Explore and mass tag passages and build your own network for finding rabbit holes
-- This may be fun for research projects or for writers wanting to explore.
-<img width="1167" height="772" alt="MythNetworkScreenshot" src="https://github.com/user-attachments/assets/73e4439b-9932-48ec-b689-8575a5dcef25" />
+Where a form is genuinely ambiguous it says so and shows all the candidates,
+rather than picking one and being quietly wrong. For Latin verse it also scans
+the line and marks the syllables the metre settles.
 
-## My Translate Workbench
-- Try to translate a document yourself. AI acts as a tutor here and can help give context on a word in the document.
-<img width="1147" height="752" alt="MyTranslateWorkbenchScreenshot" src="https://github.com/user-attachments/assets/18a7ff1d-6280-45e8-909b-41cad83f8775" />
+<img width="900" alt="Word Study on Aeneid 6.851: the word regere selected, headwords Reger and rego, the Lewis and Short entry for rego, 101 attested forms, and occurrences across the corpus" src="docs/images/word-study.png" />
 
-## Word Study
-- You can get here by right clicking a passage or in the My Translate Workbench. Lemma and Dictionary data required for a lot of this.
-<img width="1371" height="744" alt="WordStudyScreenshot" src="https://github.com/user-attachments/assets/ea5dbdbf-c0a5-408d-92f0-a0aa74cf75b6" />
+## Know what vocabulary a work actually needs
 
-## Dark Mode
-- Easier on your eyes if working for a while.
-<img width="1800" height="767" alt="DarkModeScreenshot" src="https://github.com/user-attachments/assets/20bffceb-a7b0-482e-bf3a-e1e3c1869244" />
+Every headword in a work, ranked by how much of the text it accounts for, with a
+running total — so you can see that the top 415 words get you through half the
+*Aeneid* and the top 2,179 get you to four fifths. Counted from the text in
+front of you rather than from a general frequency list, and honest about the
+share it cannot cover: a form that could belong to more than one headword is
+marked, because its count is an upper bound.
+
+<img width="800" alt="Core vocabulary for the Aeneid: 63,674 running words from 13,959 headwords, ranked by frequency with a running coverage total" src="docs/images/core-vocabulary.png" />
+
+## Search the whole library at once
+
+By word or phrase, whole-word or anywhere in the line, narrowed by author,
+language, era, collection, or your own tags. Whole-word search goes through a
+lemma- and accent-aware index, so a Greek word matches however a particular
+edition accents it. Results export, and the last ten searches are kept with all
+their filters.
+
+<img width="900" alt="Searching the library for uirtus in Latin, whole words only, showing 1,284 matches with the term highlighted in each line" src="docs/images/search.png" />
+
+## Concordance
+
+Every occurrence of a word in its context, aligned down the middle — the printed
+concordance's one genuinely irreplaceable trick, which is that you can read down
+the column and see the shape of a word's use.
+
+<img width="900" alt="A keyword-in-context concordance for uirtus, 1,563 occurrences across 1,295 lines, with left context, the word, right context and source" src="docs/images/concordance.png" />
+
+## Find where a line is reused
+
+Give it a passage and it ranks the rest of the library by shared rare words.
+Not proof of borrowing — candidates worth a human look, and it says so on the
+window. Asked about *Aeneid* 6.851 it turns up Proba's *Cento Vergilianus*
+rebuilding the line almost verbatim, along with Lucretius, Cicero and Livy.
+
+There is a cross-language version of the same idea, for finding where a Latin or
+English passage is reworking a Greek original, and a Reception Tracker that
+sorts the hits by whether their author came before or after.
+
+<img width="900" alt="Intertextual echoes of Aeneid 6.851, ranked by shared rare words, with Proba's Cento Vergilianus at the top" src="docs/images/intertextual-echoes.png" />
+
+## And the rest
+
+<details>
+<summary>Timeline, stylometry, myth networks, a translation workbench, dark mode</summary>
+
+**Timeline** — the authors across time; click one to see what they wrote.
+
+<img width="700" alt="TimelineScreenshot" src="https://github.com/user-attachments/assets/6228dab0-7079-4f0d-a3e9-75b5dfac32d2" />
+
+**Stylometric analysis** — authorial fingerprints with Burrows's Delta, saved
+runs and batch comparison. Built as a hobby, with a
+[long note on what it can and cannot tell you](#notes-on-the-stylometry-tool);
+if it's useful to your research I'd like to hear about it.
+
+<img width="700" alt="StylometricsScreenshot" src="https://github.com/user-attachments/assets/d88eb89d-c4d9-4017-b034-ff88e99118bb" />
+
+**Myth Network** — a graph of which figures and places co-occur, built from your
+own tags as you read rather than from a fixed dataset. Good for finding rabbit
+holes, and for writers as much as researchers.
+
+<img width="700" alt="MythNetworkScreenshot" src="https://github.com/user-attachments/assets/73e4439b-9932-48ec-b689-8575a5dcef25" />
+
+**Translate it yourself** — a workbench for working through a text a passage at
+a time, with the passages either side for context and every word clickable. AI
+help sits beside your work rather than in it, and the published translation
+stays out of reach until you've written something.
+
+<img width="700" alt="MyTranslateWorkbenchScreenshot" src="https://github.com/user-attachments/assets/18a7ff1d-6280-45e8-909b-41cad83f8775" />
+
+**Dark mode**, with a parchment light theme and separate artwork for each.
+
+<img width="700" alt="DarkModeScreenshot" src="https://github.com/user-attachments/assets/20bffceb-a7b0-482e-bf3a-e1e3c1869244" />
+
+</details>
 
 
 ## Features
@@ -108,6 +176,12 @@ On first launch, a setup wizard walks you through everything else — it'll ask 
 
 - **Guided Setup** (default on first run) — one step at a time, plain language, no file paths or repository URLs on screen
 - **Advanced Setup** — every data source on one screen, for pointing at files you've already downloaded or wanting more control over where things go
+
+Take what you want and skip the rest; anything skipped can be added later. With
+everything selected, including the word index that makes searching fast, it runs
+about an hour — but it's unattended, so start it and go and do something else.
+
+<img width="625" alt="The Guided Setup wizard, one data source per step with a plain-language description of what it is and how long it takes" src="https://github.com/user-attachments/assets/8f6f405a-eebc-44db-a801-0ef0bcfe0a29" />
 
 ### What to expect the first time
 
