@@ -404,6 +404,22 @@ are unchanged, so annotations, bookmarks and tags survive re-ingesting intact.
 The schema has moved through sixteen migrations. Existing databases upgrade in
 place on first launch — annotations, bookmarks and tags are carried forward.
 
+## Questions, ideas, and things that break
+
+- **[Discussions](https://github.com/ClassicaCodex/ClassicaCodex/discussions)** —
+  questions about using it, and anything you want it to do that it doesn't.
+  **[Ideas](https://github.com/ClassicaCodex/ClassicaCodex/discussions/categories/ideas)**
+  is the right category for a feature you'd like; if you work with a corpus this
+  doesn't carry yet, say so there.
+- **[Issues](https://github.com/ClassicaCodex/ClassicaCodex/issues)** — something
+  broken. The version, what you were doing, and what you expected instead is
+  plenty; a screenshot helps if it's visual.
+
+One person maintains this, so answers won't always be quick, but everything gets
+read. Reports about the corpus are especially welcome — if a text you know well
+looks wrong, truncated, or missing, that is worth telling me about, because it is
+exactly the kind of thing that hides in a library this size.
+
 Built for my own reading, and shared in case it's useful to someone else doing
 the same thing.
 
