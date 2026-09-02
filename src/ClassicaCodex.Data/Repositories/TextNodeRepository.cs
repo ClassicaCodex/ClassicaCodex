@@ -88,7 +88,7 @@ public class TextNodeRepository
             for (var i = 0; i < batchSize; i++)
             {
                 var node = nodes[offset + i];
-                valueRows.Add($"(@e{i},@c{i},@s{i},@t{i},@a{i},@k{i})");
+                valueRows.Add($"(@e{i},@c{i},@s{i},@t{i},@a{i},@k{i},@v{i})");
                 cmd.Parameters.AddWithValue($"@e{i}", node.EditionId);
                 cmd.Parameters.AddWithValue($"@c{i}", node.CitationRef);
                 cmd.Parameters.AddWithValue($"@s{i}", node.SortOrder);
@@ -96,10 +96,11 @@ public class TextNodeRepository
                 cmd.Parameters.AddWithValue($"@a{i}", node.IsAthetized ? 1 : 0);
                 cmd.Parameters.AddWithValue($"@k{i}",
                     string.IsNullOrWhiteSpace(node.NodeKind) ? TextNodeKinds.Line : node.NodeKind);
+                cmd.Parameters.AddWithValue($"@v{i}", node.IsVerse ? 1 : 0);
             }
 
             cmd.CommandText =
-                $"INSERT INTO TextNodes (EditionId, CitationRef, SortOrder, Text, IsAthetized, NodeKind) VALUES {string.Join(",", valueRows)};";
+                $"INSERT INTO TextNodes (EditionId, CitationRef, SortOrder, Text, IsAthetized, NodeKind, IsVerse) VALUES {string.Join(",", valueRows)};";
             await cmd.ExecuteNonQueryAsync(cancellationToken);
         }
 
@@ -128,7 +129,8 @@ public class TextNodeRepository
             : string.Empty;
 
         var sql = @"SELECT TextNodeId, EditionId, CitationRef, SortOrder, Text,
-                           COALESCE(IsAthetized, 0), COALESCE(NodeKind, 'line')
+                           COALESCE(IsAthetized, 0), COALESCE(NodeKind, 'line'),
+                           COALESCE(IsVerse, 0)
                     FROM TextNodes
                     WHERE EditionId = @EditionId " + kindFilter + "ORDER BY SortOrder;";
 
@@ -147,7 +149,8 @@ public class TextNodeRepository
                 SortOrder = reader.GetInt32(3),
                 Text = reader.GetString(4),
                 IsAthetized = reader.GetInt32(5) != 0,
-                NodeKind = reader.GetString(6)
+                NodeKind = reader.GetString(6),
+                IsVerse = reader.GetInt32(7) != 0
             });
         }
 
@@ -424,10 +427,29 @@ public class TextNodeRepository
                     break;
                 }
 
-                where.Add($@"EXISTS (
-                    SELECT 1 FROM WordIndex wi
-                    WHERE wi.TextNodeId = tn.TextNodeId
-                      AND wi.NormalizedWord IN ({AddParameters(cmd, "ww", indexTargets)}))");
+                // IN over a subquery driven FROM the index, not EXISTS
+                // correlated back to it. The two return the same rows and are
+                // not the same query.
+                //
+                // EXISTS made the index the inner loop: SQLite scanned all
+                // 2,338,662 text nodes and probed WordIndex once per node, so
+                // the cost was the size of the corpus rather than the size of
+                // the answer. Driven the other way it is one seek on
+                // NormalizedWord - the leading column of the primary key -
+                // followed by a row lookup per hit.
+                //
+                // Measured on a full library, searching Latin "uirtus" for
+                // 1,284 hits: 962 ms against 6 ms. The plan shows why - SCAN
+                // tn USING COVERING INDEX with a CORRELATED SCALAR SUBQUERY
+                // becomes SEARCH wi USING PRIMARY KEY and SEARCH tn USING
+                // INTEGER PRIMARY KEY.
+                //
+                // SearchByFormsAsync and FindTextNodesContainingAnyWordAsync
+                // were already written this way. This one was not, and it is
+                // the search window's default mode.
+                where.Add($@"tn.TextNodeId IN (
+                    SELECT wi.TextNodeId FROM WordIndex wi
+                    WHERE wi.NormalizedWord IN ({AddParameters(cmd, "ww", indexTargets)}))");
                 break;
 
             case SearchMatchMode.WholeWord:
@@ -687,7 +709,7 @@ public class TextNodeRepository
 
         const string sql = @"
             SELECT TextNodeId, EditionId, CitationRef, SortOrder, Text,
-                   COALESCE(NodeKind, 'line')
+                   COALESCE(NodeKind, 'line'), COALESCE(IsVerse, 0)
             FROM TextNodes
             WHERE EditionId = @EditionId
               AND SortOrder >= (SELECT SortOrder FROM TextNodes WHERE TextNodeId = @StartId)
@@ -710,7 +732,8 @@ public class TextNodeRepository
                 CitationRef = reader.GetString(2),
                 SortOrder = reader.GetInt32(3),
                 Text = reader.GetString(4),
-                NodeKind = reader.GetString(5)
+                NodeKind = reader.GetString(5),
+                IsVerse = reader.GetInt32(6) != 0
             });
         }
 

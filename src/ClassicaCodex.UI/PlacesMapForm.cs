@@ -168,26 +168,30 @@ public class PlacesMapForm : ScaledForm
             Height = 328,
             Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Right,
 
-            // No horizontal scrollbar, deliberately. Setting it makes WinForms measure
-            // every item it is given with GDI+ to work out the scroll extent, and that
-            // measurement throws on characters the list's font cannot resolve - which
-            // the Menota transcriptions are full of, since medieval Nordic glyphs are
-            // encoded in the Unicode private use area. Clicking a place that matched one
-            // of those passages took the window down with "a generic error occurred in
-            // GDI+" and no indication of which passage or why.
+            // This is the list the horizontal-scrollbar ban started with. Clicking a
+            // place whose passages came from the Menota transcriptions took the window
+            // down with "a generic error occurred in GDI+" and no indication of which
+            // passage or why, and the cause was recorded as the scroll-extent
+            // measurement meeting the private-use codepoints those texts use for
+            // medieval glyphs. Removing the scrollbar removed the measurement, the
+            // crash went away, and the ban spread from here to every other list.
             //
-            // The measurement is the only thing that fails, so the fix is to stop asking
-            // for it. Nothing is lost that this list was providing: at 300px wide,
-            // scrolling a passage sideways was never how it was read - the entry is
-            // there to be recognised and double-clicked, which opens it in the reader.
-            // The text is trimmed below so the part that identifies it stays visible.
+            // The re-test is in ReadingTheme: 299,607 rows from this library, including
+            // all 20,412 that carry a private-use character, measured without a single
+            // failure. So the diagnosis did not survive contact with the corpus, and
+            // whatever actually took this window down, it was not this. The scrollbar
+            // comes back with the rest of them - it is set on every list in the app now,
+            // one rule rather than a list of exceptions. At 300px wide this list needs
+            // it more than most: the text is still trimmed below so the identifying
+            // part shows without scrolling, but a trim is not a reason to make the rest
+            // unreachable.
         };
         _passageList.DoubleClick += async (_, _) => await JumpToSelectedPassageAsync();
         ListResultHelpers.AttachCitationTooltip(_passageList,
             i => i < _currentPassages.Count ? _currentPassages[i].CitationRef : null);
         ListResultHelpers.AttachCopyToClipboardMenu(_passageList,
             i => i < _currentPassages.Count
-                ? $"{_currentPassages[i].AuthorName}, {_currentPassages[i].WorkTitle} [{_currentPassages[i].CitationRef}]: {_currentPassages[i].Text}"
+                ? $"{_currentPassages[i].AuthorName}, {_currentPassages[i].WorkTitle} [{PassageCitation.Display(_currentPassages[i].CitationRef)}]: {_currentPassages[i].Text}"
                 : null);
         ListResultHelpers.AttachExportMenu(_passageList, () => (
             $"Passages mentioning {_selectedPlaceName}",
@@ -283,7 +287,10 @@ public class PlacesMapForm : ScaledForm
         _selectedPlaceLabel.Text = $"Search results for \"{placeName}\" (double-click to jump):";
         _passageList.Items.Clear();
 
-        var hits = await _textNodeRepo.SearchAsync(placeName);
+        // Off the UI thread - see the note in SearchForm. Clicking a place ran
+        // a substring search over the whole corpus on the thread painting the
+        // map, so the map stopped responding until it finished.
+        var hits = await Task.Run(() => _textNodeRepo.SearchAsync(placeName));
         _currentPassages = hits.Rows;
 
         _tagsByNode = await _tagRepo.GetTagNamesForNodesAsync(

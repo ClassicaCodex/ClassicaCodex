@@ -1,3 +1,4 @@
+using ClassicaCodex.Core;
 using System.Text.RegularExpressions;
 using System.Xml.Linq;
 using ClassicaCodex.Core.Models;
@@ -34,6 +35,43 @@ public class PerseusIngestService
     /// IngestAsync completes.
     /// </summary>
     public List<(string FilePath, string Error)> FailedFiles { get; } = new();
+
+    /// <summary>
+    /// Folders whose CTS catalogue was missing or unreadable, and whose author
+    /// and work were reconstructed from the edition files instead.
+    ///
+    /// Reported separately from <see cref="FailedFiles"/> because the outcome
+    /// is different: nothing was lost, but the names came from the TEI header
+    /// rather than from the catalogue, so a title here may not be the canonical
+    /// one and is worth knowing about.
+    ///
+    /// This is not hypothetical tidiness. canonical-latinLit ships 65 of 399
+    /// work folders with no __cts__.xml at all - canonical-greekLit ships none,
+    /// which is why it went unnoticed - and the two `continue`s that used to
+    /// handle that dropped 197 edition files without a word. Bede's Historia
+    /// ecclesiastica, Cato's De agri cultura, Apicius, Sidonius, Augustine's
+    /// letters, the Appendix Vergiliana, Petronius' fragments and Livy's
+    /// Periochae were all simply not in the library, and setup reported
+    /// "Done - ready."
+    /// </summary>
+    public List<(string FilePath, string Error)> RecoveredWithoutCatalog { get; } = new();
+
+    /// <summary>
+    /// Every source file this run opened, successfully or not - the
+    /// denominator a skip should be reported against. See
+    /// IngestOutcome.FilesAttempted.
+    /// </summary>
+    public int FilesAttempted { get; private set; }
+
+    /// <summary>
+    /// Which collection this run's editions belong to, so an edition already
+    /// held by a different one is not overwritten.
+    ///
+    /// See EditionRepository.UpsertAsync. Null - the default - keeps the old
+    /// behaviour for callers that do not deal in collections, such as the
+    /// manual Ingest Corpus dialog.
+    /// </summary>
+    public string? CollectionKey { get; set; }
 
     /// <summary>
     /// The one author to file every textgroup under whose catalog names nobody. Null -
@@ -143,7 +181,20 @@ public class PerseusIngestService
 
             var groupCtsPath = Path.Combine(textGroupDir, "__cts__.xml");
             var groupInfo = _catalogReader.ReadTextGroup(groupCtsPath);
-            if (groupInfo == null) continue; // not a valid textgroup folder, skip
+
+            // No catalogue, or one that would not parse. The edition files are
+            // still there and still readable, and they carry the author's name
+            // in their own TEI header - so the folder is reconstructed rather
+            // than passed over. See RecoveredWithoutCatalog for what used to
+            // happen instead.
+            if (groupInfo == null)
+            {
+                groupInfo = DeriveTextGroup(textGroupDir, ns);
+                if (groupInfo == null) continue; // no edition files under it either
+
+                RecoveredWithoutCatalog.Add((textGroupDir,
+                    $"no readable __cts__.xml for the author; read \"{groupInfo.GroupName}\" from the TEI headers instead"));
+            }
 
             // A catalog that names no author: either the corpus has said what to call
             // that case, or the file is malformed and the folder is passed over. Never
@@ -153,7 +204,17 @@ public class PerseusIngestService
             var groupName = groupInfo.GroupName;
             if (string.IsNullOrWhiteSpace(groupName))
             {
-                if (UnnamedTextGroupAuthor == null) continue;
+                if (UnnamedTextGroupAuthor == null)
+                {
+                    // Passed over, but said out loud. Skipping a folder without
+                    // recording it is the failure that hid 197 Latin editions
+                    // for as long as it did, and it does not become acceptable
+                    // just because this branch reaches it deliberately.
+                    FailedFiles.Add((textGroupDir,
+                        "the catalogue names no author and the texts name none either, so there is nothing to file them under"));
+                    continue;
+                }
+
                 (groupUrn, groupName) = UnnamedTextGroupAuthor.Value;
             }
 
@@ -181,6 +242,39 @@ public class PerseusIngestService
 
                 var workCtsPath = Path.Combine(workDir, "__cts__.xml");
                 var workInfos = _catalogReader.ReadWorks(workCtsPath);
+
+                // Same recovery one level down, and this is where the bulk of
+                // it happens: an empty list meant the loop below never ran and
+                // every edition file in the folder went uningested, silently.
+                if (workInfos.Count == 0)
+                {
+                    var derived = DeriveWork(workDir, ns);
+                    if (derived != null)
+                    {
+                        workInfos.Add(derived);
+                        RecoveredWithoutCatalog.Add((workDir,
+                            $"no readable __cts__.xml for the work; read \"{derived.Title}\" from the TEI headers instead"));
+                    }
+                    else
+                    {
+                        // No catalogue and nothing in the files to name the work
+                        // with, so there is no work - but the files are still
+                        // there and still unreadable, and the ordinary parse
+                        // path will never reach them to say so. Recorded here
+                        // instead, once each, so the report is the same either
+                        // way round.
+                        // Counted as attempted as well as failed - the loop that
+                        // normally does the counting is the one this folder
+                        // never reaches, and a skip missing from the
+                        // denominator makes the proportion that decides
+                        // whether to interrupt the reader wrong.
+                        foreach (var orphan in EditionFilesUnder(workDir, SearchOption.TopDirectoryOnly))
+                        {
+                            FilesAttempted++;
+                            FailedFiles.Add((orphan, DescribeUnreadable(orphan)));
+                        }
+                    }
+                }
 
                 foreach (var workInfo in workInfos)
                 {
@@ -210,6 +304,7 @@ public class PerseusIngestService
         foreach (var editionFile in editionFiles)
         {
             cancellationToken.ThrowIfCancellationRequested();
+            FilesAttempted++;
 
             try
             {
@@ -223,8 +318,22 @@ public class PerseusIngestService
                     Kind = kind,
                     Language = language,
                     Translator = translator,
-                    SourcePath = editionFile
+                    SourcePath = editionFile,
+                    Collection = CollectionKey
                 }, cancellationToken);
+
+                // Zero means another collection already holds this identifier
+                // and the upsert declined to overwrite it - see
+                // EditionRepository.UpsertAsync. Said out loud, because a text
+                // this library will not be holding is exactly the thing that
+                // must not pass in silence.
+                if (editionId == 0)
+                {
+                    FailedFiles.Add((editionFile,
+                        $"another collection already holds {editionUrn}. That edition was kept and this " +
+                        "one skipped; the two carry the same identifier and cannot both be stored yet."));
+                    continue;
+                }
 
                 // Clear and re-insert so re-running ingestion after a repo
                 // update doesn't leave stale/duplicate text nodes behind.
@@ -256,6 +365,202 @@ public class PerseusIngestService
             }
         }
     }
+
+    /// <summary>
+    /// Reconstructs a textgroup from the edition files under it, for a folder
+    /// whose catalogue is missing or unreadable.
+    ///
+    /// The URN comes from the filenames rather than the folder name. Perseus
+    /// edition filenames ARE the CTS URN suffix, so the first dot-segment of
+    /// "phi0914.phi0011.perseus-lat2.xml" is the textgroup - which is the same
+    /// identity the catalogue would have given, and is right even where a
+    /// folder has been renamed.
+    ///
+    /// The name comes from the TEI titleStmt's author. Where the files name no
+    /// author the name is left empty rather than invented, which hands the
+    /// decision to UnnamedTextGroupAuthor - the mechanism that already exists
+    /// for exactly this case.
+    ///
+    /// THE FOLDER NAME HAS TO AGREE WITH THE FILENAMES, and that guard is doing
+    /// more work than it looks like. A missing catalogue is what keeps
+    /// First1KGreek's save/, split/ and volume_xml/ working directories out of
+    /// the corpus, and they hold the SAME texts as the textgroups they were
+    /// derived from - recovering those the way this recovers a real textgroup
+    /// would silently ingest a good part of that corpus two and three times
+    /// over, and duplicate texts do not make a Delta run fail, they make it
+    /// confident and wrong. See CorpusFolderExclusionTests.
+    ///
+    /// A genuine textgroup folder is named for its own URN segment, so
+    /// phi0692/ holds phi0692.*.xml. A working directory is not: save/ holds
+    /// tlg0062.*.xml. The files say which kind of folder they are sitting in.
+    /// </summary>
+    private static CtsCatalogReader.TextGroupInfo? DeriveTextGroup(string textGroupDir, string ns)
+    {
+        var files = EditionFilesUnder(textGroupDir, SearchOption.AllDirectories).ToList();
+        if (files.Count == 0) return null;
+
+        var group = Path.GetFileNameWithoutExtension(files[0]).Split('.').FirstOrDefault();
+        if (string.IsNullOrEmpty(group)) return null;
+
+        if (!string.Equals(group, new DirectoryInfo(textGroupDir).Name, StringComparison.OrdinalIgnoreCase))
+        {
+            return null;
+        }
+
+        var author = files
+            .Select(f => TeiHeaderReader.TryRead(f)?.Author)
+            .FirstOrDefault(a => !string.IsNullOrWhiteSpace(a));
+
+        // No author named anywhere: fall back to the printed collection these
+        // texts were digitised from, which is the next most specific true thing
+        // the files say about themselves.
+        //
+        // The Appendix Vergiliana is the case, and it names no author because
+        // it genuinely has none - its own source calls it "Appendix Vergiliana,
+        // sive carmina minora Vergilio adtributa", minor poems ATTRIBUTED to
+        // Virgil. Filing eleven poems under Virgil would assert the attribution
+        // the title is careful to hedge; filing them under nothing loses them.
+        // The collection is what they actually are.
+        author ??= files
+            .Select(SourceCollectionTitle)
+            .FirstOrDefault(t => !string.IsNullOrWhiteSpace(t));
+
+        return new CtsCatalogReader.TextGroupInfo($"urn:cts:{ns}:{group}", author?.Trim() ?? string.Empty);
+    }
+
+    /// <summary>
+    /// The title of the printed book a TEI file was digitised from -
+    /// sourceDesc/biblStruct/monogr/title.
+    ///
+    /// Trimmed at the first comma, because a Latin monograph title carries its
+    /// alternative form after one ("Appendix Vergiliana, sive carmina minora
+    /// Vergilio adtributa") and a name in the library's author column wants the
+    /// name rather than the subtitle.
+    ///
+    /// Its own read of the file rather than TeiHeaderReader's SourceDescription,
+    /// which collapses the whole sourceDesc - editor, publisher, place, date -
+    /// into one line. That is the right shape for showing a reader where a text
+    /// came from and the wrong one for naming anything. Only ever called for a
+    /// folder with no catalogue, so the extra read is rare.
+    /// </summary>
+    private static string? SourceCollectionTitle(string filePath)
+    {
+        try
+        {
+            var doc = XDocument.Load(filePath);
+
+            var monogr = doc.Descendants()
+                .FirstOrDefault(e => e.Name.LocalName == "monogr");
+
+            var title = monogr?.Descendants()
+                .FirstOrDefault(e => e.Name.LocalName == "title")?.Value?.Trim();
+
+            if (string.IsNullOrWhiteSpace(title)) return null;
+
+            var comma = title.IndexOf(',');
+            return comma > 0 ? title[..comma].Trim() : title;
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// The same for one work folder. The URN is the first two dot-segments of
+    /// an edition filename - "phi0914.phi0011" - and the title is the TEI
+    /// titleStmt's, which for these files is a real title rather than a
+    /// placeholder: "Ab Urbe Condita, books 1-2 - 1", "De agri cultura",
+    /// "Historiam ecclesiasticam gentis Anglorum".
+    ///
+    /// Returns null when not one file in the folder will give up a title,
+    /// which in practice means every file in it is malformed.
+    ///
+    /// The alternative was falling back to the URN, and it looked like this in
+    /// a real library: a work called
+    /// "urn:cts:latinLit:phi0692.phi009" sitting in the library tree with no
+    /// text behind it, because the one file that would have supplied both the
+    /// title and the text is the one that would not parse. Two of those
+    /// appeared - the Catalepton and Petronius' Poemata - and both are worse
+    /// than nothing: a row a reader cannot identify, cannot open, and cannot
+    /// act on. The files are reported as skipped either way, which is where
+    /// that news belongs.
+    ///
+    /// A folder with one bad file among good ones is unaffected: the title
+    /// comes from any file that yields one, and the bad file is reported by
+    /// the ordinary parse path.
+    ///
+    /// Same two guards as DeriveTextGroup, for the same reason: only the files
+    /// sitting directly in the folder count, and the folder name has to be the
+    /// work segment its filenames carry. Without that, save/tlg0062 - a
+    /// textgroup folder one level inside a working directory - reads as a work
+    /// folder and pulls Lucian in a second time.
+    /// </summary>
+    private static CtsCatalogReader.WorkInfo? DeriveWork(string workDir, string ns)
+    {
+        var editionFiles = EditionFilesUnder(workDir, SearchOption.TopDirectoryOnly).ToList();
+        if (editionFiles.Count == 0) return null;
+
+        var segments = Path.GetFileNameWithoutExtension(editionFiles[0]).Split('.');
+        if (segments.Length < 2) return null;
+
+        if (!string.Equals(segments[1], new DirectoryInfo(workDir).Name, StringComparison.OrdinalIgnoreCase))
+        {
+            return null;
+        }
+
+        var title = editionFiles
+            .Select(f => TeiHeaderReader.TryRead(f)?.Title)
+            .FirstOrDefault(t => !string.IsNullOrWhiteSpace(t));
+
+        if (string.IsNullOrWhiteSpace(title)) return null;
+
+        return new CtsCatalogReader.WorkInfo(
+            $"urn:cts:{ns}:{segments[0]}.{segments[1]}", title.Trim(), null);
+    }
+
+    /// <summary>
+    /// Why a file in a catalogue-less folder could not be read, in the words
+    /// the XML parser used.
+    ///
+    /// Reported rather than summarised because the detail is the useful part.
+    /// "The 'group' start tag on line 76 does not match the end tag of 'TEI.2'
+    /// on line 419" is something a reader can act on - it is a defect in the
+    /// Perseus file and can be reported upstream with a line number attached.
+    /// "Could not be read" is not.
+    ///
+    /// The load is repeated here because TeiHeaderReader swallows the
+    /// exception, as it should - it answers whether a header could be read,
+    /// not why not. Only ever reached for a folder with no catalogue whose
+    /// files all failed, which across both Perseus corpora is two folders.
+    /// </summary>
+    private static string DescribeUnreadable(string filePath)
+    {
+        try
+        {
+            // Through the sanitiser, because that is the path the ingest takes
+            // and the fault reported has to be the one that actually stops it.
+            // A plain Load on the Catalepton reports an undeclared &mdash; on
+            // line 111 - which the sanitiser resolves, and which is therefore
+            // not why the file fails. It fails on a mismatched tag 300 lines
+            // further down, and that is the line worth quoting.
+            XDocument.Parse(XmlEntitySanitizer.Sanitize(File.ReadAllText(filePath)));
+            return "no catalogue for the work, and nothing in this file to name it from";
+        }
+        catch (Exception ex)
+        {
+            return ex.Message;
+        }
+    }
+
+    /// <summary>
+    /// The TEI edition files in a folder, catalogues excluded, in a stable
+    /// order so two runs over the same folder derive the same names.
+    /// </summary>
+    private static IEnumerable<string> EditionFilesUnder(string directory, SearchOption depth) =>
+        Directory.EnumerateFiles(directory, "*.xml", depth)
+            .Where(f => !Path.GetFileName(f).Equals("__cts__.xml", StringComparison.OrdinalIgnoreCase))
+            .OrderBy(f => f, StringComparer.Ordinal);
 
     private static string DeriveEditionUrn(string filePath)
     {

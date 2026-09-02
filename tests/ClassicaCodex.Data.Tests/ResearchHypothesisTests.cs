@@ -89,6 +89,11 @@ public class ResearchHypothesisTests
     {
         using var db=await TempDatabase.CreateAsync();await db.SeedEditionAsync();var research=new ResearchRepository();var project=new ResearchProject{WorkId=await db.WorkIdForAsync("test1"),Name="Existing project"};await research.SaveProjectAsync(project);
         await db.ExecuteAsync("DROP TABLE ResearchHypothesisAssessments; DROP TABLE ResearchExperiments; DROP TABLE ResearchHypotheses; PRAGMA user_version=28;");
+
+        // Rewinding by hand leaves behind every column a later ALTER migration
+        // added, because a fresh database is built from the current schema. This
+        // drops them - see TempDatabase.RewindSchemaAsync.
+        await db.RewindSchemaAsync(28);
         await SchemaInitializer.EnsureSchemaAsync();
         Assert.Equal("Existing project",Assert.Single(await research.GetProjectsForWorkAsync(project.WorkId!.Value)).Name);Assert.True(await db.TableExistsAsync("ResearchHypotheses"));Assert.True(await db.TableExistsAsync("ResearchExperiments"));Assert.Equal(SchemaInitializer.TargetSchemaVersion,await db.ScalarAsync<int>("PRAGMA user_version;"));
     }

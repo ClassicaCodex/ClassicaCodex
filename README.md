@@ -132,7 +132,7 @@ Classica Codex doesn't own or bundle any of the texts, dictionaries, or linguist
 | [Natural Earth](https://www.naturalearthdata.com/) (`ne_110m_land.geojson`) | Coastline for the Places Map | Public domain |
 | [perseus-aa/json](https://github.com/perseus-aa/json) | Art & Archaeology catalog data (vases, coins, sites…) for the Places Map and Myth Network | Perseus terms; catalog only — images are always loaded live from Perseus, never downloaded |
 | [Princeton WordNet](https://wordnet.princeton.edu) | English word-form → headword mapping and definitions, for search and Word Study on translations | WordNet License (permissive, free for any use) |
-| [PerseusDL/canonical-engLit](https://github.com/PerseusDL/canonical-engLit) | Renaissance & Early Modern English texts (Shakespeare, Marlowe, Hakluyt…), optional | CC BY-SA 4.0 |
+| [PerseusDL/canonical-engLit](https://github.com/PerseusDL/canonical-engLit) | Renaissance & Early Modern English texts — Shakespeare, Holinshed, Hakluyt, Sidney, James I — optional. Perseus splits this collection into freely redistributable texts and ones that aren't, and only the first are imported; see [What Marlowe isn't here](#what-marlowe-isnt-here) | CC BY-SA 4.0 |
 | [OpenGreekAndLatin/First1KGreek](https://github.com/OpenGreekAndLatin/First1KGreek) | Post-Classical Greek texts extending the corpus into late antiquity, optional | CC BY-SA 4.0 |
 | [OpenGreekAndLatin/csel-dev](https://github.com/OpenGreekAndLatin/csel-dev) | Corpus Scriptorum Ecclesiasticorum Latinorum — critical editions of the Latin Church Fathers, optional | CC BY-SA 4.0, declared per file in the TEI headers rather than at the repository root |
 | [OpenGreekAndLatin/patrologia_latina-dev](https://github.com/OpenGreekAndLatin/patrologia_latina-dev) | Migne's Patrologia Latina — Latin Christian writing to the twelfth century, optional. A reprint rather than a critical edition; most of it is still under provisional reference numbers the publishing project intends to replace | CC BY-SA 4.0, declared per file |
@@ -142,6 +142,18 @@ Classica Codex doesn't own or bundle any of the texts, dictionaries, or linguist
 The Greek lemma data is the one entry above marked **noncommercial** — it can't be sold, and because it's woven into the search and Word Study features, that restriction carries over to the whole project as distributed. Which is fine: Classica Codex is a free personal tool, and it's going to stay that way regardless. (WordNet's license, despite doing a similar job for English, doesn't carry the same restriction — it's permissive and doesn't add a second constraint on top of the Greek lemma data's.)
 
 The AI-assisted translation feature is a separate case from all of the above: it isn't a bundled dataset at all, just an optional connection to a third-party API (Anthropic's Claude or Google's Gemini) that you provide your own key for. Nothing about it is required to use the app, and nothing is sent anywhere unless you explicitly ask for a translation.
+
+### What Marlowe isn't here
+
+The Renaissance collection is the one place where what you get is noticeably less than the repository contains, and it's worth saying plainly rather than letting you find out by looking for *Doctor Faustus*.
+
+Perseus divides that collection into texts that can be redistributed freely and texts that can't — the New Variorum Shakespeare and other 19th and 20th-century scholarly editions still in copyright. The split is marked in the folder layout, and Classica Codex imports only the first kind. Of 96 files, 66 are imported and 30 are not.
+
+**Every one of Marlowe's own works is on the wrong side of that line.** All sixteen files — *Tamburlaine* both parts, *Doctor Faustus* in both the A and B texts, *Edward II*, *The Jew of Malta*, *Dido*, *The Massacre at Paris*, *Hero and Leander*, the Ovid and Lucan translations, *The Passionate Shepherd* — are in the restricted half. None of them are imported, and no setting will import them.
+
+One Marlowe file is freely licensed, and it isn't by Marlowe: the *Faust Book*, the anonymous English translation of the German *Historia von D. Johann Fausten* that he used as his source for *Doctor Faustus*. Perseus files it under his name because that's what it's a source for, and the import follows Perseus's filing, so the library lists it under Christopher Marlowe. It's a genuine text and worth reading next to the play — but the play isn't here, and the attribution is Perseus's rather than a claim about who wrote it.
+
+Shakespeare, Holinshed, Hakluyt, Sidney, James I, Wilson and Peacham are all imported in full; Shakespeare alone is 43 works. What's missing is Marlowe.
 
 ## Platform
 
@@ -186,13 +198,42 @@ suspecting.
 
 ## Status
 
-Version 3.3.1.
+Version 3.4.0.
 
 Version 1 was a reader. Version 2 made it a searchable, taggable,
 cross-referenced library and added the translation workbench. Version 3 adds the
 Medieval Nordic manuscript reader and its editorial apparatus — a different kind
 of text from the printed editions the rest of the library holds, and the first
 material here where the manuscript evidence is visible rather than settled.
+
+3.4.0 came out of an audit rather than a plan, and its largest finding is that
+a good deal of the Latin corpus was never being ingested. Perseus catalogues
+each folder in a file naming what is inside it; 65 of `canonical-latinLit`'s 399
+work folders and six of its author folders carry no such file, and the ingest
+passed over them without recording anything. 197 edition files went nowhere
+while setup reported success — Bede's *Historia ecclesiastica*, Cato's *De agri
+cultura*, Apicius, Sidonius, Augustine's letters, the whole Appendix Vergiliana,
+Petronius' fragments, Livy's *Periochae* and four of the six Livy editions
+Perseus carries. The Greek corpus catalogues everything, which is why this took
+a while to notice. A folder without a catalogue is now rebuilt from the files in
+it, and the Latin corpus ingests 687 of 687. **If you have a Latin library,
+re-run that setup step.**
+
+A second route to the same hole, found separately: each setup step decided
+whether it had already run by asking whether the library held any author in its
+namespace, and a namespace is shared. Once CSEL and the Patrologia Latina
+existed, installing either one answered for classical Latin, the step was
+skipped, and Virgil never arrived. Steps now ask about their own collection.
+
+The same audit found the *Satyricon* missing a fifth of its prose — Petronius
+quotes verse inside his narrative, and the parser took the poems and dropped
+what surrounded them — and 1,679 editor's notes keyed to citations no passage
+answered to. Both are fixed and both were measured, before and after, against
+the corpus rather than against a test case. The word index also stopped storing
+itself twice, which takes a finished install from about 1.7 GB to 1.1 GB, and
+the hexameter scanner reached the surface: Word Study now says what the metre
+makes of the word you picked, which for Latin is the only thing that can, since
+no edition prints the vowel lengths that tell a nominative from an ablative.
 
 3.3.0 spends what 3.2.0 bought. Holding seven collections means holding some
 works twice, and two independent printings of one text are the raw material of a

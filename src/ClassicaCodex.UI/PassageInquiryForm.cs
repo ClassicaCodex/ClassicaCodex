@@ -44,7 +44,7 @@ public sealed class PassageInquiryForm : ScaledForm
     {
         _passage = passage;
         _inquiry = NewInquiry();
-        Text = $"Start inquiry — {passage.WorkTitle} {passage.CitationRef}";
+        Text = $"Start inquiry — {passage.WorkTitle} {PassageCitation.Display(passage.CitationRef)}";
         AppIcons.ApplyWindowIcon(this, "WordStudy");
         Width = 980;
         Height = 790;
@@ -72,7 +72,7 @@ public sealed class PassageInquiryForm : ScaledForm
         var location = new Label
         {
             Dock = DockStyle.Fill,
-            Text = $"{passage.AuthorName}, {passage.WorkTitle}  •  {passage.CitationRef}",
+            Text = $"{passage.AuthorName}, {passage.WorkTitle}  •  {PassageCitation.Display(passage.CitationRef)}",
             Font = new Font(Font, FontStyle.Bold)
         };
         var excerpt = new TextBox
@@ -342,7 +342,7 @@ public sealed class PassageInquiryForm : ScaledForm
                 WorkId = _passage.WorkId,
                 WorkCtsUrn = _passage.WorkCtsUrn,
                 Name = ProjectName(_inquiry.DraftQuestion),
-                Notes = $"Started from {_passage.AuthorName}, {_passage.WorkTitle} {_passage.CitationRef}.\r\n\r\n" +
+                Notes = $"Started from {_passage.AuthorName}, {_passage.WorkTitle} {PassageCitation.Display(_passage.CitationRef)}.\r\n\r\n" +
                         $"What caught my attention:\r\n{_inquiry.AttentionNote}\r\n\r\n" +
                         $"Initial direction: {DirectionLabel(_inquiry.Direction)}"
             };
@@ -351,14 +351,14 @@ public sealed class PassageInquiryForm : ScaledForm
             {
                 ResearchProjectId = project.ResearchProjectId,
                 Text = _inquiry.DraftQuestion,
-                Notes = $"This question began with {_passage.WorkTitle} {_passage.CitationRef}."
+                Notes = $"This question began with {_passage.WorkTitle} {PassageCitation.Display(_passage.CitationRef)}."
             };
             await _research.SaveQuestionAsync(question);
             await _research.SaveEvidenceAsync(new EvidenceItem
             {
                 ResearchProjectId = project.ResearchProjectId,
                 ResearchQuestionId = question.ResearchQuestionId,
-                Title = $"{_passage.WorkTitle} {_passage.CitationRef}",
+                Title = $"{_passage.WorkTitle} {PassageCitation.Display(_passage.CitationRef)}",
                 Type = EvidenceType.PrimaryText,
                 SourceType = "Local corpus passage",
                 StableIdentifier = $"{_passage.EditionCtsUrn}:{_passage.CitationRef}",

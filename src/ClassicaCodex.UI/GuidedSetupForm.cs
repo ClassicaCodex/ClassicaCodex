@@ -56,6 +56,7 @@ public class GuidedSetupForm : ScaledForm
     private PictureBox _statusIcon = null!;
     private Label _titleLabel = null!;
     private Label _descriptionLabel = null!;
+    private Panel _descriptionScroll = null!;
     private TextBox _pathBox = null!;
     private Button _browseButton = null!;
     private Button _actionButton = null!;
@@ -123,8 +124,9 @@ public class GuidedSetupForm : ScaledForm
                    "go there, and it's what the rest of this wizard writes into. After that, a few open " +
                    "data sources need to be downloaded: the ancient texts themselves, dictionaries to look " +
                    "words up in, and some word-form data that makes search smarter. Altogether it's " +
-                   "usually a few hundred megabytes and a few minutes, depending on your connection. You " +
-                   "only need to do this once.\r\n\r\n" +
+                   "usually about 9 gigabytes, and the better part of an hour on a decent connection - " +
+                   "mostly unattended. You only need to do this once, and you can skip any step and " +
+                   "come back to it later.\r\n\r\n" +
                    "Each step below does one thing, with a plain explanation of what it's for and why " +
                    "it's worth waiting for.",
             Left = 0,
@@ -166,7 +168,37 @@ public class GuidedSetupForm : ScaledForm
             Height = 30,
             Font = new Font(Font.FontFamily, 14F, FontStyle.Bold)
         };
-        _descriptionLabel = new Label { Left = 0, Top = 50, Width = 616, Height = 70 };
+        // The description grows with its text and scrolls when the step has
+        // more to say than the panel has room for.
+        //
+        // It was a fixed-height Label, and a Label clips: the Patrologia
+        // Latina step has the longest description here - it has to explain
+        // that most of the corpus is under provisional reference numbers, and
+        // what that means for a note tied to one - and the last two lines of
+        // it simply were not on screen. Nothing said so, which is the worst
+        // version: the sentence about re-attaching notes ended mid-thought.
+        //
+        // A read-only TextBox would scroll too, and would arrive with a border
+        // around it - ReadingTheme sets BorderStyle.FixedSingle on every
+        // TextBoxBase, correctly, because everywhere else one is an input. A
+        // description that looks like a field you can type in is a different
+        // wrong answer. So: an AutoSize label, which wraps at MaximumSize and
+        // grows downward, inside a panel that scrolls.
+        _descriptionScroll = new Panel { Left = 0, Top = 50, Width = 616, Height = 70, AutoScroll = true };
+
+        _descriptionLabel = new Label
+        {
+            Left = 0,
+            Top = 0,
+            AutoSize = true,
+
+            // Width zero means "no limit"; the width here is the panel's less
+            // room for the scrollbar, so wrapping does not change when one
+            // appears.
+            MaximumSize = new Size(596, 0)
+        };
+
+        _descriptionScroll.Controls.Add(_descriptionLabel);
 
         // Visible only on the Database step - every other step's action is
         // a single button, no path to choose, which is exactly the point
@@ -245,7 +277,7 @@ public class GuidedSetupForm : ScaledForm
 
         _contentPanel.Controls.Add(_statusIcon);
         _contentPanel.Controls.Add(_titleLabel);
-        _contentPanel.Controls.Add(_descriptionLabel);
+        _contentPanel.Controls.Add(_descriptionScroll);
         _contentPanel.Controls.Add(_pathBox);
         _contentPanel.Controls.Add(_browseButton);
         // Beside the second link rather than below it, so the answer to "have
@@ -399,7 +431,10 @@ public class GuidedSetupForm : ScaledForm
         _outputBox.Visible = false;
         _outputBox.Clear();
 
-        _descriptionLabel.Height = isDatabase ? 70 : 96;
+        // The path box sits at 130 on the Database step and is hidden on every
+        // other, so the description gets that room back when it is not there.
+        // Anything longer than the room available scrolls rather than being cut.
+        _descriptionScroll.Height = isDatabase ? 70 : 96;
         _pathBox.ReadOnly = !isDatabase;
         _pathBox.Top = isDatabase ? 130 : 190;
         _browseButton.Visible = isDatabase;
@@ -515,7 +550,7 @@ public class GuidedSetupForm : ScaledForm
                 _descriptionLabel.Text =
                     "Makes searching fast once the texts above are loaded - without it, every search has " +
                     "to scan the whole library from scratch. Run this once everything above is done; safe " +
-                    "to run again any time.";
+                    "to run again any time. Takes about fifteen minutes.";
                 _statusIcon.Image = AppIcons.Get(_wordIndexComplete ? "Complete" : "Error", 32);
                 _actionButton.Text = _wordIndexComplete ? "Rebuild Index" : "Build Word Index";
                 _statusLabel.Text = _wordIndexComplete ? "Already built." : "Not built yet.";
@@ -676,9 +711,10 @@ public class GuidedSetupForm : ScaledForm
             var outcome = await Task.Run(
                 () => action(source.DefaultDestination, progress, _cts.Token), _cts.Token);
 
-            _statusLabel.Text = outcome.HasSkippedFiles
-                ? $"{source.Title} is ready, but {outcome.SkippedCount:N0} file(s) were skipped."
-                : $"{source.Title} is ready.";
+            // The status line carries both outcomes; the dialog below opens
+            // only for the one worth interrupting someone for. See
+            // SetupSkipReport for why those are different questions.
+            _statusLabel.Text = outcome.Describe(source.Title);
 
             SetupSkipReport.ShowIfAny(this, source.Title, outcome);
         }

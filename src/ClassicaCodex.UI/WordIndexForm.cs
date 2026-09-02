@@ -56,7 +56,7 @@ public class WordIndexForm : ScaledForm
         {
             Text = "This is what makes lemma-aware search fast - without it, each search scans the whole " +
                    "corpus once per word form. Run it after loading or adding a corpus. Safe to rerun " +
-                   "any time; it always rebuilds from scratch.",
+                   "any time; it always rebuilds from scratch. Takes about fifteen minutes.",
             Left = 12,
             Top = 36,
             Width = 736,
@@ -127,7 +127,7 @@ public class WordIndexForm : ScaledForm
 
         try
         {
-            if (!await _wordIndexRepo.HasDataAsync())
+            if (!await Task.Run(() => _wordIndexRepo.HasDataAsync()))
             {
                 _statusIcon.Image = AppIcons.Get("Error", 18);
                 _statusLabel.Text = "Not built yet.";
@@ -139,8 +139,19 @@ public class WordIndexForm : ScaledForm
                 // comparison is what catches that silently: "has data" alone
                 // stayed true the whole time Shakespeare's lines sat
                 // unindexed after a source was added post-build.
-                var totalLines = await _wordIndexRepo.GetTextNodeCountAsync();
-                var indexedLines = await _wordIndexRepo.GetIndexedTextNodeCountAsync();
+                //
+                // Both counts go to the thread pool together, because the
+                // second one is expensive and the await in front of it was not
+                // buying anything: Microsoft.Data.Sqlite's async methods run
+                // synchronously - see the note in SearchForm. WordIndex is keyed
+                // on (word, passage id), so counting distinct passage ids means
+                // reading all 70,813,196 rows and folding them down; twenty
+                // seconds on this library, during which the window it had just
+                // finished drawing did not respond and the "Checking..." above
+                // never appeared. Opening this screen looked like a hang.
+                var (totalLines, indexedLines) = await Task.Run(async () => (
+                    await _wordIndexRepo.GetTextNodeCountAsync(),
+                    await _wordIndexRepo.GetIndexedTextNodeCountAsync()));
 
                 if (indexedLines >= totalLines)
                 {

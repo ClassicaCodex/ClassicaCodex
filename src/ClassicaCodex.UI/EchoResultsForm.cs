@@ -1,3 +1,4 @@
+using ClassicaCodex.Core;
 using ClassicaCodex.Core.Models;
 using ClassicaCodex.Data.Repositories;
 
@@ -26,7 +27,7 @@ public class EchoResultsForm : ScaledForm
 
         _sourceLabel = new Label
         {
-            Text = $"Looking for echoes of: [{sourceNode.CitationRef}] {sourceNode.Text}",
+            Text = $"Looking for echoes of: [{PassageCitation.Display(sourceNode.CitationRef)}] {sourceNode.Text}",
             Left = 12,
             Top = 10,
             Width = 860,
@@ -57,7 +58,7 @@ public class EchoResultsForm : ScaledForm
             i => i < _currentResults.Count ? _currentResults[i].CitationRef : null);
         ListResultHelpers.AttachCopyToClipboardMenu(_resultsList,
             i => i < _currentResults.Count
-                ? $"{_currentResults[i].AuthorName}, {_currentResults[i].WorkTitle} [{_currentResults[i].CitationRef}]: {_currentResults[i].Text}"
+                ? $"{_currentResults[i].AuthorName}, {_currentResults[i].WorkTitle} [{PassageCitation.Display(_currentResults[i].CitationRef)}]: {_currentResults[i].Text}"
                 : null);
         ListResultHelpers.AttachExportMenu(_resultsList, () => (
             "Intertextual echoes",
@@ -88,7 +89,7 @@ public class EchoResultsForm : ScaledForm
         if (source == null) { MessageBox.Show(this, "The source passage is no longer present in the local corpus."); return; }
         var request = new ClassicaCodex.Core.EchoCaptureRequest(
             ClassicaCodex.Core.ResearchEchoMethod.RareWordOverlap, source,
-            $"Rare-word echoes of {source.WorkTitle} {source.CitationRef}",
+            $"Rare-word echoes of {source.WorkTitle} {PassageCitation.Display(source.CitationRef)}",
             "Local corpus; same original/translation edition kind as the source",
             "Normalized rare-word overlap; ranked by the number of shared rare source words.",
             null, null, null,
@@ -105,7 +106,11 @@ public class EchoResultsForm : ScaledForm
         _resultsList.Items.Clear();
         _resultsList.Items.Add("Searching...");
 
-        _currentResults = await _textNodeRepo.FindEchoesAsync(sourceTextNodeId);
+        // Off the UI thread - see the note in SearchForm. Finding echoes means
+        // looking every content word of the passage up across the corpus, a
+        // quarter of a second, and the "Searching..." set on the line above
+        // would not have appeared until it was over.
+        _currentResults = await Task.Run(() => _textNodeRepo.FindEchoesAsync(sourceTextNodeId));
 
         _resultsList.Items.Clear();
         if (_currentResults.Count == 0)

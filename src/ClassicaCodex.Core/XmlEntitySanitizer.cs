@@ -89,6 +89,30 @@ public static class XmlEntitySanitizer
         ["ecaron"] = "\u011B"
     };
 
+    /// <summary>
+    /// One named entity, for a caller that resolves them itself and wants this
+    /// table as a fallback rather than a replacement.
+    ///
+    /// The Menota loader is that caller. It resolves MUFI entities from the
+    /// table menota.org publishes, and those files are not written only in
+    /// MUFI - &amp;thorn;, &amp;eth;, &amp;aacute; and the rest of the
+    /// ISO-8859-1 set are most of what the Norse alphabet is made of, and the
+    /// MUFI table does not define them. Without this it substituted a
+    /// replacement character for every one of them.
+    ///
+    /// Returns false for the five XML built-ins, which a caller resolving its
+    /// own entities must leave alone: replacing &amp;amp; with an ampersand
+    /// before the parser sees it produces a document that will not parse.
+    /// </summary>
+    public static bool TryResolve(string entityName, out string replacement)
+    {
+        replacement = string.Empty;
+
+        if (string.IsNullOrEmpty(entityName) || StandardXmlEntities.Contains(entityName)) return false;
+
+        return NamedEntities.TryGetValue(entityName, out replacement!);
+    }
+
     public static string Sanitize(string input)
     {
         if (string.IsNullOrEmpty(input) || input.IndexOf('&') < 0) return input;

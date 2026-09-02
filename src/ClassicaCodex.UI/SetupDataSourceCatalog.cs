@@ -5,10 +5,37 @@ using ClassicaCodex.Ingestion;
 namespace ClassicaCodex.UI;
 
 /// <summary>
-/// Builds the five SetupDataSource definitions - what SetupWizardForm and
+/// Builds the SetupDataSource definitions - what SetupWizardForm and
 /// GuidedSetupForm both actually do their work through. Moved out of
 /// SetupWizardForm so a change to how, say, dictionaries get ingested only
 /// has to happen in one place.
+///
+/// THE ORDER OF THIS LIST IS THE ORDER OF THE WIZARD, and both forms present
+/// it as written here, so it is worth keeping deliberate. It runs:
+///
+///   the texts        Greek and Latin from Perseus first, because they are
+///                    what the application is for and everything after them
+///                    is an extension of one or the other; then the two that
+///                    extend those corpora into late antiquity, First1KGreek
+///                    and CSEL; then Migne, which is the widest net and the
+///                    largest download; then the collections that are their
+///                    own thing - the Renaissance English, Bodin, and last
+///                    Menota, which is the only source that cannot be fetched
+///                    for you and asks the most of a reader.
+///
+///   the dictionary   what Word Study looks a word up in, and the first step
+///                    that is about the texts rather than more of them.
+///
+///   the lemma data   Greek, Latin, then English - what lets a search for one
+///                    form find the others. Ordered to match the texts above,
+///                    and after them because they are useless without one.
+///
+///   the rest         the map and the artefact catalogue, which serve two
+///                    windows rather than the reading itself.
+///
+/// Nothing depends on the positions - the wizard indexes into this list
+/// within a single run and stores no step numbers - so this is a judgement
+/// about what to offer someone first, and can be revised as one.
 /// </summary>
 public static class SetupDataSourceCatalog
 {
@@ -79,23 +106,34 @@ public static class SetupDataSourceCatalog
                 DefaultDestination = Path.Combine(dataRoot, "greek-texts"),
                 PlainLanguageDescription =
                     "The actual Greek texts themselves - everything from Homer to late antiquity. " +
-                    "This is the biggest download here, usually a few hundred megabytes.",
+                    "This is a few hundred megabytes.",
                 RunIngest = async (root, progress, ct) =>
                 {
                     var service = new PerseusIngestService();
+                    service.CollectionKey = CollectionKeys.PerseusGreek;
                     var wrapped = new Progress<IngestProgress>(p =>
                         progress.Report($"{p.CurrentAuthor}: {p.CurrentWork} ({p.WorksProcessed}/{p.TotalWorks})"));
                     await service.IngestAsync(
                         new[] { (Path.Combine(root, "data"), "greekLit") }, wrapped, ct);
                     await editionRepo.StampCollectionAsync(root, CollectionKeys.PerseusGreek, ct);
-                    return IngestOutcome.From(service.FailedFiles);
+                    return IngestOutcome.From(service.FailedFiles, service.RecoveredWithoutCatalog, service.FilesAttempted);
                 },
-                // Checked by corpus (Authors.Namespace), not by edition
-                // language - Perseus's Greek corpus legitimately contains
-                // some Latin-language editions (old Latin translations of
-                // Greek works), so a Language='grc' count alone can't tell
-                // "the Greek corpus is loaded" apart from "isn't yet".
-                CheckComplete = async () => await authorRepo.CountByNamespaceAsync("greekLit") > 0
+                // Checked by collection, which is the only thing that answers
+                // for this step alone.
+                //
+                // Not by edition language: Perseus's Greek corpus legitimately
+                // contains Latin-language editions - old Latin translations of
+                // Greek works - so a Language='grc' count cannot tell "the
+                // Greek corpus is loaded" from "isn't yet".
+                //
+                // And not by Authors.Namespace, which is what this used to
+                // ask. A namespace is shared - First1KGreek is greekLit
+                // exactly as canonical-greekLit is - so from 3.2.0 on,
+                // installing either one reported the other as present and the
+                // wizard skipped a corpus that had never been fetched. See
+                // AuthorRepository.CountByNamespaceAsync.
+                CheckComplete = async () =>
+                    await editionRepo.CountByCollectionAsync(CollectionKeys.PerseusGreek) > 0
             },
 
             new SetupDataSource
@@ -104,186 +142,260 @@ public static class SetupDataSourceCatalog
                 RepoUrl = "https://github.com/PerseusDL/canonical-latinLit",
                 DefaultDestination = Path.Combine(dataRoot, "latin-texts"),
                 PlainLanguageDescription =
-                    "The Latin counterpart to the Greek texts above - Caesar, Cicero, Virgil, and the rest.",
+                    "The Latin counterpart to the Greek texts above - Caesar, Cicero, Virgil, and the rest. This is a few hundred megabytes.",
                 RunIngest = async (root, progress, ct) =>
                 {
                     var service = new PerseusIngestService();
+                    service.CollectionKey = CollectionKeys.PerseusLatin;
                     var wrapped = new Progress<IngestProgress>(p =>
                         progress.Report($"{p.CurrentAuthor}: {p.CurrentWork} ({p.WorksProcessed}/{p.TotalWorks})"));
                     await service.IngestAsync(
                         new[] { (Path.Combine(root, "data"), "latinLit") }, wrapped, ct);
                     await editionRepo.StampCollectionAsync(root, CollectionKeys.PerseusLatin, ct);
-                    return IngestOutcome.From(service.FailedFiles);
+                    return IngestOutcome.From(service.FailedFiles, service.RecoveredWithoutCatalog, service.FilesAttempted);
                 },
-                // Same reasoning as the Greek row above, inverted - and this
-                // is exactly the direction that actually bites: ingesting
-                // only the Greek corpus already creates some Language='lat'
-                // editions (the Latin translations it carries), which
-                // wrongly reported this row as already done before the
-                // Latin corpus had ever been fetched.
-                CheckComplete = async () => await authorRepo.CountByNamespaceAsync("latinLit") > 0
-            },
-
-            new SetupDataSource
-            {
-                Title = "Dictionaries (LSJ + Lewis & Short)",
-                RepoUrl = "https://github.com/PerseusDL/lexica",
-                DefaultDestination = Path.Combine(dataRoot, "lexica"),
-                PlainLanguageDescription =
-                    "The dictionary definitions Word Study looks words up in while you're reading - " +
-                    "one dictionary for Greek, one for Latin, both loaded in this one step.",
-                RunIngest = async (root, progress, ct) =>
-                {
-                    var service = new LexiconIngestService();
-                    var wrapped = new Progress<LexiconIngestProgress>(p =>
-                        progress.Report($"{p.CurrentFile} ({p.FilesProcessed}/{p.TotalFiles} files, {p.EntriesLoaded:N0} entries)"));
-
-                    progress.Report("Ingesting Greek (LSJ)...");
-                    await service.IngestAsync(Path.Combine(root, "CTS_XML_TEI", "perseus", "pdllex", "grc"), "grc", "LSJ", wrapped, ct);
-
-                    progress.Report("Ingesting Latin (Lewis & Short)...");
-                    await service.IngestAsync(Path.Combine(root, "CTS_XML_TEI", "perseus", "pdllex", "lat"), "lat", "Lewis & Short", wrapped, ct);
-                    return IngestOutcome.Clean;
-                },
+                // Same reasoning as the Greek row above, and this is the row
+                // where it was actually observed. A library holding only the
+                // Patrologia Latina and CSEL has 335 latinLit authors and none
+                // of the ones this step exists to fetch, so the old namespace
+                // check reported "Ancient Latin Texts" as already installed
+                // and Virgil never arrived - with nothing looking wrong
+                // afterwards, because the library was full of Latin.
                 CheckComplete = async () =>
-                {
-                    var byLanguage = await definitionRepo.CountByLanguageAsync();
-                    return byLanguage.Any(l => l.Language == "grc" && l.Count > 0)
-                        && byLanguage.Any(l => l.Language == "lat" && l.Count > 0);
-                }
+                    await editionRepo.CountByCollectionAsync(CollectionKeys.PerseusLatin) > 0
             },
 
             new SetupDataSource
             {
-                Title = "Greek Lemma Data",
-                RepoUrl = "https://github.com/gcelano/LemmatizedAncientGreekXML",
-                DisplayNote = "CC BY-NC - see About",
-                DefaultDestination = Path.Combine(dataRoot, "greek-lemmas"),
+                Title = "Post-Classical Greek Texts",
+                RepoUrl = "https://github.com/OpenGreekAndLatin/First1KGreek",
+                DisplayNote = "extends the Ancient Greek Texts above into late antiquity - same library, not a separate one",
+                DefaultDestination = first1kDestination,
                 PlainLanguageDescription =
-                    "Maps inflected Greek word forms back to their dictionary headword - what lets " +
-                    "search and Word Study understand a word regardless of which form it's in. " +
-                    "This dataset is free to use but can't be sold, which is fine - ClassicaCodex is free too.",
+                    "The Open Greek and Latin project's sequel to the Ancient Greek Texts above - Greek " +
+                    "(and a little Latin) written after the classical period, into late antiquity. Authors " +
+                    "and works already in your library (from a handful of famous plays this collection also " +
+                    "carries alternate 19th/20th-century editions of) just gain an extra edition to choose " +
+                    "from in the original-language dropdown - nothing gets overwritten. This is several " +
+                    "hundred megabytes and takes a few minutes.",
                 RunIngest = async (root, progress, ct) =>
                 {
-                    var service = new LemmaIngestService();
-                    var wrapped = new Progress<LemmaIngestProgress>(p =>
-                        progress.Report($"{p.CurrentFile} ({p.FilesProcessed}/{p.TotalFiles} files, {p.LemmasLoaded:N0} mappings)"));
-                    await service.IngestAsync(root, "grc", wrapped, ct);
-                    return IngestOutcome.Clean;
-                },
-                CheckComplete = async () => await lemmaRepo.CountByLanguageAsync("grc") > 0
-            },
+                    // Verified against a real clone before writing this, not
+                    // inferred: same data/<textgroup>/<work>/__cts__.xml CTS
+                    // layout as canonical-greekLit, same CTS URN scheme, and
+                    // a TEI-P5/EpiDoc body (flat <div><l n="..."> - no DOCTYPE,
+                    // no custom entities beyond what XmlEntitySanitizer
+                    // already covers) that PerseusIngestService and TeiParser
+                    // already read correctly. So this is just a second pass
+                    // of the exact same service used above, not a new
+                    // importer - the two corpora share the "greekLit"
+                    // namespace deliberately, because they're the same
+                    // umbrella collection (OGL scopes First1KGreek to avoid
+                    // works canonical-greekLit already has - but where the
+                    // two DO overlap, e.g. Sophocles' Ajax, it's because this
+                    // corpus adds older alternate editions of an
+                    // already-covered play, not a duplicate of the same one).
+                    //
+                    // That overlap is what makes this safe rather than risky:
+                    // Author/Work upserts key on CTS URN, so Sophocles and
+                    // Ajax merge into the rows the first pass already
+                    // created, while each edition file keys on its own
+                    // filename (e.g. "tlg0011.tlg003.1st1K-grc1" vs whatever
+                    // canonical-greekLit's own Ajax edition is named) - so new
+                    // editions land as additional rows under the existing
+                    // work rather than clearing anyone's existing text.
+                    var service = new PerseusIngestService();
+                    service.CollectionKey = CollectionKeys.First1KGreek;
+                    var wrapped = new Progress<IngestProgress>(p =>
+                        progress.Report($"{p.CurrentAuthor}: {p.CurrentWork} ({p.WorksProcessed}/{p.TotalWorks})"));
+                    await service.IngestAsync(
+                        new[] { (Path.Combine(root, "data"), "greekLit") }, wrapped, ct);
 
-            new SetupDataSource
-            {
-                Title = "Latin Lemma Data",
-                RepoUrl = "https://github.com/lascivaroma/latin-lemmatized-texts",
-                DefaultDestination = Path.Combine(dataRoot, "latin-lemmas"),
-                PlainLanguageDescription = "The same kind of word-form mapping as the Greek lemma data, for Latin.",
-                RunIngest = async (root, progress, ct) =>
-                {
-                    var service = new LemmaIngestService();
-                    var wrapped = new Progress<LemmaIngestProgress>(p =>
-                        progress.Report($"{p.CurrentFile} ({p.FilesProcessed}/{p.TotalFiles} files, {p.LemmasLoaded:N0} mappings)"));
-                    await service.IngestAsync(root, "lat", wrapped, ct);
-                    return IngestOutcome.Clean;
-                },
-                CheckComplete = async () => await lemmaRepo.CountByLanguageAsync("lat") > 0
-            },
-
-            new SetupDataSource
-            {
-                Title = "World Map Data (Natural Earth)",
-                RepoUrl = "https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/ne_110m_land.geojson",
-                DisplayNote = "public domain - single-file download, not a clone",
-                DefaultDestination = Path.Combine(dataRoot, "map"),
-                FetchMode = SetupFetchMode.DirectDownload,
-                DownloadFileName = "ne_110m_land.geojson",
-                PlainLanguageDescription =
-                    "Real coastline shapes for the Places Map, from the public-domain Natural Earth " +
-                    "project - a single small file, not a big repository. Entirely optional: without it " +
-                    "the map still works, just with rougher hand-drawn landmasses.",
-                RunIngest = (root, progress, ct) =>
-                {
-                    // No database ingest - "installing" here means making
-                    // sure the file sits at the one canonical path the map
-                    // reads from (which only differs from the download
-                    // location if Advanced Setup pointed at a custom
-                    // folder), then dropping any cached "file wasn't
-                    // there" so an already-open session picks it up.
-                    var downloaded = Path.Combine(root, "ne_110m_land.geojson");
-                    var canonical = NaturalEarthCoastline.CanonicalPath;
-                    if (!string.Equals(Path.GetFullPath(downloaded), Path.GetFullPath(canonical),
-                            StringComparison.OrdinalIgnoreCase))
+                    // One of this corpus's 309 textgroups (heb0001, "Hebrew
+                    // Bible") embeds its own urn:cts:hebrewlit: prefix rather
+                    // than greekLit - genuinely not Greek literature, just
+                    // swept in because it lives in the same repo. The pass
+                    // above still labels it "greekLit" (IngestRepoAsync
+                    // applies one namespace to everything it walks), so
+                    // correct that one row's label afterward rather than
+                    // teaching the shared ingest walker about a single
+                    // exception. Re-upserting on the same CtsUrn updates the
+                    // existing row in place; it's a no-op if this textgroup
+                    // isn't present.
+                    await authorRepo.UpsertAsync(new Author
                     {
-                        Directory.CreateDirectory(Path.GetDirectoryName(canonical)!);
-                        File.Copy(downloaded, canonical, overwrite: true);
-                    }
+                        CtsUrn = "urn:cts:hebrewlit:heb0001",
+                        Name = "Hebrew Bible",
+                        Namespace = "hebrewLit"
+                    }, ct);
 
-                    NaturalEarthCoastline.InvalidateCache();
-                    var loaded = NaturalEarthCoastline.Load();
-                    progress.Report(loaded != null
-                        ? $"Map data ready - {loaded.Count} landmasses in range."
-                        : "Downloaded, but the file did not parse - the map will use its built-in shapes.");
-                    return Task.FromResult(IngestOutcome.Clean);
+                    await editionRepo.StampCollectionAsync(root, CollectionKeys.First1KGreek, ct);
+                    return IngestOutcome.From(service.FailedFiles, service.RecoveredWithoutCatalog, service.FilesAttempted);
                 },
-                CheckComplete = () => Task.FromResult(File.Exists(NaturalEarthCoastline.CanonicalPath))
+                // Authors.Namespace="greekLit" is already >0 from the
+                // classical corpus alone, so the namespace check the Greek and
+                // Latin rows use can't tell "loaded" apart from "First1KGreek
+                // specifically hasn't run yet". This used to fall back to
+                // asking the filesystem whether the repo had been downloaded -
+                // which answers a different question entirely, and answers it
+                // wrongly the moment the two diverge: delete the database,
+                // keep the download, and the step reported "Already loaded"
+                // against a database containing none of it. Anyone starting a
+                // library over would silently finish setup without this corpus.
+                //
+                // Every edition records the file it was built from, and the
+                // two Greek corpora download to different folders - so "are
+                // there editions in this database that came from the
+                // First1KGreek folder" is decisive, and rests on no naming
+                // convention. (A first attempt matched "1st1K" inside the CTS
+                // URN, which is OGL's version identifier for the repo. That's
+                // a convention rather than a guarantee, and not worth betting
+                // a setup step on.)
+                //
+                // Caveat, same as the old filesystem probe had: an Advanced
+                // Setup run pointed at a custom folder won't match this, and
+                // the step will offer to install again. Re-running is
+                // harmless - editions upsert by CTS URN - so this errs toward
+                // offering redundant work rather than skipping needed work,
+                // which is the right direction for a step whose whole failure
+                // mode was silently skipping.
+                CheckComplete = async () =>
+                    await editionRepo.CountByCollectionAsync(CollectionKeys.First1KGreek) > 0
             },
 
             new SetupDataSource
             {
-                Title = "Art & Archaeology Data (Perseus)",
-                RepoUrl = "https://github.com/perseus-aa/json",
-                DisplayNote = "images stay on Perseus's own server, never downloaded",
-                DefaultDestination = Path.Combine(dataRoot, "artifacts"),
-                FetchMode = SetupFetchMode.SelfManaged,
+                Title = "Latin Church Fathers (CSEL)",
+                RepoUrl = "https://github.com/OpenGreekAndLatin/csel-dev",
+                DisplayNote = "extends the Ancient Latin Texts above into late antiquity - same library, not a separate one",
+                DefaultDestination = cselDestination,
                 PlainLanguageDescription =
-                    "Real objects from the ancient world - vases, coins, gems, sculptures, sites, and " +
-                    "buildings - with descriptions and photos, for the Places Map and Myth Network. " +
-                    "The catalog data downloads here; the photos themselves are always loaded live from " +
-                    "Perseus's own server when you view one, never saved to your computer, since Perseus's " +
-                    "copyright terms don't allow redistributing their images outside their own site.",
+                    "The Corpus Scriptorum Ecclesiasticorum Latinorum - the critical editions of the Latin " +
+                    "Church Fathers, from the volumes old enough to be out of copyright. Augustine, Ambrose, " +
+                    "Jerome, Cyprian and their contemporaries, in the editions scholars actually cite. " +
+                    "Authors already in your library gain works and editions rather than duplicates. " +
+                    "Around 400 megabytes and takes a few minutes.",
                 RunIngest = async (root, progress, ct) =>
                 {
-                    var service = new ArtifactIngestService();
-                    await service.IngestAsync(root, progress, ct);
-                    return IngestOutcome.Clean;
+                    // Verified against the repository itself before writing this, not
+                    // inferred from the fact that it is an Open Greek and Latin repo:
+                    // data/<textgroup>/<work>/__cts__.xml in the same CTS layout as
+                    // canonical-latinLit, textgroup URNs already in the latinLit
+                    // namespace (urn:cts:latinLit:stoa0007), and a TEI-P5/EpiDoc body -
+                    // no DOCTYPE, no entity references beyond the five XML built-ins,
+                    // div[@type='edition'] over div[@type='textpart'] to <p> leaves.
+                    // So this is the same service the Greek and Latin steps use, with
+                    // the namespace it declares for itself, rather than a new importer.
+                    //
+                    // The apparatus is the reason this needed checking rather than
+                    // assuming: these files carry <note type="footnote"> inside the
+                    // reading text, and TeiParser already excludes note from the text
+                    // and captures it as an apparatus entry instead. Had it not, every
+                    // page of Augustine would have arrived with its footnotes spliced
+                    // into the sentences.
+                    //
+                    // Volumes/ holds the same texts unsplit, one file per CSEL volume,
+                    // and is left alone: IngestRepoAsync walks data/ only, so the
+                    // volume-level files cannot produce a second copy of anything.
+                    var service = new PerseusIngestService();
+                    service.CollectionKey = CollectionKeys.Csel;
+                    var wrapped = new Progress<IngestProgress>(p =>
+                        progress.Report($"{p.CurrentAuthor}: {p.CurrentWork} ({p.WorksProcessed}/{p.TotalWorks})"));
+                    await service.IngestAsync(
+                        new[] { (Path.Combine(root, "data"), "latinLit") }, wrapped, ct);
+
+                    await editionRepo.StampCollectionAsync(root, CollectionKeys.Csel, ct);
+                    return IngestOutcome.From(service.FailedFiles, service.RecoveredWithoutCatalog, service.FilesAttempted);
                 },
-                CheckComplete = async () => await artifactRepo.HasDataAsync()
+
+                // Same reasoning as First1KGreek above: Authors.Namespace="latinLit" is
+                // already non-zero from the classical Latin corpus, so it cannot tell
+                // "loaded" from "this step has not run". Editions record the file they
+                // were built from, and this corpus downloads to a folder of its own.
+                CheckComplete = async () =>
+                    await editionRepo.CountByCollectionAsync(CollectionKeys.Csel) > 0
             },
 
             new SetupDataSource
             {
-                Title = "English Lemma Data & Dictionary (WordNet)",
-                RepoUrl = "https://wordnet.princeton.edu",
-                DisplayNote = "(Princeton WordNet - free for any use)",
-                DefaultDestination = Path.Combine(dataRoot, "wordnet"),
-                FetchMode = SetupFetchMode.SelfManaged,
+                Title = "Patrologia Latina (Migne)",
+                RepoUrl = "https://github.com/OpenGreekAndLatin/patrologia_latina-dev",
+                DisplayNote = "the widest net for Latin Christian writing - a reprint, not a critical edition",
+                DefaultDestination = patrologiaDestination,
                 PlainLanguageDescription =
-                    "Maps English word forms back to their dictionary headword, and supplies definitions - " +
-                    "the same thing the Greek and Latin lemma data does, but for the English translations " +
-                    "you already have loaded. Makes search find \"spoke\" when you type \"speak\", and makes " +
-                    "Word Study work on the translation side as well as the original.",
+                    "Migne's Patrologia Latina - Latin Christian writing from Tertullian to the twelfth " +
+                    "century. Worth knowing what it is before you cite from it: Migne reprinted whatever " +
+                    "editions he could obtain in the 1840s and 50s, so where a work also appears in the " +
+                    "Church Fathers collection above, that one is the edition scholars cite and this one " +
+                    "is the wider net. Both can sit side by side - the same work gains a second edition " +
+                    "in the dropdown rather than being overwritten.\r\n\r\n" +
+                    "One caveat worth knowing before you build on it. Most of this collection is still " +
+                    "under temporary reference numbers that the publishing project intends to replace. " +
+                    "The texts and their authors are sound, and nothing about reading them is affected - " +
+                    "but if those numbers change and you re-import, notes tied to those particular " +
+                    "passages will need re-attaching. Works whose author Migne could not name arrive " +
+                    "under “Incertus”, his own word for it. Around 1.4 gigabytes and only takes a few minutes.",
                 RunIngest = async (root, progress, ct) =>
                 {
-                    var service = new WordNetIngestService();
-                    await service.IngestAsync(root, progress, ct);
-                    return IngestOutcome.Clean;
+                    // The whole repository is imported, placeholders included.
+                    //
+                    // It holds 9,400 textgroups: 630 named stoa0022, stoa0040 and so on,
+                    // and 8,770 named tmp1, tmp26, tmp990, from a conversion still in
+                    // progress. Those were excluded for a while on the strength of their
+                    // CTS URNs being provisional - urn:cts:latinLit:tmp26 - since notes
+                    // in this application bind to CTS identity precisely because it is
+                    // meant to outlast a re-ingest.
+                    //
+                    // Included now, deliberately, because the objection is narrower than
+                    // it looked. Each file holds one work, correctly attributed by its
+                    // groupname; roughly nine in ten name their author outright. The
+                    // cost of excluding them is eight thousand texts today. The cost of
+                    // including them is that notes on those passages may need
+                    // re-attaching if the numbering changes, which the step says plainly
+                    // rather than leaving to be discovered.
+                    var service = new PerseusIngestService
+                    {
+                        // Migne returns to an author across volumes and each appearance
+                        // became its own textgroup, so without this the tree lists
+                        // Alphanus of Benevento six times and Anonymus nine, a work or
+                        // two under each. They are the same people.
+                        MergeAuthorsByName = true,
+
+                        // Migne leaves the author empty where a work has none - the
+                        // Council of Carthage, an appendix to Cyprian, an anonymous
+                        // passion - and writes "Incertus" wherever he does fill it in.
+                        // Borrowing his own word keeps those texts and keeps the author
+                        // column readable. Roughly one textgroup in eleven, so they
+                        // gather under a single row rather than eight hundred alike.
+                        UnnamedTextGroupAuthor = ("urn:cts:latinLit:pl.incertus", "Incertus")
+                    };
+                    service.CollectionKey = CollectionKeys.PatrologiaLatina;
+                    var wrapped = new Progress<IngestProgress>(p =>
+                        progress.Report($"{p.CurrentAuthor}: {p.CurrentWork} ({p.WorksProcessed}/{p.TotalWorks})"));
+                    await service.IngestAsync(
+                        new[] { (Path.Combine(root, "data"), "latinLit") }, wrapped, ct);
+
+                    await editionRepo.StampCollectionAsync(root, CollectionKeys.PatrologiaLatina, ct);
+                    return IngestOutcome.From(service.FailedFiles, service.RecoveredWithoutCatalog, service.FilesAttempted);
                 },
-                CheckComplete = async () => await lemmaRepo.CountByLanguageAsync("eng") > 0
+
+                CheckComplete = async () =>
+                    await editionRepo.CountByCollectionAsync(CollectionKeys.PatrologiaLatina) > 0
             },
 
             new SetupDataSource
             {
-                Title = "English Literature (Renaissance, optional)",
+                Title = "English Literature (Renaissance)",
                 RepoUrl = "https://github.com/PerseusDL/canonical-engLit",
-                DisplayNote = "(Marlowe, Shakespeare, Hakluyt - needs English Lemma Data above)",
+                DisplayNote = "(Shakespeare, Holinshed, Hakluyt - needs English Lemma Data above)",
                 DefaultDestination = Path.Combine(dataRoot, "english-texts"),
                 PlainLanguageDescription =
-                    "Perseus's Renaissance and early modern collection - Marlowe, Shakespeare, Holinshed, " +
-                    "Hakluyt. Useful mainly for reception: how later writers reworked classical material. " +
-                    "Note that these are 16th and 17th century English, while the English dictionary above " +
-                    "is modern, so archaic forms like \"hath\" and \"doth\" won't find a headword.",
+                    "Perseus's Renaissance and early modern collection - Shakespeare, Holinshed, Hakluyt, " +
+                    "Sidney, James I. Useful mainly for reception: how later writers reworked classical " +
+                    "material. Half of Perseus's copy is still in copyright and is not imported, which " +
+                    "means no Marlowe - see About. These are 16th and 17th century English, while the " +
+                    "English dictionary above is modern, so archaic forms like \"hath\" and \"doth\" won't " +
+                    "find a headword. About a minute, and under a hundred megabytes.",
                 RunIngest = async (root, progress, ct) =>
                 {
                     var wrapped = new Progress<IngestProgress>(p =>
@@ -291,6 +403,7 @@ public static class SetupDataSourceCatalog
 
                     // CTS layout (english-texts/data) - Sidney, James I.
                     var cts = new PerseusIngestService();
+                    cts.CollectionKey = CollectionKeys.Renaissance;
                     await cts.IngestAsync(
                         new[] { (Path.Combine(root, "data"), "engLit") }, wrapped, ct);
 
@@ -302,7 +415,7 @@ public static class SetupDataSourceCatalog
                     if (!Directory.Exists(renaissance))
                     {
                         await editionRepo.StampCollectionAsync(root, CollectionKeys.Renaissance, ct);
-                        return IngestOutcome.From(cts.FailedFiles);
+                        return IngestOutcome.From(cts.FailedFiles, cts.RecoveredWithoutCatalog, cts.FilesAttempted);
                     }
 
                     var preCts = new RenaissanceIngestService();
@@ -312,11 +425,52 @@ public static class SetupDataSourceCatalog
                     // covers the CTS works and the pre-CTS ones alike.
                     await editionRepo.StampCollectionAsync(root, CollectionKeys.Renaissance, ct);
 
+                    // A text this pass left out because the catalogued tree
+                    // already supplied it goes in beside the recoveries: both
+                    // mean the library has what it should and something was
+                    // decided on the reader's behalf that the log should
+                    // record.
                     return IngestOutcome.Combine(
-                        IngestOutcome.From(cts.FailedFiles),
-                        IngestOutcome.From(preCts.FailedFiles));
+                        IngestOutcome.From(cts.FailedFiles, cts.RecoveredWithoutCatalog, cts.FilesAttempted),
+                        IngestOutcome.From(preCts.FailedFiles, preCts.SupersededByCatalogue));
                 },
-                CheckComplete = async () => await authorRepo.CountByNamespaceAsync("engLit") > 0
+                CheckComplete = async () =>
+                    await editionRepo.CountByCollectionAsync(CollectionKeys.Renaissance) > 0
+            },
+
+            new SetupDataSource
+            {
+                Title = "Political Theory: Bodin",
+                RepoUrl = "https://github.com/PerseusDL/canonical-pdlpsci",
+                DisplayNote = "one work in three languages - small, and the only thing in this collection",
+                DefaultDestination = politicalDestination,
+                PlainLanguageDescription =
+                    "Jean Bodin's Six Books of the Commonwealth, the founding text of modern sovereignty, " +
+                    "in all three of the versions that matter: the French of 1577 he wrote first, the Latin " +
+                    "of 1586 he made himself, and Richard Knolles's English of 1606. Reading his own Latin " +
+                    "against his own French is the kind of comparison the reader panes were built for. " +
+                    "About nine megabytes and very quick - it is one work, not a corpus.",
+                RunIngest = async (root, progress, ct) =>
+                {
+                    // Same CTS layout as everything else here, in its own namespace:
+                    // urn:cts:pdlpsci:bodin rather than latinLit. Passed through as
+                    // declared rather than folded into Latin, because it is not Latin
+                    // literature - the French is the original and the Latin is Bodin
+                    // translating himself, which is exactly the distinction the
+                    // edition/translation split exists to keep.
+                    var service = new PerseusIngestService();
+                    service.CollectionKey = CollectionKeys.PoliticalTheory;
+                    var wrapped = new Progress<IngestProgress>(p =>
+                        progress.Report($"{p.CurrentAuthor}: {p.CurrentWork} ({p.WorksProcessed}/{p.TotalWorks})"));
+                    await service.IngestAsync(
+                        new[] { (Path.Combine(root, "data"), "pdlpsci") }, wrapped, ct);
+
+                    await editionRepo.StampCollectionAsync(root, CollectionKeys.PoliticalTheory, ct);
+                    return IngestOutcome.From(service.FailedFiles, service.RecoveredWithoutCatalog, service.FilesAttempted);
+                },
+
+                CheckComplete = async () =>
+                    await editionRepo.CountByCollectionAsync(CollectionKeys.PoliticalTheory) > 0
             },
 
             new SetupDataSource
@@ -394,7 +548,7 @@ public static class SetupDataSourceCatalog
 
                 PlainLanguageDescription =
                     "Medieval texts in Old Norse, Old Norwegian and Old Swedish - sagas, the Eddic poems, " +
-                    "and the Norwegian law manuscripts - from the Medieval Nordic Text Archive.\n\n" +
+                    "and the Norwegian law manuscripts - from the Medieval Nordic Text Archive. You can download all 91 xml files using the Download all XML Files button on Menota's site. It will only take a minute to download but you will need to click through all 91 XML files to confirm if you want to merge or not.  \n\n" +
                     "Menota publishes one file per manuscript, with no single archive to fetch, so these " +
                     "are downloaded by hand. Save the XML files into the folder below, then import them.\n\n" +
                     "Save menota-entities.txt into that same folder as well. These manuscripts use medieval " +
@@ -491,254 +645,158 @@ public static class SetupDataSourceCatalog
                     return outcome;
                 },
 
-                CheckComplete = async () => await authorRepo.CountByNamespaceAsync(
-                    MenotaIngestService.Namespace) > 0
+                CheckComplete = async () =>
+                    await editionRepo.CountByCollectionAsync(CollectionKeys.Menota) > 0
             },
-
 
             new SetupDataSource
             {
-                Title = "Post-Classical Greek Texts (optional)",
-                RepoUrl = "https://github.com/OpenGreekAndLatin/First1KGreek",
-                DisplayNote = "extends the Ancient Greek Texts above into late antiquity - same library, not a separate one",
-                DefaultDestination = first1kDestination,
+                Title = "Dictionaries (LSJ + Lewis & Short)",
+                RepoUrl = "https://github.com/PerseusDL/lexica",
+                DefaultDestination = Path.Combine(dataRoot, "lexica"),
                 PlainLanguageDescription =
-                    "The Open Greek and Latin project's sequel to the Ancient Greek Texts above - Greek " +
-                    "(and a little Latin) written after the classical period, into late antiquity. Authors " +
-                    "and works already in your library (from a handful of famous plays this collection also " +
-                    "carries alternate 19th/20th-century editions of) just gain an extra edition to choose " +
-                    "from in the original-language dropdown - nothing gets overwritten. Big download, several " +
-                    "hundred megabytes.",
+                    "The dictionary definitions Word Study looks words up in while you're reading - " +
+                    "one dictionary for Greek, one for Latin, both loaded in this one step. This is about five hundred megabytes.",
                 RunIngest = async (root, progress, ct) =>
                 {
-                    // Verified against a real clone before writing this, not
-                    // inferred: same data/<textgroup>/<work>/__cts__.xml CTS
-                    // layout as canonical-greekLit, same CTS URN scheme, and
-                    // a TEI-P5/EpiDoc body (flat <div><l n="..."> - no DOCTYPE,
-                    // no custom entities beyond what XmlEntitySanitizer
-                    // already covers) that PerseusIngestService and TeiParser
-                    // already read correctly. So this is just a second pass
-                    // of the exact same service used above, not a new
-                    // importer - the two corpora share the "greekLit"
-                    // namespace deliberately, because they're the same
-                    // umbrella collection (OGL scopes First1KGreek to avoid
-                    // works canonical-greekLit already has - but where the
-                    // two DO overlap, e.g. Sophocles' Ajax, it's because this
-                    // corpus adds older alternate editions of an
-                    // already-covered play, not a duplicate of the same one).
-                    //
-                    // That overlap is what makes this safe rather than risky:
-                    // Author/Work upserts key on CTS URN, so Sophocles and
-                    // Ajax merge into the rows the first pass already
-                    // created, while each edition file keys on its own
-                    // filename (e.g. "tlg0011.tlg003.1st1K-grc1" vs whatever
-                    // canonical-greekLit's own Ajax edition is named) - so new
-                    // editions land as additional rows under the existing
-                    // work rather than clearing anyone's existing text.
-                    var service = new PerseusIngestService();
-                    var wrapped = new Progress<IngestProgress>(p =>
-                        progress.Report($"{p.CurrentAuthor}: {p.CurrentWork} ({p.WorksProcessed}/{p.TotalWorks})"));
-                    await service.IngestAsync(
-                        new[] { (Path.Combine(root, "data"), "greekLit") }, wrapped, ct);
+                    var service = new LexiconIngestService();
+                    var wrapped = new Progress<LexiconIngestProgress>(p =>
+                        progress.Report($"{p.CurrentFile} ({p.FilesProcessed}/{p.TotalFiles} files, {p.EntriesLoaded:N0} entries)"));
 
-                    // One of this corpus's 309 textgroups (heb0001, "Hebrew
-                    // Bible") embeds its own urn:cts:hebrewlit: prefix rather
-                    // than greekLit - genuinely not Greek literature, just
-                    // swept in because it lives in the same repo. The pass
-                    // above still labels it "greekLit" (IngestRepoAsync
-                    // applies one namespace to everything it walks), so
-                    // correct that one row's label afterward rather than
-                    // teaching the shared ingest walker about a single
-                    // exception. Re-upserting on the same CtsUrn updates the
-                    // existing row in place; it's a no-op if this textgroup
-                    // isn't present.
-                    await authorRepo.UpsertAsync(new Author
+                    progress.Report("Ingesting Greek (LSJ)...");
+                    await service.IngestAsync(Path.Combine(root, "CTS_XML_TEI", "perseus", "pdllex", "grc"), "grc", "LSJ", wrapped, ct);
+
+                    progress.Report("Ingesting Latin (Lewis & Short)...");
+                    await service.IngestAsync(Path.Combine(root, "CTS_XML_TEI", "perseus", "pdllex", "lat"), "lat", "Lewis & Short", wrapped, ct);
+                    return IngestOutcome.Clean;
+                },
+                CheckComplete = async () =>
+                {
+                    var byLanguage = await definitionRepo.CountByLanguageAsync();
+                    return byLanguage.Any(l => l.Language == "grc" && l.Count > 0)
+                        && byLanguage.Any(l => l.Language == "lat" && l.Count > 0);
+                }
+            },
+
+            new SetupDataSource
+            {
+                Title = "Greek Lemma Data",
+                RepoUrl = "https://github.com/gcelano/LemmatizedAncientGreekXML",
+                DisplayNote = "CC BY-NC - see About",
+                DefaultDestination = Path.Combine(dataRoot, "greek-lemmas"),
+                PlainLanguageDescription =
+                    "Maps inflected Greek word forms back to their dictionary headword - what lets " +
+                    "search and Word Study understand a word regardless of which form it's in. " +
+                    "This is a large amount of data (3.6 gigabytes) and may take about an hour to gather. " +
+                    "This dataset is free to use but can't be sold, which is fine - ClassicaCodex is free too.",
+                RunIngest = async (root, progress, ct) =>
+                {
+                    var service = new LemmaIngestService();
+                    var wrapped = new Progress<LemmaIngestProgress>(p =>
+                        progress.Report($"{p.CurrentFile} ({p.FilesProcessed}/{p.TotalFiles} files, {p.LemmasLoaded:N0} mappings)"));
+                    await service.IngestAsync(root, "grc", wrapped, ct);
+                    return IngestOutcome.Clean;
+                },
+                CheckComplete = async () => await lemmaRepo.CountByLanguageAsync("grc") > 0
+            },
+
+            new SetupDataSource
+            {
+                Title = "Latin Lemma Data",
+                RepoUrl = "https://github.com/lascivaroma/latin-lemmatized-texts",
+                DefaultDestination = Path.Combine(dataRoot, "latin-lemmas"),
+                PlainLanguageDescription = "The same kind of word-form mapping as the Greek lemma data, for Latin. This will take about six minutes and is about two gigabytes.",
+                RunIngest = async (root, progress, ct) =>
+                {
+                    var service = new LemmaIngestService();
+                    var wrapped = new Progress<LemmaIngestProgress>(p =>
+                        progress.Report($"{p.CurrentFile} ({p.FilesProcessed}/{p.TotalFiles} files, {p.LemmasLoaded:N0} mappings)"));
+                    await service.IngestAsync(root, "lat", wrapped, ct);
+                    return IngestOutcome.Clean;
+                },
+                CheckComplete = async () => await lemmaRepo.CountByLanguageAsync("lat") > 0
+            },
+
+            new SetupDataSource
+            {
+                Title = "English Lemma Data & Dictionary (WordNet)",
+                RepoUrl = "https://wordnet.princeton.edu",
+                DisplayNote = "(Princeton WordNet - free for any use)",
+                DefaultDestination = Path.Combine(dataRoot, "wordnet"),
+                FetchMode = SetupFetchMode.SelfManaged,
+                PlainLanguageDescription =
+                    "Maps English word forms back to their dictionary headword, and supplies definitions - " +
+                    "the same thing the Greek and Latin lemma data does, but for the English translations " +
+                    "you already have loaded. Makes search find \"spoke\" when you type \"speak\", and makes " +
+                    "Word Study work on the translation side as well as the original. This is about sixty megabytes and takes about a minute.",
+                RunIngest = async (root, progress, ct) =>
+                {
+                    var service = new WordNetIngestService();
+                    await service.IngestAsync(root, progress, ct);
+                    return IngestOutcome.Clean;
+                },
+                CheckComplete = async () => await lemmaRepo.CountByLanguageAsync("eng") > 0
+            },
+
+            new SetupDataSource
+            {
+                Title = "World Map Data (Natural Earth)",
+                RepoUrl = "https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/ne_110m_land.geojson",
+                DisplayNote = "public domain - single-file download, not a clone",
+                DefaultDestination = Path.Combine(dataRoot, "map"),
+                FetchMode = SetupFetchMode.DirectDownload,
+                DownloadFileName = "ne_110m_land.geojson",
+                PlainLanguageDescription =
+                    "Real coastline shapes for the Places Map, from the public-domain Natural Earth " +
+                    "project - a single small file, not a big repository. Entirely optional: without it " +
+                    "the map still works, just with rougher hand-drawn landmasses.",
+                RunIngest = (root, progress, ct) =>
+                {
+                    // No database ingest - "installing" here means making
+                    // sure the file sits at the one canonical path the map
+                    // reads from (which only differs from the download
+                    // location if Advanced Setup pointed at a custom
+                    // folder), then dropping any cached "file wasn't
+                    // there" so an already-open session picks it up.
+                    var downloaded = Path.Combine(root, "ne_110m_land.geojson");
+                    var canonical = NaturalEarthCoastline.CanonicalPath;
+                    if (!string.Equals(Path.GetFullPath(downloaded), Path.GetFullPath(canonical),
+                            StringComparison.OrdinalIgnoreCase))
                     {
-                        CtsUrn = "urn:cts:hebrewlit:heb0001",
-                        Name = "Hebrew Bible",
-                        Namespace = "hebrewLit"
-                    }, ct);
+                        Directory.CreateDirectory(Path.GetDirectoryName(canonical)!);
+                        File.Copy(downloaded, canonical, overwrite: true);
+                    }
 
-                    await editionRepo.StampCollectionAsync(root, CollectionKeys.First1KGreek, ct);
-                    return IngestOutcome.From(service.FailedFiles);
+                    NaturalEarthCoastline.InvalidateCache();
+                    var loaded = NaturalEarthCoastline.Load();
+                    progress.Report(loaded != null
+                        ? $"Map data ready - {loaded.Count} landmasses in range."
+                        : "Downloaded, but the file did not parse - the map will use its built-in shapes.");
+                    return Task.FromResult(IngestOutcome.Clean);
                 },
-                // Authors.Namespace="greekLit" is already >0 from the
-                // classical corpus alone, so the namespace check the Greek and
-                // Latin rows use can't tell "loaded" apart from "First1KGreek
-                // specifically hasn't run yet". This used to fall back to
-                // asking the filesystem whether the repo had been downloaded -
-                // which answers a different question entirely, and answers it
-                // wrongly the moment the two diverge: delete the database,
-                // keep the download, and the step reported "Already loaded"
-                // against a database containing none of it. Anyone starting a
-                // library over would silently finish setup without this corpus.
-                //
-                // Every edition records the file it was built from, and the
-                // two Greek corpora download to different folders - so "are
-                // there editions in this database that came from the
-                // First1KGreek folder" is decisive, and rests on no naming
-                // convention. (A first attempt matched "1st1K" inside the CTS
-                // URN, which is OGL's version identifier for the repo. That's
-                // a convention rather than a guarantee, and not worth betting
-                // a setup step on.)
-                //
-                // Caveat, same as the old filesystem probe had: an Advanced
-                // Setup run pointed at a custom folder won't match this, and
-                // the step will offer to install again. Re-running is
-                // harmless - editions upsert by CTS URN - so this errs toward
-                // offering redundant work rather than skipping needed work,
-                // which is the right direction for a step whose whole failure
-                // mode was silently skipping.
-                CheckComplete = async () => await editionRepo.CountBySourcePathPrefixAsync(first1kDestination) > 0
+                CheckComplete = () => Task.FromResult(File.Exists(NaturalEarthCoastline.CanonicalPath))
             },
 
             new SetupDataSource
             {
-                Title = "Latin Church Fathers (CSEL, optional)",
-                RepoUrl = "https://github.com/OpenGreekAndLatin/csel-dev",
-                DisplayNote = "extends the Ancient Latin Texts above into late antiquity - same library, not a separate one",
-                DefaultDestination = cselDestination,
+                Title = "Art & Archaeology Data (Perseus)",
+                RepoUrl = "https://github.com/perseus-aa/json",
+                DisplayNote = "images stay on Perseus's own server, never downloaded",
+                DefaultDestination = Path.Combine(dataRoot, "artifacts"),
+                FetchMode = SetupFetchMode.SelfManaged,
                 PlainLanguageDescription =
-                    "The Corpus Scriptorum Ecclesiasticorum Latinorum - the critical editions of the Latin " +
-                    "Church Fathers, from the volumes old enough to be out of copyright. Augustine, Ambrose, " +
-                    "Jerome, Cyprian and their contemporaries, in the editions scholars actually cite. " +
-                    "Authors already in your library gain works and editions rather than duplicates. " +
-                    "Around 400 megabytes.",
+                    "Real objects from the ancient world - vases, coins, gems, sculptures, sites, and " +
+                    "buildings - with descriptions and photos, for the Places Map and Myth Network. " +
+                    "The catalog data downloads here; the photos themselves are always loaded live from " +
+                    "Perseus's own server when you view one, never saved to your computer, since Perseus's " +
+                    "copyright terms don't allow redistributing their images outside their own site.",
                 RunIngest = async (root, progress, ct) =>
                 {
-                    // Verified against the repository itself before writing this, not
-                    // inferred from the fact that it is an Open Greek and Latin repo:
-                    // data/<textgroup>/<work>/__cts__.xml in the same CTS layout as
-                    // canonical-latinLit, textgroup URNs already in the latinLit
-                    // namespace (urn:cts:latinLit:stoa0007), and a TEI-P5/EpiDoc body -
-                    // no DOCTYPE, no entity references beyond the five XML built-ins,
-                    // div[@type='edition'] over div[@type='textpart'] to <p> leaves.
-                    // So this is the same service the Greek and Latin steps use, with
-                    // the namespace it declares for itself, rather than a new importer.
-                    //
-                    // The apparatus is the reason this needed checking rather than
-                    // assuming: these files carry <note type="footnote"> inside the
-                    // reading text, and TeiParser already excludes note from the text
-                    // and captures it as an apparatus entry instead. Had it not, every
-                    // page of Augustine would have arrived with its footnotes spliced
-                    // into the sentences.
-                    //
-                    // Volumes/ holds the same texts unsplit, one file per CSEL volume,
-                    // and is left alone: IngestRepoAsync walks data/ only, so the
-                    // volume-level files cannot produce a second copy of anything.
-                    var service = new PerseusIngestService();
-                    var wrapped = new Progress<IngestProgress>(p =>
-                        progress.Report($"{p.CurrentAuthor}: {p.CurrentWork} ({p.WorksProcessed}/{p.TotalWorks})"));
-                    await service.IngestAsync(
-                        new[] { (Path.Combine(root, "data"), "latinLit") }, wrapped, ct);
-
-                    await editionRepo.StampCollectionAsync(root, CollectionKeys.Csel, ct);
-                    return IngestOutcome.From(service.FailedFiles);
+                    var service = new ArtifactIngestService();
+                    await service.IngestAsync(root, progress, ct);
+                    return IngestOutcome.Clean;
                 },
-
-                // Same reasoning as First1KGreek above: Authors.Namespace="latinLit" is
-                // already non-zero from the classical Latin corpus, so it cannot tell
-                // "loaded" from "this step has not run". Editions record the file they
-                // were built from, and this corpus downloads to a folder of its own.
-                CheckComplete = async () => await editionRepo.CountBySourcePathPrefixAsync(cselDestination) > 0
-            },
-
-            new SetupDataSource
-            {
-                Title = "Patrologia Latina (Migne, optional)",
-                RepoUrl = "https://github.com/OpenGreekAndLatin/patrologia_latina-dev",
-                DisplayNote = "the widest net for Latin Christian writing - a reprint, not a critical edition",
-                DefaultDestination = patrologiaDestination,
-                PlainLanguageDescription =
-                    "Migne's Patrologia Latina - Latin Christian writing from Tertullian to the twelfth " +
-                    "century. Worth knowing what it is before you cite from it: Migne reprinted whatever " +
-                    "editions he could obtain in the 1840s and 50s, so where a work also appears in the " +
-                    "Church Fathers collection above, that one is the edition scholars cite and this one " +
-                    "is the wider net. Both can sit side by side - the same work gains a second edition " +
-                    "in the dropdown rather than being overwritten.\r\n\r\n" +
-                    "One caveat worth knowing before you build on it. Most of this collection is still " +
-                    "under temporary reference numbers that the publishing project intends to replace. " +
-                    "The texts and their authors are sound, and nothing about reading them is affected - " +
-                    "but if those numbers change and you re-import, notes tied to those particular " +
-                    "passages will need re-attaching. Works whose author Migne could not name arrive " +
-                    "under “Incertus”, his own word for it. Around 1.4 gigabytes.",
-                RunIngest = async (root, progress, ct) =>
-                {
-                    // The whole repository is imported, placeholders included.
-                    //
-                    // It holds 9,400 textgroups: 630 named stoa0022, stoa0040 and so on,
-                    // and 8,770 named tmp1, tmp26, tmp990, from a conversion still in
-                    // progress. Those were excluded for a while on the strength of their
-                    // CTS URNs being provisional - urn:cts:latinLit:tmp26 - since notes
-                    // in this application bind to CTS identity precisely because it is
-                    // meant to outlast a re-ingest.
-                    //
-                    // Included now, deliberately, because the objection is narrower than
-                    // it looked. Each file holds one work, correctly attributed by its
-                    // groupname; roughly nine in ten name their author outright. The
-                    // cost of excluding them is eight thousand texts today. The cost of
-                    // including them is that notes on those passages may need
-                    // re-attaching if the numbering changes, which the step says plainly
-                    // rather than leaving to be discovered.
-                    var service = new PerseusIngestService
-                    {
-                        // Migne returns to an author across volumes and each appearance
-                        // became its own textgroup, so without this the tree lists
-                        // Alphanus of Benevento six times and Anonymus nine, a work or
-                        // two under each. They are the same people.
-                        MergeAuthorsByName = true,
-
-                        // Migne leaves the author empty where a work has none - the
-                        // Council of Carthage, an appendix to Cyprian, an anonymous
-                        // passion - and writes "Incertus" wherever he does fill it in.
-                        // Borrowing his own word keeps those texts and keeps the author
-                        // column readable. Roughly one textgroup in eleven, so they
-                        // gather under a single row rather than eight hundred alike.
-                        UnnamedTextGroupAuthor = ("urn:cts:latinLit:pl.incertus", "Incertus")
-                    };
-                    var wrapped = new Progress<IngestProgress>(p =>
-                        progress.Report($"{p.CurrentAuthor}: {p.CurrentWork} ({p.WorksProcessed}/{p.TotalWorks})"));
-                    await service.IngestAsync(
-                        new[] { (Path.Combine(root, "data"), "latinLit") }, wrapped, ct);
-
-                    await editionRepo.StampCollectionAsync(root, CollectionKeys.PatrologiaLatina, ct);
-                    return IngestOutcome.From(service.FailedFiles);
-                },
-
-                CheckComplete = async () => await editionRepo.CountBySourcePathPrefixAsync(patrologiaDestination) > 0
-            },
-
-            new SetupDataSource
-            {
-                Title = "Political Theory: Bodin (optional)",
-                RepoUrl = "https://github.com/PerseusDL/canonical-pdlpsci",
-                DisplayNote = "one work in three languages - small, and the only thing in this collection",
-                DefaultDestination = politicalDestination,
-                PlainLanguageDescription =
-                    "Jean Bodin's Six Books of the Commonwealth, the founding text of modern sovereignty, " +
-                    "in all three of the versions that matter: the French of 1577 he wrote first, the Latin " +
-                    "of 1586 he made himself, and Richard Knolles's English of 1606. Reading his own Latin " +
-                    "against his own French is the kind of comparison the reader panes were built for. " +
-                    "About nine megabytes - it is one work, not a corpus.",
-                RunIngest = async (root, progress, ct) =>
-                {
-                    // Same CTS layout as everything else here, in its own namespace:
-                    // urn:cts:pdlpsci:bodin rather than latinLit. Passed through as
-                    // declared rather than folded into Latin, because it is not Latin
-                    // literature - the French is the original and the Latin is Bodin
-                    // translating himself, which is exactly the distinction the
-                    // edition/translation split exists to keep.
-                    var service = new PerseusIngestService();
-                    var wrapped = new Progress<IngestProgress>(p =>
-                        progress.Report($"{p.CurrentAuthor}: {p.CurrentWork} ({p.WorksProcessed}/{p.TotalWorks})"));
-                    await service.IngestAsync(
-                        new[] { (Path.Combine(root, "data"), "pdlpsci") }, wrapped, ct);
-
-                    await editionRepo.StampCollectionAsync(root, CollectionKeys.PoliticalTheory, ct);
-                    return IngestOutcome.From(service.FailedFiles);
-                },
-
-                CheckComplete = async () => await editionRepo.CountBySourcePathPrefixAsync(politicalDestination) > 0
+                CheckComplete = async () => await artifactRepo.HasDataAsync()
             }
         };
     }

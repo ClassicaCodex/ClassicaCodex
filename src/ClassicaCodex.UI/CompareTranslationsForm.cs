@@ -1,3 +1,4 @@
+using ClassicaCodex.Core;
 using System.Globalization;
 using ClassicaCodex.Core.Models;
 using ClassicaCodex.Data.Repositories;
@@ -243,6 +244,16 @@ public class CompareTranslationsForm : ScaledForm
                 // Reading three translations side by side means reading down
                 // three columns, and a horizontal scrollbar per column makes
                 // that impossible.
+                //
+                // The theme now sets HorizontalScrollbar on every ListBox in
+                // the app, and this one is deliberately left out of that. It
+                // costs nothing to leave in: WinForms sizes the scroll extent
+                // by measuring rows it draws itself, an owner-drawn list gives
+                // it nothing to measure, and the extent stays at zero - so no
+                // bar appears unless a form asks for one with
+                // RefreshHorizontalExtent, which these columns never do. The
+                // wrapping is what keeps them readable and nothing here
+                // disturbs it.
                 var list = new ListBox
                 {
                     Dock = DockStyle.Fill,
@@ -282,7 +293,7 @@ public class CompareTranslationsForm : ScaledForm
 
                 var menu = ListResultHelpers.AttachCopyToClipboardMenu(cl.List,
                     i => i < nodes.Count
-                        ? $"{TranslatorLabel(cl.Translation)} [{nodes[i].CitationRef}]: {nodes[i].Text}"
+                        ? $"{TranslatorLabel(cl.Translation)} [{PassageCitation.Display(nodes[i].CitationRef)}]: {nodes[i].Text}"
                         : null);
 
                 AttachExportMenu(menu, cl.Translation, nodes);

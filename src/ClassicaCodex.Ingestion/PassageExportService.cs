@@ -166,10 +166,18 @@ public static class PassageExportService
         var bodyFont = new XFont(fontName, 12, XFontStyleEx.Regular);
         var footerFont = new XFont(fontName, 9, XFontStyleEx.Italic);
 
+        // Points throughout, said out loud. PdfSharp 6.1 deprecated the
+        // implicit double-to-XUnit conversion these lines relied on, because
+        // a bare number gives no clue which unit it is and readers guessed
+        // wrong. Everything here is points already - XGraphics.MeasureString
+        // returns them, and the page is 612x792pt - so taking .Point off the
+        // page keeps the arithmetic in plain doubles and says which unit it
+        // is in. Same numbers, checked: a nine-page export hashes identically
+        // before and after.
         const double margin = 50;
         var page = document.AddPage();
         var gfx = XGraphics.FromPdfPage(page);
-        var contentWidth = page.Width - margin * 2;
+        var contentWidth = page.Width.Point - margin * 2;
         double y = margin;
 
         // PdfSharp buffers drawing operations on an XGraphics and only
@@ -202,7 +210,7 @@ public static class PassageExportService
             void FlushLine()
             {
                 if (currentLine.Length == 0) return;
-                if (y + lineHeight > page.Height - margin) NewPage();
+                if (y + lineHeight > page.Height.Point - margin) NewPage();
                 gfx.DrawString(currentLine.ToString(), font, brush, new XPoint(margin, y + font.GetHeight()));
                 y += lineHeight;
                 currentLine.Clear();

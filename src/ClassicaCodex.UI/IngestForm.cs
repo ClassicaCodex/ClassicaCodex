@@ -138,20 +138,25 @@ public class IngestForm : ScaledForm
             var service = new PerseusIngestService();
             await Task.Run(() => service.IngestAsync(repoPaths, progress, _cts.Token), _cts.Token);
 
-            if (service.FailedFiles.Count > 0)
+            // Both lists, and through the same reporter the Guided path uses,
+            // rather than a second hand-built message that can drift from it.
+            var outcome = IngestOutcome.From(service.FailedFiles, service.RecoveredWithoutCatalog, service.FilesAttempted);
+
+            _statusLabel.Text = outcome.Describe("Ingest");
+
+            // ShowIfAny decides for itself whether the skips are worth a box -
+            // see IngestOutcome.SkipsAreWorthInterrupting. When they are not,
+            // this still confirms the run finished, because a manual ingest was
+            // started by a button and wants an answer.
+            if (outcome.SkipsAreWorthInterrupting)
             {
-                _statusLabel.Text = $"Done, but {service.FailedFiles.Count} file(s) were skipped.";
-                var preview = string.Join(Environment.NewLine,
-                    service.FailedFiles.Take(20).Select(f => $"{Path.GetFileName(f.FilePath)}: {f.Error}"));
-                MessageBox.Show(this,
-                    $"Ingest finished. {service.FailedFiles.Count} file(s) couldn't be parsed and were skipped " +
-                    $"(safe to rerun ingest later to retry just those):\n\n{preview}",
-                    "Done with some skips", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                SetupSkipReport.ShowIfAny(this, "Ingest", outcome);
             }
             else
             {
-                _statusLabel.Text = "Ingest complete.";
-                MessageBox.Show(this, "Ingest finished.", "Done", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                SetupSkipReport.ShowIfAny(this, "Ingest", outcome);
+                MessageBox.Show(this, outcome.Describe("Ingest"), "Done",
+                    MessageBoxButtons.OK, MessageBoxIcon.Information);
             }
         }
         catch (OperationCanceledException)

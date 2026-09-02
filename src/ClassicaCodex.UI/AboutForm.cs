@@ -162,8 +162,13 @@ public class AboutForm : ScaledForm
         AddSourceSection(
             scrollHost, ref y,
             "Renaissance & Early Modern English Texts",
-            "Shakespeare, Marlowe, Holinshed, Hakluyt, Sidney, James I, Wilson, and Peacham - Perseus's " +
-            "collection of the writers who reworked and responded to classical material in English.",
+            "Shakespeare, Holinshed, Hakluyt, Sidney, James I, Wilson, and Peacham - Perseus's " +
+            "collection of the writers who reworked and responded to classical material in English. " +
+            "Perseus divides it into freely redistributable texts and ones still in copyright, and only " +
+            "the first are imported - which leaves out the New Variorum editions and every one of " +
+            "Marlowe's own works. The one Marlowe file that is freely licensed is not by him: the Faust " +
+            "Book, the anonymous English prose romance he used as his source for Doctor Faustus, which " +
+            "Perseus files under his name and this follows.",
             "Perseus Digital Library (PerseusDL/canonical-engLit)",
             "Creative Commons Attribution-ShareAlike 4.0 International",
             "https://github.com/PerseusDL/canonical-engLit",

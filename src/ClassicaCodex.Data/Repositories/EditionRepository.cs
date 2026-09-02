@@ -9,30 +9,69 @@ public class EditionRepository
     {
         await using var conn = await DbConnectionFactory.OpenConnectionAsync(cancellationToken);
 
+        // An edition already claimed by another collection is left alone.
+        //
+        // Two collections can ship a file under the same CTS identifier and
+        // mean different books by it. CSEL and the Patrologia Latina do it
+        // three times - Paulinus of Nola's Carmina, Pseudo-Cyprian's Ad
+        // Vigilium, Commodianus' Instructiones - where CSEL has the critical
+        // edition and Migne has his nineteenth-century reprint of the same
+        // work under the same URN.
+        //
+        // Unconditional, this overwrote: the second ingest repointed the row
+        // at its own file, and because Migne is fetched after CSEL, the
+        // critical text of the Carmina - 9,380 lines - was replaced by the
+        // reprint, silently, leaving CSEL's work row behind with no edition
+        // under it. That is the exact opposite of what the README promises
+        // about the two sitting side by side, and it loses the better text of
+        // the two every time.
+        //
+        // First in wins, which given the wizard's order is CSEL, which is the
+        // text a scholar cites. The right answer is for an edition's identity
+        // to include its collection so both can be held at once; that is a
+        // schema change and this is not it. What this does is stop the loss
+        // and let the caller report it.
+        // Collection is written here as well as by StampCollectionAsync, which
+        // still runs afterwards and still backfills anything this did not
+        // name. It has to be on the row for the guard below to have anything
+        // to compare: stamped only after the whole corpus was ingested, the
+        // first edition of a clashing pair was still NULL when the second
+        // arrived, so the guard passed and the overwrite went ahead anyway.
         const string sql = @"
-            INSERT INTO Editions (WorkId, CtsUrn, Kind, Language, Translator, SourcePath, Orthography)
-            VALUES (@WorkId, @CtsUrn, @Kind, @Language, @Translator, @SourcePath, @Orthography)
+            INSERT INTO Editions (WorkId, CtsUrn, Kind, Language, Translator, SourcePath, Orthography, Collection)
+            VALUES (@WorkId, @CtsUrn, @Kind, @Language, @Translator, @SourcePath, @Orthography, @Collection)
             ON CONFLICT(CtsUrn) DO UPDATE SET
                 Kind = excluded.Kind,
                 Language = excluded.Language,
                 Translator = excluded.Translator,
                 SourcePath = excluded.SourcePath,
                 Orthography = excluded.Orthography,
-                WorkId = excluded.WorkId
+                WorkId = excluded.WorkId,
+                Collection = COALESCE(excluded.Collection, Editions.Collection)
+            WHERE Editions.Collection IS NULL
+               OR @Collection IS NULL
+               OR Editions.Collection = @Collection
             RETURNING EditionId;";
 
         await using var cmd = conn.CreateCommand();
         cmd.CommandText = sql;
         cmd.Parameters.AddWithValue("@WorkId", edition.WorkId);
-        cmd.Parameters.AddWithValue("@CtsUrn", edition.CtsUrn);
+        cmd.Parameters.AddWithValue("@CtsUrn", edition.CtsUrn?.Trim() ?? string.Empty); // identity column - see WorkRepository
         cmd.Parameters.AddWithValue("@Kind", edition.Kind.ToString());
         cmd.Parameters.AddWithValue("@Language", (object?)edition.Language ?? DBNull.Value);
         cmd.Parameters.AddWithValue("@Translator", (object?)edition.Translator ?? DBNull.Value);
         cmd.Parameters.AddWithValue("@SourcePath", (object?)edition.SourcePath ?? DBNull.Value);
         cmd.Parameters.AddWithValue("@Orthography", (object?)edition.Orthography ?? DBNull.Value);
+        cmd.Parameters.AddWithValue("@Collection", (object?)edition.Collection ?? DBNull.Value);
 
         var result = await cmd.ExecuteScalarAsync(cancellationToken);
-        return Convert.ToInt32(result);
+
+        // No row back means the WHERE above declined the update: this URN
+        // belongs to a different collection already. Reported as zero rather
+        // than thrown, so the caller can note the clash and carry on with the
+        // rest of the corpus - which is what an ingest of a thousand files
+        // needs to do.
+        return result == null || result == DBNull.Value ? 0 : Convert.ToInt32(result);
     }
 
     /// <summary>One edition by id, or null if it has since been removed.</summary>
@@ -103,11 +142,50 @@ public class EditionRepository
     public async Task ClearTextNodesAsync(int editionId, CancellationToken cancellationToken = default)
     {
         await using var conn = await DbConnectionFactory.OpenConnectionAsync(cancellationToken);
-        const string sql = "DELETE FROM TextNodes WHERE EditionId = @EditionId;";
-        await using var cmd = conn.CreateCommand();
-        cmd.CommandText = sql;
-        cmd.Parameters.AddWithValue("@EditionId", editionId);
-        await cmd.ExecuteNonQueryAsync(cancellationToken);
+        await using var tx = await conn.BeginTransactionAsync(cancellationToken);
+
+        // The word index goes first, and that ordering is the whole point.
+        // WordIndex holds no foreign key to TextNodes - it is a WITHOUT ROWID
+        // table of (word, passage id) pairs and nothing enforces that the id
+        // still exists - so the only way to find an edition's entries is to
+        // look its passages up. Once the passages are deleted there is nothing
+        // left to look up, and the entries are unreachable for good.
+        //
+        // WordIndexRepository.DeleteByEditionAsync exists to do this cleanup
+        // and resolves ids exactly that way, so calling it after clearing
+        // matched nothing every time. 1,983,234 stranded entries in this
+        // library, 2.8% of the index, from re-ingests and from the
+        // translation workbench, which clears and re-inserts on every save.
+        //
+        // Harmless so far: a search asks the index for passage ids and joins
+        // them back to TextNodes, so ids that no longer exist drop out.
+        // Verified rather than assumed - 6,684 hits across fourteen Latin and
+        // Greek searches, none of them a passage that lacked the word. But
+        // SQLite hands out row ids as max+1 of what is currently there, so a
+        // stranded id is one deletion pattern away from belonging to a
+        // different passage, and then the index would be claiming a word for a
+        // line that never had it.
+        await using (var wordIndex = conn.CreateCommand())
+        {
+            wordIndex.Transaction = (SqliteTransaction)tx;
+            wordIndex.CommandText =
+                "DELETE FROM WordIndex WHERE TextNodeId IN " +
+                "(SELECT TextNodeId FROM TextNodes WHERE EditionId = @EditionId);";
+            wordIndex.Parameters.AddWithValue("@EditionId", editionId);
+            wordIndex.CommandTimeout = 120;
+            await wordIndex.ExecuteNonQueryAsync(cancellationToken);
+        }
+
+        await using (var cmd = conn.CreateCommand())
+        {
+            cmd.Transaction = (SqliteTransaction)tx;
+            cmd.CommandText = "DELETE FROM TextNodes WHERE EditionId = @EditionId;";
+            cmd.Parameters.AddWithValue("@EditionId", editionId);
+            cmd.CommandTimeout = 120;
+            await cmd.ExecuteNonQueryAsync(cancellationToken);
+        }
+
+        await tx.CommitAsync(cancellationToken);
     }
 
     /// <summary>
@@ -268,6 +346,13 @@ public class EditionRepository
         var authorId = await ScalarAsync(
             "SELECT IFNULL(AuthorId, 0) FROM Works WHERE WorkId = @WorkId;", "@WorkId", workId);
 
+        // Before the passages, for the reason spelled out in ClearTextNodesAsync:
+        // the index can only be found through them, so deleting them first
+        // strands its entries permanently. Removing an edition from the
+        // library left its whole word index behind.
+        await ExecuteAsync(
+            "DELETE FROM WordIndex WHERE TextNodeId IN " +
+            "(SELECT TextNodeId FROM TextNodes WHERE EditionId = @EditionId);", "@EditionId", editionId);
         await ExecuteAsync("DELETE FROM TextNodes WHERE EditionId = @EditionId;", "@EditionId", editionId);
         await ExecuteAsync("DELETE FROM ApparatusEntries WHERE EditionId = @EditionId;", "@EditionId", editionId);
         await ExecuteAsync("DELETE FROM Editions WHERE EditionId = @EditionId;", "@EditionId", editionId);
@@ -367,6 +452,46 @@ public class EditionRepository
         .Replace("\\", "\\\\")
         .Replace("%", "\\%")
         .Replace("_", "\\_");
+
+    /// <summary>
+    /// How many editions came from a given collection - the setup wizard's
+    /// way of telling whether a step has actually been run.
+    ///
+    /// This is the question the wizard means, and the two things it asked
+    /// instead were each right only until they were not.
+    ///
+    /// A corpus namespace stopped answering it in 3.2.0. "Has the Latin been
+    /// downloaded" was read as "are there any latinLit authors", which was
+    /// the same question while classical Latin was the only Latin in the
+    /// app. CSEL and the Patrologia Latina are latinLit too, so installing
+    /// either one now reports Caesar, Cicero and Virgil as already present -
+    /// and the step is skipped, and they never arrive. The same trap is set
+    /// for Greek, where First1KGreek would vouch for canonical-greekLit.
+    ///
+    /// A source-path prefix answers it accurately and does not travel. The
+    /// path records where the file was, not what the text is: install to a
+    /// custom folder, move the data directory, or open the same library on
+    /// another machine, and every path stops matching while the texts sit
+    /// there unchanged. Migration 33 made the same argument when it put
+    /// Collection on the edition in the first place.
+    ///
+    /// Being wrong here is not symmetrical, which is why this is worth the
+    /// column. Reporting an installed collection as missing costs a re-run
+    /// that changes nothing; reporting a missing one as installed hides a
+    /// corpus for as long as nobody thinks to look for it.
+    /// </summary>
+    public async Task<int> CountByCollectionAsync(
+        string collection, CancellationToken cancellationToken = default)
+    {
+        await using var conn = await DbConnectionFactory.OpenConnectionAsync(cancellationToken);
+        await using var cmd = conn.CreateCommand();
+
+        cmd.CommandText = "SELECT COUNT(*) FROM Editions WHERE Collection = @Collection;";
+        cmd.Parameters.AddWithValue("@Collection", collection);
+        cmd.CommandTimeout = 60;
+
+        return Convert.ToInt32(await cmd.ExecuteScalarAsync(cancellationToken));
+    }
 
     public async Task<int> CountBySourcePathPrefixAsync(
         string folder, CancellationToken cancellationToken = default)

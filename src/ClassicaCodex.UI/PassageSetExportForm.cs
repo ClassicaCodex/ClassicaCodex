@@ -373,7 +373,7 @@ public class PassageSetExportForm : ScaledForm
             // attribution.
             var parts = new List<string>();
             if (showSource && !grouped) parts.Add($"{passage.AuthorName}, {passage.WorkTitle}");
-            if (showCitations) parts.Add($"[{passage.CitationRef}]");
+            if (showCitations) parts.Add($"[{PassageCitation.Display(passage.CitationRef)}]");
 
             chunks.Add((string.Join(" ", parts), passage.Text));
 

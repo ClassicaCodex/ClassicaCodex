@@ -1,3 +1,4 @@
+using ClassicaCodex.Core;
 using ClassicaCodex.Core.Models;
 using ClassicaCodex.Data.Repositories;
 
@@ -59,7 +60,7 @@ public class TagBrowserForm : ScaledForm
             i => i < _currentResults.Count ? _currentResults[i].CitationRef : null);
         ListResultHelpers.AttachCopyToClipboardMenu(_resultsList,
             i => i < _currentResults.Count
-                ? $"{_currentResults[i].AuthorName}, {_currentResults[i].WorkTitle} [{_currentResults[i].CitationRef}]: {_currentResults[i].Text}"
+                ? $"{_currentResults[i].AuthorName}, {_currentResults[i].WorkTitle} [{PassageCitation.Display(_currentResults[i].CitationRef)}]: {_currentResults[i].Text}"
                 : null);
         ListResultHelpers.AttachExportMenu(_resultsList, () => (
             _tagList.SelectedItem is Tag selected

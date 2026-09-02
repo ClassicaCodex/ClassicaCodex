@@ -20,7 +20,18 @@ public class CtsCatalogReader
     {
         if (!File.Exists(cetsFilePath)) return null;
 
-        var doc = XDocument.Load(cetsFilePath);
+        // A catalogue that will not parse is a catalogue that is not there, and
+        // is answered the same way - with null, for the caller to recover from.
+        //
+        // It used to throw straight out of an ingest run that has no try/catch
+        // above it until the setup step itself, so one malformed file would
+        // abandon the whole corpus and take every author sorting after it. None
+        // of the 1,314 catalogues in the Perseus repos is malformed today, which
+        // is exactly the kind of fact that holds until it doesn't.
+        XDocument doc;
+        try { doc = XDocument.Load(cetsFilePath); }
+        catch (System.Xml.XmlException) { return null; }
+
         var textGroup = doc.Root;
         if (textGroup == null) return null;
 
@@ -45,7 +56,7 @@ public class CtsCatalogReader
         // name for the caller to decide about.
         if (urn == null || groupName == null) return null;
 
-        return new TextGroupInfo(urn, groupName.Trim());
+        return new TextGroupInfo(urn.Trim(), groupName.Trim());
     }
 
     /// <summary>
@@ -60,12 +71,26 @@ public class CtsCatalogReader
         var results = new List<WorkInfo>();
         if (!File.Exists(cetsFilePath)) return results;
 
-        var doc = XDocument.Load(cetsFilePath);
+        // Unparseable is treated as absent - see ReadTextGroup.
+        XDocument doc;
+        try { doc = XDocument.Load(cetsFilePath); }
+        catch (System.Xml.XmlException) { return results; }
+
         var work = doc.Root;
         if (work == null || work.Name != Ti + "work") return results;
 
-        var urn = work.Attribute("urn")?.Value;
-        if (urn == null) return results;
+        // Trimmed, because a URN is an identifier and whitespace around it is
+        // not part of it - and because UQ_Works_CtsUrn cannot tell that.
+        //
+        // Three of the Patrologia Latina's catalogues write the attribute with
+        // a trailing space, and those three works went into the library twice:
+        // once as "urn:cts:latinLit:stoa0223.stoa001" from CSEL and again as
+        // "urn:cts:latinLit:stoa0223.stoa001 " from Migne, which the unique
+        // constraint reads as two different works because it compares the
+        // strings it is given. The reader saw Paulinus of Nola's Carmina
+        // listed twice under one author.
+        var urn = work.Attribute("urn")?.Value?.Trim();
+        if (string.IsNullOrEmpty(urn)) return results;
 
         var lang = work.Attribute(XNamespace.Xml + "lang")?.Value;
 

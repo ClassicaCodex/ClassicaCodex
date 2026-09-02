@@ -953,6 +953,14 @@ public static class GeminiTranslationService
     {
         var sourceLanguageName = TranslationLanguageNames.DisplayName(sourceLanguage);
         var targetLanguageName = TranslationLanguageNames.DisplayName(targetLanguage);
+        // The STORED citation reference, not PassageCitation.Display's reading
+        // of it, and that is load-bearing. Reconcile() matches the model's
+        // reply back to real passages on this string, so shortening it here
+        // would leave every returned line unmatched and the edition would save
+        // empty - which is the failure Reconcile() exists to have caught.
+        //
+        // The reader never sees this; it is a key that happens to travel
+        // through a prompt.
         var taggedText = string.Join("\n", passages.Select(p => $"[{p.CitationRef}] {p.Text}"));
 
         var prompt =

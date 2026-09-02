@@ -828,6 +828,8 @@ public class ResearchBenchForm : ScaledForm
         foreach (var node in nodes)
         {
             if (string.IsNullOrWhiteSpace(node.Text) || string.IsNullOrWhiteSpace(node.CitationRef)) continue;
+            // Stored form - the model's candidates are resolved against real
+            // passages by this reference. See CrossLanguageEchoForm.
             var line = $"[{node.CitationRef}] {node.Text}\n";
             if (builder.Length + line.Length > maxCharacters)
                 return (builder.ToString(), lastRef);

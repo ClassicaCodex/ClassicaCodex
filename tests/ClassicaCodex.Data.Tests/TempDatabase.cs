@@ -107,7 +107,8 @@ public sealed class TempDatabase : IDisposable
         (28, "ResearchEchoResults", "ConnectionType"),
         (28, "ResearchEchoResults", "Directionality"),
         (28, "ResearchEchoResults", "MotifTags"),
-        (28, "ResearchEchoResults", "ParallelNote")
+        (28, "ResearchEchoResults", "ParallelNote"),
+        (35, "TextNodes",      "IsVerse")
         // Migrations 31 (ResearchProjects, ResearchQuestions), 33 (Editions.Collection)
         // and 34 (RecentSearches.Collections) add columns by rebuilding their tables
         // rather than by ALTER, so none of them belong here: a rebuild replaces the
@@ -161,6 +162,19 @@ public sealed class TempDatabase : IDisposable
         var result = await cmd.ExecuteScalarAsync();
         if (result == null || result == DBNull.Value) return default;
         return (T)Convert.ChangeType(result, typeof(T));
+    }
+
+    /// <summary>
+    /// The same for text, which ScalarAsync cannot return - it is constrained
+    /// to structs so that a missing row can come back as default(T).
+    /// </summary>
+    public async Task<string?> ScalarStringAsync(string sql)
+    {
+        await using var conn = await DbConnectionFactory.OpenConnectionAsync();
+        await using var cmd = conn.CreateCommand();
+        cmd.CommandText = sql;
+        var result = await cmd.ExecuteScalarAsync();
+        return result == null || result == DBNull.Value ? null : Convert.ToString(result);
     }
 
     /// <summary>

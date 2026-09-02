@@ -10,19 +10,50 @@ public class WorkRepository
     {
         await using var conn = await DbConnectionFactory.OpenConnectionAsync(cancellationToken);
 
+        // The first collection to carry a work names it, and later ones add
+        // their editions to it without renaming it.
+        //
+        // 147 works in a full library hold editions from more than one
+        // collection - Sophocles' Ajax from Perseus and First1KGreek,
+        // Augustine's letters from Perseus and CSEL - and that is the design
+        // working: a second edition to choose from rather than a second row.
+        // But every one of those ran through this upsert twice, so the title
+        // was whichever catalogue happened to be fetched last. Paulinus of
+        // Nola's Carmina was listed as "Carmen Adversos Gentes" because Migne
+        // was ingested after CSEL and Migne calls it that.
+        //
+        // COALESCE on the existing value rather than a WHERE, because the row
+        // still has to be updated: AuthorId and CitationScheme should follow
+        // the newest catalogue, and only the name is being held. The wizard
+        // fetches Perseus first for exactly this reason.
         const string sql = @"
             INSERT INTO Works (AuthorId, CtsUrn, Title, CitationScheme)
             VALUES (@AuthorId, @CtsUrn, @Title, @CitationScheme)
             ON CONFLICT(CtsUrn) DO UPDATE SET
-                Title = excluded.Title,
-                CitationScheme = excluded.CitationScheme,
+                Title = CASE
+                    WHEN TRIM(COALESCE(Works.Title, '')) = '' THEN excluded.Title
+                    ELSE Works.Title
+                END,
+                CitationScheme = COALESCE(excluded.CitationScheme, Works.CitationScheme),
                 AuthorId = excluded.AuthorId
             RETURNING WorkId;";
 
         await using var cmd = conn.CreateCommand();
         cmd.CommandText = sql;
         cmd.Parameters.AddWithValue("@AuthorId", work.AuthorId);
-        cmd.Parameters.AddWithValue("@CtsUrn", work.CtsUrn);
+
+        // Trimmed here, at the one place a work URN is written, and not only
+        // in the readers. The URN is this row's identity - everything is
+        // upserted on it - so a stray space does not make a messy work, it
+        // makes a second one. Four Patrologia Latina catalogue files carry a
+        // trailing space inside the urn attribute, upstream, and each of them
+        // split a work in two: the same text listed twice in the library, once
+        // holding the edition and once empty, with nothing on screen to
+        // explain it. The catalogue reader trims, which fixes new imports; a
+        // library that already has the duplicates cannot fix itself, because
+        // the bad row keeps its edition and is never revisited. Migration 37
+        // repairs those. This makes sure no other reader can reintroduce them.
+        cmd.Parameters.AddWithValue("@CtsUrn", work.CtsUrn?.Trim() ?? string.Empty);
         cmd.Parameters.AddWithValue("@Title", work.Title);
         cmd.Parameters.AddWithValue("@CitationScheme", (object?)work.CitationScheme ?? DBNull.Value);
 

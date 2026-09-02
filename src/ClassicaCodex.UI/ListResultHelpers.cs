@@ -1,3 +1,5 @@
+using ClassicaCodex.Core;
+
 namespace ClassicaCodex.UI;
 
 /// <summary>
@@ -198,5 +200,55 @@ public static class ListResultHelpers
 
         using var exportForm = new PassageSetExportForm(title, passages, detailLabel);
         exportForm.ShowDialog(owner);
+    }
+
+    /// <summary>
+    /// Sizes an owner-drawn list's horizontal scrollbar to its widest row.
+    ///
+    /// Plain lists get this from the theme, which sets HorizontalScrollbar on
+    /// every ListBox in the app and lets WinForms measure the items itself.
+    /// WinForms will not do that for an owner-drawn list - it has no idea what
+    /// the DrawItem handler is going to put on the row - so the extent stays
+    /// at zero and no bar appears however wide the content is. The lists that
+    /// show passages are exactly the ones drawn by hand, for the reading font
+    /// and the search highlighting, so without this the scrollbar would arrive
+    /// everywhere except the screens that most need it.
+    ///
+    /// <paramref name="rowTextAt"/> returns what the row actually draws, which
+    /// the caller knows and this does not. Call it after repopulating: an
+    /// extent set for a previous result set is stale, and a stale one that is
+    /// too wide leaves a scrollbar sliding over empty space.
+    /// </summary>
+    public static void RefreshHorizontalExtent(ListBox listBox, Func<int, string?> rowTextAt)
+    {
+        // Guarded, because this measurement is the one that took the places
+        // map down with a GDI+ error - see the note in ReadingTheme, where the
+        // corpus-wide re-test is recorded. It does not reproduce, and the
+        // measuring here is TextRenderer rather than the GDI+ path that was
+        // blamed. But a scrollbar is not worth a window, and a list that
+        // cannot measure itself should lose its scrollbar rather than take the
+        // form with it.
+        try
+        {
+            var rows = new List<string?>(listBox.Items.Count);
+            for (var i = 0; i < listBox.Items.Count; i++) rows.Add(rowTextAt(i));
+
+            var widest = 0;
+            foreach (var row in WidestRows.Candidates(rows))
+            {
+                widest = Math.Max(widest, TextRenderer.MeasureText(row, listBox.Font).Width);
+            }
+
+            // The inset the rows are drawn at, plus the checkbox where there
+            // is one, so the last character clears the edge instead of sitting
+            // against it.
+            if (widest > 0) widest += listBox is CheckedListBox ? 32 : 12;
+
+            listBox.HorizontalExtent = widest;
+        }
+        catch (Exception)
+        {
+            listBox.HorizontalExtent = 0;
+        }
     }
 }

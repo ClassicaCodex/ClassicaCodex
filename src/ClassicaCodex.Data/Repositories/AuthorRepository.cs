@@ -40,7 +40,7 @@ public class AuthorRepository
 
         await using var cmd = conn.CreateCommand();
         cmd.CommandText = sql;
-        cmd.Parameters.AddWithValue("@CtsUrn", author.CtsUrn);
+        cmd.Parameters.AddWithValue("@CtsUrn", author.CtsUrn?.Trim() ?? string.Empty); // identity column - see WorkRepository
         cmd.Parameters.AddWithValue("@Name", author.Name);
         cmd.Parameters.AddWithValue("@Namespace", author.Namespace);
         cmd.Parameters.AddWithValue("@Language", (object?)author.Language ?? DBNull.Value);
@@ -100,13 +100,17 @@ public class AuthorRepository
     /// <summary>
     /// How many authors came from a given corpus - "greekLit" or
     /// "latinLit", the exact string PerseusIngestService is handed for each
-    /// repo. This is the Setup Wizard's real signal for "has the Greek (or
-    /// Latin) text corpus actually been ingested" - NOT a count of editions
-    /// by language, which doesn't work: Perseus's Greek corpus legitimately
-    /// contains Latin-language editions (old Latin translations of Greek
-    /// works), so a Language='lat' count is already nonzero the moment the
-    /// Greek corpus alone has been loaded, well before the Latin corpus
-    /// itself has ever been fetched.
+    /// repo.
+    ///
+    /// NOT the setup wizard's signal for "has this collection been
+    /// installed", though it was until 3.2.0 and its doc comment said so for
+    /// longer. A namespace is shared: CSEL and the Patrologia Latina are
+    /// latinLit exactly as canonical-latinLit is, and First1KGreek is
+    /// greekLit exactly as canonical-greekLit is. Once two collections could
+    /// answer for one namespace, installing either one reported the other as
+    /// already present, and the wizard skipped a step whose corpus had never
+    /// been fetched. See EditionRepository.CountByCollectionAsync, which
+    /// asks the question this was standing in for.
     /// </summary>
     public async Task<int> CountByNamespaceAsync(string ns, CancellationToken cancellationToken = default)
     {

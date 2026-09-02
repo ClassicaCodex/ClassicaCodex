@@ -1,3 +1,4 @@
+using ClassicaCodex.Core;
 using ClassicaCodex.Data.Repositories;
 
 namespace ClassicaCodex.UI;
@@ -205,7 +206,7 @@ public class AutoTagForm : ScaledForm
             i => i < _currentResults.Count ? _currentResults[i].CitationRef : null);
         ListResultHelpers.AttachCopyToClipboardMenu(_resultsList,
             i => i < _currentResults.Count
-                ? $"{_currentResults[i].AuthorName}, {_currentResults[i].WorkTitle} [{_currentResults[i].CitationRef}]: {_currentResults[i].Text}"
+                ? $"{_currentResults[i].AuthorName}, {_currentResults[i].WorkTitle} [{PassageCitation.Display(_currentResults[i].CitationRef)}]: {_currentResults[i].Text}"
                 : null);
         ListResultHelpers.AttachExportMenu(_resultsList, () => (
             $"Auto-Tag matches for {_nameBox.Text.Trim()}",
@@ -265,16 +266,26 @@ public class AutoTagForm : ScaledForm
             // inflected Greek/Latin forms where lemma coverage exists) and
             // merge into one combined form list. For a plain English name
             // with no lemma match, this just falls back to the term itself.
+            //
+            // The expansion and the search go to the thread pool together -
+            // see the note in SearchForm. Microsoft.Data.Sqlite's async
+            // methods run synchronously, so awaiting these on the UI thread
+            // held the window for the whole round: one lemma query per typed
+            // term, then a corpus-wide search for every form they expanded to.
             var allForms = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-            foreach (var term in terms)
+            var hits = await Task.Run(async () =>
             {
-                foreach (var form in await _lemmaRepo.ExpandFormAsync(term))
+                foreach (var term in terms)
                 {
-                    allForms.Add(form);
+                    foreach (var form in await _lemmaRepo.ExpandFormAsync(term))
+                    {
+                        allForms.Add(form);
+                    }
                 }
-            }
 
-            var hits = await _textNodeRepo.SearchByFormsAsync(allForms.ToList());
+                return await _textNodeRepo.SearchByFormsAsync(allForms.ToList());
+            });
+
             _currentResults = hits.Rows;
 
             // Kept so the results list can highlight exactly what matched -
@@ -291,6 +302,9 @@ public class AutoTagForm : ScaledForm
                     $"{r.AuthorName}, {r.WorkTitle}: {r.Text}");
                 _resultsList.SetItemChecked(index, true);
             }
+
+            ListResultHelpers.RefreshHorizontalExtent(
+                _resultsList, i => _resultsList.Items[i]?.ToString());
 
             // Truncation matters more here than in a read-only view: this
             // form writes tags, so a capped result set means a tagging pass

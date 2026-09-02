@@ -1612,7 +1612,7 @@ public class MainForm : ScaledForm
 
         list.AddPassageMark(node.CitationRef, PassageMarks.Tag);
 
-        MessageBox.Show(this, $"Tagged [{node.CitationRef}] with \"{prompt.TagName}\".", "Tagged",
+        MessageBox.Show(this, $"Tagged [{PassageCitation.Display(node.CitationRef)}] with \"{prompt.TagName}\".", "Tagged",
             MessageBoxButtons.OK, MessageBoxIcon.Information);
     }
 
@@ -1632,7 +1632,7 @@ public class MainForm : ScaledForm
 
         list.AddPassageMark(node.CitationRef, PassageMarks.Bookmark);
 
-        MessageBox.Show(this, $"Bookmarked [{node.CitationRef}].", "Bookmarked",
+        MessageBox.Show(this, $"Bookmarked [{PassageCitation.Display(node.CitationRef)}].", "Bookmarked",
             MessageBoxButtons.OK, MessageBoxIcon.Information);
     }
 

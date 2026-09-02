@@ -44,6 +44,16 @@ public class RenaissanceIngestService
     /// </summary>
     public List<(string FilePath, string Error)> FailedFiles { get; } = new();
 
+    /// <summary>
+    /// Files left out because the catalogued tree already supplied the same
+    /// text under a proper CTS identifier.
+    ///
+    /// Not a failure and not a loss - the text is in the library, named
+    /// better - so this is reported apart from FailedFiles, the way a folder
+    /// named from its own headers is. See the de-duplication in IngestAsync.
+    /// </summary>
+    public List<(string FilePath, string Error)> SupersededByCatalogue { get; } = new();
+
     // The DOCTYPE plus its internal subset. These P4 files reference an
     // external Perseus DTD driver via a parameter entity (%PersDrama;,
     // %PersProse;, %PersVerse;, %PersDict;) that can't be resolved offline.
@@ -125,6 +135,34 @@ public class RenaissanceIngestService
                 Language = "eng"
             }, cancellationToken);
 
+            // The same de-duplication as the author rows above, one level
+            // down, and for the same reason: the CTS pass runs first and this
+            // tree overlaps it.
+            //
+            // Perseus keeps this collection in two layouts at once - the
+            // modern data/ tree with real CTS identifiers, and this older
+            // pre-CTS one - and is migrating texts from the second into the
+            // first. Where a text has already made the move it is in both, and
+            // nothing in the two identifiers says so: Sidney's Defence of
+            // Poesie arrives as sidney.defence.perseus-eng1 from one and
+            // engLit:renaissance:sidney:defense:opensource from the other. It
+            // was going in twice - 73 passages and 108,000 characters counted
+            // once each way, listed twice under one author, and doubled in
+            // every word count and frequency measure built on the text.
+            //
+            // One work today. The number grows with every text Perseus
+            // migrates, which is the reason to do this by rule rather than by
+            // naming the file.
+            //
+            // Matched on title within this author, and only against works that
+            // did NOT come from this tree - a work whose identifier starts
+            // engLit:renaissance: is one of ours from a previous run, and
+            // skipping those would stop a re-import updating anything.
+            var fromCatalogue = (await _workRepo.GetByAuthorAsync(authorId, cancellationToken))
+                .Where(w => !w.CtsUrn.StartsWith("engLit:renaissance:", StringComparison.OrdinalIgnoreCase))
+                .Select(w => w.Title.Trim())
+                .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
             foreach (var (file, title, _) in headers)
             {
                 cancellationToken.ThrowIfCancellationRequested();
@@ -134,6 +172,17 @@ public class RenaissanceIngestService
                     : title!.Trim();
 
                 progress?.Report(new IngestProgress(authorName, workTitle, worksProcessed, totalFiles));
+
+                if (fromCatalogue.Contains(workTitle))
+                {
+                    // Already in from the catalogued tree, under a real CTS
+                    // identifier. That one is the keeper.
+                    SupersededByCatalogue.Add((file,
+                        $"\"{workTitle}\" is already in the library from the catalogued tree, which " +
+                        "names it properly. This older copy of the same text was left out."));
+                    worksProcessed++;
+                    continue;
+                }
 
                 try
                 {

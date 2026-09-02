@@ -79,6 +79,14 @@ public class WindowsFontResolver : IFontResolver
     {
         var map = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
+        // This project targets plain net8.0 while the app above it is
+        // Windows-only, so the registry read is a call the compiler can see
+        // reaching platforms that have no registry. It never does in practice,
+        // but the guard says so in a way the analyzer can check, and an empty
+        // map is what the catch below would have produced anyway - the
+        // resolver falls back to its bundled font list from there.
+        if (!OperatingSystem.IsWindows()) return map;
+
         try
         {
             using var key = Registry.LocalMachine.OpenSubKey(@"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts");

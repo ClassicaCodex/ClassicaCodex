@@ -1,3 +1,4 @@
+using ClassicaCodex.Core.Meter;
 using System.Globalization;
 using System.Text;
 using ClassicaCodex.Core;
@@ -53,6 +54,51 @@ public class WordStudyForm : ScaledForm
     private readonly AuthorRepository _authorRepo = new();
     private readonly WorkRepository _workRepo = new();
 
+    /// <summary>
+    /// How much room the metre row takes, and how far everything under it
+    /// moves when there is one.
+    /// </summary>
+    private const int MetreRowHeight = 22;
+
+    /// <summary>
+    /// What the metre makes of the source line, or null where the question
+    /// does not arise - see <see cref="ScanSourceLine"/>.
+    /// </summary>
+    private readonly Scansion? _scansion;
+
+    private readonly Label _metreLabel;
+
+    /// <summary>
+    /// The scansion of the line the reader came from, where there is one to
+    /// have.
+    ///
+    /// Three conditions, and each rules out a large part of the library
+    /// rather than an edge case. The scanner reads Latin, so Greek and the
+    /// translations are out. It reads dactylic hexameter, so the lyric metres
+    /// are out - Horace's Odes scan at 2%, correctly, and a row saying so on
+    /// every line of them would be noise. And it needs verse: IsVerse comes
+    /// from the markup rather than from guessing at the text, so prose is
+    /// excluded by the edition rather than by this.
+    ///
+    /// Null means the row is not drawn at all and the layout closes up, which
+    /// is the right answer for most of what this window opens on.
+    /// </summary>
+    private Scansion? ScanSourceLine(TextNode sourceNode)
+    {
+        if (!string.Equals(_language, "lat", StringComparison.OrdinalIgnoreCase)) return null;
+        if (!sourceNode.IsVerse) return null;
+        if (string.IsNullOrWhiteSpace(sourceNode.Text)) return null;
+
+        var scansion = HexameterScanner.Scan(sourceNode.Text);
+
+        // A line that does not scan is still worth a row: the reader can see
+        // that the question was asked and answered, rather than wondering
+        // whether the feature is broken or the text is unusual. What is not
+        // worth a row is a line that was never a candidate, which is what the
+        // three tests above have already removed.
+        return scansion;
+    }
+
     public WordStudyForm(
         TextNode sourceNode, string? language = null, int? workId = null, string? selectedWord = null)
     {
@@ -67,30 +113,56 @@ public class WordStudyForm : ScaledForm
 
         var sourceLabel = new Label
         {
-            Text = $"[{sourceNode.CitationRef}] {sourceNode.Text}",
+            Text = $"[{PassageCitation.Display(sourceNode.CitationRef)}] {sourceNode.Text}",
             Left = 12,
             Top = 10,
             Width = 1360,
-            Height = 36,
+            Height = 32,
             ForeColor = Color.DimGray
         };
 
-        var wordLabel = new Label { Text = "Words in this line:", Left = 12, Top = 52, Width = 200 };
+        // Scanned once, here, rather than per word selection - the search runs
+        // over every reading of the spelling against thirty-two shapes, and
+        // the line does not change while the window is open.
+        _scansion = ScanSourceLine(sourceNode);
+
+        // Everything below the source line moves down by one row when there is
+        // a metre to report, and not at all when there is not - which is most
+        // of the library. Applied as one offset rather than two sets of
+        // coordinates, so the two layouts cannot drift apart.
+        var drop = _scansion == null ? 0 : MetreRowHeight;
+
+        _metreLabel = new Label
+        {
+            Text = DescribeLineMetre(),
+            Left = 12,
+            Top = 46,
+            Width = 1360,
+            Height = 20,
+            ForeColor = Color.DimGray,
+            Visible = _scansion != null
+        };
+
+        var wordLabel = new Label { Text = "Words in this line:", Left = 12, Top = 52 + drop, Width = 200 };
         _wordList = new ListBox
         {
             Left = 12,
-            Top = 74,
+            Top = 74 + drop,
             Width = 200,
-            Height = 620,
+            Height = 620 - drop,
             Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left
         };
-        _wordList.SelectedIndexChanged += async (_, _) => await LoadHeadwordsAsync();
+        _wordList.SelectedIndexChanged += async (_, _) =>
+        {
+            ShowWordMetre(_wordList.SelectedItem as string);
+            await LoadHeadwordsAsync();
+        };
 
-        var headwordLabel = new Label { Text = "Dictionary headword(s):", Left = 224, Top = 52, Width = 380 };
+        var headwordLabel = new Label { Text = "Dictionary headword(s):", Left = 224, Top = 52 + drop, Width = 380 };
         _headwordList = new ListBox
         {
             Left = 224,
-            Top = 74,
+            Top = 74 + drop,
             Width = 380,
             Height = 120,
             Anchor = AnchorStyles.Top | AnchorStyles.Left
@@ -101,16 +173,16 @@ public class WordStudyForm : ScaledForm
         {
             Text = "Definition:",
             Left = 224,
-            Top = 202,
+            Top = 202 + drop,
             Width = 380,
             Anchor = AnchorStyles.Top | AnchorStyles.Left
         };
         _definitionBox = new TextBox
         {
             Left = 224,
-            Top = 224,
+            Top = 224 + drop,
             Width = 380,
-            Height = 320,
+            Height = 320 - drop,
             Multiline = true,
             ReadOnly = true,
             ScrollBars = ScrollBars.Vertical,
@@ -136,7 +208,7 @@ public class WordStudyForm : ScaledForm
         {
             Text = "Occurrences (double-click to jump):",
             Left = 616,
-            Top = 52,
+            Top = 52 + drop,
             Width = 300,
             Anchor = AnchorStyles.Top | AnchorStyles.Left
         };
@@ -147,7 +219,7 @@ public class WordStudyForm : ScaledForm
         _scopeLabel = new Label
         {
             Left = 920,
-            Top = 54,
+            Top = 54 + drop,
             Width = 320,
             Anchor = AnchorStyles.Top | AnchorStyles.Right,
             TextAlign = ContentAlignment.TopRight,
@@ -156,7 +228,7 @@ public class WordStudyForm : ScaledForm
 
         var scopeButton = new Button
         {
-            Text = "Choose Texts...", Left = 1248, Top = 48, Width = 124, Height = 26,
+            Text = "Choose Texts...", Left = 1248, Top = 48 + drop, Width = 124, Height = 26,
             Anchor = AnchorStyles.Top | AnchorStyles.Right
         };
         scopeButton.Click += async (_, _) => await ChooseScopeAsync();
@@ -164,9 +236,9 @@ public class WordStudyForm : ScaledForm
         _occurrenceList = new ListBox
         {
             Left = 616,
-            Top = 74,
+            Top = 74 + drop,
             Width = 756,
-            Height = 592,
+            Height = 592 - drop,
             Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right,
             DrawMode = DrawMode.OwnerDrawFixed
         };
@@ -176,7 +248,7 @@ public class WordStudyForm : ScaledForm
             i => i < _currentOccurrences.Count ? _currentOccurrences[i].CitationRef : null);
         ListResultHelpers.AttachCopyToClipboardMenu(_occurrenceList,
             i => i < _currentOccurrences.Count
-                ? $"{_currentOccurrences[i].AuthorName}, {_currentOccurrences[i].WorkTitle} [{_currentOccurrences[i].CitationRef}]: {_currentOccurrences[i].Text}"
+                ? $"{_currentOccurrences[i].AuthorName}, {_currentOccurrences[i].WorkTitle} [{PassageCitation.Display(_currentOccurrences[i].CitationRef)}]: {_currentOccurrences[i].Text}"
                 : null);
         ListResultHelpers.AttachExportMenu(_occurrenceList, () => (
             $"Occurrences of {SelectedHeadwordOrDefault()}",
@@ -193,6 +265,7 @@ public class WordStudyForm : ScaledForm
         };
 
         Controls.Add(sourceLabel);
+        Controls.Add(_metreLabel);
         Controls.Add(wordLabel);
         Controls.Add(_wordList);
         Controls.Add(headwordLabel);
@@ -225,6 +298,95 @@ public class WordStudyForm : ScaledForm
         RefreshScopeLabel();
         ReadingTheme.AttachTo(this);
         WindowShortcuts.CloseOnEscape(this);
+    }
+
+    /// <summary>
+    /// The metre row as it reads before a word is chosen: the line's feet, and
+    /// how far the reading is settled.
+    ///
+    /// ReadingCount is reported rather than hidden. One reading is a solved
+    /// line and is the common case; more than one means the letters
+    /// underdetermine the shape, and a reader looking at a quantity below
+    /// should know whether it is a measurement or one of several possibilities
+    /// that happen to agree here.
+    /// </summary>
+    private string DescribeLineMetre()
+    {
+        if (_scansion == null) return string.Empty;
+
+        if (!_scansion.Scans)
+        {
+            return _scansion.Failure switch
+            {
+                ScansionFailure.TooShort =>
+                    "Metre:  too short for a hexameter - often a half-line, printed as the poet left it.",
+                ScansionFailure.TooLong =>
+                    "Metre:  too long for a hexameter.",
+                ScansionFailure.Inconsistent =>
+                    "Metre:  the right length for a hexameter, but no arrangement of feet fits the spelling. "
+                    + "Greek proper names are the usual reason - they keep Greek quantities.",
+                _ => "Metre:  nothing to scan on this line."
+            };
+        }
+
+        var readings = _scansion.ReadingCount == 1
+            ? "one reading"
+            : $"{_scansion.ReadingCount} readings, so the marks below show only what they agree on";
+
+        var elision = _scansion.Elisions switch
+        {
+            0 => string.Empty,
+            1 => "  ·  1 elision",
+            _ => $"  ·  {_scansion.Elisions} elisions"
+        };
+
+        return $"Metre:  hexameter  {_scansion.Pattern}  ·  {readings}{elision}"
+             + "      (D dactyl, S spondee, ? the readings disagree)";
+    }
+
+    /// <summary>
+    /// What the metre makes of one word - the row that is the actual point of
+    /// this, because it says something no dictionary and no spelling can.
+    ///
+    /// Latin editions print no macrons, so the letters of "cano" are equally
+    /// the first person of cano and something else entirely; the metre makes
+    /// its final o long and settles it. Across Virgil, Ovid, Lucretius and
+    /// Juvenal the metre settles three quarters of the syllables the spelling
+    /// leaves open.
+    ///
+    /// The marks are on SYLLABLES, not vowels, and the row says so. A long
+    /// syllable is long by nature or by position, and "arma" opens with a long
+    /// syllable containing a short a - printing it as a long vowel would be
+    /// teaching the reader something false about the word.
+    /// </summary>
+    private void ShowWordMetre(string? word)
+    {
+        if (_scansion == null) return;
+
+        if (string.IsNullOrWhiteSpace(word) || !_scansion.Scans)
+        {
+            _metreLabel.Text = DescribeLineMetre();
+            return;
+        }
+
+        var matches = ScannedWords.Matching(_scansion, word);
+        if (matches.Count == 0)
+        {
+            _metreLabel.Text = DescribeLineMetre();
+            return;
+        }
+
+        var rendered = matches.Select(Render);
+        _metreLabel.Text = $"Metre:  {string.Join("   ·   ", rendered)}"
+                         + "      (¯ long syllable, ˘ short, × the metre does not say)";
+
+        static string Render(ScannedWord w)
+        {
+            if (w.Syllables.All(s => s.Elided)) return $"{w.Text}  elided";
+
+            var marks = string.Join(" ", w.Syllables.Select(s => s.Elided ? "(elided)" : s.Mark));
+            return $"{w.Text}   {marks}";
+        }
     }
 
     private void PopulateWords(string text)
@@ -404,7 +566,11 @@ public class WordStudyForm : ScaledForm
             .Where(f => f.Length > 0)
             .ToHashSet(StringComparer.Ordinal);
 
-        var hits = await _textNodeRepo.SearchByFormsAsync(forms, workIds: _scopeWorkIds);
+        // Off the UI thread - see the note in SearchForm. Microsoft.Data.Sqlite's
+        // async methods run synchronously, so awaiting this directly held the
+        // window while it gathered every occurrence of the word in the corpus,
+        // about a fifth of a second for a common one.
+        var hits = await Task.Run(() => _textNodeRepo.SearchByFormsAsync(forms, workIds: _scopeWorkIds));
         _currentOccurrences = hits.Rows;
 
         _occurrenceList.Items.Clear();
@@ -417,6 +583,9 @@ public class WordStudyForm : ScaledForm
         {
             _occurrenceList.Items.Add("(no occurrences found)");
         }
+
+        ListResultHelpers.RefreshHorizontalExtent(
+            _occurrenceList, i => _occurrenceList.Items[i]?.ToString());
 
         _statusLabel.Text = hits.Truncated
             ? $"{hits.DisplayCount} occurrence(s) of {headword} across the corpus - stopped at the result limit, so this is a sample rather than the full count."

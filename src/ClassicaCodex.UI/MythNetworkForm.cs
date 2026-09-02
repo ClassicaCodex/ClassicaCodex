@@ -1,3 +1,4 @@
+using ClassicaCodex.Core;
 using ClassicaCodex.Data.Repositories;
 
 namespace ClassicaCodex.UI;
@@ -28,6 +29,28 @@ public class MythNetworkForm : ScaledForm
         Width = 1200;
         Height = 800;
         StartPosition = FormStartPosition.CenterParent;
+
+        // Built before the controls whose handlers call into it. The handlers
+        // only ever run after the constructor has finished, so building it
+        // last worked - but it left the compiler unable to prove that, and
+        // four "possible null dereference" warnings standing in a file where a
+        // real one would then be invisible.
+        _canvas = new GraphCanvas
+        {
+            Left = 12,
+            Top = 68,
+            Width = 860,
+            Height = 678,
+            Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right,
+            BorderStyle = BorderStyle.FixedSingle
+        };
+        _canvas.NodeClicked += async name => await LoadPassagesAsync(name);
+        _canvas.EdgeClicked += async (nameA, nameB) => await LoadEdgePassagesAsync(nameA, nameB);
+        _canvas.NodeRightClicked += name =>
+        {
+            using var artifactForm = new ArtifactBrowserForm(name, name);
+            artifactForm.ShowDialog(this);
+        };
 
         var relayoutButton = new Button { Text = "Re-layout", Left = 12, Top = 8, Width = 100, Height = 26 };
         relayoutButton.Click += (_, _) => _canvas.Relayout();
@@ -110,23 +133,6 @@ public class MythNetworkForm : ScaledForm
             Width = 700
         };
 
-        _canvas = new GraphCanvas
-        {
-            Left = 12,
-            Top = 68,
-            Width = 860,
-            Height = 678,
-            Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right,
-            BorderStyle = BorderStyle.FixedSingle
-        };
-        _canvas.NodeClicked += async name => await LoadPassagesAsync(name);
-        _canvas.EdgeClicked += async (nameA, nameB) => await LoadEdgePassagesAsync(nameA, nameB);
-        _canvas.NodeRightClicked += name =>
-        {
-            using var artifactForm = new ArtifactBrowserForm(name, name);
-            artifactForm.ShowDialog(this);
-        };
-
         _selectedTagLabel = new Label
         {
             Text = "Click a tag to see its passages here.",
@@ -150,7 +156,7 @@ public class MythNetworkForm : ScaledForm
             i => i < _currentPassages.Count ? _currentPassages[i].CitationRef : null);
         ListResultHelpers.AttachCopyToClipboardMenu(_passageList,
             i => i < _currentPassages.Count
-                ? $"{_currentPassages[i].AuthorName}, {_currentPassages[i].WorkTitle} [{_currentPassages[i].CitationRef}]: {_currentPassages[i].Text}"
+                ? $"{_currentPassages[i].AuthorName}, {_currentPassages[i].WorkTitle} [{PassageCitation.Display(_currentPassages[i].CitationRef)}]: {_currentPassages[i].Text}"
                 : null);
 
         Controls.Add(relayoutButton);

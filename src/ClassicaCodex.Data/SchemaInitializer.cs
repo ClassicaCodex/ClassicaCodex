@@ -37,11 +37,32 @@ public static class SchemaInitializer
     public const string WordIndexTableDdl =
         "CREATE TABLE IF NOT EXISTS WordIndex (" +
         "NormalizedWord TEXT NOT NULL, " +
-        "TextNodeId     INTEGER NOT NULL);";
+        "TextNodeId     INTEGER NOT NULL, " +
+        "PRIMARY KEY (NormalizedWord, TextNodeId)) WITHOUT ROWID;";
 
-    /// <inheritdoc cref="WordIndexTableDdl"/>
-    public const string WordIndexIndexDdl =
-        "CREATE INDEX IF NOT EXISTS IX_WordIndex_Word ON WordIndex (NormalizedWord, TextNodeId);";
+    // There is no WordIndexIndexDdl any more. The table used to be an ordinary
+    // rowid table with a covering index over both of its columns; every query
+    // used the index and the base table was never read, so the whole index was
+    // stored twice - once as the table's own B-tree and once as the index's -
+    // and the build paid to fill both.
+    //
+    // Making the pair the primary key of a WITHOUT ROWID table stores it once.
+    // It is a legitimate primary key because WordIndexService.TokenizeLine
+    // already takes Distinct() words per line, so (word, line) was unique
+    // before this made it so.
+    //
+    // Measured over a full Perseus library - 26,723,817 entries from 1,085,843
+    // lines:
+    //
+    //                                     build      on disk    10 lookups
+    //   rowid table + covering index      263.7 s    1,054 MB      18.2 ms
+    //   WITHOUT ROWID                     273.9 s      471 MB      17.8 ms
+    //   WITHOUT ROWID, inserted in order  223.0 s      474 MB      16.2 ms
+    //
+    // 55% smaller, and faster to build once the rows go in near key order,
+    // which is what the sort in WordIndexRepository.BulkInsertAsync is for.
+    // The word index was the largest single object in a finished library -
+    // bigger than every text, dictionary and apparatus entry together.
 
     /// <summary>
     /// Bump this whenever a Migrations entry is added. A database file
@@ -55,7 +76,7 @@ public static class SchemaInitializer
     /// 7 to 13 until version 3 was cut, at which point they all failed at
     /// once and said nothing about what had actually broken.
     /// </summary>
-    public const int TargetSchemaVersion = 34;
+    public const int TargetSchemaVersion = 37;
 
     public static async Task EnsureSchemaAsync(CancellationToken cancellationToken = default)
     {
@@ -92,6 +113,79 @@ public static class SchemaInitializer
         {
             await SetSchemaVersionAsync(conn, TargetSchemaVersion, cancellationToken);
         }
+
+        await EnsureQueryStatisticsAsync(conn, cancellationToken);
+    }
+
+    /// <summary>
+    /// Gives SQLite's query planner statistics about this library, once, if it
+    /// has none.
+    ///
+    /// Without them the planner works from built-in guesses, and on a library
+    /// this size the guesses are wrong in a way that is expensive rather than
+    /// merely suboptimal. Three examples, all measured on the full 3GB
+    /// library: looking a word up in the dictionary took 115ms because the
+    /// planner read all 423,551 definitions rather than seeking the index;
+    /// finding a form's headwords took 349ms scanning 585,225 Latin lemmas
+    /// through the wrong index of the two available; expanding a form to its
+    /// paradigm took 59ms scanning the whole 1,028,748-row lemma table. With
+    /// statistics those are 0.04ms, 0.03ms and 0.11ms. Nothing measured got
+    /// slower.
+    ///
+    /// analysis_limit caps the rows sampled per index, which is what makes
+    /// this affordable at all - the whole pass takes about ten milliseconds
+    /// against seventy million word-index rows, where an uncapped ANALYZE
+    /// would read all of them.
+    ///
+    /// Only when there is nothing there already, and only when there is
+    /// content to describe. Statistics gathered from an empty database say
+    /// every table is tiny, which is worse than none at all - and a freshly
+    /// created library is empty until setup has run, so the word index build
+    /// refreshes these again once the corpus is actually in.
+    /// </summary>
+    private static async Task EnsureQueryStatisticsAsync(
+        SqliteConnection conn, CancellationToken cancellationToken)
+    {
+        if (await TableExistsAsync(conn, "sqlite_stat1", cancellationToken)) return;
+
+        await using (var check = conn.CreateCommand())
+        {
+            check.CommandText =
+                "SELECT EXISTS(SELECT 1 FROM TextNodes LIMIT 1) " +
+                "    OR EXISTS(SELECT 1 FROM Lemmas LIMIT 1) " +
+                "    OR EXISTS(SELECT 1 FROM Definitions LIMIT 1);";
+            var hasContent = Convert.ToInt64(await check.ExecuteScalarAsync(cancellationToken) ?? 0L) != 0;
+            if (!hasContent) return;
+        }
+
+        await AnalyzeAsync(conn, cancellationToken);
+    }
+
+    /// <summary>
+    /// Re-reads the statistics after the library's contents have changed by
+    /// enough to matter - which in practice means after an ingest. Cheap
+    /// enough to call whenever that has happened rather than reasoning about
+    /// whether it was needed.
+    ///
+    /// Deliberately ANALYZE and not PRAGMA optimize, which is the usual
+    /// advice and does nothing here: optimize only re-analyzes tables it has
+    /// seen modified on the same connection, so on a connection that has just
+    /// been opened to do this one job it exits without writing anything.
+    /// Measured - it produced no sqlite_stat1 and left all three queries above
+    /// exactly as slow as they were.
+    /// </summary>
+    public static async Task UpdateQueryStatisticsAsync(CancellationToken cancellationToken = default)
+    {
+        await using var conn = await DbConnectionFactory.OpenConnectionAsync(cancellationToken);
+        await AnalyzeAsync(conn, cancellationToken);
+    }
+
+    private static async Task AnalyzeAsync(SqliteConnection conn, CancellationToken cancellationToken)
+    {
+        await using var cmd = conn.CreateCommand();
+        cmd.CommandText = "PRAGMA analysis_limit = 400; ANALYZE;";
+        cmd.CommandTimeout = 300;
+        await cmd.ExecuteNonQueryAsync(cancellationToken);
     }
 
     private static async Task<bool> TableExistsAsync(
@@ -1202,6 +1296,109 @@ public static class SchemaInitializer
               FROM RecentSearches;",
             "DROP TABLE RecentSearches;",
             "ALTER TABLE RecentSearches_v34 RENAME TO RecentSearches;"
+        },
+
+        // v35: which lines are verse.
+        //
+        // TEI distinguishes a verse line from a prose paragraph - <l> against
+        // <p> - and the parser has been discarding that since the first
+        // ingest. Both are leaves, both became a node of kind 'line', and
+        // nothing downstream could tell the Aeneid from the Institutio
+        // Oratoria. It is not recoverable from the stored text either: the
+        // Greek and Latin as Perseus prints it carries no vowel-length marks,
+        // so a line's shape lives in the markup and nowhere else.
+        //
+        // A column of its own rather than a NodeKind value, because the two
+        // are different axes and a node has both. A speaker attribution in a
+        // verse play is a Speaker and is not verse; a chorus line is a Line
+        // and is. Making verse a kind would have moved every line of poetry
+        // out of 'line', which is the exact value the frequency-based
+        // features filter to - Homer would have vanished from word counts,
+        // core vocabulary and Burrows's Delta, silently and everywhere.
+        //
+        // Defaulting to 0 leaves an existing library reading exactly as it
+        // did, and is the honest value besides: an unlabelled row is not
+        // known to be verse, which is what 0 says. Only a re-ingest fills it
+        // in, as with NodeKind in migration 14.
+        [35] = new[]
+        {
+            @"ALTER TABLE TextNodes ADD COLUMN IsVerse INTEGER NOT NULL DEFAULT 0;"
+        },
+
+        // v36: store the word index once instead of twice.
+        //
+        // See WordIndexTableDdl for the measurements. The short version is that
+        // the old shape kept every (word, line) pair in the table's rowid
+        // B-tree AND again in a covering index that was the only thing ever
+        // read - 1,054 MB where 474 MB does the same work.
+        //
+        // Dropped and recreated empty rather than copied across. The word index
+        // is pure derived data with nothing of the reader's in it, rebuilt from
+        // the corpus by one pass of the Setup Wizard, and copying 26 million
+        // rows into a new table would need room for both at once - on a
+        // database this size that is the one migration step likeliest to run a
+        // disk out of space.
+        //
+        // The cost is that search falls back to its no-index path until the
+        // index is rebuilt, which is slower and loses accent-insensitivity but
+        // is never wrong. SetupWizardForm already compares indexed lines
+        // against total lines and says when the index needs building, so an
+        // upgraded library reports itself as needing exactly what it needs.
+        // Four Patrologia Latina catalogue files carry a trailing space inside
+        // the urn attribute, upstream - stoa0096.stoa003, stoa0104p.stoa002,
+        // stoa0201d.stoa001 and stoa0223.stoa001, and no other file in any
+        // collection. A work's URN is its identity, so a stray space does not
+        // make an untidy work, it makes a second one: the same text listed
+        // twice in the library, one copy holding the edition and one empty,
+        // with nothing on screen to say why. Three of the four collided with
+        // the CSEL entry for the same text, which is where the empty
+        // "Carmina" and "Ad Vigilium" under Paulinus and Pseudo-Cyprian came
+        // from.
+        //
+        // The readers trim now, so new imports are clean, and the upsert trims
+        // as well so no future reader can undo that. Neither helps a library
+        // that already has the duplicates: the bad row keeps its edition, so
+        // nothing revisits it and it stays forever. Hence a repair.
+        //
+        // Editions move to the surviving twin first, then the emptied
+        // duplicate goes, then anything left with no twin is simply trimmed.
+        // That order matters - trimming first would collide with the twin on
+        // the unique index and take the whole migration down with it.
+        [37] = new[]
+        {
+            @"UPDATE Editions
+                 SET WorkId = (
+                     SELECT t.WorkId FROM Works t
+                     WHERE t.CtsUrn = TRIM((SELECT u.CtsUrn FROM Works u WHERE u.WorkId = Editions.WorkId))
+                       AND t.WorkId <> Editions.WorkId)
+               WHERE EXISTS (
+                     SELECT 1 FROM Works u
+                     WHERE u.WorkId = Editions.WorkId
+                       AND u.CtsUrn <> TRIM(u.CtsUrn)
+                       AND EXISTS (SELECT 1 FROM Works t
+                                   WHERE t.CtsUrn = TRIM(u.CtsUrn) AND t.WorkId <> u.WorkId));",
+
+            @"DELETE FROM Works
+               WHERE CtsUrn <> TRIM(CtsUrn)
+                 AND EXISTS (SELECT 1 FROM Works t
+                             WHERE t.CtsUrn = TRIM(Works.CtsUrn) AND t.WorkId <> Works.WorkId);",
+
+            "UPDATE Works SET CtsUrn = TRIM(CtsUrn) WHERE CtsUrn <> TRIM(CtsUrn);",
+
+            // The same identity columns, for completeness. No library has been
+            // seen with these, but they are upserted on exactly like Works and
+            // would split exactly the same way.
+            "UPDATE Authors SET CtsUrn = TRIM(CtsUrn) WHERE CtsUrn <> TRIM(CtsUrn) " +
+            "  AND NOT EXISTS (SELECT 1 FROM Authors t WHERE t.CtsUrn = TRIM(Authors.CtsUrn) AND t.AuthorId <> Authors.AuthorId);",
+            "UPDATE Editions SET CtsUrn = TRIM(CtsUrn) WHERE CtsUrn <> TRIM(CtsUrn) " +
+            "  AND NOT EXISTS (SELECT 1 FROM Editions t WHERE t.CtsUrn = TRIM(Editions.CtsUrn) AND t.EditionId <> Editions.EditionId);"
+        },
+
+        [36] = new[]
+        {
+            "DROP INDEX IF EXISTS IX_WordIndex_Word;",
+            "DROP TABLE IF EXISTS WordIndex;",
+            WordIndexTableDdl
         }
     };
 
@@ -1831,6 +2028,7 @@ public static class SchemaInitializer
             Text        TEXT NOT NULL,
             IsAthetized INTEGER NOT NULL DEFAULT 0,
             NodeKind    TEXT NOT NULL DEFAULT 'line',
+            IsVerse     INTEGER NOT NULL DEFAULT 0,
             CONSTRAINT FK_TextNodes_Editions FOREIGN KEY (EditionId) REFERENCES Editions(EditionId)
         );",
 
@@ -2080,8 +2278,6 @@ public static class SchemaInitializer
         // form costs a full scan of the entire corpus. With it, the same
         // search is an index seek.
         WordIndexTableDdl,
-
-        WordIndexIndexDdl,
 
         // Definitions - dictionary entries keyed by headword, so Word Study
         // can say what a word actually means rather than only what its

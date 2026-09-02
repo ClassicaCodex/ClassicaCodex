@@ -101,6 +101,27 @@ public class MenotaIngestService
         var planPath = MenotaIngestPlan.PlanPathFor(path);
         var plan = MenotaIngestPlan.Load(planPath);
 
+        // A plan whose titles carry a replacement character was made before
+        // menota-entities.txt was in the folder, and is not to be believed
+        // however confirmed it says it is. U+FFFD is not a character any
+        // manuscript is written in - it is what this application substitutes
+        // for an entity it could not resolve - so its presence in a title is
+        // proof of when the plan was made rather than of what the manuscript
+        // says.
+        //
+        // Refused rather than silently regenerated: the plan also carries
+        // merges, splits and renames somebody decided by hand, and throwing
+        // those away without asking would cost more than the titles are worth.
+        // Deleting the file is one action and is named here.
+        if (plan != null && plan.Works.Any(w => w.Title.Contains('�')))
+        {
+            FailedFiles.Add((path,
+                $"{Path.GetFileName(planPath)} was written before menota-entities.txt was saved, so its " +
+                "titles lost their thorns and accented vowels. Delete that file and import again to " +
+                "rebuild it - any merges or renames in it will need making again."));
+            return;
+        }
+
         if (plan == null)
         {
             planner.Plan(path, doc).Save(planPath);
