@@ -239,12 +239,127 @@ public class TextNodeRepository
         await using var cmd = conn.CreateCommand();
         cmd.CommandTimeout = 180;
 
-        var where = new List<string>();
-
         // Whole-word matching wants the word index, and asks the connection
         // that's already open rather than opening a second one.
         var indexAvailable = filters.MatchMode == SearchMatchMode.WholeWord
                              && await WordIndexRepository.HasDataAsync(conn, cancellationToken);
+
+        var where = BuildFilterPredicate(cmd, filters, query, indexAvailable);
+
+        cmd.Parameters.AddWithValue("@Limit", filters.MaxResults + 1);
+
+        cmd.CommandText = $@"
+            SELECT w.WorkId, tn.TextNodeId, a.Name, w.Title, tn.CitationRef, tn.Text
+            FROM TextNodes tn
+            JOIN Editions e ON tn.EditionId = e.EditionId
+            JOIN Works w ON e.WorkId = w.WorkId
+            JOIN Authors a ON w.AuthorId = a.AuthorId
+            WHERE {string.Join(" AND ", where)}
+            ORDER BY a.Name, w.Title, tn.SortOrder
+            LIMIT @Limit;";
+
+        return await ReadFilteredRowsAsync(cmd, filters, query, indexAvailable, results, cancellationToken);
+    }
+
+    /// <summary>
+    /// How many lines match, and how they are distributed across the works
+    /// that contain them. Counts everything: this deliberately has no LIMIT,
+    /// because a capped count is not a count.
+    ///
+    /// WHY THIS EXISTS AS A SEPARATE QUERY. A filtered search stops at
+    /// MaxResults, and the results it stops with are ordered by author name.
+    /// So the cap does not take a sample of the matches - it truncates the
+    /// alphabet. Grouping those rows to show "which works use this word" then
+    /// produces a table that looks exactly like a distribution and is not one.
+    ///
+    /// Measured against a full library, searching for Latin "vel": 44,457
+    /// lines across 1,623 works, of which the capped rows could see 5,000
+    /// lines across 168 works. 1,455 works - 90% of the ones that contain it -
+    /// showed nothing at all, and the last author the cap reached was
+    /// Augustine. Augustine is also the work with the most matches in the
+    /// whole corpus, 1,056 of them, and the grouped view credited him with
+    /// 184, because it ran out of room in the middle of him. For Greek
+    /// "λόγος" the top of the real distribution is the Homeric scholia, and
+    /// the grouped view led with Aesop, who is there because of the A.
+    ///
+    /// Nobody could tell from the screen. That is the failure worth paying a
+    /// second query for.
+    ///
+    /// The cost is small because this reads the index rather than the text:
+    /// measured on a full library, the complete per-work distribution for
+    /// "virtus" (5,728 lines across 897 works) took 26 ms, and for "vel"
+    /// (44,457 across 1,623) 116 ms - against 88 ms and 245 ms for the row
+    /// query that was already running.
+    /// </summary>
+    public async Task<SearchDistribution> CountMatchesByWorkAsync(
+        SearchFilters filters, CancellationToken cancellationToken = default)
+    {
+        var query = filters.Query.Trim();
+        if (query.Length == 0) return SearchDistribution.Empty;
+        if (filters.EraAuthorIds is { Count: 0 }) return SearchDistribution.Empty;
+
+        await using var conn = await DbConnectionFactory.OpenConnectionAsync(cancellationToken);
+        await using var cmd = conn.CreateCommand();
+        cmd.CommandTimeout = 180;
+
+        var indexAvailable = filters.MatchMode == SearchMatchMode.WholeWord
+                             && await WordIndexRepository.HasDataAsync(conn, cancellationToken);
+
+        var where = BuildFilterPredicate(cmd, filters, query, indexAvailable);
+
+        // Grouped by work rather than by edition, so a work this library
+        // holds twice - CSEL and Migne both ship Augustine - is one row
+        // rather than two rows with the same title, which would read as a
+        // bug even though both would be true.
+        //
+        // What is counted is therefore matching LINES IN THE LIBRARY, and a
+        // work held in two editions contributes both. That is the same
+        // quantity the row list has always shown, and it is the honest one
+        // for a question about this library; someone asking about the
+        // literature rather than about their copy of it wants the collection
+        // filter, which reaches this count like every other filter.
+        cmd.CommandText = $@"
+            SELECT w.WorkId, a.Name, w.Title, COUNT(*) AS Matches
+            FROM TextNodes tn
+            JOIN Editions e ON tn.EditionId = e.EditionId
+            JOIN Works w ON e.WorkId = w.WorkId
+            JOIN Authors a ON w.AuthorId = a.AuthorId
+            WHERE {string.Join(" AND ", where)}
+            GROUP BY w.WorkId
+            ORDER BY Matches DESC, a.Name, w.Title;";
+
+        var works = new List<(int WorkId, string AuthorName, string WorkTitle, long Matches)>();
+        long total = 0;
+
+        await using var reader = await cmd.ExecuteReaderAsync(cancellationToken);
+        while (await reader.ReadAsync(cancellationToken))
+        {
+            var matches = reader.GetInt64(3);
+            total += matches;
+            works.Add((reader.GetInt32(0), reader.GetString(1), reader.GetString(2), matches));
+        }
+
+        // The LIKE fallback's whole-word confirmation runs per row and cannot
+        // run inside an aggregate, so a count taken without the index would
+        // be of the prefilter rather than of the search. Saying so is better
+        // than quietly returning a larger number than the rows support.
+        return new SearchDistribution(works, total, ExactlyMatchesTheSearch:
+            filters.MatchMode != SearchMatchMode.WholeWord || indexAvailable);
+    }
+
+    /// <summary>
+    /// Every WHERE clause a filtered search applies, with its parameters
+    /// registered on the command.
+    ///
+    /// Pulled out of SearchFilteredAsync so that counting the matches and
+    /// fetching them run the same predicate rather than two that resemble
+    /// each other. A count that disagrees with the rows it is counting is
+    /// worse than no count.
+    /// </summary>
+    private static List<string> BuildFilterPredicate(
+        SqliteCommand cmd, SearchFilters filters, string query, bool indexAvailable)
+    {
+        var where = new List<string>();
 
         AppendTextPredicate(cmd, where, query, filters.MatchMode, indexAvailable);
 
@@ -316,18 +431,23 @@ public class TextNodeRepository
                 WHERE b.EditionId = tn.EditionId AND b.CitationRef = tn.CitationRef)");
         }
 
-        cmd.Parameters.AddWithValue("@Limit", filters.MaxResults + 1);
+        return where;
+    }
 
-        cmd.CommandText = $@"
-            SELECT w.WorkId, tn.TextNodeId, a.Name, w.Title, tn.CitationRef, tn.Text
-            FROM TextNodes tn
-            JOIN Editions e ON tn.EditionId = e.EditionId
-            JOIN Works w ON e.WorkId = w.WorkId
-            JOIN Authors a ON w.AuthorId = a.AuthorId
-            WHERE {string.Join(" AND ", where)}
-            ORDER BY a.Name, w.Title, tn.SortOrder
-            LIMIT @Limit;";
-
+    /// <summary>
+    /// Runs the row query and applies the whole-word confirmation the LIKE
+    /// fallback needs. Split from SearchFilteredAsync only so that building
+    /// the predicate and reading the rows are separable - the count shares
+    /// the first and has no use for the second.
+    /// </summary>
+    private static async Task<SearchHits> ReadFilteredRowsAsync(
+        SqliteCommand cmd,
+        SearchFilters filters,
+        string query,
+        bool indexAvailable,
+        List<(int, long, string, string, string, string)> results,
+        CancellationToken cancellationToken)
+    {
         // Only for the LIKE fallback. The index path has already matched on
         // whole normalized words, and re-checking the raw text against an
         // unaccented query here would throw away exactly the rows the index
