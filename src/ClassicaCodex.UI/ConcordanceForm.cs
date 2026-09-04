@@ -64,7 +64,14 @@ public class ConcordanceForm : ScaledForm
         _searchButton = new Button { Text = "Build Concordance", Left = 332, Top = 9, Width = 160, Height = 28 };
         _searchButton.Click += async (_, _) => await RunConcordanceAsync();
 
-        _statusLabel = new Label { Text = "", Left = 504, Top = 14, Width = 760, Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right };
+        // Two lines' worth of height, because this now reports the totals
+        // across the library as well as what is laid out, and one line of it
+        // was being cut off mid-sentence at the default 23px.
+        _statusLabel = new Label
+        {
+            Text = "", Left = 504, Top = 8, Width = 760, Height = 34,
+            Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right
+        };
 
         _resultsList = new ListView
         {
@@ -259,9 +266,9 @@ public class ConcordanceForm : ScaledForm
             // library rather than across the rows that fitted, so what is
             // capped is how much of it can be laid out on screen.
             _statusLabel.Text = hits.Truncated
-                ? $"{distribution.TotalMatches:N0} line(s) contain {word}, in {distribution.WorkCount:N0} work(s) " +
-                  $"by {distribution.AuthorCount:N0} author(s). Showing {rowCount:N0} occurrence(s) from the first " +
-                  $"{matches.Count:N0} line(s) - narrow the search to lay out the rest."
+                ? $"{distribution.TotalMatches:N0} lines contain {word}, in {distribution.WorkCount:N0} works " +
+                  $"by {distribution.AuthorCount:N0} authors.\r\n" +
+                  $"Showing {rowCount:N0} occurrences from the first {matches.Count:N0} - narrow the search for the rest."
                 : $"{rowCount:N0} occurrence(s) across {matches.Count:N0} line(s), " +
                   $"in {distribution.WorkCount:N0} work(s) by {distribution.AuthorCount:N0} author(s).";
         }

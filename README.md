@@ -58,21 +58,26 @@ marked, because its count is an upper bound.
 
 ## Search the whole library at once
 
-By word or phrase, whole-word or anywhere in the line, narrowed by author,
-language, era, collection, or your own tags. Whole-word search goes through a
-lemma- and accent-aware index, so a Greek word matches however a particular
-edition accents it. Results export, and the last ten searches are kept with all
-their filters.
+By word or phrase, narrowed by author, language, era, collection, or your own
+tags. The default whole-word search matches past the spelling as well as the
+word: accents and breathings, all three shapes of sigma, and both halves of
+Latin u/v and i/j — so an unaccented Greek word finds the accented form, and
+`iustitia` finds the editions that print `justitia` too. Counts are of the
+whole library rather than of the page, so "how often, and where" is a question
+it can actually answer. Results export, and the last ten searches are kept with
+all their filters.
 
-<img width="900" alt="Searching the library for uirtus in Latin, whole words only, showing 1,284 matches with the term highlighted in each line" src="docs/images/search.png" />
+<img width="900" alt="Searching the library for uirtus in Latin: 5,634 matches across 878 documents by 231 authors, shown one row per document with Cassiodorus, Hilary of Poitiers and Lactantius at the top" src="docs/images/search.png" />
 
 ## Concordance
 
 Every occurrence of a word in its context, aligned down the middle — the printed
 concordance's one genuinely irreplaceable trick, which is that you can read down
-the column and see the shape of a word's use.
+the column and see the shape of a word's use. The keyword column shows the word
+as each edition prints it, so searching `uirtus` lines up `virtus`, `uirtus` and
+`Virtus` together rather than making you pick one.
 
-<img width="900" alt="A keyword-in-context concordance for uirtus, 1,563 occurrences across 1,295 lines, with left context, the word, right context and source" src="docs/images/concordance.png" />
+<img width="900" alt="A keyword-in-context concordance for uirtus: 5,728 lines across 897 works by 242 authors, with left context, the word, right context and source in aligned columns" src="docs/images/concordance.png" />
 
 ## Find where a line is reused
 
