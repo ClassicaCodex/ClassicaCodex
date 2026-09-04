@@ -43,7 +43,7 @@ Where a form is genuinely ambiguous it says so and shows all the candidates,
 rather than picking one and being quietly wrong. For Latin verse it also scans
 the line and marks the syllables the metre settles.
 
-<img width="900" alt="Word Study on Aeneid 6.851: the word regere selected, headwords Reger and rego, the Lewis and Short entry for rego, 101 attested forms, and occurrences across the corpus" src="docs/images/word-study.png" />
+<img width="900" alt="Word Study on Aeneid 6.851: the word regere selected, rego offered first with its Lewis and Short entry already showing, 101 attested forms, and occurrences across the corpus" src="docs/images/word-study.png" />
 
 ## Know what vocabulary a work actually needs
 

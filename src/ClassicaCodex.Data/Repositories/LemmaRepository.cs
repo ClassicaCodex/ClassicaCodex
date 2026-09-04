@@ -186,7 +186,81 @@ public class LemmaRepository
             if (results.Count > 0) break;
         }
 
+        await PutAnswerableHeadwordsFirstAsync(conn, results, effectiveLanguage, cancellationToken);
         return results;
+    }
+
+    /// <summary>
+    /// Sorts headwords the dictionary can actually answer for to the top,
+    /// keeping the alphabetical order within each group.
+    ///
+    /// Word Study selects the first headword automatically, so whichever one
+    /// leads is the one a reader is shown. Alphabetical order put the wrong
+    /// one there almost every time: the Latin lemma data carries capitalised
+    /// headwords that nothing in Lewis and Short answers to - only 43,507 of
+    /// its 139,190 headwords have a dictionary entry behind them at all - and
+    /// a capital sorts before a lowercase letter. So "regere" led with Reger
+    /// over rego, "amare" with Amar over amo, "ferre" with Ferres over fero.
+    ///
+    /// The reader clicked a word and was shown "no dictionary entry found",
+    /// with the real entry sitting unnoticed one line below. On the feature
+    /// this application is most for.
+    ///
+    /// Normalising through WordNormalizer rather than in SQL is deliberate:
+    /// it is the same call the definition lookup itself makes - trailing
+    /// digits trimmed, and v/j folded to u/i for Latin - so the two cannot
+    /// drift apart and quietly start disagreeing about what has an entry.
+    /// </summary>
+    private static async Task PutAnswerableHeadwordsFirstAsync(
+        SqliteConnection conn,
+        List<(string Headword, string? PartOfSpeech)> results,
+        string language,
+        CancellationToken cancellationToken)
+    {
+        // One headword cannot be in the wrong order, and no headwords cannot
+        // be either. Both are the common case.
+        if (results.Count < 2) return;
+
+        var normalizedByHeadword = new Dictionary<string, string>(StringComparer.Ordinal);
+        foreach (var (headword, _) in results)
+        {
+            if (!normalizedByHeadword.ContainsKey(headword))
+                normalizedByHeadword[headword] = WordNormalizer.NormalizeHeadword(headword, language);
+        }
+
+        var answerable = new HashSet<string>(StringComparer.Ordinal);
+        var distinct = normalizedByHeadword.Values.Where(v => v.Length > 0).Distinct().ToList();
+        if (distinct.Count == 0) return;
+
+        await using (var cmd = conn.CreateCommand())
+        {
+            var names = new List<string>(distinct.Count);
+            for (var i = 0; i < distinct.Count; i++)
+            {
+                names.Add($"@h{i}");
+                cmd.Parameters.AddWithValue($"@h{i}", distinct[i]);
+            }
+
+            cmd.CommandText =
+                "SELECT DISTINCT NormalizedHeadword FROM Definitions " +
+                $"WHERE Language = @Language AND NormalizedHeadword IN ({string.Join(",", names)});";
+            cmd.Parameters.AddWithValue("@Language", language);
+            cmd.CommandTimeout = 30;
+
+            await using var reader = await cmd.ExecuteReaderAsync(cancellationToken);
+            while (await reader.ReadAsync(cancellationToken)) answerable.Add(reader.GetString(0));
+        }
+
+        // Nothing to promote, and nothing to demote - leave the order alone
+        // rather than reshuffling for no reason.
+        if (answerable.Count == 0 || answerable.Count == distinct.Count) return;
+
+        var ordered = results
+            .OrderByDescending(r => answerable.Contains(normalizedByHeadword[r.Headword]))
+            .ToList();
+
+        results.Clear();
+        results.AddRange(ordered);
     }
 
     /// <summary>
