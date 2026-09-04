@@ -61,6 +61,22 @@ public class WorkRepository
         return Convert.ToInt32(result);
     }
 
+    /// <summary>
+    /// One work's CTS URN, for putting an edition's stripped identifier back
+    /// together - editions are stored without the namespace and the work keeps
+    /// it. See CtsUrns.Qualify. Null when the work has since been removed.
+    /// </summary>
+    public async Task<string?> GetCtsUrnAsync(int workId, CancellationToken cancellationToken = default)
+    {
+        await using var conn = await DbConnectionFactory.OpenConnectionAsync(cancellationToken);
+        await using var cmd = conn.CreateCommand();
+        cmd.CommandText = "SELECT CtsUrn FROM Works WHERE WorkId = @WorkId;";
+        cmd.Parameters.AddWithValue("@WorkId", workId);
+
+        var result = await cmd.ExecuteScalarAsync(cancellationToken);
+        return result == null || result == DBNull.Value ? null : Convert.ToString(result);
+    }
+
     public async Task<List<Work>> GetByAuthorAsync(int authorId, CancellationToken cancellationToken = default)
     {
         var results = new List<Work>();
