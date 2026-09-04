@@ -93,8 +93,9 @@ public class TranslationBatchTests
 
         var batches = Plan(lines);
 
-        var alone = Assert.Single(batches.Where(b => b.Count == 1 && b[0].Length == 40000));
-        Assert.Single(alone);
+        var alone = Assert.Single(batches, b => b.Count == 1 && b[0].Length == 40000);
+
+        Assert.Equal(40000, alone[0].Length);
         Assert.Equal(3, batches.SelectMany(b => b).Count());
     }
 
