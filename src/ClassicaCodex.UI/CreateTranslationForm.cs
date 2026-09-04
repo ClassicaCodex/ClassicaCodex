@@ -38,7 +38,6 @@ namespace ClassicaCodex.UI;
 /// </summary>
 public class CreateTranslationForm : ScaledForm
 {
-    private const int BatchSize = 25;
     private const int InterBatchDelayMs = 2500;
     private const string GeminiTranslatorLabel = "Gemini (AI-generated)";
 
@@ -328,7 +327,11 @@ public class CreateTranslationForm : ScaledForm
         var remainingNodes = _sourceNodes.Where(n => !_translatedByRef.ContainsKey(n.CitationRef)).ToList();
         if (remainingNodes.Count == 0) return;
 
-        var batchCount = (int)Math.Ceiling(remainingNodes.Count / (double)BatchSize);
+        // Bounded by characters as well as lines - see TranslationBatches for
+        // why a count of lines was the wrong unit. Planned before the
+        // confirmation so the number of requests quoted is the real one.
+        var plannedBatches = TranslationBatches.Plan(remainingNodes, n => n.Text.Length);
+        var batchCount = plannedBatches.Count;
         var confirmed = MessageBox.Show(this,
             $"This will send the remaining {remainingNodes.Count:N0} line(s) of {_workTitle} to Gemini's " +
             $"API over the internet, in about {batchCount} separate requests. This could take several " +
@@ -346,7 +349,7 @@ public class CreateTranslationForm : ScaledForm
         var apiKey = TranslationSettings.GeminiApiKey!;
 
         var missingAfterMainPass = new List<TextNode>();
-        var batches = remainingNodes.Chunk(BatchSize).Select(c => c.ToList()).ToList();
+        var batches = plannedBatches;
         var stoppedEarly = false;
 
         for (var b = 0; b < batches.Count; b++)
@@ -418,8 +421,27 @@ public class CreateTranslationForm : ScaledForm
         {
             return batch;
         }
+        catch (TimeoutException)
+        {
+            // One slow batch is not a reason to abandon the other forty.
+            //
+            // Every failure used to end the run, which made a single timeout
+            // as final as a dead API key - and the batch most likely to time
+            // out is a big one near the start, so a work would stop on its
+            // first request having saved nothing at all. That is what "it
+            // doesn't work for this author" looked like from outside.
+            //
+            // A timeout says this request took too long, not that the next
+            // one will. Reported as lines that didn't come back, which is
+            // what they are, and picked up by the retry pass afterwards.
+            return batch;
+        }
         catch (Exception ex)
         {
+            // Everything else does stop: a bad key, a retired model, or the
+            // daily quota being gone are all conditions the next batch would
+            // meet as well, and grinding through forty more requests to be
+            // told the same thing forty more times helps nobody.
             _statusLabel.ForeColor = Color.DarkRed;
             _statusLabel.Text = $"Stopped: {ex.Message}";
             return null;

@@ -82,21 +82,37 @@ public static class GeminiTranslationService
     private static readonly HttpClient s_httpClient = new() { Timeout = Timeout.InfiniteTimeSpan };
 
     /// <summary>
-    /// How long to wait, given how much the model was asked to read.
+    /// How long to wait, given how much text is involved.
     ///
     /// Scaled by prompt size rather than set per caller, because size is the
     /// thing that actually makes a request slow and the code can measure it
-    /// without being told. A line to translate gets the floor; a whole play
-    /// handed over for comparison gets roughly three minutes.
+    /// without being told.
     ///
-    /// The ceiling matters as much as the floor. This runs on a dialog
-    /// somebody is sitting in front of, and past a few minutes the honest
-    /// thing is to say it did not work rather than to keep them waiting on
-    /// the chance that it might.
+    /// The divisor used to be 2000, which was a reading rate - fine for the
+    /// echo search, which hands over a whole work and asks for a short
+    /// answer. It is the wrong rate for translating, where the model has to
+    /// *write* about as much as it was given, one token at a time, and that
+    /// generation is nearly all of the wall time. A 22,812-character batch of
+    /// Julian was allowed 72 seconds on that formula and needed considerably
+    /// more; the request failed, and with it the whole run.
+    ///
+    /// 150 comes from measuring the live API rather than from a rate card:
+    /// 5,107 characters of Greek prose came back in 24 seconds and 9,958 in
+    /// 37, but 2,885 once took 48, so the variance is as large as the trend
+    /// and the allowance has to cover a bad minute rather than an average
+    /// one. Batches are capped at 6,000 characters now (see
+    /// TranslationBatches), so this hands a typical one about 100 seconds
+    /// against a measured 24.
+    ///
+    /// The floor is unchanged, so a single line to translate is no slower to
+    /// give up on than it was. The ceiling matters as much: this runs on a
+    /// dialog somebody is sitting in front of, and past a few minutes the
+    /// honest thing is to say it did not work rather than to keep them
+    /// waiting on the chance that it might.
     /// </summary>
     private static TimeSpan TimeoutFor(string prompt)
     {
-        var seconds = 60 + prompt.Length / 2000;
+        var seconds = 60 + prompt.Length / 150;
         return TimeSpan.FromSeconds(Math.Min(seconds, 240));
     }
 
