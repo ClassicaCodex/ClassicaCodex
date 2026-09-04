@@ -193,6 +193,13 @@ public class SearchForm : ScaledForm
         // is still 303 against 316, because whole-word goes through an index
         // that normalises across editions and a LIKE pattern cannot.
         //
+        // Latin has the same problem for a different reason. u/v and i/j were
+        // one letter each, editors disagree about which glyph to print, and
+        // only the index folds them - so "anywhere" finds "iustitia" 1,425
+        // times where whole-word finds it 4,196, and finds "adiuvare" 58 times
+        // against 293. That falls the wrong way round: the spellings it is
+        // worst at are the ones a reader was taught.
+        //
         // Nothing on screen says any of that. Someone reads "8 results" as a
         // fact about Homer rather than about the match mode, which is the worst
         // shape a wrong answer can take.

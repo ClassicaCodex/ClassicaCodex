@@ -414,19 +414,49 @@ public class TextNodeRepository
                 // typed without accents contains characters the text simply
                 // doesn't have, and no amount of confirming afterwards can
                 // recover a row the prefilter already excluded.
-                var indexTargets = query
+                //
+                // Each word is then expanded into its u/v and i/j spellings,
+                // for the reason SpellingVariants gives at length: those were
+                // one letter each in antiquity, editors disagree about which
+                // glyph to print, and searching one spelling was returning a
+                // fraction of the evidence - 31.8% of it hidden across
+                // twenty-two ordinary Latin query words, and 65.8% of
+                // "iustitia" specifically, which is the spelling a reader is
+                // actually taught. Expansion is free in Greek, where a
+                // normalized word has none of these letters.
+                //
+                // It is close to free in time too. Every extra spelling is
+                // one more seek on the index's leading key column, and most
+                // of them miss: measured on a full library, "iustitia" went
+                // from 5 ms and 1,445 hits to 15 ms and 4,196.
+                var queryWords = query
                     .Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries)
                     .Select(WordNormalizer.Normalize)
                     .Where(w => w.Length > 0)
                     .Distinct(StringComparer.Ordinal)
                     .ToList();
 
-                if (indexTargets.Count == 0)
+                if (queryWords.Count == 0)
                 {
                     where.Add("1 = 0");
                     break;
                 }
 
+                // One clause per word, ANDed - a line has to contain all of
+                // them, not any of them.
+                //
+                // It read as one IN over every word's spellings at once,
+                // which is an OR, and for a single-word query the two are the
+                // same thing. They stopped being the same thing when this
+                // became the default mode, because typing more than one word
+                // into a search box is normal and OR is not what anybody
+                // means by it. Searching this library for "gallia est omnis
+                // divisa" returned 5,000+ lines led by an argumentum to a
+                // letter of Cyprian - every line in the corpus containing
+                // "est" - where the reader wanted the one line that opens the
+                // Gallic War. That is the worst kind of wrong answer: a
+                // confident, enormous one.
+                //
                 // IN over a subquery driven FROM the index, not EXISTS
                 // correlated back to it. The two return the same rows and are
                 // not the same query.
@@ -447,9 +477,20 @@ public class TextNodeRepository
                 // SearchByFormsAsync and FindTextNodesContainingAnyWordAsync
                 // were already written this way. This one was not, and it is
                 // the search window's default mode.
-                where.Add($@"tn.TextNodeId IN (
-                    SELECT wi.TextNodeId FROM WordIndex wi
-                    WHERE wi.NormalizedWord IN ({AddParameters(cmd, "ww", indexTargets)}))");
+                //
+                // Each word's own spellings stay ORed together inside its own
+                // clause, since "iustitia" and "justitia" are one word and
+                // requiring both would match nothing.
+                // A distinct prefix per word: AddParameters numbers from zero
+                // on every call, so sharing one would name two parameters
+                // @ww0 and throw.
+                for (var i = 0; i < queryWords.Count; i++)
+                {
+                    var spellings = SpellingVariants.Of(queryWords[i]);
+                    where.Add($@"tn.TextNodeId IN (
+                        SELECT wi.TextNodeId FROM WordIndex wi
+                        WHERE wi.NormalizedWord IN ({AddParameters(cmd, $"ww{i}_", spellings)}))");
+                }
                 break;
 
             case SearchMatchMode.WholeWord:

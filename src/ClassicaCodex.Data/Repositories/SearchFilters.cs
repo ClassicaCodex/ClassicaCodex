@@ -7,15 +7,23 @@ public enum SearchMatchMode
 {
     /// <summary>
     /// Anywhere in a line, as typed. "arm" finds "arma" and also "harm" -
-    /// the broadest and the default, because it's the one that never
-    /// silently misses something.
+    /// the widest net over a single spelling, and the one to reach for when
+    /// hunting a stem or a fragment.
+    ///
+    /// Not the most thorough, though it reads like it should be: this is a
+    /// LIKE pattern against the raw text, so it matches only the spelling
+    /// typed. It cannot see past a diacritic the edition prints and the
+    /// reader did not type, and it cannot see past u/v or i/j at all.
+    /// <see cref="WholeWord"/> goes through the word index and does both.
     /// </summary>
     Contains,
 
     /// <summary>
     /// Bounded by non-letters on both sides, so "arm" finds "arm" but not
-    /// "arma". The narrowest, and the one to reach for when a short query is
-    /// drowning in incidental substring hits.
+    /// "arma". Narrower about word boundaries and wider about spelling: it
+    /// matches through the word index, which folds accents and breathings
+    /// and both halves of u/v and i/j, so one query reaches every edition's
+    /// way of printing the word. The default, for that reason.
     /// </summary>
     WholeWord,
 
