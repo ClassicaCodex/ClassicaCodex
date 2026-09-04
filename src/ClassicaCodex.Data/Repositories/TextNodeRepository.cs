@@ -422,8 +422,8 @@ public class TextNodeRepository
                 // fraction of the evidence - 31.8% of it hidden across
                 // twenty-two ordinary Latin query words, and 65.8% of
                 // "iustitia" specifically, which is the spelling a reader is
-                // actually taught. Expansion is free in Greek, where a
-                // normalized word has none of these letters.
+                // actually taught. Greek has one of its own - the lunate
+                // sigma 87 editions in this corpus are set in.
                 //
                 // It is close to free in time too. Every extra spelling is
                 // one more seek on the index's leading key column, and most

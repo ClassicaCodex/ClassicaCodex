@@ -82,15 +82,43 @@ public class SpellingVariantsTests
         Assert.Equal(expected, SpellingVariants.Of(word).Count);
 
     /// <summary>
-    /// A Greek word has none of these letters once normalized, so it passes
-    /// through untouched and costs a Greek search nothing.
+    /// A Greek word with no sigma has none of these letters once normalized,
+    /// so it passes through untouched and costs that search nothing.
     /// </summary>
     [Fact]
-    public void GreekIsUntouched()
+    public void AGreekWordWithoutASigmaIsUntouched()
     {
         var normalized = WordNormalizer.Normalize("μῆνιν");
 
         Assert.Equal(new[] { normalized }, SpellingVariants.Of(normalized));
+    }
+
+    /// <summary>
+    /// A Greek word with one does get the lunate spelling, so that an index
+    /// built before the fold existed is still reachable. 87 editions in this
+    /// corpus are set in lunate sigma.
+    /// </summary>
+    [Fact]
+    public void AGreekWordWithASigmaAlsoGetsTheLunateSpelling()
+    {
+        var variants = SpellingVariants.Of(WordNormalizer.Normalize("λόγος"));
+
+        Assert.Contains("λογοσ", variants);
+        Assert.Contains("λογοϲ", variants);
+    }
+
+    /// <summary>
+    /// Every sigma of the word, since a word normalized before the fold
+    /// carries the lunate form in all of its positions at once.
+    /// </summary>
+    [Fact]
+    public void EverySigmaOfTheWordVaries()
+    {
+        var variants = SpellingVariants.Of("σοφιστησ");
+
+        Assert.Contains("σοφιστησ", variants);
+        Assert.Contains("ϲοφιϲτηϲ", variants);
+        Assert.Equal(8, variants.Count); // three sigmas
     }
 
     /// <summary>

@@ -30,15 +30,22 @@ namespace ClassicaCodex.Core;
 ///
 /// Early-modern English has the same convention and the same problem, so
 /// this is not gated on language: "haue" for have (7,280 lines), "vpon" for
-/// upon (5,684), "iust", "iudge". Greek is unaffected for free, since a
-/// normalized Greek word contains no Latin u, v, i or j and Of() then hands
-/// back the single word it was given.
+/// upon (5,684), "iust", "iudge". A word with none of these letters comes
+/// straight back, so nothing pays for a distinction it does not have.
 ///
 /// Conflating two genuinely different words is the risk worth checking, and
 /// it does not appear to exist. Of the 464 keys in this corpus where more
 /// than one frequent Latin spelling folds together - ut/vt, qui/qvi,
 /// eius/ejus, iam/jam, cuius/cujus, huius/hujus - every one is the same word
 /// twice. That is what "u and v were one letter" means in practice.
+///
+/// Greek has one of these too, and it is here rather than only in
+/// WordNormalizer for a reason. Lunate sigma is now folded to ordinary sigma
+/// when a word is normalized, which is the right place for it - but a word
+/// index built before that fold existed holds the lunate spelling, and 87
+/// editions in this corpus are set in it. Generating the lunate spelling at
+/// query time reaches those rows without anyone having to rebuild an index,
+/// and costs one wasted probe per sigma once they have.
 /// </summary>
 public static class SpellingVariants
 {
@@ -51,6 +58,10 @@ public static class SpellingVariants
     /// 99.66% have six or fewer. The words past the cap are compounds like
     /// "iniuriosissimus" - real, but rare enough that spending hundreds of
     /// index probes on them is the wrong trade.
+    ///
+    /// Greek counts only its sigmas here, and a word with seven of them is
+    /// not a word. Falling back for one loses nothing anyway: the two
+    /// uniform spellings are the only two an edition would ever print.
     /// </summary>
     public const int MaxAmbiguousLetters = 6;
 
@@ -77,18 +88,22 @@ public static class SpellingVariants
         var positions = new List<int>();
         for (var i = 0; i < word.Length; i++)
         {
-            if (word[i] is 'u' or 'v' or 'i' or 'j') positions.Add(i);
+            if (word[i] is 'u' or 'v' or 'i' or 'j' or 'σ' or 'ϲ') positions.Add(i);
         }
 
         if (positions.Count == 0) return new List<string> { word };
 
         if (positions.Count > MaxAmbiguousLetters)
         {
+            // The two uniform spellings, which is what an edition following
+            // one house style prints - and for sigma that is not a rough
+            // approximation but exactly right, since an edition set in lunate
+            // sigma uses it for every sigma in the book.
             return new List<string>
             {
                 word,
-                word.Replace('v', 'u').Replace('j', 'i'),
-                word.Replace('u', 'v').Replace('i', 'j')
+                word.Replace('v', 'u').Replace('j', 'i').Replace('ϲ', 'σ'),
+                word.Replace('u', 'v').Replace('i', 'j').Replace('σ', 'ϲ')
             }.Distinct(StringComparer.Ordinal).ToList();
         }
 
@@ -105,7 +120,9 @@ public static class SpellingVariants
                 'u' => 'v',
                 'v' => 'u',
                 'i' => 'j',
-                _ => 'i'
+                'j' => 'i',
+                'σ' => 'ϲ',
+                _ => 'σ'
             };
 
             var grown = new List<string>(results.Count * 2);
