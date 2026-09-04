@@ -95,6 +95,13 @@ public class SearchForm : ScaledForm
     private bool DocumentView => _viewBox.SelectedIndex == 1 && _openDocumentWorkId == null;
 
     private List<string> _highlightTerms = new();
+
+    /// <summary>
+    /// The normalized spellings the word index was actually asked for, so the
+    /// highlighter can mark the word in a line the literal query does not
+    /// appear in - see FindHighlightSpans.
+    /// </summary>
+    private HashSet<string> _highlightWords = new(StringComparer.Ordinal);
     private List<Author> _authors = new();
     private List<RecentSearch> _recent = new();
 
@@ -701,6 +708,8 @@ public class SearchForm : ScaledForm
                 .Where(w => w.Length > 0)
                 .ToList();
 
+            _highlightWords = WordOccurrences.TargetsFor(filters.Query);
+
             // Task.Run, because the await above it is not one. SQLite has no
             // asynchronous I/O and Microsoft.Data.Sqlite says so: its Async
             // methods run to completion synchronously and hand back a task
@@ -1085,7 +1094,7 @@ public class SearchForm : ScaledForm
         // Notice rows carry no match and shouldn't be highlighted as if they
         // did - they aren't results.
         var spans = e.Index < _displayedCount
-            ? FindHighlightSpans(text, _highlightTerms)
+            ? FindHighlightSpans(text, _highlightTerms, _highlightWords)
             : new List<(int Start, int Length)>();
 
         var pos = 0;
@@ -1101,7 +1110,27 @@ public class SearchForm : ScaledForm
         e.DrawFocusRectangle();
     }
 
-    private static List<(int Start, int Length)> FindHighlightSpans(string text, List<string> terms)
+    /// <summary>
+    /// Both ways of finding the query in the line, because both are right for
+    /// a different mode.
+    ///
+    /// The literal pass is what "anywhere in the line" means, and is the only
+    /// one that can mark a stem inside a longer word - typing "virt" and
+    /// seeing it lit inside "virtutem".
+    ///
+    /// The word pass is what the whole-word default actually matched on. That
+    /// search goes through the index, which folds accents, both sigmas, and
+    /// u/v and i/j - so it returns the line accented however its edition
+    /// accents it, and the edition printing "justitia" for a query of
+    /// "iustitia". A literal IndexOf finds none of those, so the row came
+    /// back with nothing marked in it, which reads as the application having
+    /// returned a line that does not contain the word.
+    ///
+    /// Overlaps between the two are harmless: the draw loop walks the spans
+    /// in order and skips any that starts inside the one before it.
+    /// </summary>
+    private static List<(int Start, int Length)> FindHighlightSpans(
+        string text, List<string> terms, IReadOnlyCollection<string> wordTargets)
     {
         var spans = new List<(int Start, int Length)>();
 
@@ -1116,6 +1145,8 @@ public class SearchForm : ScaledForm
                 idx += term.Length;
             }
         }
+
+        spans.AddRange(WordOccurrences.Find(text, wordTargets));
 
         spans.Sort((a, b) => a.Start.CompareTo(b.Start));
         return spans;

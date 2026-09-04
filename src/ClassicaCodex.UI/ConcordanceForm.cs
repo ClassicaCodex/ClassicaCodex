@@ -1,4 +1,4 @@
-using System.Text.RegularExpressions;
+using ClassicaCodex.Core;
 using ClassicaCodex.Data.Repositories;
 
 namespace ClassicaCodex.UI;
@@ -178,13 +178,40 @@ public class ConcordanceForm : ScaledForm
 
         try
         {
-            // Off the UI thread - see the note in SearchForm. This is the
-            // substring search, the slowest query in the app, and awaiting it
-            // directly froze the window for its whole duration.
-            var hits = await Task.Run(() => _textNodeRepo.SearchAsync(word));
+            // Whole words through the index, not a substring scan of the raw
+            // text, and this is a correctness fix before it is a speed one.
+            //
+            // A concordance is a word framed by its context, so it has to find
+            // the word. The substring scan compares what was typed against the
+            // text as printed, and this corpus is not printed the way anyone
+            // types: Greek carries diacritics nobody enters into a search box,
+            // 87 editions are set in lunate sigma, and Latin u/v and i/j are
+            // the editor's choice rather than the author's. Concordancing
+            // Greek "μηνιν" found 8 lines where the word is in 316, and
+            // "iustitia" found 1,425 of 4,196 - and a concordance that quietly
+            // misses three quarters of its word is worse than no concordance.
+            //
+            // Being roughly a hundred times faster is the smaller half:
+            // measured on a full library, 13ms against 2,564ms for that Greek
+            // word, because it seeks an index instead of reading 594MB of
+            // text.
+            //
+            // What it gives up is the inflections a substring happened to
+            // catch - "sophia" no longer picks up "sophian" - and that is
+            // worth giving up, because it only ever caught the ones that
+            // differ by a suffix and never the ones that differ by an accent
+            // or a prefix. This concordance is now of a word, consistently.
+            // The question about every form of a headword has its own screen,
+            // which asks the lemma data rather than guessing from spelling.
+            var filters = new SearchFilters { Query = word, MatchMode = SearchMatchMode.WholeWord };
+            var (hits, distribution) = await Task.Run(async () => (
+                await _textNodeRepo.SearchFilteredAsync(filters),
+                await _textNodeRepo.CountMatchesByWorkAsync(filters)));
             var matches = hits.Rows;
 
-            var wordPattern = new Regex(Regex.Escape(word), RegexOptions.IgnoreCase);
+            // What the index was actually asked for, which is what may be
+            // sitting in these lines - the typed spelling is only one of them.
+            var targets = WordOccurrences.TargetsFor(word);
 
             // The KWIC framing is what a concordance is for, so it travels
             // with the export as each passage's detail - one entry per line,
@@ -193,41 +220,50 @@ public class ConcordanceForm : ScaledForm
             _currentPassages = matches
                 .Select(m => new ExportPassage(
                     m.WorkId, m.TextNodeId, m.AuthorName, m.WorkTitle, m.CitationRef, m.Text,
-                    BuildKwicDetail(m.Text, wordPattern)))
+                    BuildKwicDetail(m.Text, targets)))
                 .ToList();
 
             var rowCount = 0;
             foreach (var m in matches)
             {
-                // One KWIC row per literal occurrence of the typed word in
-                // the line - a stemmed match (search found "running" for a
-                // "run" query) that doesn't contain the literal substring
-                // still shows up as a whole-line row further below, rather
-                // than being silently dropped.
-                var found = false;
-                foreach (Match occurrence in wordPattern.Matches(m.Text))
+                // One KWIC row per occurrence, with the keyword column
+                // carrying the word as that edition prints it rather than as
+                // it was typed - which is the point of a concordance drawn
+                // from editions that disagree about spelling.
+                var occurrences = WordOccurrences.Find(m.Text, targets);
+
+                foreach (var (start, length) in occurrences)
                 {
-                    found = true;
-                    var left = m.Text[..occurrence.Index].TrimStart();
-                    var keyword = occurrence.Value;
-                    var right = m.Text[(occurrence.Index + occurrence.Length)..].TrimEnd();
+                    var left = m.Text[..start].TrimStart();
+                    var keyword = m.Text.Substring(start, length);
+                    var right = m.Text[(start + length)..].TrimEnd();
 
                     AddRow(left, keyword, right, m.Text, m.AuthorName, m.WorkTitle, m.CitationRef, m.WorkId, m.TextNodeId);
                     rowCount++;
                 }
 
-                if (!found)
+                // A line the search matched but whose word cannot be located
+                // in it shows whole rather than being silently dropped. It
+                // should no longer happen now that both ends normalize the
+                // same way, and it is still the right way to fail.
+                if (occurrences.Count == 0)
                 {
-                    AddRow("", "(stemmed match)", m.Text, m.Text, m.AuthorName, m.WorkTitle, m.CitationRef, m.WorkId, m.TextNodeId);
+                    AddRow("", "(matched line)", m.Text, m.Text, m.AuthorName, m.WorkTitle, m.CitationRef, m.WorkId, m.TextNodeId);
                     rowCount++;
                 }
             }
 
-            // DisplayCount renders "5000+" when the search hit its cap - a
-            // concordance that silently stops isn't a concordance.
+            // A concordance that silently stops isn't a concordance - and one
+            // that can only say "5000+" cannot answer the question it was
+            // opened to answer. The line count is now counted across the
+            // library rather than across the rows that fitted, so what is
+            // capped is how much of it can be laid out on screen.
             _statusLabel.Text = hits.Truncated
-                ? $"{rowCount}+ occurrence(s) across {hits.DisplayCount} line(s) - stopped at the result limit, narrow the search for the rest."
-                : $"{rowCount} occurrence(s) across {matches.Count} line(s).";
+                ? $"{distribution.TotalMatches:N0} line(s) contain {word}, in {distribution.WorkCount:N0} work(s) " +
+                  $"by {distribution.AuthorCount:N0} author(s). Showing {rowCount:N0} occurrence(s) from the first " +
+                  $"{matches.Count:N0} line(s) - narrow the search to lay out the rest."
+                : $"{rowCount:N0} occurrence(s) across {matches.Count:N0} line(s), " +
+                  $"in {distribution.WorkCount:N0} work(s) by {distribution.AuthorCount:N0} author(s).";
         }
         finally
         {
@@ -239,17 +275,17 @@ public class ConcordanceForm : ScaledForm
     /// The keyword shown in context, once per occurrence in the line, in
     /// the same left / word / right shape the on-screen columns use.
     /// </summary>
-    private static string BuildKwicDetail(string text, Regex wordPattern)
+    private static string BuildKwicDetail(string text, IReadOnlyCollection<string> targets)
     {
         var parts = new List<string>();
 
-        foreach (Match occurrence in wordPattern.Matches(text))
+        foreach (var (start, length) in WordOccurrences.Find(text, targets))
         {
-            var left = TrimLeftContext(text[..occurrence.Index].TrimStart());
-            var right = text[(occurrence.Index + occurrence.Length)..].TrimEnd();
+            var left = TrimLeftContext(text[..start].TrimStart());
+            var right = text[(start + length)..].TrimEnd();
             if (right.Length > 90) right = right[..90] + "\u2026";
 
-            parts.Add($"{left} \u27e8{occurrence.Value}\u27e9 {right}");
+            parts.Add($"{left} \u27e8{text.Substring(start, length)}\u27e9 {right}");
         }
 
         return parts.Count == 0 ? string.Empty : string.Join("  |  ", parts);
