@@ -3,9 +3,9 @@
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
     <Nullable>enable</Nullable>
-    <Version>3.4.0</Version>
-    <AssemblyVersion>3.4.0.0</AssemblyVersion>
-    <FileVersion>3.4.0.0</FileVersion>
+    <Version>3.4.1</Version>
+    <AssemblyVersion>3.4.1.0</AssemblyVersion>
+    <FileVersion>3.4.1.0</FileVersion>
     <ImplicitUsings>enable</ImplicitUsings>
     <RootNamespace>ClassicaCodex.Core</RootNamespace>
     <!-- Enables the compiler's structural checks on /// doc comments -
