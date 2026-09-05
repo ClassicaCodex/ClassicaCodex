@@ -351,9 +351,9 @@ public class SearchForm : ScaledForm
         _resultsList = new ListBox
         {
             Left = 12,
-            Top = 226,
+            Top = 232,
             Width = 1060,
-            Height = 414,
+            Height = 408,
             Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right,
 
             // This used to carry a note saying it had no horizontal scrollbar because
@@ -398,7 +398,7 @@ public class SearchForm : ScaledForm
             Left = 14,
             Top = 650,
             Width = 1058,
-            Height = 34,
+            Height = 30,
             Anchor = AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right,
             ForeColor = Color.DimGray,
             Text = "Type a word and press Enter. Double-click a result to open it in the reader."

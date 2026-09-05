@@ -67,18 +67,24 @@ public class ConcordanceForm : ScaledForm
         // Two lines' worth of height, because this now reports the totals
         // across the library as well as what is laid out, and one line of it
         // was being cut off mid-sentence at the default 23px.
+        //
+        // 54 rather than the 34 that fits at 100%, because 34 is only just
+        // enough: measured with the longest status this form produces, two
+        // lines want 30px at the default text size, 40px at 125% and 50px at
+        // 150%. A box sized to the first of those loses its second line on
+        // any machine not at 100%, which is a large share of them.
         _statusLabel = new Label
         {
-            Text = "", Left = 504, Top = 8, Width = 760, Height = 34,
+            Text = "", Left = 504, Top = 6, Width = 760, Height = 54,
             Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right
         };
 
         _resultsList = new ListView
         {
             Left = 12,
-            Top = 48,
+            Top = 64,
             Width = 1260,
-            Height = 660,
+            Height = 644,
             Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right,
             View = View.Details,
             FullRowSelect = true,
