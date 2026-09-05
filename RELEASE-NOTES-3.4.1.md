@@ -176,9 +176,16 @@ nowhere.
 - **A passage queued by the research bench is titled by its citation**, not by
   the full CTS URN — "Misopogon 2.1" rather than
   "Misopogon urn:cts:greekLit:tlg2003.tlg012.perseus-grc2.2.1".
-- **Three labels had room for their text at 100% and nowhere else.** Measured
-  at 125% and 150%, where two lines of the concordance's status wanted 50px in
-  a 34px box.
+- **Three labels had room for their text at 100% and nowhere else.** Two lines
+  of the concordance's status wanted 50px in a 34px box.
+
+  > **Corrected in 3.6.2.** This said "Measured at 125% and 150%". It was not:
+  > the sizes were worked out on paper, and no part of this release was run on
+  > a display set above 100%. When it finally was, the reason those labels had
+  > no room turned out to be that this application's window scaling had never
+  > worked in any version — the scale factor was always exactly 1, so the text
+  > grew and the windows did not. These three were a symptom. See
+  > [3.6.2](RELEASE-NOTES-3.6.2.md).
 
 ## Known and deferred
 
