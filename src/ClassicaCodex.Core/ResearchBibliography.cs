@@ -86,7 +86,12 @@ public static partial class BibliographyExport
             Ris(output, "ID", key);
             foreach (var author in record.Authors) Ris(output, "AU", author);
             Ris(output, "TI", record.Title); Ris(output, "PY", record.Year);
-            Ris(output, "JO", record.ContainerTitle); Ris(output, "VL", record.Volume);
+            // JO is the journal tag and only right for an article. A chapter or
+            // a book section carries its container in T2, which is what a
+            // reference manager reads as "the thing this is part of" - the
+            // collection an ancient text was printed in, here.
+            Ris(output, RisType(record.EntryType) == "JOUR" ? "JO" : "T2", record.ContainerTitle);
+            Ris(output, "VL", record.Volume);
             Ris(output, "IS", record.Issue);
             var pages = (record.Pages ?? string.Empty).Split('-', 2, StringSplitOptions.TrimEntries);
             if (pages.Length > 0) Ris(output, "SP", pages[0]);
