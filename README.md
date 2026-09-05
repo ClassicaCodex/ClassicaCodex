@@ -242,6 +242,18 @@ Windows only, for now — it's built on WinForms, which doesn't run elsewhere. N
 
 Not necessary to use the app — the release ZIP is self-contained. If you want to build it anyway, you'll need the [.NET 8 SDK](https://dotnet.microsoft.com/download/dotnet/8.0). Clone the repo and either open `ClassicaCodex.sln` in Visual Studio 2022 or later, or run `dotnet build` from the command line. Everything after that is the same setup wizard.
 
+### Checking display scaling
+
+If you change anything about how a window is laid out, run this at more than one display scaling:
+
+```
+dotnet run --project tools/DisplayScalingAudit -c Release
+```
+
+It opens every window that takes no arguments and reports any caption without room to draw, naming the report for the scaling it finds. Set the scaling in Settings → System → Display → Scale and run it once at each, then compare: the 100% report is the baseline, and what matters is anything new above it.
+
+This exists because until 3.6.2 the scaling did nothing at all, and that survived six releases — at 100% a broken scale factor and a correct one are the same number, so no test could see it and no amount of care at 100% would have found it.
+
 ## License
 
 The code in this repository is [MIT licensed](LICENSE). That covers the application itself, not the data it downloads at setup — see [Data sources & licensing](#data-sources--licensing) above for those.
