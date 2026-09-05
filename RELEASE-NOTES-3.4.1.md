@@ -1,0 +1,130 @@
+# Classica Codex 3.4.1
+
+Search was returning a fraction of the evidence and saying nothing about it.
+
+This release is all repair, and almost all of it is in one place: what a search
+matches, what it counts, and what it shows you it matched. Nothing here changes
+your data — **no schema change, no re-ingest, no re-index.** Upgrading is
+extract-and-run, and every fix below applies to the library you already have.
+
+**[Download the Windows ZIP](https://github.com/ClassicaCodex/ClassicaCodex/releases/latest)** —
+extract all of it, run `ClassicaCodex.UI.exe`. Windows will show a blue "Windows
+protected your PC" box on first run because the app isn't code-signed; click
+**More info**, then **Run anyway**.
+
+## A Latin search was hiding about a third of the evidence
+
+`u` and `v` were one letter in antiquity, and so were `i` and `j`. Which glyph
+an edition prints is the editor's decision, editors disagree, and the same word
+therefore sits in this corpus under two spellings. A search reached one of them.
+
+Measured against a full library, counting lines in Latin editions:
+
+| typed | found | really there | hidden |
+|---|---|---|---|
+| `adiuvare` | 58 | **293** | 80% |
+| `eiusdem` | 1,953 | **5,867** | 67% |
+| `iudex` | 602 | **1,765** | 66% |
+| `iustitia` | 1,425 | **4,172** | 66% |
+| `iam` | 24,046 | **43,149** | 44% |
+| `vel` | 33,214 | **44,117** | 25% |
+
+Across twenty-two ordinary query words, **31.8% of the evidence was hidden** —
+and it fell the wrong way round. `iustitia` and `iudicium` are the spellings of
+every modern critical edition and every textbook, so the reader typing what
+they were taught got the smaller half.
+
+Queries now expand into their `u/v` and `i/j` spellings. `virtus` and `uirtus`
+return the same 5,634 lines.
+
+## Greek had two of its own
+
+**The default match mode was wrong for it.** The window opened on "Anywhere in
+the line", a pattern compared against the raw text — and Greek is written with
+diacritics that editions disagree about and nobody types. Searching `μηνιν`
+returned **8** lines where the word is in **316**. Whole words is now the
+default, and it goes through an index that folds accents and breathings.
+
+**Lunate sigma is sigma.** 87 editions in this corpus are set in the rounded
+sigma that papyri use — the Suda, Herodian, Apollonius Dyscolus, Philodemus,
+Porphyry, Galen — and nothing folded it, so none of them could be reached by
+anyone typing an ordinary sigma. That stranded **349,421 index entries across
+84,799 distinct words**, and 22% of every line containing `πόλις`.
+
+## Typing more than one word now means all of them
+
+Whole-word matching ORed the words together, which is the same as ANDing them
+while queries are one word long and badly wrong the moment they are not.
+Searching `gallia est omnis divisa` returned 5,000+ lines led by an argumentum
+to a letter of Cyprian, because nearly every line in the corpus contains `est`.
+It now returns the one line that opens the *Gallic War*, in 37 ms.
+
+Pasting a line straight out of the reader works, which is the most natural
+thing to do with a search box.
+
+## "One row per document" was a distribution that wasn't one
+
+A search stops at 5,000 rows **ordered by author name**, so the cap does not
+sample the matches — it truncates the alphabet. The document view grouped
+whatever survived and presented it as "which works use this word".
+
+Searching `vel`: 44,457 lines across 1,623 works, of which that view showed
+5,000 lines across 168. **1,455 works — 90% of those containing it — showed
+nothing**, and Augustine, who has more of them than anyone, was credited with
+184 because the cap landed in the middle of him. For `λόγος` the real top of
+the distribution is the Homeric scholia; the view led with Aesop, who was there
+because of the A.
+
+Counts are now computed across the whole library, not across the page. The
+status line says how many matches there are, in how many works, by how many
+authors — where it used to say `5000+`, which is all a capped row query can
+honestly report and useless to anyone asking how often a word occurs.
+
+## The concordance could not do Greek at all
+
+It was still running the old substring search, so it inherited every problem
+above: concordancing `μηνιν` found **8** lines where the word is in **316**.
+Worse, of those 316 the keyword column could be filled on **one** — the rest
+printed as "(stemmed match)", which is a concordance with no keyword column.
+
+It now matches whole words through the index, fills the keyword column on every
+row, and shows the word **as that edition prints it**, so searching `uirtus`
+lines up `virtus`, `uirtus` and `Virtus` in one column. It is also about a
+hundred times faster: 13 ms against 2,564 ms.
+
+## Smaller things
+
+- **Word Study led with a headword the dictionary could not answer.** Only
+  43,507 of 139,190 Latin lemma headwords have a Lewis & Short entry, and a
+  capital letter sorts first — so clicking `regere` offered "Reger" (0 entries)
+  with `rego` sitting below it. Answerable headwords now sort first.
+- **"Where should I start?" sent beginners to Pseudo-Caesar.** The screen that
+  exists so a beginner doesn't land on the wrong text opened *De Bello Africo*
+  for "Caesar, Gallic War", and Pseudo-Lucian's *Amores* for "Lucian,
+  Dialogues". It now prefers the real author, and offers nothing rather than
+  substituting a similar name.
+- **An exported passage now says which edition it came from** — this library
+  deliberately holds the same work in CSEL and in Migne, and the export used to
+  name neither.
+- **Create Translation could not finish a prose work.** Batches were 25 lines,
+  and a line is a verse line in Homer and a whole section in Julian: the same
+  constant sent 1,000 characters of one and 22,812 of the other, and the second
+  timed out. Batches are now bounded by text as well as lines, the timeout
+  accounts for what the model has to write rather than only what it reads, and
+  one slow request no longer ends the whole run.
+- **Results are highlighted again.** The search got better at finding lines the
+  literal query does not appear in, and the highlighter could not mark them —
+  299 of 300 rows for `μηνιν` came back with nothing lit up.
+
+## Known and deferred
+
+**Plato cannot be cited properly.** Perseus ships Stephanus pagination as
+inline milestone markers, which the parser discards, so *Euthyphro* 2a displays
+as `[2.1]`. Capturing it needs a parser change and a re-ingest, so it is filed
+for 3.5 rather than rushed into a point release.
+
+## Checks
+
+Verified against a full 2.3-million-line library, and by building one from
+empty with this code: 14 setup steps, 30 minutes, all integrity checks clean,
+68,871,775 index entries. 843 tests, zero build warnings.

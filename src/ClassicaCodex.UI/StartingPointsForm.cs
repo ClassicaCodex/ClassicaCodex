@@ -1,3 +1,4 @@
+using ClassicaCodex.Core;
 using ClassicaCodex.Core.Models;
 using ClassicaCodex.Data.Repositories;
 

@@ -602,10 +602,28 @@ public class WordStudyForm : ScaledForm
 
             if (entries.Count == 0)
             {
-                _definitionBox.Text =
-                    "(no dictionary entry found)\r\n\r\n" +
-                    "Either no dictionary is loaded for this language, or this headword isn't in it. " +
-                    "Use \"Load Lemmas...\" and switch Data type to \"Dictionary (lexicon)\" to load one.";
+                // Which of the two it is, rather than both at once. The old
+                // wording offered "no dictionary is loaded, or this headword
+                // isn't in it" and then told the reader to go and load one -
+                // advice that is simply wrong when the dictionary is already
+                // there, and sends someone off to fix a problem they do not
+                // have. Only 43,507 of the Latin lemma data's 139,190 headwords
+                // have anything in Lewis and Short behind them, so the second
+                // case is much the commoner one by far, and it was the one
+                // getting the first case's instructions.
+                var loaded = (await _definitionRepo.CountByLanguageAsync())
+                    .Any(l => string.Equals(l.Language, language, StringComparison.OrdinalIgnoreCase)
+                              && l.Count > 0);
+
+                _definitionBox.Text = loaded
+                    ? "(no dictionary entry for this headword)\r\n\r\n" +
+                      "The dictionary is loaded, but has nothing under this spelling. Lemma data " +
+                      "and lexicons number and capitalise headwords differently, so where a form " +
+                      "has more than one candidate the others are worth trying - the list above " +
+                      "puts the ones the dictionary can answer for first."
+                    : "(no dictionary loaded for this language)\r\n\r\n" +
+                      "Use \"Load Lemmas...\" and switch Data type to \"Dictionary (lexicon)\" to " +
+                      "load one - LSJ for Greek, Lewis & Short for Latin.";
                 return;
             }
 

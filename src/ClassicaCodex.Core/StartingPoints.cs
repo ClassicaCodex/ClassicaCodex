@@ -1,6 +1,6 @@
 using ClassicaCodex.Core.Models;
 
-namespace ClassicaCodex.UI;
+namespace ClassicaCodex.Core;
 
 /// <summary>
 /// Which works are reasonable to translate first, and which are not.
@@ -63,7 +63,7 @@ public static class StartingPoints
             "Plato, Apology / Crito / Euthyphro",
             "Conversational Attic in short exchanges. Harder than Xenophon, but the dialogue form means a sentence rarely runs long."),
 
-        new Suggestion("grc", "lucian", new[] { "" },
+        new Suggestion("grc", "lucian", new[] { "dialogi", "dialogue" },
             "Lucian, Dialogues",
             "Deliberately plain Attic written centuries after the fact, so the style is imitative and regular. Funny, too, which helps on a bad evening."),
 
@@ -76,7 +76,7 @@ public static class StartingPoints
             "Eutropius, Breviarium",
             "Late Latin written to be simple on purpose - a potted history for readers who found Livy hard. Often the very first Latin text a student meets."),
 
-        new Suggestion("lat", "caesar", new[] { "gall", "bell" },
+        new Suggestion("lat", "caesar", new[] { "gallic", "gallico" },
             "Caesar, Gallic War",
             "The Latin counterpart to Xenophon and the standard starting point. Direct word order, a narrow military vocabulary, and short declarative sentences."),
 
@@ -122,11 +122,53 @@ public static class StartingPoints
 
         foreach (var suggestion in All)
         {
-            foreach (var (authorId, works) in worksByAuthor)
-            {
-                if (!authorNames.TryGetValue(authorId, out var authorName)) continue;
-                if (!Contains(authorName, suggestion.AuthorKey)) continue;
+            // Every author whose name carries the key, best candidate first,
+            // rather than whichever the dictionary happened to yield up.
+            //
+            // Taking the first match and stopping sent beginners to the wrong
+            // text on the screen that exists to stop exactly that. "caesar"
+            // matched Pseudo-Caesar, whose De Bello Africo satisfied the loose
+            // title key "bell", and the recommendation for the Gallic War -
+            // which this library has, under Julius Caesar - opened a spurious
+            // continuation by an unknown hand. "lucian" matched Pseudo-Lucian
+            // and offered the Amores, an erotic dialogue of disputed
+            // authorship, as a first Greek reader. Both are the worst possible
+            // audience for a wrong answer: they have no way to tell.
+            var matching = worksByAuthor
+                .Where(kv => authorNames.ContainsKey(kv.Key))
+                .Select(kv => (Author: authorNames[kv.Key], Works: kv.Value))
+                .Where(x => Contains(x.Author, suggestion.AuthorKey))
+                .ToList();
 
+            // Ranking was not enough on its own, and that is the same bug one
+            // level down.
+            //
+            // Ordering put the real author first and then fell through to
+            // whatever came next when his titles did not match - so with the
+            // Gallic War absent, "Caesar, Gallic War" walked past Julius
+            // Caesar and opened De Bello Gallico by Caesarius Arelatensis
+            // Episcopus, a sixth-century bishop of Arles who shares six
+            // letters with him. Substituting an unrelated author is precisely
+            // what this screen exists not to do, and its audience is the one
+            // that cannot tell.
+            //
+            // So the fall-through happens only among authors of the same
+            // quality. A name carrying the key as a whole word is a different
+            // kind of match from one that merely contains the letters, and
+            // where any of the former exist the latter are not candidates at
+            // all. Substring matches are still used when they are all there
+            // is, which is what "vergil" inside "P. Vergilius Maro" needs.
+            var wholeWord = matching
+                .Where(x => MatchesWholeWord(x.Author, suggestion.AuthorKey))
+                .ToList();
+
+            var candidates = (wholeWord.Count > 0 ? wholeWord : matching)
+                .OrderBy(x => IsAttributed(x.Author) ? 1 : 0)
+                .ThenBy(x => x.Author.Length)
+                .ToList();
+
+            foreach (var (_, works) in candidates)
+            {
                 // An empty title key means any work by this author will do -
                 // used where the recommendation is the author's whole output
                 // (Lysias, Nepos) rather than one title.
@@ -142,6 +184,33 @@ public static class StartingPoints
         }
 
         return found;
+    }
+
+    /// <summary>
+    /// Whether a name is the scholarly "not actually by him" marker. None of
+    /// the recommendations above name a pseudonymous author, so one matching
+    /// here is always the wrong one - Pseudo-Caesar for Caesar, Pseudo-Lucian
+    /// for Lucian.
+    /// </summary>
+    private static bool IsAttributed(string authorName) =>
+        authorName.Contains("pseudo", StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// Whether the key matches a whole word rather than sitting inside a
+    /// longer one - "caesar" is the man in "Julius Caesar" and a syllable in
+    /// "Caesarius Arelatensis Episcopus" or "Eusebius of Caesarea".
+    /// </summary>
+    private static bool MatchesWholeWord(string authorName, string key)
+    {
+        if (key.Length == 0) return false;
+
+        foreach (var word in authorName.Split(
+                     new[] { ' ', ',', '.', '-', '(', ')' }, StringSplitOptions.RemoveEmptyEntries))
+        {
+            if (string.Equals(word, key, StringComparison.OrdinalIgnoreCase)) return true;
+        }
+
+        return false;
     }
 
     /// <summary>

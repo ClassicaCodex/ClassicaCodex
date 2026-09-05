@@ -240,9 +240,9 @@ Click Search in the toolbar to open the search window. It stays open beside the 
 Results are shown with the matched words highlighted. Double-click one to open it in the reader; right-click for Copy to Clipboard, or Export All Passages to write the whole result set to a document.
 
 Match
-   Anywhere in the line - the default. Matches the letters you typed wherever they appear, so "arm" also finds "arma" and "harm". It never silently misses anything, which is why it's the default.
-   Whole words only - the word itself, so "arm" no longer finds "arma". With the word index built (Setup Wizard), this also ignores accents and final sigma, so a Greek word matches however the edition happens to accent it - type theos unaccented and it still finds the accented form. Without the index it still rejects substrings, but only finds the spelling you typed.
-   All words, any order - every word you typed must appear somewhere in the line, not necessarily together. This is how to ask which passages mention two things at once.
+   Whole words only - the default. The word itself, so "arm" no longer finds "arma", and every word you type has to be there. With the word index built (Setup Wizard) it also matches through the spelling: accents and breathings, all three shapes of sigma, and both halves of Latin u/v and i/j. So μηνιν typed without accents finds the accented form, "iustitia" also finds editions printing "justitia", and a line pasted straight out of the reader finds itself. Without the index it still rejects substrings, but only finds the spelling you typed.
+   Anywhere in the line - matches the letters you typed wherever they appear, so "arm" also finds "arma" and "harm". The one to reach for when hunting a stem or a fragment. It compares against the text as printed, so unlike whole words it cannot see past an accent the edition uses and you didn't type, or past u/v and i/j - "iustitia" finds a third of what is there. It is also much slower, since it reads every line rather than seeking an index.
+   All words, any order - every word you typed must appear somewhere in the line, as substrings rather than whole words. Whole words only already requires all of them, so this is the one to use when the words themselves need to match loosely.
 
 Narrowing
    Language - Greek, Latin, English, or any combination.
@@ -256,9 +256,9 @@ Clear Filters resets the narrowing without clearing what you typed.
 Every passage, or one row per document
    The Show box beside the results switches between the two. By passage is the default and lists every matching line. By document lists each work once with the number of matches in it - which is the better question when you want to know where a word is concentrated rather than read each occurrence.
 
-   Double-click a document to list its matches; switch Show back to see every document again. Both views come from the same search, so changing between them costs nothing and finds nothing new.
+   Double-click a document to list its matches; switch Show back to see every document again.
 
-   One caution: searches stop at a limit, and when that happens the counts cover the matches that came back rather than everything in the library. The status line says so when it applies. A document count is a good guide to where to look and not a census.
+   The document list and the match total are counted across the whole library, not across the passages that fitted on screen. A search stops laying out passages at a limit, and the status line says when it has - but the counts beside it are of everything, so "5,634 matches across 878 documents by 231 authors" means that and not "of the ones we had room for". Opening one of those documents goes back for its own matches, so a work past the limit still lists in full.
 
 Recent searches
    Every search you run is remembered, with its filters, and listed in the Recent box - most recent first, the last ten kept. There is nothing to save and nothing to tidy up.
@@ -326,6 +326,8 @@ Dictionary entries come from Liddell-Scott-Jones for Greek and Lewis & Short for
         ("Analysis tools", """
 Concordance
    A keyword-in-context view: every occurrence of a word lined up with what comes before and after, so patterns of usage are visible at a glance.
+
+   Of a word, not of a stem: it matches whole words through the word index, so it reads past accents, lunate sigma and u/v the way the search window's default does, and the keyword column shows the word as that edition prints it. For every inflected form of a headword instead, use Word Study, which asks the lemma data rather than guessing from spelling.
 
 Stylometry
    Compares writing style using Burrows's Delta, a standard authorship-attribution measure based on how often each author reaches for common function words. Runs on original-language texts, since it's comparing the actual words an author wrote.

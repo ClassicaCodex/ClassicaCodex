@@ -486,6 +486,70 @@ public class PassageExportForm : ScaledForm
         return chunks;
     }
 
+    /// <summary>
+    /// The line written at the foot of an export, naming the edition the text
+    /// came from.
+    ///
+    /// It used to be one fixed sentence - "Perseus Digital Library (via
+    /// Classica Codex)" - for every passage this application has ever
+    /// exported. That is not a citation. This library deliberately holds the
+    /// same work more than once: CSEL's critical text and Migne's reprint of
+    /// it, Perseus and First1KGreek's copies of the Agamemnon, an original
+    /// beside three translations of it. Choosing between those is most of what
+    /// the application is for, and the exported file then said nothing about
+    /// which one had been chosen. Quote a variant reading from it and there is
+    /// no way, afterwards, to say where the reading came from.
+    ///
+    /// The CTS URN carries that, which is what CTS URNs exist for - it names
+    /// the edition and nothing else does. The collection is named alongside it
+    /// because the URN alone will not tell a reader that stoa0223.stoa001 is
+    /// Migne rather than CSEL, and the translator because a translation
+    /// without one attributed is the thing this application refuses to produce
+    /// anywhere else.
+    ///
+    /// Falls back to the old sentence if the edition cannot be read, rather
+    /// than inventing provenance - the same rule the counterpart descriptor
+    /// above follows.
+    /// </summary>
+    private async Task<string> DescribeSourceAsync()
+    {
+        const string fallback =
+            "Perseus Digital Library (via Classica Codex) - see About for full attribution and licensing.";
+
+        try
+        {
+            var edition = await new EditionRepository().GetByIdAsync(_editionId);
+            if (edition == null) return fallback;
+
+            var parts = new List<string>();
+
+            // Editions are stored without their namespace and the work keeps
+            // it, so the identifier is put back together before it goes into
+            // something meant to be cited. An identifier a reader cannot
+            // resolve is not much better than none, and looks like more.
+            var workUrn = await new WorkRepository().GetCtsUrnAsync(edition.WorkId);
+            var editionUrn = CtsUrns.Qualify(workUrn, edition.CtsUrn);
+
+            if (!string.IsNullOrWhiteSpace(editionUrn)) parts.Add($"edition {editionUrn}");
+            if (!string.IsNullOrWhiteSpace(edition.Translator)) parts.Add($"trans. {edition.Translator}");
+            if (!string.IsNullOrWhiteSpace(edition.Collection))
+                parts.Add(SetupDataSourceCatalog.DescribeCollection(edition.Collection!));
+
+            if (parts.Count == 0) return fallback;
+
+            var version = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version;
+            var stamp = version == null ? "Classica Codex" : $"Classica Codex {version.Major}.{version.Minor}.{version.Build}";
+
+            return $"{string.Join(", ", parts)}. Retrieved with {stamp} from the Perseus Digital Library " +
+                   "and the collections named in About, where the licensing for each is set out.";
+        }
+        catch
+        {
+            // An export is not worth failing over a provenance lookup.
+            return fallback;
+        }
+    }
+
     private async Task ExportAsync()
     {
         if (_currentLines.Count == 0)
@@ -516,7 +580,7 @@ public class PassageExportForm : ScaledForm
         var title = _showCitationsCheckbox.Checked
             ? $"{_authorName}, {_workTitle} [{PassageCitation.Display(_currentLines.First().CitationRef)}\u2013{PassageCitation.Display(_currentLines.Last().CitationRef)}]"
             : $"{_authorName}, {_workTitle}";
-        var sourceUrl = "Perseus Digital Library (via Classica Codex) - see About for full attribution and licensing.";
+        var sourceUrl = await DescribeSourceAsync();
         var chunks = BuildRenderChunks();
 
         // A bilingual document has to render polytonic Greek regardless of

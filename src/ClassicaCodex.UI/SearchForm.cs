@@ -58,11 +58,41 @@ public class SearchForm : ScaledForm
     /// </summary>
     private List<(int WorkId, long TextNodeId, string AuthorName, string WorkTitle, string CitationRef, string Text)> _visible = new();
 
-    /// <summary>One row per work, with how many of the matches fell in it.</summary>
-    private List<(int WorkId, string AuthorName, string WorkTitle, int Matches)> _documents = new();
+    /// <summary>
+    /// One row per work, with how many matches fell in it - counted across
+    /// the whole library rather than across the rows that came back.
+    ///
+    /// It used to be built by grouping the returned rows, which was wrong in
+    /// a way nothing on screen could show. The search stops at its limit
+    /// having ordered by author name, so what it stops with is the front of
+    /// the alphabet rather than a sample: searching for "vel", 90% of the
+    /// works containing it showed nothing, and Augustine - who has more of
+    /// them than anyone, 1,056 - was credited with 184, because the cap
+    /// landed in the middle of him. See CountMatchesByWorkAsync.
+    /// </summary>
+    private SearchDistribution _distribution = SearchDistribution.Empty;
+
+    /// <summary>
+    /// The rows the document view is actually showing - the distribution
+    /// where it can be trusted, and the returned rows grouped where it
+    /// cannot. Everything that indexes the list by row reads this, so the
+    /// copy menu and the double-click cannot disagree with what was drawn.
+    /// </summary>
+    private List<(int WorkId, string AuthorName, string WorkTitle, long Matches)> _documents = new();
 
     /// <summary>Set while the passage list is scoped to one document.</summary>
     private int? _openDocumentWorkId;
+
+    /// <summary>
+    /// That document's own matches, fetched with the work pinned so the
+    /// global result cap does not apply to it. Held apart from
+    /// <see cref="_results"/> so that opening a document cannot change what
+    /// the search itself found, and therefore cannot change what an export
+    /// of the whole search would contain.
+    /// </summary>
+    private List<(int WorkId, long TextNodeId, string AuthorName, string WorkTitle, string CitationRef, string Text)> _openDocumentRows = new();
+
+    private bool _openDocumentTruncated;
 
     // Carried from the last search so the view can be re-rendered without
     // re-running it - switching between passages and documents is a change of
@@ -71,12 +101,29 @@ public class SearchForm : ScaledForm
     private string _displayCount = "0";
     private bool _narrowed;
 
+    /// <summary>
+    /// The filters the rows on screen came from, so that opening one document
+    /// out of a truncated search can go back and ask for that document's
+    /// matches rather than showing the handful the cap left behind.
+    /// </summary>
+    private SearchFilters? _lastFilters;
+
     /// <summary>The collections present in the library, so the menu offers only real ones.</summary>
     private List<(string Title, string Key)> _collections = new();
 
     private bool DocumentView => _viewBox.SelectedIndex == 1 && _openDocumentWorkId == null;
 
     private List<string> _highlightTerms = new();
+
+    /// <summary>
+    /// The normalized spellings the word index was actually asked for, so the
+    /// highlighter can mark the word in a line the literal query does not
+    /// appear in - see FindHighlightSpans.
+    /// </summary>
+    private HashSet<string> _highlightWords = new(StringComparer.Ordinal);
+
+    /// <summary>Whether the search that produced these rows matched whole words.</summary>
+    private bool _highlightWholeWordsOnly;
     private List<Author> _authors = new();
     private List<RecentSearch> _recent = new();
 
@@ -180,7 +227,39 @@ public class SearchForm : ScaledForm
             "Whole words only",
             "All words, any order"
         });
-        _matchModeBox.SelectedIndex = 0;
+
+        // Whole words, not "anywhere in the line", and this is a correctness
+        // choice rather than a speed one.
+        //
+        // "Anywhere" compares a LIKE pattern against the raw text. Greek is
+        // written with diacritics, editions disagree about which, and nobody
+        // types them into a search box - so the pattern contains characters the
+        // text does not have and the search quietly misses most of what it was
+        // asked for. Searching this library for a bare "μηνιν" returns 8 lines
+        // in that mode and 316 in this one. With the accents typed correctly it
+        // is still 303 against 316, because whole-word goes through an index
+        // that normalises across editions and a LIKE pattern cannot.
+        //
+        // Latin has the same problem for a different reason. u/v and i/j were
+        // one letter each, editors disagree about which glyph to print, and
+        // only the index folds them - so "anywhere" finds "iustitia" 1,425
+        // times where whole-word finds it 4,196, and finds "adiuvare" 58 times
+        // against 293. That falls the wrong way round: the spellings it is
+        // worst at are the ones a reader was taught.
+        //
+        // Nothing on screen says any of that. Someone reads "8 results" as a
+        // fact about Homer rather than about the match mode, which is the worst
+        // shape a wrong answer can take.
+        //
+        // It is also about 250x faster - 10ms against 2.5s, since it seeks the
+        // word index instead of reading 594MB of text - but that is the smaller
+        // half. "Anywhere" stays one item up the list for anyone hunting a stem
+        // or a fragment, which is the thing it is genuinely good for.
+        //
+        // Safe when the index has not been built: the repository checks and
+        // falls back to a LIKE prefilter with a normalised confirmation, which
+        // still rejects substrings correctly, just without the accent folding.
+        _matchModeBox.SelectedIndex = 1;
 
         var languageLabel = new Label { Text = "Language:", Left = 274, Top = 26, Width = 66 };
         _greekCheck = new CheckBox { Text = "Greek", Left = 342, Top = 24, Width = 62 };
@@ -264,6 +343,7 @@ public class SearchForm : ScaledForm
             // Switching the view always leaves a single document, so the results
             // never disagree with the control describing them.
             _openDocumentWorkId = null;
+            _openDocumentRows = new();
             RenderResults();
         };
 
@@ -271,9 +351,9 @@ public class SearchForm : ScaledForm
         _resultsList = new ListBox
         {
             Left = 12,
-            Top = 226,
+            Top = 232,
             Width = 1060,
-            Height = 414,
+            Height = 408,
             Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right,
 
             // This used to carry a note saying it had no horizontal scrollbar because
@@ -318,7 +398,7 @@ public class SearchForm : ScaledForm
             Left = 14,
             Top = 650,
             Width = 1058,
-            Height = 34,
+            Height = 30,
             Anchor = AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right,
             ForeColor = Color.DimGray,
             Text = "Type a word and press Enter. Double-click a result to open it in the reader."
@@ -555,7 +635,9 @@ public class SearchForm : ScaledForm
         if (_recentBox.Items.Count > 0) _recentBox.SelectedIndex = 0;
         _applyingRecent = false;
 
-        _matchModeBox.SelectedIndex = 0;
+        // Back to the same default the form opens on - whole words - not to the
+        // first item in the list. See the note where that default is set.
+        _matchModeBox.SelectedIndex = 1;
         _greekCheck.Checked = false;
         _latinCheck.Checked = false;
         _englishCheck.Checked = false;
@@ -649,6 +731,9 @@ public class SearchForm : ScaledForm
                 .Where(w => w.Length > 0)
                 .ToList();
 
+            _highlightWords = WordOccurrences.TargetsFor(filters.Query);
+            _highlightWholeWordsOnly = filters.MatchMode == SearchMatchMode.WholeWord;
+
             // Task.Run, because the await above it is not one. SQLite has no
             // asynchronous I/O and Microsoft.Data.Sqlite says so: its Async
             // methods run to completion synchronously and hand back a task
@@ -666,9 +751,23 @@ public class SearchForm : ScaledForm
             // The same convention the ingest, word index, and stylometry
             // screens already use for their long work. Everything after the
             // await is back on the UI thread, as before.
-            var hits = await Task.Run(() => _textNodeRepo.SearchFilteredAsync(filters));
+            // Both on the one background hop. The distribution is what makes
+            // the per-document view and the match total true rather than true
+            // of whatever the cap left behind, and running it here means no
+            // later interaction has to wonder whether it has been computed.
+            // It reads the index instead of the text, so it costs a fraction
+            // of the search it accompanies - measured on a full library, 26ms
+            // beside 88ms for "virtus" and 116ms beside 245ms for "vel".
+            var (hits, distribution) = await Task.Run(async () => (
+                await _textNodeRepo.SearchFilteredAsync(filters),
+                await _textNodeRepo.CountMatchesByWorkAsync(filters)));
+
             _results = hits.Rows;
+            _distribution = distribution;
+            _lastFilters = filters;
             _openDocumentWorkId = null;
+            _openDocumentRows = new();
+            _openDocumentTruncated = false;
             _truncated = hits.Truncated;
             _displayCount = hits.DisplayCount;
             _narrowed = filters.HasAnyNarrowing;
@@ -702,7 +801,13 @@ public class SearchForm : ScaledForm
     {
         var parts = new List<string>();
 
-        if (_matchModeBox.SelectedIndex == 1) parts.Add("whole words");
+        // Names the match mode only when it is not the default one, the same
+        // way the kind filter below names only its non-default choices. Whole
+        // words is the default now, so "anywhere" is the one worth recording -
+        // and it has to be recorded, because this description is also the
+        // recent list's identity and the two modes can return very different
+        // result sets for the same word.
+        if (_matchModeBox.SelectedIndex == 0) parts.Add("anywhere in the line");
         if (_matchModeBox.SelectedIndex == 2) parts.Add("all words");
 
         var languages = new List<string>();
@@ -794,20 +899,38 @@ public class SearchForm : ScaledForm
     /// </summary>
     private void RenderResults()
     {
+        // A document opened out of a truncated search was re-fetched in full;
+        // one opened out of a complete search is already here.
         _visible = _openDocumentWorkId is { } workId
-            ? _results.Where(r => r.WorkId == workId).ToList()
+            ? (_openDocumentRows.Count > 0
+                ? _openDocumentRows
+                : _results.Where(r => r.WorkId == workId).ToList())
             : _results;
 
-        _documents = DocumentView
-            ? _results
-                .GroupBy(r => r.WorkId)
-                .Select(g => (WorkId: g.Key, g.First().AuthorName, g.First().WorkTitle, Matches: g.Count()))
-                .OrderByDescending(d => d.Matches).ThenBy(d => d.AuthorName).ThenBy(d => d.WorkTitle)
-                .ToList()
-            : [];
+        // Already ordered by match count, from the database, over every
+        // matching line rather than over the ones that fitted.
+        //
+        // Except where the aggregate cannot mean what the rows mean. Without
+        // a word index, whole-word search is a LIKE prefilter plus a per-row
+        // confirmation, and a confirmation cannot run inside a COUNT - so the
+        // distribution would be of the prefilter, listing works whose only
+        // "match" is the query sitting inside a longer word. Grouping the
+        // confirmed rows is the smaller, true answer there, and it is what
+        // this screen did before the aggregate existed.
+        _documents = !DocumentView
+            ? new()
+            : _distribution.ExactlyMatchesTheSearch
+                ? _distribution.Works
+                : _results
+                    .GroupBy(r => r.WorkId)
+                    .Select(g => (WorkId: g.Key, g.First().AuthorName, g.First().WorkTitle, Matches: (long)g.Count()))
+                    .OrderByDescending(d => d.Matches).ThenBy(d => d.AuthorName).ThenBy(d => d.WorkTitle)
+                    .ToList();
+
+        var documents = _documents;
 
         _displayedCount = DocumentView
-            ? Math.Min(_documents.Count, DisplayLimit)
+            ? Math.Min(documents.Count, DisplayLimit)
             : Math.Min(_visible.Count, DisplayLimit);
 
         _resultsList.BeginUpdate();
@@ -817,7 +940,7 @@ public class SearchForm : ScaledForm
 
             if (DocumentView)
             {
-                foreach (var d in _documents.Take(DisplayLimit))
+                foreach (var d in documents.Take(DisplayLimit))
                     _resultsList.Items.Add($"{d.AuthorName}, {d.WorkTitle} — {d.Matches:N0} match(es)");
             }
             else
@@ -832,12 +955,41 @@ public class SearchForm : ScaledForm
                     ? "No matches. Try Clear Filters, or a different match mode."
                     : "No matches.");
             }
-            else if (_truncated || (DocumentView ? _documents.Count : _visible.Count) > _displayedCount)
+            else if (DocumentView)
             {
-                var total = DocumentView ? $"{_documents.Count:N0} documents" : $"{_visible.Count:N0} matches";
+                // The document list is complete however the passage list ended,
+                // so its own notice is only ever about the rows on screen.
+                if (documents.Count > _displayedCount)
+                {
+                    _resultsList.Items.Add(
+                        $"--- showing {_displayedCount:N0} of {documents.Count:N0} documents. ---");
+                }
+            }
+            else if (_openDocumentWorkId != null)
+            {
+                // Inside one document the only cap that applies is that
+                // document's own - the global one was lifted when it was
+                // re-fetched with the work pinned. A work with more matches
+                // than the limit can still hit it, and saying so is the point.
+                if (_openDocumentTruncated)
+                {
+                    _resultsList.Items.Add(
+                        $"--- showing {_displayedCount:N0} of this document's matches; " +
+                        "it has more than one search can return. ---");
+                }
+                else if (_visible.Count > _displayedCount)
+                {
+                    _resultsList.Items.Add(
+                        $"--- showing {_displayedCount:N0} of {_visible.Count:N0} matches in this document. ---");
+                }
+            }
+            else if (_truncated || _visible.Count > _displayedCount)
+            {
                 _resultsList.Items.Add(_truncated
-                    ? $"--- showing {_displayedCount:N0} of {_displayCount} matches; the search stopped at its limit. Narrow it to see the rest. ---"
-                    : $"--- showing {_displayedCount:N0} of {total}. ---");
+                    ? $"--- showing {_displayedCount:N0} passages of {TotalMatchText()}; " +
+                      "switch Show to “One row per document” to see where all of them are, " +
+                      "or narrow the search to read the rest. ---"
+                    : $"--- showing {_displayedCount:N0} of {_visible.Count:N0} matches. ---");
             }
         }
         finally
@@ -856,22 +1008,51 @@ public class SearchForm : ScaledForm
             return;
         }
 
-        // Says plainly that the per-document counts are of the matches that came
-        // back, not of everything in the document. A search that stopped at its
-        // limit would otherwise report "47" as though it had counted.
-        var truncationNote = _truncated
-            ? " Counts cover the matches returned before the search hit its limit, not the whole library."
-            : string.Empty;
+        if (_openDocumentWorkId != null)
+        {
+            // Empty is reachable: a document can be listed by a count that
+            // does not agree line-for-line with the row query - the LIKE
+            // prefilter's does not - and then opening it produces nothing to
+            // name. Reading _visible[0] there threw.
+            _statusLabel.Text = _visible.Count == 0
+                ? "No passages in that document matched after all. " +
+                  "Switch Show back to see every document again."
+                : $"{_visible.Count:N0} match(es) in {_visible[0].AuthorName}, {_visible[0].WorkTitle}. " +
+                  "Switch Show back to see every document again.";
+            return;
+        }
 
-        _statusLabel.Text = _openDocumentWorkId != null
-            ? $"{_visible.Count:N0} match(es) in {_visible[0].AuthorName}, {_visible[0].WorkTitle}. " +
-              "Switch Show back to see every document again."
-            : DocumentView
-                ? $"{_displayCount} match(es) across {_documents.Count:N0} document(s). " +
-                  $"Double-click a document to list its matches.{truncationNote}"
-                : $"{_displayCount} match(es). Double-click to open in the reader; " +
-                  "right-click to copy or export.";
+        // "Counted across the whole library" is only said where it is true.
+        var counted = _distribution.ExactlyMatchesTheSearch
+            ? ", counted across the whole library"
+            : " among the matches that came back - build the word index (Setup Wizard) to count the whole library";
+
+        _statusLabel.Text = DocumentView
+            ? $"{TotalMatchText()} across {_documents.Count:N0} document(s)" +
+              $"{counted}. Double-click a document to list its matches."
+            : $"{TotalMatchText()}. Double-click to open in the reader; " +
+              "right-click to copy or export.";
     }
+
+    /// <summary>
+    /// The number of matching lines, as a fact about the library rather than
+    /// about the result cap.
+    ///
+    /// The status line used to read "5000+" for anything common, which is all
+    /// a capped row query can honestly say. It is also useless to anyone
+    /// asking how often a word occurs, and that is most of why someone opens
+    /// this window: 6 of 14 ordinary research words - virtus, libertas,
+    /// imperium, λόγος, ψυχή, πόλις - answered "5000+".
+    ///
+    /// Falls back to the old form where the count cannot be trusted to mean
+    /// the same thing as the rows, which is the no-word-index whole-word
+    /// path, where the confirmation runs per row and an aggregate would be
+    /// counting the prefilter.
+    /// </summary>
+    private string TotalMatchText() =>
+        _distribution.ExactlyMatchesTheSearch
+            ? $"{_distribution.TotalMatches:N0} match(es)"
+            : $"{_displayCount} match(es)";
 
     private async Task JumpToSelectedAsync()
     {
@@ -885,14 +1066,71 @@ public class SearchForm : ScaledForm
         // passage to open. Double-clicking it asks to see its matches instead.
         if (DocumentView)
         {
-            _openDocumentWorkId = _documents[index].WorkId;
-            RenderResults();
+            await OpenDocumentAsync(_documents[index].WorkId);
             return;
         }
 
         if (OnNavigate == null) return;
         var result = _visible[index];
         await OnNavigate(result.WorkId, result.TextNodeId);
+    }
+
+    /// <summary>
+    /// Scopes the passage list to one work.
+    ///
+    /// Re-queries when the search was truncated, rather than filtering the
+    /// rows already in hand. Those rows are the front of the alphabet, so a
+    /// work past the cap has none of them and a work the cap landed inside
+    /// has some of them - and "some of them" is the case worth worrying
+    /// about, because it looks exactly like all of them. Asking again with
+    /// the work pinned lifts the global cap off this one document.
+    /// </summary>
+    private async Task OpenDocumentAsync(int workId)
+    {
+        _openDocumentWorkId = workId;
+
+        if (!_truncated || _lastFilters == null)
+        {
+            RenderResults();
+            return;
+        }
+
+        _statusLabel.Text = "Fetching this document's matches...";
+
+        // The filters the rows on screen came from, not whatever the boxes say
+        // now - a dropdown changed after the search but before the double-click
+        // would otherwise fetch one work under different terms from the rest.
+        // Pinned and put back rather than copied, since SearchFilters has no
+        // clone and this is the only place that needs one.
+        var filters = _lastFilters;
+        try
+        {
+            filters.WorkId = workId;
+            var hits = await Task.Run(() => _textNodeRepo.SearchFilteredAsync(filters));
+
+            // Kept beside the search's own rows rather than merged into them.
+            //
+            // Merging changed what the search had found. Export writes out
+            // whatever is on screen, so having opened a document and gone
+            // back left the same search exporting a different set from the
+            // one it would have exported a moment earlier - a result that
+            // depended on where the reader had clicked, which is the one
+            // thing an exported dataset must not do. _results stays the
+            // answer to the query; this is one document, fetched in full.
+            _openDocumentRows = hits.Rows;
+            _openDocumentTruncated = hits.Truncated;
+        }
+        catch (Exception ex)
+        {
+            _statusLabel.Text = $"Couldn't fetch that document's matches: {ex.Message}";
+            return;
+        }
+        finally
+        {
+            filters.WorkId = null;
+        }
+
+        RenderResults();
     }
 
     /// <summary>
@@ -940,7 +1178,7 @@ public class SearchForm : ScaledForm
         // Notice rows carry no match and shouldn't be highlighted as if they
         // did - they aren't results.
         var spans = e.Index < _displayedCount
-            ? FindHighlightSpans(text, _highlightTerms)
+            ? FindHighlightSpans(text, _highlightTerms, _highlightWords, _highlightWholeWordsOnly)
             : new List<(int Start, int Length)>();
 
         var pos = 0;
@@ -956,21 +1194,53 @@ public class SearchForm : ScaledForm
         e.DrawFocusRectangle();
     }
 
-    private static List<(int Start, int Length)> FindHighlightSpans(string text, List<string> terms)
+    /// <summary>
+    /// Both ways of finding the query in the line, because both are right for
+    /// a different mode.
+    ///
+    /// The literal pass is what "anywhere in the line" means, and is the only
+    /// one that can mark a stem inside a longer word - typing "virt" and
+    /// seeing it lit inside "virtutem".
+    ///
+    /// The word pass is what the whole-word default actually matched on. That
+    /// search goes through the index, which folds accents, both sigmas, and
+    /// u/v and i/j - so it returns the line accented however its edition
+    /// accents it, and the edition printing "justitia" for a query of
+    /// "iustitia". A literal IndexOf finds none of those, so the row came
+    /// back with nothing marked in it, which reads as the application having
+    /// returned a line that does not contain the word.
+    ///
+    /// Overlaps between the two are harmless: the draw loop walks the spans
+    /// in order and skips any that starts inside the one before it.
+    /// </summary>
+    private static List<(int Start, int Length)> FindHighlightSpans(
+        string text, List<string> terms, IReadOnlyCollection<string> wordTargets, bool wholeWordsOnly)
     {
         var spans = new List<(int Start, int Length)>();
 
-        foreach (var term in terms)
+        // Whole-word mode gets the word pass alone. Running both marked the
+        // letters of the query inside longer words - searching "arm" and
+        // seeing "harm" lit up in a line that matched on a real "arm"
+        // elsewhere - which contradicts the mode the reader chose and makes
+        // the highlighting look like the search had done something it had
+        // not. The substring modes get the literal pass, which is the only
+        // one that can mark a stem inside a word, which is their whole point.
+        if (!wholeWordsOnly)
         {
-            if (term.Length == 0) continue;
-
-            var idx = 0;
-            while ((idx = text.IndexOf(term, idx, StringComparison.OrdinalIgnoreCase)) >= 0)
+            foreach (var term in terms)
             {
-                spans.Add((idx, term.Length));
-                idx += term.Length;
+                if (term.Length == 0) continue;
+
+                var idx = 0;
+                while ((idx = text.IndexOf(term, idx, StringComparison.OrdinalIgnoreCase)) >= 0)
+                {
+                    spans.Add((idx, term.Length));
+                    idx += term.Length;
+                }
             }
         }
+
+        spans.AddRange(WordOccurrences.Find(text, wordTargets));
 
         spans.Sort((a, b) => a.Start.CompareTo(b.Start));
         return spans;
