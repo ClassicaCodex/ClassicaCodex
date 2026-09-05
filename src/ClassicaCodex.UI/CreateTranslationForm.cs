@@ -52,6 +52,7 @@ public class CreateTranslationForm : ScaledForm
     private readonly TextNodeRepository _textNodeRepo = new();
     private readonly EditionRepository _editionRepo = new();
     private readonly WordIndexService _wordIndexService = new();
+    private readonly WordIndexRepository _wordIndexRepo = new();
 
     private List<TextNode> _sourceNodes = new();
     private readonly Dictionary<string, string> _translatedByRef = new(StringComparer.OrdinalIgnoreCase);
@@ -352,6 +353,12 @@ public class CreateTranslationForm : ScaledForm
         var batches = plannedBatches;
         var stoppedEarly = false;
 
+        // Why it stopped, kept so the summary below can say it. A batch that
+        // fails names its reason - a dead key, a retired model, the daily
+        // quota - and a bare "Stopped" that replaced it made every one of
+        // those look the same.
+        string? stopReason = null;
+
         for (var b = 0; b < batches.Count; b++)
         {
             if (_cancellation.IsCancellationRequested) { stoppedEarly = true; break; }
@@ -361,7 +368,7 @@ public class CreateTranslationForm : ScaledForm
                                  $"({TranslatedLineCount:N0} of {_sourceNodes.Count:N0} lines so far)...";
 
             var missing = await TranslateOneBatchAsync(batches[b], apiKey, _cancellation.Token);
-            if (missing == null) { stoppedEarly = true; break; }
+            if (missing == null) { stoppedEarly = true; stopReason = _statusLabel.Text; break; }
 
             missingAfterMainPass.AddRange(missing);
             RefreshTranslatedPreview();
@@ -380,8 +387,42 @@ public class CreateTranslationForm : ScaledForm
 
         if (!stoppedEarly && missingAfterMainPass.Count > 0 && !_cancellation.IsCancellationRequested)
         {
-            _statusLabel.Text = $"Retrying {missingAfterMainPass.Count} line(s) that didn't come back the first time...";
-            await TranslateOneBatchAsync(missingAfterMainPass, apiKey, _cancellation.Token);
+            // Through the same planner as the main pass. Sending every missing
+            // line in one request was how this worked, and it undid the fix
+            // one paragraph up: a work whose lines are large enough to need
+            // splitting is exactly the work whose retry would be enormous, so
+            // the retry timed out on precisely the passages the batching
+            // existed to rescue.
+            var retryBatches = TranslationBatches.Plan(missingAfterMainPass, n => n.Text.Length);
+
+            for (var r = 0; r < retryBatches.Count; r++)
+            {
+                if (_cancellation.IsCancellationRequested) break;
+
+                _statusLabel.Text = $"Retrying {missingAfterMainPass.Count:N0} line(s) that didn't come back " +
+                                    $"the first time - batch {r + 1} of {retryBatches.Count}...";
+
+                // A null here is a condition the next batch would meet too -
+                // see TranslateOneBatchAsync. Stopping keeps its message on
+                // screen, which the old code overwrote a line later with
+                // "Finished this pass".
+                if (await TranslateOneBatchAsync(retryBatches[r], apiKey, _cancellation.Token) == null)
+                {
+                    stoppedEarly = true;
+                    stopReason = _statusLabel.Text;
+                    break;
+                }
+
+                RefreshTranslatedPreview();
+                await PersistProgressAsync();
+
+                if (r < retryBatches.Count - 1 && !_cancellation.IsCancellationRequested)
+                {
+                    try { await Task.Delay(InterBatchDelayMs, _cancellation.Token); }
+                    catch (OperationCanceledException) { stoppedEarly = true; break; }
+                }
+            }
+
             RefreshTranslatedPreview();
             await PersistProgressAsync();
         }
@@ -389,8 +430,11 @@ public class CreateTranslationForm : ScaledForm
         var translatedCount = TranslatedLineCount;
         _statusLabel.ForeColor = translatedCount == _sourceNodes.Count ? Color.DimGray : Color.DarkRed;
         _statusLabel.Text = stoppedEarly
-            ? $"Stopped - {translatedCount:N0} of {_sourceNodes.Count:N0} lines translated, already saved. " +
-              "Reopen this later to finish the rest."
+            ? (stopReason is { Length: > 0 } why && why.StartsWith("Stopped: ", StringComparison.Ordinal)
+                ? $"{why} {translatedCount:N0} of {_sourceNodes.Count:N0} lines translated and saved - " +
+                  "reopen this later to finish the rest."
+                : $"Stopped - {translatedCount:N0} of {_sourceNodes.Count:N0} lines translated, already saved. " +
+                  "Reopen this later to finish the rest.")
             : translatedCount == _sourceNodes.Count
                 ? $"Finished - all {translatedCount:N0} lines translated and saved."
                 : $"Finished this pass, but {_sourceNodes.Count - translatedCount:N0} line(s) never came back " +
@@ -549,6 +593,26 @@ public class CreateTranslationForm : ScaledForm
         // lemma-expansion search. Edition-scoped, not a full corpus
         // rebuild: a few thousand lines at most, so this stays fast enough
         // to run after every single batch without slowing anything down.
-        await _wordIndexService.ReindexEditionAsync(_workingEditionId.Value);
+        //
+        // ONLY WHEN THERE IS ALREADY AN INDEX TO KEEP FRESH, and that
+        // condition is load-bearing rather than an optimisation.
+        //
+        // Every search path decides whether to use the word index by asking
+        // whether it has any rows at all. On a library where the index was
+        // never built that answer is no, and whole-word search - which is
+        // now the default - correctly falls back to scanning the text. Write
+        // one edition's worth of rows into an empty index and the answer
+        // becomes yes, so every later search consults an index that contains
+        // this AI translation and nothing else: a library of two million
+        // lines answering out of a few thousand, silently, with no error and
+        // no empty result to notice.
+        //
+        // Keeping an existing index current is what this call is for.
+        // Bootstrapping one from a single edition is not, and the Setup
+        // Wizard is where a whole index gets built.
+        if (await _wordIndexRepo.HasDataAsync())
+        {
+            await _wordIndexService.ReindexEditionAsync(_workingEditionId.Value);
+        }
     }
 }

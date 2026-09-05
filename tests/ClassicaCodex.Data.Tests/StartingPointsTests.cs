@@ -102,18 +102,53 @@ public class StartingPointsTests
     }
 
     /// <summary>
-    /// The preferred author having nothing matching must not end the search -
-    /// a reader with only part of a corpus installed still gets the
-    /// recommendation if anyone in the library can satisfy it.
+    /// This test used to require the opposite, and was wrong to.
+    ///
+    /// The idea was that a reader with only part of a corpus installed should
+    /// still get the recommendation if anyone could satisfy it. But "anyone"
+    /// reached authors who merely share letters with the one meant: with the
+    /// Gallic War absent, it walked past Julius Caesar and opened De Bello
+    /// Gallico by Caesarius Arelatensis Episcopus, a sixth-century bishop of
+    /// Arles. Substituting an unrelated author is the exact thing this screen
+    /// exists to prevent, and offering nothing is the honest answer.
     /// </summary>
     [Fact]
-    public void APreferredAuthorWithNoMatchingWorkFallsThrough()
+    public void ARealAuthorWithNoMatchingWorkDoesNotFallThroughToASimilarName()
     {
         var library = new Library()
             .With("Julius Caesar", "Civil War")
             .With("Caesarius Arelatensis Episcopus", "De Bello Gallico");
 
-        Assert.Equal("De Bello Gallico", library.Opens("Caesar, Gallic War"));
+        Assert.Null(library.Opens("Caesar, Gallic War"));
+    }
+
+    /// <summary>
+    /// Falling through is still right among authors of the same quality - two
+    /// genuine name forms of the same person, where the first happens not to
+    /// carry the work.
+    /// </summary>
+    [Fact]
+    public void FallingThroughStillHappensBetweenEquallyGoodNames()
+    {
+        var library = new Library()
+            .With("Caesar, Julius", "Civil War")
+            .With("Julius Caesar", "Gallic War");
+
+        Assert.Equal("Gallic War", library.Opens("Caesar, Gallic War"));
+    }
+
+    /// <summary>
+    /// And a name that only contains the key is still used when it is the
+    /// only thing there. The key is "ovid", and a library naming him
+    /// "Publius Ovidius Naso" carries it as a fragment rather than a word -
+    /// which is a real match and the only one on offer.
+    /// </summary>
+    [Fact]
+    public void ASubstringOnlyNameIsUsedWhenNothingBetterExists()
+    {
+        var library = new Library().With("Publius Ovidius Naso", "Metamorphoses");
+
+        Assert.Equal("Metamorphoses", library.Opens("Ovid, Metamorphoses"));
     }
 
     /// <summary>

@@ -134,12 +134,36 @@ public static class StartingPoints
             // and offered the Amores, an erotic dialogue of disputed
             // authorship, as a first Greek reader. Both are the worst possible
             // audience for a wrong answer: they have no way to tell.
-            var candidates = worksByAuthor
+            var matching = worksByAuthor
                 .Where(kv => authorNames.ContainsKey(kv.Key))
                 .Select(kv => (Author: authorNames[kv.Key], Works: kv.Value))
                 .Where(x => Contains(x.Author, suggestion.AuthorKey))
+                .ToList();
+
+            // Ranking was not enough on its own, and that is the same bug one
+            // level down.
+            //
+            // Ordering put the real author first and then fell through to
+            // whatever came next when his titles did not match - so with the
+            // Gallic War absent, "Caesar, Gallic War" walked past Julius
+            // Caesar and opened De Bello Gallico by Caesarius Arelatensis
+            // Episcopus, a sixth-century bishop of Arles who shares six
+            // letters with him. Substituting an unrelated author is precisely
+            // what this screen exists not to do, and its audience is the one
+            // that cannot tell.
+            //
+            // So the fall-through happens only among authors of the same
+            // quality. A name carrying the key as a whole word is a different
+            // kind of match from one that merely contains the letters, and
+            // where any of the former exist the latter are not candidates at
+            // all. Substring matches are still used when they are all there
+            // is, which is what "vergil" inside "P. Vergilius Maro" needs.
+            var wholeWord = matching
+                .Where(x => MatchesWholeWord(x.Author, suggestion.AuthorKey))
+                .ToList();
+
+            var candidates = (wholeWord.Count > 0 ? wholeWord : matching)
                 .OrderBy(x => IsAttributed(x.Author) ? 1 : 0)
-                .ThenBy(x => MatchesWholeWord(x.Author, suggestion.AuthorKey) ? 0 : 1)
                 .ThenBy(x => x.Author.Length)
                 .ToList();
 
