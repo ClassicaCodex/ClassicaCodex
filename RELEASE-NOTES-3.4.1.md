@@ -12,6 +12,14 @@ extract all of it, run `ClassicaCodex.UI.exe`. Windows will show a blue "Windows
 protected your PC" box on first run because the app isn't code-signed; click
 **More info**, then **Run anyway**.
 
+**The archive itself is fixed too.** Every path inside 3.4.0's ZIP used a
+backslash separator, which the ZIP format does not allow. Windows Explorer and
+7-Zip are forgiving about it and most people saw nothing wrong — but a stricter
+extractor reads `Icons\About.png` as a filename rather than a folder, and you
+end up with 184 loose files where the `Icons` folder should be and an
+application with text-only buttons. This one is written correctly, so if your
+3.4.0 copy has no icons on its toolbar, that was why.
+
 ## A Latin search was hiding about a third of the evidence
 
 `u` and `v` were one letter in antiquity, and so were `i` and `j`. Which glyph
