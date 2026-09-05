@@ -54,6 +54,14 @@ public class PassageExportForm : ScaledForm
     private readonly RadioButton _txtRadio;
     private readonly RadioButton _docxRadio;
     private readonly RadioButton _pdfRadio;
+
+    /// <summary>
+    /// A reference rather than the text - what a reference manager takes.
+    /// The other three write the passage out to read; this one writes down
+    /// where it came from, so citing it does not mean retyping it.
+    /// </summary>
+    private readonly RadioButton _bibRadio;
+    private readonly RadioButton _risRadio;
     private readonly Label _statusLabel;
 
     private readonly TextNodeRepository _textNodeRepo = new();
@@ -85,7 +93,7 @@ public class PassageExportForm : ScaledForm
         Text = "Export Passage";
         AppIcons.ApplyWindowIcon(this, "Export");
         Width = 620;
-        Height = 660;
+        Height = 692;
         StartPosition = FormStartPosition.CenterParent;
         FormBorderStyle = FormBorderStyle.FixedDialog;
         MaximizeBox = false;
@@ -189,27 +197,31 @@ public class PassageExportForm : ScaledForm
         // more room to breathe.
         var formatLabel = new Label { Text = "Export as:", Left = 16, Top = 470, Width = 100 };
 
-        var formatPanel = new Panel { Left = 12, Top = 494, Width = 584, Height = 44, BorderStyle = BorderStyle.FixedSingle };
+        var formatPanel = new Panel { Left = 12, Top = 494, Width = 584, Height = 66, BorderStyle = BorderStyle.FixedSingle };
 
         // Widened again to seat the bigger 22px icon (was 16px) plus a
         // little padding, same 12px/10px gaps between the three preserved.
         _txtRadio = new RadioButton { Text = "Plain text (.txt)", Left = 8, Top = 9, Width = 176, Checked = true };
         _docxRadio = new RadioButton { Text = "Word document (.docx)", Left = 196, Top = 9, Width = 206 };
         _pdfRadio = new RadioButton { Text = "PDF (.pdf)", Left = 412, Top = 9, Width = 146 };
+        _bibRadio = new RadioButton { Text = "BibTeX (.bib)", Left = 8, Top = 35, Width = 176 };
+        _risRadio = new RadioButton { Text = "RIS (.ris)", Left = 196, Top = 35, Width = 206 };
         AppIcons.Apply(_txtRadio, "ExportTxt", 22);
         AppIcons.Apply(_docxRadio, "ExportDocx", 22);
         AppIcons.Apply(_pdfRadio, "ExportPdf", 22);
         formatPanel.Controls.Add(_txtRadio);
         formatPanel.Controls.Add(_docxRadio);
         formatPanel.Controls.Add(_pdfRadio);
+        formatPanel.Controls.Add(_bibRadio);
+        formatPanel.Controls.Add(_risRadio);
 
-        _statusLabel = new Label { Left = 16, Top = 548, Width = 580, Height = 20, ForeColor = Color.DimGray };
+        _statusLabel = new Label { Left = 16, Top = 570, Width = 580, Height = 20, ForeColor = Color.DimGray };
 
-        var exportButton = new Button { Text = "Export...", Left = 424, Top = 576, Width = 90, Height = 30 };
+        var exportButton = new Button { Text = "Export...", Left = 424, Top = 598, Width = 90, Height = 30 };
         exportButton.Click += async (_, _) => await ExportAsync();
         AppIcons.Apply(exportButton, "Export", 16);
 
-        var closeButton = new Button { Text = "Close", Left = 520, Top = 576, Width = 76, Height = 30, DialogResult = DialogResult.Cancel };
+        var closeButton = new Button { Text = "Close", Left = 520, Top = 598, Width = 76, Height = 30, DialogResult = DialogResult.Cancel };
 
         Controls.Add(headerLabel);
         Controls.Add(scopePanel);
@@ -550,6 +562,65 @@ public class PassageExportForm : ScaledForm
         }
     }
 
+    /// <summary>
+    /// The passage as a reference, for a reference manager.
+    ///
+    /// One entry for the run on screen rather than one per line: a reader
+    /// exporting Aeneid 6.847-853 wants a citation of that passage, not seven
+    /// citations of seven lines. The locator is the range where the run has
+    /// one and the single reference where it does not.
+    ///
+    /// The edition is looked up rather than assumed, for the reason
+    /// DescribeSourceAsync gives: this library deliberately holds the same
+    /// work in CSEL and in Migne, and a reference that does not say which is
+    /// a reference to neither.
+    /// </summary>
+    private async Task ExportReferenceAsync(string fileName, bool asBibTeX)
+    {
+        try
+        {
+            var first = PassageCitation.Display(_currentLines.First().CitationRef);
+            var last = PassageCitation.Display(_currentLines.Last().CitationRef);
+            var locator = first == last || last.Length == 0 ? first : $"{first}-{last}";
+
+            string? editionUrn = null;
+            string? translator = null;
+            string? collection = null;
+
+            var edition = await new EditionRepository().GetByIdAsync(_editionId);
+            if (edition != null)
+            {
+                var workUrn = await new WorkRepository().GetCtsUrnAsync(edition.WorkId);
+                editionUrn = CtsUrns.Qualify(workUrn, edition.CtsUrn);
+                translator = edition.Translator;
+                collection = string.IsNullOrWhiteSpace(edition.Collection)
+                    ? null
+                    : SetupDataSourceCatalog.DescribeCollection(edition.Collection!);
+            }
+
+            var floruit = AuthorEraData.Lookup(_authorName) is { } era
+                ? $"{AuthorEraData.FormatYear(era.StartYear)}-{AuthorEraData.FormatYear(era.EndYear)}"
+                : null;
+
+            var reference = new PassageReference(
+                _authorName, _workTitle, locator, editionUrn, translator, collection, floruit);
+
+            var text = asBibTeX
+                ? BibliographyExport.ToBibTeX(new[] { reference })
+                : BibliographyExport.ToRis(new[] { reference });
+
+            await File.WriteAllTextAsync(fileName, text, new System.Text.UTF8Encoding(false));
+
+            _statusLabel.ForeColor = Color.DimGray;
+            _statusLabel.Text = $"Saved a {(asBibTeX ? "BibTeX" : "RIS")} reference to {Path.GetFileName(fileName)}.";
+        }
+        catch (Exception ex)
+        {
+            _statusLabel.ForeColor = Color.DarkRed;
+            _statusLabel.Text = $"Couldn't write the reference: {ex.Message}";
+        }
+    }
+
     private async Task ExportAsync()
     {
         if (_currentLines.Count == 0)
@@ -558,9 +629,15 @@ public class PassageExportForm : ScaledForm
             return;
         }
 
-        var extension = _txtRadio.Checked ? "txt" : _docxRadio.Checked ? "docx" : "pdf";
+        var extension = _txtRadio.Checked ? "txt"
+            : _docxRadio.Checked ? "docx"
+            : _bibRadio.Checked ? "bib"
+            : _risRadio.Checked ? "ris"
+            : "pdf";
         var filter = _txtRadio.Checked ? "Text file (*.txt)|*.txt"
             : _docxRadio.Checked ? "Word document (*.docx)|*.docx"
+            : _bibRadio.Checked ? "BibTeX (*.bib)|*.bib"
+            : _risRadio.Checked ? "RIS (*.ris)|*.ris"
             : "PDF file (*.pdf)|*.pdf";
 
         var suggestedName = $"{_authorName} - {_workTitle} {PassageCitation.Display(_startNode.CitationRef)}".Replace(":", "_");
@@ -576,6 +653,15 @@ public class PassageExportForm : ScaledForm
             Title = "Export Passage"
         };
         if (saveDialog.ShowDialog(this) != DialogResult.OK) return;
+
+        // A reference rather than the passage. It leaves before the render
+        // chunks are built, because none of the font and bilingual choices
+        // below mean anything to a .bib file.
+        if (_bibRadio.Checked || _risRadio.Checked)
+        {
+            await ExportReferenceAsync(saveDialog.FileName, asBibTeX: _bibRadio.Checked);
+            return;
+        }
 
         var title = _showCitationsCheckbox.Checked
             ? $"{_authorName}, {_workTitle} [{PassageCitation.Display(_currentLines.First().CitationRef)}\u2013{PassageCitation.Display(_currentLines.Last().CitationRef)}]"
