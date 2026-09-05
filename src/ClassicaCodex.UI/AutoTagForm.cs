@@ -299,7 +299,7 @@ public class AutoTagForm : ScaledForm
             foreach (var r in _currentResults)
             {
                 var index = _resultsList.Items.Add(
-                    $"{r.AuthorName}, {r.WorkTitle}: {r.Text}");
+                    $"{r.AuthorName}, {r.WorkTitle}: {ListResultHelpers.RowText(r.Text)}");
                 _resultsList.SetItemChecked(index, true);
             }
 

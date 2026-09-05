@@ -180,7 +180,7 @@ public class ReceptionTrackerForm : ScaledForm
 
         foreach (var r in items)
         {
-            list.Items.Add($"[{r.SharedWordCount} shared] {r.AuthorName}, {r.WorkTitle}: {r.Text}");
+            list.Items.Add($"[{r.SharedWordCount} shared] {r.AuthorName}, {r.WorkTitle}: {ListResultHelpers.RowText(r.Text)}");
         }
     }
 

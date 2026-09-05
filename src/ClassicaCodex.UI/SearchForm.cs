@@ -946,7 +946,7 @@ public class SearchForm : ScaledForm
             else
             {
                 foreach (var r in _visible.Take(DisplayLimit))
-                    _resultsList.Items.Add($"{r.AuthorName}, {r.WorkTitle}: {r.Text}");
+                    _resultsList.Items.Add($"{r.AuthorName}, {r.WorkTitle}: {ListResultHelpers.RowText(r.Text)}");
             }
 
             if (_results.Count == 0)

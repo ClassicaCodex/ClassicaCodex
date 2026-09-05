@@ -227,7 +227,7 @@ public class TagBrowserForm : ScaledForm
         _currentResults = await _tagRepo.GetByTagAsync(tag.Name);
         foreach (var r in _currentResults)
         {
-            _resultsList.Items.Add($"{r.AuthorName}, {r.WorkTitle}: {r.Text}");
+            _resultsList.Items.Add($"{r.AuthorName}, {r.WorkTitle}: {ListResultHelpers.RowText(r.Text)}");
         }
 
         if (_currentResults.Count == 0)

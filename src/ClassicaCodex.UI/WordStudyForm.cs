@@ -576,7 +576,7 @@ public class WordStudyForm : ScaledForm
         _occurrenceList.Items.Clear();
         foreach (var o in _currentOccurrences.Take(500))
         {
-            _occurrenceList.Items.Add($"{o.AuthorName}, {o.WorkTitle}: {o.Text}");
+            _occurrenceList.Items.Add($"{o.AuthorName}, {o.WorkTitle}: {ListResultHelpers.RowText(o.Text)}");
         }
 
         if (_currentOccurrences.Count == 0)

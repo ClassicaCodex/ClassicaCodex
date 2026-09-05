@@ -122,7 +122,7 @@ public class EchoResultsForm : ScaledForm
         foreach (var r in _currentResults)
         {
             _resultsList.Items.Add(
-                $"[{r.SharedWordCount} shared] {r.AuthorName}, {r.WorkTitle}: {r.Text}");
+                $"[{r.SharedWordCount} shared] {r.AuthorName}, {r.WorkTitle}: {ListResultHelpers.RowText(r.Text)}");
         }
     }
 

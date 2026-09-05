@@ -227,7 +227,7 @@ public class MythNetworkForm : ScaledForm
         _currentPassages = await _tagRepo.GetByTagAsync(tagName);
         foreach (var p in _currentPassages)
         {
-            _passageList.Items.Add($"{p.AuthorName}, {p.WorkTitle}: {p.Text}");
+            _passageList.Items.Add($"{p.AuthorName}, {p.WorkTitle}: {ListResultHelpers.RowText(p.Text)}");
         }
 
         if (_currentPassages.Count == 0)
@@ -259,7 +259,7 @@ public class MythNetworkForm : ScaledForm
 
         foreach (var p in edgePassages)
         {
-            _passageList.Items.Add($"[{p.TagName}] {p.AuthorName}, {p.WorkTitle}: {p.Text}");
+            _passageList.Items.Add($"[{p.TagName}] {p.AuthorName}, {p.WorkTitle}: {ListResultHelpers.RowText(p.Text)}");
         }
 
         if (edgePassages.Count == 0)
