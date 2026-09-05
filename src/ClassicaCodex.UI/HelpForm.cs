@@ -146,6 +146,8 @@ Where you left off
 
 View Preface
    Some translations carry a translator's preface or similar front matter. It has nothing on the original side to line up against, so it's kept out of the reader rather than sitting at the top of the text looking like the first line of the work. Where an edition has one, "View Preface..." appears on that pane's right-click menu.
+
+And if, patient reader, you would step beyond the words and meet your fate... return to the main window and press Ctrl+Shift+F12. The bronze is drawn. The thunder answers. Tread carefully: the oracle has warned you.
 """),
 
         ("Translate", """

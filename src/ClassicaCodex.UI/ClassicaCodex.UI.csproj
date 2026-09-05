@@ -5,9 +5,9 @@
     <TargetFramework>net8.0-windows</TargetFramework>
     <UseWindowsForms>true</UseWindowsForms>
     <Nullable>enable</Nullable>
-    <Version>3.4.1</Version>
-    <AssemblyVersion>3.4.1.0</AssemblyVersion>
-    <FileVersion>3.4.1.0</FileVersion>
+    <Version>3.5.0</Version>
+    <AssemblyVersion>3.5.0.0</AssemblyVersion>
+    <FileVersion>3.5.0.0</FileVersion>
     <ImplicitUsings>enable</ImplicitUsings>
     <RootNamespace>ClassicaCodex.UI</RootNamespace>
     <!-- Enables the compiler's structural checks on /// doc comments -
@@ -56,4 +56,19 @@
     <None Include="Icons\**\*.png" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
+  <ItemGroup>
+    <EmbeddedResource Include="Icons\BronzeAndThunder.ico" LogicalName="ClassicaCodex.UI.Icons.BronzeAndThunder.ico" />
+    <EmbeddedResource Include="Icons\BronzeBestiary.ico" LogicalName="ClassicaCodex.UI.Icons.BronzeBestiary.ico" />
+    <EmbeddedResource Include="Icons\BronzeDivineGift.ico" LogicalName="ClassicaCodex.UI.Icons.BronzeDivineGift.ico" />
+    <EmbeddedResource Include="Icons\BronzeLaurels.ico" LogicalName="ClassicaCodex.UI.Icons.BronzeLaurels.ico" />
+    <EmbeddedResource Include="Icons\BronzeJournal.ico" LogicalName="ClassicaCodex.UI.Icons.BronzeJournal.ico" />
+    <EmbeddedResource Include="Icons\BronzeNewAdventure.ico" LogicalName="ClassicaCodex.UI.Icons.BronzeNewAdventure.ico" />
+    <EmbeddedResource Include="Icons\BronzeBeginAdventure.ico" LogicalName="ClassicaCodex.UI.Icons.BronzeBeginAdventure.ico" />
+    <EmbeddedResource Include="Icons\BronzeSoundOn.ico" LogicalName="ClassicaCodex.UI.Icons.BronzeSoundOn.ico" />
+    <EmbeddedResource Include="Icons\BronzeSoundOff.ico" LogicalName="ClassicaCodex.UI.Icons.BronzeSoundOff.ico" />
+    <EmbeddedResource Include="Icons\BronzeOracleHint.ico" LogicalName="ClassicaCodex.UI.Icons.BronzeOracleHint.ico" />
+    <EmbeddedResource Include="Icons\BronzeCheckPassage.ico" LogicalName="ClassicaCodex.UI.Icons.BronzeCheckPassage.ico" />
+    <EmbeddedResource Include="Icons\BronzeRevealCitation.ico" LogicalName="ClassicaCodex.UI.Icons.BronzeRevealCitation.ico" />
+    <EmbeddedResource Include="Icons\BronzeHighlightPassage.ico" LogicalName="ClassicaCodex.UI.Icons.BronzeHighlightPassage.ico" />
+  </ItemGroup>
 </Project>
