@@ -18,7 +18,8 @@ public sealed record ExportPassage(
     string WorkTitle,
     string CitationRef,
     string Text,
-    string? Detail = null);
+    string? Detail = null,
+    string? Milestone = null);
 
 /// <summary>
 /// Exports a set of passages gathered from across the library, as opposed to
@@ -373,7 +374,7 @@ public class PassageSetExportForm : ScaledForm
             // attribution.
             var parts = new List<string>();
             if (showSource && !grouped) parts.Add($"{passage.AuthorName}, {passage.WorkTitle}");
-            if (showCitations) parts.Add($"[{PassageCitation.Display(passage.CitationRef)}]");
+            if (showCitations) parts.Add($"[{PassageCitation.Display(passage.CitationRef, passage.Milestone)}]");
 
             chunks.Add((string.Join(" ", parts), passage.Text));
 

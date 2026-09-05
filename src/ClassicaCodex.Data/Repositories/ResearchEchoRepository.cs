@@ -65,7 +65,10 @@ public sealed class ResearchEchoRepository
             cmd.CommandText = @"SELECT ResearchEchoInvestigationId,ResearchProjectId,ResearchQuestionId,
                 ResearchFindingId,Method,Title,SourceWorkId,SourceTextNodeId,SourceWorkCtsUrn,
                 SourceEditionCtsUrn,SourceCitationRef,SourceText,SourceLanguage,TargetScope,Settings,AiModel,AiPrompt,
-                AiGeneratedUtc,CreatedUtc,UpdatedUtc FROM ResearchEchoInvestigations
+                AiGeneratedUtc,CreatedUtc,UpdatedUtc,
+                (SELECT tn.Milestone FROM TextNodes tn JOIN Editions ed ON ed.EditionId=tn.EditionId
+                  WHERE ed.CtsUrn=SourceEditionCtsUrn AND tn.CitationRef=SourceCitationRef LIMIT 1)
+                FROM ResearchEchoInvestigations
                 ORDER BY CreatedUtc DESC,ResearchEchoInvestigationId DESC;";
             await using var reader = await cmd.ExecuteReaderAsync(cancellationToken);
             while (await reader.ReadAsync(cancellationToken))
@@ -82,7 +85,9 @@ public sealed class ResearchEchoRepository
             cmd.CommandText = @"SELECT ResearchEchoResultId,ResearchEchoInvestigationId,TargetWorkId,
                 TargetTextNodeId,TargetAuthorName,TargetWorkTitle,TargetWorkCtsUrn,TargetEditionCtsUrn,
                 TargetCitationRef,TargetText,TargetLanguage,Score,ScoreLabel,Rationale,Disposition,ResearcherNote,
-                ConnectionType,Directionality,MotifTags,ParallelNote,EvidenceItemId,SortOrder,CreatedUtc,UpdatedUtc
+                ConnectionType,Directionality,MotifTags,ParallelNote,EvidenceItemId,SortOrder,CreatedUtc,UpdatedUtc,
+                (SELECT tn.Milestone FROM TextNodes tn JOIN Editions ed ON ed.EditionId=tn.EditionId
+                  WHERE ed.CtsUrn=TargetEditionCtsUrn AND tn.CitationRef=TargetCitationRef LIMIT 1)
                 FROM ResearchEchoResults ORDER BY SortOrder,ResearchEchoResultId;";
             await using var reader = await cmd.ExecuteReaderAsync(cancellationToken);
             while (await reader.ReadAsync(cancellationToken))
@@ -117,7 +122,10 @@ public sealed class ResearchEchoRepository
         cmd.CommandText = @"SELECT ResearchEchoInvestigationId,ResearchProjectId,ResearchQuestionId,
             ResearchFindingId,Method,Title,SourceWorkId,SourceTextNodeId,SourceWorkCtsUrn,
             SourceEditionCtsUrn,SourceCitationRef,SourceText,SourceLanguage,TargetScope,Settings,AiModel,AiPrompt,
-            AiGeneratedUtc,CreatedUtc,UpdatedUtc FROM ResearchEchoInvestigations
+            AiGeneratedUtc,CreatedUtc,UpdatedUtc,
+                (SELECT tn.Milestone FROM TextNodes tn JOIN Editions ed ON ed.EditionId=tn.EditionId
+                  WHERE ed.CtsUrn=SourceEditionCtsUrn AND tn.CitationRef=SourceCitationRef LIMIT 1)
+                FROM ResearchEchoInvestigations
             WHERE ResearchProjectId=@Project ORDER BY CreatedUtc DESC,ResearchEchoInvestigationId DESC;";
         cmd.Parameters.AddWithValue("@Project", projectId);
         await using var reader = await cmd.ExecuteReaderAsync(cancellationToken);
@@ -134,7 +142,10 @@ public sealed class ResearchEchoRepository
         cmd.CommandText = @"SELECT ResearchEchoResultId,ResearchEchoInvestigationId,TargetWorkId,
             TargetTextNodeId,TargetAuthorName,TargetWorkTitle,TargetWorkCtsUrn,TargetEditionCtsUrn,
             TargetCitationRef,TargetText,TargetLanguage,Score,ScoreLabel,Rationale,Disposition,ResearcherNote,
-            ConnectionType,Directionality,MotifTags,ParallelNote,EvidenceItemId,SortOrder,CreatedUtc,UpdatedUtc FROM ResearchEchoResults
+            ConnectionType,Directionality,MotifTags,ParallelNote,EvidenceItemId,SortOrder,CreatedUtc,UpdatedUtc,
+                (SELECT tn.Milestone FROM TextNodes tn JOIN Editions ed ON ed.EditionId=tn.EditionId
+                  WHERE ed.CtsUrn=TargetEditionCtsUrn AND tn.CitationRef=TargetCitationRef LIMIT 1)
+                FROM ResearchEchoResults
             WHERE ResearchEchoInvestigationId=@Investigation ORDER BY SortOrder,ResearchEchoResultId;";
         cmd.Parameters.AddWithValue("@Investigation", investigationId);
         await using var reader = await cmd.ExecuteReaderAsync(cancellationToken);

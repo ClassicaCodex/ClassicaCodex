@@ -206,8 +206,8 @@ public sealed class IntertextualAtlasForm : ScaledForm
         public string Review => Connection.Result.Disposition.ToString();
         public string Relation => Connection.Result.ConnectionType.ToString();
         public string Project => Connection.Project.Name;
-        public string Source => $"{Connection.SourceWorkTitle} {PassageCitation.Display(Connection.Investigation.SourceCitationRef)}";
-        public string Target => $"{Connection.Result.TargetWorkTitle} {PassageCitation.Display(Connection.Result.TargetCitationRef)}";
+        public string Source => $"{Connection.SourceWorkTitle} {PassageCitation.Display(Connection.Investigation.SourceCitationRef, Connection.Investigation.SourceMilestone)}";
+        public string Target => $"{Connection.Result.TargetWorkTitle} {PassageCitation.Display(Connection.Result.TargetCitationRef, Connection.Result.TargetMilestone)}";
         public string Motifs => Connection.Result.MotifTags ?? "";
     }
 }

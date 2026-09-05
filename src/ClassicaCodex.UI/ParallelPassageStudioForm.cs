@@ -30,7 +30,7 @@ public sealed class ParallelPassageStudioForm : ScaledForm
     {
         _project = project; _sourceWork = sourceWork; _sourceAuthor = sourceAuthor;
         _investigation = investigation; _result = result;
-        Text = $"Parallel Passage Studio — {sourceWork.Title} {PassageCitation.Display(investigation.SourceCitationRef)} ↔ {result.TargetWorkTitle} {PassageCitation.Display(result.TargetCitationRef)}";
+        Text = $"Parallel Passage Studio — {sourceWork.Title} {PassageCitation.Display(investigation.SourceCitationRef, investigation.SourceMilestone)} ↔ {result.TargetWorkTitle} {PassageCitation.Display(result.TargetCitationRef, result.TargetMilestone)}";
         Width = 1280; Height = 820; MinimumSize = new Size(940, 640); StartPosition = FormStartPosition.CenterParent;
         AppIcons.ApplyWindowIcon(this, "SimilarWorks");
 
@@ -55,8 +55,8 @@ public sealed class ParallelPassageStudioForm : ScaledForm
         var passages = new TableLayoutPanel { Dock = DockStyle.Fill, Padding = new Padding(8), ColumnCount = 2, RowCount = 3 };
         passages.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50)); passages.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50));
         passages.RowStyles.Add(new RowStyle(SizeType.Absolute, 34)); passages.RowStyles.Add(new RowStyle(SizeType.Percent, 100)); passages.RowStyles.Add(new RowStyle(SizeType.Absolute, 150));
-        var sourceLabel = new Label { Dock = DockStyle.Fill, Text = $"SOURCE — {_sourceAuthor}, {_sourceWork.Title} [{PassageCitation.Display(_investigation.SourceCitationRef)}] ({Language(_investigation.SourceLanguage)})", Font = new Font(Font, FontStyle.Bold) };
-        var targetLabel = new Label { Dock = DockStyle.Fill, Text = $"TARGET — {_result.TargetAuthorName}, {_result.TargetWorkTitle} [{PassageCitation.Display(_result.TargetCitationRef)}] ({Language(_result.TargetLanguage)})", Font = new Font(Font, FontStyle.Bold) };
+        var sourceLabel = new Label { Dock = DockStyle.Fill, Text = $"SOURCE — {_sourceAuthor}, {_sourceWork.Title} [{PassageCitation.Display(_investigation.SourceCitationRef, _investigation.SourceMilestone)}] ({Language(_investigation.SourceLanguage)})", Font = new Font(Font, FontStyle.Bold) };
+        var targetLabel = new Label { Dock = DockStyle.Fill, Text = $"TARGET — {_result.TargetAuthorName}, {_result.TargetWorkTitle} [{PassageCitation.Display(_result.TargetCitationRef, _result.TargetMilestone)}] ({Language(_result.TargetLanguage)})", Font = new Font(Font, FontStyle.Bold) };
         var source = PassageBox(_investigation.SourceText); var target = PassageBox(_result.TargetText);
         var rationale = new TextBox { Dock = DockStyle.Fill, Multiline = true, ReadOnly = true, ScrollBars = ScrollBars.Vertical,
             Text = "Why this candidate was proposed:\r\n" + (_result.Rationale ?? "No rationale was recorded.") };

@@ -27,9 +27,9 @@ public class ReceptionTrackerForm : ScaledForm
     private readonly ListBox _unknownList;
     private readonly TextNodeRepository _textNodeRepo = new();
 
-    private List<(int WorkId, long TextNodeId, string AuthorName, string WorkTitle, string CitationRef, string Text, int SharedWordCount)> _later = new();
-    private List<(int WorkId, long TextNodeId, string AuthorName, string WorkTitle, string CitationRef, string Text, int SharedWordCount)> _earlier = new();
-    private List<(int WorkId, long TextNodeId, string AuthorName, string WorkTitle, string CitationRef, string Text, int SharedWordCount)> _unknown = new();
+    private List<(int WorkId, long TextNodeId, string AuthorName, string WorkTitle, string CitationRef, string Text, int SharedWordCount, string? Milestone)> _later = new();
+    private List<(int WorkId, long TextNodeId, string AuthorName, string WorkTitle, string CitationRef, string Text, int SharedWordCount, string? Milestone)> _earlier = new();
+    private List<(int WorkId, long TextNodeId, string AuthorName, string WorkTitle, string CitationRef, string Text, int SharedWordCount, string? Milestone)> _unknown = new();
 
     /// <summary>Set by MainForm before showing this dialog.</summary>
     public Func<int, long, Task>? OnNavigate { get; set; }
@@ -64,7 +64,7 @@ public class ReceptionTrackerForm : ScaledForm
             i => i < _later.Count ? _later[i].CitationRef : null);
         ListResultHelpers.AttachCopyToClipboardMenu(_laterList,
             i => i < _later.Count
-                ? $"{_later[i].AuthorName}, {_later[i].WorkTitle} [{PassageCitation.Display(_later[i].CitationRef)}]: {_later[i].Text}"
+                ? $"{_later[i].AuthorName}, {_later[i].WorkTitle} [{PassageCitation.Display(_later[i].CitationRef, _later[i].Milestone)}]: {_later[i].Text}"
                 : null);
         ListResultHelpers.AttachExportMenu(_laterList, () => (
             $"Reception of [{PassageCitation.Display(_sourceNode.CitationRef, _sourceNode.Milestone)}] - later authors",
@@ -82,7 +82,7 @@ public class ReceptionTrackerForm : ScaledForm
             i => i < _earlier.Count ? _earlier[i].CitationRef : null);
         ListResultHelpers.AttachCopyToClipboardMenu(_earlierList,
             i => i < _earlier.Count
-                ? $"{_earlier[i].AuthorName}, {_earlier[i].WorkTitle} [{PassageCitation.Display(_earlier[i].CitationRef)}]: {_earlier[i].Text}"
+                ? $"{_earlier[i].AuthorName}, {_earlier[i].WorkTitle} [{PassageCitation.Display(_earlier[i].CitationRef, _earlier[i].Milestone)}]: {_earlier[i].Text}"
                 : null);
         ListResultHelpers.AttachExportMenu(_earlierList, () => (
             $"Reception of [{PassageCitation.Display(_sourceNode.CitationRef, _sourceNode.Milestone)}] - earlier authors",
@@ -100,7 +100,7 @@ public class ReceptionTrackerForm : ScaledForm
             i => i < _unknown.Count ? _unknown[i].CitationRef : null);
         ListResultHelpers.AttachCopyToClipboardMenu(_unknownList,
             i => i < _unknown.Count
-                ? $"{_unknown[i].AuthorName}, {_unknown[i].WorkTitle} [{PassageCitation.Display(_unknown[i].CitationRef)}]: {_unknown[i].Text}"
+                ? $"{_unknown[i].AuthorName}, {_unknown[i].WorkTitle} [{PassageCitation.Display(_unknown[i].CitationRef, _unknown[i].Milestone)}]: {_unknown[i].Text}"
                 : null);
         ListResultHelpers.AttachExportMenu(_unknownList, () => (
             $"Reception of [{PassageCitation.Display(_sourceNode.CitationRef, _sourceNode.Milestone)}] - undated authors",
@@ -170,7 +170,7 @@ public class ReceptionTrackerForm : ScaledForm
 
     private static void PopulateList(
         ListBox list,
-        List<(int WorkId, long TextNodeId, string AuthorName, string WorkTitle, string CitationRef, string Text, int SharedWordCount)> items)
+        List<(int WorkId, long TextNodeId, string AuthorName, string WorkTitle, string CitationRef, string Text, int SharedWordCount, string? Milestone)> items)
     {
         if (items.Count == 0)
         {
@@ -186,7 +186,7 @@ public class ReceptionTrackerForm : ScaledForm
 
     private async Task JumpAsync(
         ListBox list,
-        List<(int WorkId, long TextNodeId, string AuthorName, string WorkTitle, string CitationRef, string Text, int SharedWordCount)> items)
+        List<(int WorkId, long TextNodeId, string AuthorName, string WorkTitle, string CitationRef, string Text, int SharedWordCount, string? Milestone)> items)
     {
         var index = list.SelectedIndex;
         if (index < 0 || index >= items.Count || OnNavigate == null) return;

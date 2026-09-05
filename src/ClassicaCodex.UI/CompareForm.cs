@@ -15,7 +15,7 @@ public class CompareForm : ScaledForm
     private readonly TagRepository _tagRepo = new();
     private readonly string _tagName;
 
-    private List<(int WorkId, long TextNodeId, string AuthorName, string WorkTitle, string CitationRef, string Text)> _allResults = new();
+    private List<(int WorkId, long TextNodeId, string AuthorName, string WorkTitle, string CitationRef, string Text, string? Milestone)> _allResults = new();
 
     public CompareForm(string tagName)
     {
@@ -169,7 +169,7 @@ public class CompareForm : ScaledForm
                     i => i < passages.Count ? passages[i].CitationRef : null);
                 ListResultHelpers.AttachCopyToClipboardMenu(list,
                     i => i < passages.Count
-                        ? $"{source.AuthorName}, {source.WorkTitle} [{PassageCitation.Display(passages[i].CitationRef)}]: {passages[i].Text}"
+                        ? $"{source.AuthorName}, {source.WorkTitle} [{PassageCitation.Display(passages[i].CitationRef, passages[i].Milestone)}]: {passages[i].Text}"
                         : null);
             }
 

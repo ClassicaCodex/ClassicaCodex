@@ -393,7 +393,7 @@ public class CrossLanguageEchoForm : ScaledForm
                     (_lastTruncatedAtRef == null ? " (complete ingested edition)" : $" (through {_lastTruncatedAtRef})");
         var request = new EchoCaptureRequest(
             ResearchEchoMethod.AiCrossLanguage, source,
-            $"Cross-language echoes: {source.WorkTitle} {PassageCitation.Display(source.CitationRef)} → {_comparisonWorkTitle}",
+            $"Cross-language echoes: {source.WorkTitle} {PassageCitation.Display(source.CitationRef, source.Milestone)} → {_comparisonWorkTitle}",
             scope,
             "Gemini thematic/imagistic comparison. Returned citations were resolved exactly against local reading-text nodes; unsupported words in rationales remain flagged for human checking.",
             _lastAiResult.Model, _lastAiResult.PromptProvenance, _lastAiGeneratedUtc,

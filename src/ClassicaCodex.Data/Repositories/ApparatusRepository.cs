@@ -74,10 +74,13 @@ public class ApparatusRepository
         await using var conn = await DbConnectionFactory.OpenConnectionAsync(cancellationToken);
         await using var cmd = conn.CreateCommand();
         cmd.CommandText = @"
-            SELECT ApparatusId, EditionId, CitationRef, SortOrder, Kind, Lemma, Witness, Content
-            FROM ApparatusEntries
-            WHERE EditionId = @EditionId AND CitationRef = @CitationRef
-            ORDER BY SortOrder;";
+            SELECT a.ApparatusId, a.EditionId, a.CitationRef, a.SortOrder, a.Kind, a.Lemma, a.Witness,
+                   a.Content, t.Milestone
+            FROM ApparatusEntries a
+            LEFT JOIN TextNodes t
+                   ON t.EditionId = a.EditionId AND t.CitationRef = a.CitationRef
+            WHERE a.EditionId = @EditionId AND a.CitationRef = @CitationRef
+            ORDER BY a.SortOrder;";
         cmd.Parameters.AddWithValue("@EditionId", editionId);
         cmd.Parameters.AddWithValue("@CitationRef", citationRef);
 
@@ -102,7 +105,8 @@ public class ApparatusRepository
         await using var conn = await DbConnectionFactory.OpenConnectionAsync(cancellationToken);
         await using var cmd = conn.CreateCommand();
         cmd.CommandText = @"
-            SELECT a.ApparatusId, a.EditionId, a.CitationRef, a.SortOrder, a.Kind, a.Lemma, a.Witness, a.Content
+            SELECT a.ApparatusId, a.EditionId, a.CitationRef, a.SortOrder, a.Kind, a.Lemma, a.Witness, a.Content,
+                   t.Milestone
             FROM ApparatusEntries a
             -- Ordered by the line's position in the work, not by citation
             -- reference: refs are strings, so ""1.9"" would otherwise sort
@@ -142,6 +146,7 @@ public class ApparatusRepository
         Kind = reader.GetString(4),
         Lemma = reader.IsDBNull(5) ? null : reader.GetString(5),
         Witness = reader.IsDBNull(6) ? null : reader.GetString(6),
-        Content = reader.GetString(7)
+        Content = reader.GetString(7),
+        Milestone = reader.FieldCount > 8 && !reader.IsDBNull(8) ? reader.GetString(8) : null
     };
 }

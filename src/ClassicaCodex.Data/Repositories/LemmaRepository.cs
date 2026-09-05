@@ -406,10 +406,10 @@ public class LemmaRepository
     /// Greek pattern can't match an uppercase Latin tag that happens to be
     /// the same length. See MorphologyDecoder.BuildGlobPattern.
     /// </summary>
-    public async Task<List<(int WorkId, long TextNodeId, string AuthorName, string WorkTitle, string CitationRef, string Text, string MatchedForm, string Headword, string Tag)>>
+    public async Task<List<(int WorkId, long TextNodeId, string AuthorName, string WorkTitle, string CitationRef, string Text, string MatchedForm, string Headword, string Tag, string? Milestone)>>
         SearchByMorphologyAsync(string globPattern9, string globPattern10, string language, int maxResults = 2000, IReadOnlyCollection<int>? workIds = null, CancellationToken cancellationToken = default)
     {
-        var results = new List<(int, long, string, string, string, string, string, string, string)>();
+        var results = new List<(int, long, string, string, string, string, string, string, string, string?)>();
 
         await using var conn = await DbConnectionFactory.OpenConnectionAsync(cancellationToken);
         await using var cmd = conn.CreateCommand();
@@ -459,7 +459,8 @@ public class LemmaRepository
             results.Add((
                 reader.GetInt32(0), reader.GetInt64(1), reader.GetString(2), reader.GetString(3),
                 reader.GetString(4), reader.GetString(5), reader.GetString(6), reader.GetString(7),
-                reader.IsDBNull(8) ? string.Empty : reader.GetString(8)));
+                reader.IsDBNull(8) ? string.Empty : reader.GetString(8),
+                reader.IsDBNull(9) ? null : reader.GetString(9)));
         }
 
         return results;

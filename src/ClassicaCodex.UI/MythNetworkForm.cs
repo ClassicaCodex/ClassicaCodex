@@ -14,7 +14,7 @@ public class MythNetworkForm : ScaledForm
     private readonly Label _selectedTagLabel;
     private readonly TagRepository _tagRepo = new();
 
-    private List<(int WorkId, long TextNodeId, string AuthorName, string WorkTitle, string CitationRef, string Text)> _currentPassages = new();
+    private List<(int WorkId, long TextNodeId, string AuthorName, string WorkTitle, string CitationRef, string Text, string? Milestone)> _currentPassages = new();
 
     /// <summary>
     /// Set by MainForm before showing this dialog. Double-clicking a passage
@@ -156,7 +156,7 @@ public class MythNetworkForm : ScaledForm
             i => i < _currentPassages.Count ? _currentPassages[i].CitationRef : null);
         ListResultHelpers.AttachCopyToClipboardMenu(_passageList,
             i => i < _currentPassages.Count
-                ? $"{_currentPassages[i].AuthorName}, {_currentPassages[i].WorkTitle} [{PassageCitation.Display(_currentPassages[i].CitationRef)}]: {_currentPassages[i].Text}"
+                ? $"{_currentPassages[i].AuthorName}, {_currentPassages[i].WorkTitle} [{PassageCitation.Display(_currentPassages[i].CitationRef, _currentPassages[i].Milestone)}]: {_currentPassages[i].Text}"
                 : null);
 
         Controls.Add(relayoutButton);
@@ -254,7 +254,7 @@ public class MythNetworkForm : ScaledForm
         var edgePassages = await _tagRepo.GetEdgePassagesAsync(tagNameA, tagNameB, useProximity, window);
 
         _currentPassages = edgePassages
-            .Select(p => (p.WorkId, p.TextNodeId, p.AuthorName, p.WorkTitle, p.CitationRef, p.Text))
+            .Select(p => (p.WorkId, p.TextNodeId, p.AuthorName, p.WorkTitle, p.CitationRef, p.Text, p.Milestone))
             .ToList();
 
         foreach (var p in edgePassages)
