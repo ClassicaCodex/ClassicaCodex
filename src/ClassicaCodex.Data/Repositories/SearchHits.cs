@@ -17,8 +17,15 @@ namespace ClassicaCodex.Data.Repositories;
 /// the reader ("there is more than this"), so they share one flag rather than
 /// making callers reason about which cap they hit.
 /// </summary>
+/// <param name="Rows">
+/// Milestone is last because the tuple is positional: appending means every
+/// place that builds a row fails to compile until it supplies one, where
+/// inserting it beside CitationRef would have let two strings quietly swap.
+/// It is null for most of the corpus - see <see cref="Core.Models.TextNode.Milestone"/>.
+/// </param>
 public sealed record SearchHits(
-    List<(int WorkId, long TextNodeId, string AuthorName, string WorkTitle, string CitationRef, string Text)> Rows,
+    List<(int WorkId, long TextNodeId, string AuthorName, string WorkTitle, string CitationRef, string Text,
+          string? Milestone)> Rows,
     bool Truncated)
 {
     public static SearchHits Empty { get; } = new(new(), false);

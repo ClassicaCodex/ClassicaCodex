@@ -65,7 +65,7 @@ public class PassageExportForm : ScaledForm
     private readonly Label _statusLabel;
 
     private readonly TextNodeRepository _textNodeRepo = new();
-    private List<(string CitationRef, string Text)> _currentLines = new();
+    private List<(string CitationRef, string Text, string? Milestone)> _currentLines = new();
 
     /// <summary>
     /// Aligns the counterpart edition's passages against the primary by
@@ -101,7 +101,7 @@ public class PassageExportForm : ScaledForm
 
         var headerLabel = new Label
         {
-            Text = $"{authorName}, {workTitle} - starting at [{PassageCitation.Display(startNode.CitationRef)}]",
+            Text = $"{authorName}, {workTitle} - starting at [{PassageCitation.Display(startNode.CitationRef, startNode.Milestone)}]",
             Left = 16,
             Top = 14,
             Width = 580,
@@ -337,7 +337,7 @@ public class PassageExportForm : ScaledForm
         var loadedCount = nodes.Count;
         nodes = nodes.Where(n => KindIsChecked(n.NodeKind)).ToList();
 
-        _currentLines = nodes.Select(n => (n.CitationRef, n.Text)).ToList();
+        _currentLines = nodes.Select(n => (n.CitationRef, n.Text, n.Milestone)).ToList();
 
         // Citation ref is the only shared key between an original and its
         // translation - they don't share line numbering, IDs, or ordering.
@@ -413,8 +413,8 @@ public class PassageExportForm : ScaledForm
         if (_combineCheckbox.Checked)
         {
             var rangeLabel = !_showCitationsCheckbox.Checked ? string.Empty
-                : _currentLines.Count == 1 ? $"[{PassageCitation.Display(_currentLines[0].CitationRef)}]"
-                : $"[{PassageCitation.Display(_currentLines.First().CitationRef)}\u2013{PassageCitation.Display(_currentLines.Last().CitationRef)}]";
+                : _currentLines.Count == 1 ? $"[{PassageCitation.Display(_currentLines[0].CitationRef, _currentLines[0].Milestone)}]"
+                : $"[{PassageCitation.Display(_currentLines.First().CitationRef, _currentLines.First().Milestone)}\u2013{PassageCitation.Display(_currentLines.Last().CitationRef, _currentLines.Last().Milestone)}]";
 
             var primaryText = string.Join(" ", _currentLines.Select(l => l.Text));
 
@@ -444,7 +444,7 @@ public class PassageExportForm : ScaledForm
         {
             foreach (var line in _currentLines)
             {
-                var soloLabel = _showCitationsCheckbox.Checked ? $"[{PassageCitation.Display(line.CitationRef)}]" : string.Empty;
+                var soloLabel = _showCitationsCheckbox.Checked ? $"[{PassageCitation.Display(line.CitationRef, line.Milestone)}]" : string.Empty;
                 chunks.Add((soloLabel, line.Text));
             }
             return chunks;
@@ -480,7 +480,7 @@ public class PassageExportForm : ScaledForm
                 for (; cursor < firstIndex; cursor++) EmitCounterpart(cursor);
             }
 
-            var label = _showCitationsCheckbox.Checked ? $"[{PassageCitation.Display(line.CitationRef)}]" : string.Empty;
+            var label = _showCitationsCheckbox.Checked ? $"[{PassageCitation.Display(line.CitationRef, line.Milestone)}]" : string.Empty;
             chunks.Add((label, line.Text));
 
             if (indices == null) continue;
@@ -579,8 +579,8 @@ public class PassageExportForm : ScaledForm
     {
         try
         {
-            var first = PassageCitation.Display(_currentLines.First().CitationRef);
-            var last = PassageCitation.Display(_currentLines.Last().CitationRef);
+            var first = PassageCitation.Display(_currentLines.First().CitationRef, _currentLines.First().Milestone);
+            var last = PassageCitation.Display(_currentLines.Last().CitationRef, _currentLines.Last().Milestone);
             var locator = first == last || last.Length == 0 ? first : $"{first}-{last}";
 
             string? editionUrn = null;
@@ -640,7 +640,7 @@ public class PassageExportForm : ScaledForm
             : _risRadio.Checked ? "RIS (*.ris)|*.ris"
             : "PDF file (*.pdf)|*.pdf";
 
-        var suggestedName = $"{_authorName} - {_workTitle} {PassageCitation.Display(_startNode.CitationRef)}".Replace(":", "_");
+        var suggestedName = $"{_authorName} - {_workTitle} {PassageCitation.Display(_startNode.CitationRef, _startNode.Milestone)}".Replace(":", "_");
         foreach (var invalid in Path.GetInvalidFileNameChars())
         {
             suggestedName = suggestedName.Replace(invalid, '_');
@@ -664,7 +664,7 @@ public class PassageExportForm : ScaledForm
         }
 
         var title = _showCitationsCheckbox.Checked
-            ? $"{_authorName}, {_workTitle} [{PassageCitation.Display(_currentLines.First().CitationRef)}\u2013{PassageCitation.Display(_currentLines.Last().CitationRef)}]"
+            ? $"{_authorName}, {_workTitle} [{PassageCitation.Display(_currentLines.First().CitationRef, _currentLines.First().Milestone)}\u2013{PassageCitation.Display(_currentLines.Last().CitationRef, _currentLines.Last().Milestone)}]"
             : $"{_authorName}, {_workTitle}";
         var sourceUrl = await DescribeSourceAsync();
         var chunks = BuildRenderChunks();

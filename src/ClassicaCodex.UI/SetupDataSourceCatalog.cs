@@ -740,6 +740,37 @@ public static class SetupDataSourceCatalog
 
             new SetupDataSource
             {
+                Title = "Stephanus & Bekker Citations (Plato & Aristotle)",
+                RepoUrl = "https://github.com/PerseusDL/canonical-greekLit",
+                DisplayNote = "reads texts you already have - nothing is downloaded",
+                DefaultDestination = dataRoot,
+                FetchMode = SetupFetchMode.SelfManaged,
+                ActionButtonText = "Update Citations",
+                PlainLanguageDescription =
+                    "Plato is cited by Stephanus page and Aristotle by Bekker number - Republic 327a, " +
+                    "Ethics 1094a1 - and every article, syllabus and commentary uses them. Perseus " +
+                    "records both, but earlier versions of this application discarded them while " +
+                    "reading, so a library built before now shows Euthyphro 2a as \"2.1\", which cannot " +
+                    "be looked up anywhere. This reads those markers back out of the texts you already " +
+                    "have and writes them onto the passages. It downloads nothing, changes no text, and " +
+                    "leaves your bookmarks and tags exactly where they are - about twenty seconds " +
+                    "against a full library.",
+                RunIngest = async (root, progress, ct) =>
+                {
+                    var report = await new CanonicalCitationBackfill(root).RunAsync(progress, ct);
+                    if (report.FilesMissing > 0)
+                    {
+                        progress.Report($"{report.FilesMissing} editions could not be checked because their " +
+                                        "source files are no longer in the data folder. Anything you " +
+                                        "translated yourself is expected to be among them.");
+                    }
+                    return IngestOutcome.Clean;
+                },
+                CheckComplete = async () => await editionRepo.CountPassagesWithCanonicalCitationsAsync() > 0
+            },
+
+            new SetupDataSource
+            {
                 Title = "World Map Data (Natural Earth)",
                 RepoUrl = "https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/ne_110m_land.geojson",
                 DisplayNote = "public domain - single-file download, not a clone",

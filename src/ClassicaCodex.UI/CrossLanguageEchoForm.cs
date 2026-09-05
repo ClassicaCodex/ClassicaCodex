@@ -97,7 +97,7 @@ public class CrossLanguageEchoForm : ScaledForm
             Left = 12,
             Top = 10,
             Width = 780,
-            Text = $"Looking for echoes of: {sourceAuthorName}, {sourceWorkTitle} [{PassageCitation.Display(sourceNode.CitationRef)}]"
+            Text = $"Looking for echoes of: {sourceAuthorName}, {sourceWorkTitle} [{PassageCitation.Display(sourceNode.CitationRef, sourceNode.Milestone)}]"
         };
         _sourceBox = new TextBox
         {
@@ -196,7 +196,7 @@ public class CrossLanguageEchoForm : ScaledForm
         // without it would throw away the only part that isn't already
         // reachable from the reader.
         ListResultHelpers.AttachExportMenu(_resultsListBox, () => (
-            $"Cross-language echoes of [{PassageCitation.Display(_sourceNode.CitationRef)}]",
+            $"Cross-language echoes of [{PassageCitation.Display(_sourceNode.CitationRef, _sourceNode.Milestone)}]",
             _verifiedResults.Select(r => new ExportPassage(
                 _comparisonWorkId,
                 r.Node.TextNodeId,
@@ -696,7 +696,7 @@ public class CrossLanguageEchoForm : ScaledForm
             }
 
             _resultsListBox.Items.Add(
-                $"[{candidate.Confidence}] {PassageCitation.Display(node.CitationRef)}: {preview}  \u2014  {candidate.Rationale}{flag}");
+                $"[{candidate.Confidence}] {PassageCitation.Display(node.CitationRef, node.Milestone)}: {preview}  \u2014  {candidate.Rationale}{flag}");
         }
 
         var statusParts = new List<string>();

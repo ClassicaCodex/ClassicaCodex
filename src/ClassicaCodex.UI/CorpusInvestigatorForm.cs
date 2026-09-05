@@ -194,7 +194,7 @@ public sealed class CorpusInvestigatorForm : ScaledForm
                 if (string.IsNullOrWhiteSpace(node.Text)) continue;
                 if (node.TextNodeId == _seed.Result.TargetTextNodeId) continue; // the known seed is not a new candidate
                 var key = $"P{keyNumber + 1:000000}";
-                var line = $"[{key}] {work.Edition.AuthorName}, {work.Edition.WorkTitle} [{PassageCitation.Display(node.CitationRef)}] ({work.Edition.Language ?? "unknown"}) {node.Text}\n";
+                var line = $"[{key}] {work.Edition.AuthorName}, {work.Edition.WorkTitle} [{PassageCitation.Display(node.CitationRef, node.Milestone)}] ({work.Edition.Language ?? "unknown"}) {node.Text}\n";
                 if (used + line.Length > perWork) { truncated = true; break; }
                 keyNumber++; used += line.Length; lastRef = node.CitationRef; builder.Append(line);
                 map[key] = new CorpusPassage(work, node);

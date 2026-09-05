@@ -94,6 +94,27 @@ public class TextNode
     /// should say "no verse found here" rather than guess.
     /// </summary>
     public bool IsVerse { get; set; }
+
+    /// <summary>
+    /// How the scholarly world cites this passage, where the source records
+    /// it: a Stephanus page for Plato, a Bekker number for Aristotle.
+    /// Null for everything else, which is most of the corpus - Homer is cited
+    /// by book and line, and <see cref="CitationRef"/> already says so.
+    ///
+    /// Separate from CitationRef because the two answer different questions. A
+    /// CitationRef is an identity: bookmarks, tags, apparatus entries and
+    /// bilingual pairing all resolve through (EditionId, CitationRef), and it
+    /// is kept unique for that reason. A Stephanus section is not unique -
+    /// several speeches of the Euthyphro sit inside 2a, and all of them are
+    /// cited "2a", which is what the reference means. Putting one in the other
+    /// would have made a bookmark ambiguous in order to make a citation
+    /// readable.
+    ///
+    /// A range where the passage spans more than one - "329e-330e", because
+    /// Perseus divides the Republic a Stephanus page at a time and a node that
+    /// covers five sections should not claim to be the first of them.
+    /// </summary>
+    public string? Milestone { get; set; }
 }
 
 /// <summary>

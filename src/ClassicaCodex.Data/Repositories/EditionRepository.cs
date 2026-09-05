@@ -528,4 +528,22 @@ public class EditionRepository
         cmd.Parameters.AddWithValue("@Language", language);
         return Convert.ToInt32(await cmd.ExecuteScalarAsync(cancellationToken));
     }
+
+    /// <summary>
+    /// Whether any passage carries a Stephanus or Bekker reference, which is
+    /// how the setup step for those knows it has already run.
+    ///
+    /// EXISTS rather than COUNT: the answer is only ever used as a yes/no, and
+    /// counting them means scanning two and a third million rows to learn
+    /// something the first one already settled.
+    /// </summary>
+    public async Task<int> CountPassagesWithCanonicalCitationsAsync(
+        CancellationToken cancellationToken = default)
+    {
+        await using var conn = await DbConnectionFactory.OpenConnectionAsync(cancellationToken);
+        await using var cmd = conn.CreateCommand();
+        cmd.CommandText = "SELECT EXISTS (SELECT 1 FROM TextNodes WHERE Milestone IS NOT NULL);";
+        cmd.CommandTimeout = 60;
+        return Convert.ToInt32(await cmd.ExecuteScalarAsync(cancellationToken));
+    }
 }

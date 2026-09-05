@@ -88,7 +88,7 @@ public class TextNodeRepository
             for (var i = 0; i < batchSize; i++)
             {
                 var node = nodes[offset + i];
-                valueRows.Add($"(@e{i},@c{i},@s{i},@t{i},@a{i},@k{i},@v{i})");
+                valueRows.Add($"(@e{i},@c{i},@s{i},@t{i},@a{i},@k{i},@v{i},@m{i})");
                 cmd.Parameters.AddWithValue($"@e{i}", node.EditionId);
                 cmd.Parameters.AddWithValue($"@c{i}", node.CitationRef);
                 cmd.Parameters.AddWithValue($"@s{i}", node.SortOrder);
@@ -97,10 +97,11 @@ public class TextNodeRepository
                 cmd.Parameters.AddWithValue($"@k{i}",
                     string.IsNullOrWhiteSpace(node.NodeKind) ? TextNodeKinds.Line : node.NodeKind);
                 cmd.Parameters.AddWithValue($"@v{i}", node.IsVerse ? 1 : 0);
+                cmd.Parameters.AddWithValue($"@m{i}", (object?)node.Milestone ?? DBNull.Value);
             }
 
             cmd.CommandText =
-                $"INSERT INTO TextNodes (EditionId, CitationRef, SortOrder, Text, IsAthetized, NodeKind, IsVerse) VALUES {string.Join(",", valueRows)};";
+                $"INSERT INTO TextNodes (EditionId, CitationRef, SortOrder, Text, IsAthetized, NodeKind, IsVerse, Milestone) VALUES {string.Join(",", valueRows)};";
             await cmd.ExecuteNonQueryAsync(cancellationToken);
         }
 
@@ -130,7 +131,7 @@ public class TextNodeRepository
 
         var sql = @"SELECT TextNodeId, EditionId, CitationRef, SortOrder, Text,
                            COALESCE(IsAthetized, 0), COALESCE(NodeKind, 'line'),
-                           COALESCE(IsVerse, 0)
+                           COALESCE(IsVerse, 0), Milestone
                     FROM TextNodes
                     WHERE EditionId = @EditionId " + kindFilter + "ORDER BY SortOrder;";
 
@@ -150,7 +151,8 @@ public class TextNodeRepository
                 Text = reader.GetString(4),
                 IsAthetized = reader.GetInt32(5) != 0,
                 NodeKind = reader.GetString(6),
-                IsVerse = reader.GetInt32(7) != 0
+                IsVerse = reader.GetInt32(7) != 0,
+                Milestone = reader.IsDBNull(8) ? null : reader.GetString(8)
             });
         }
 
@@ -169,7 +171,7 @@ public class TextNodeRepository
     public async Task<SearchHits> SearchAsync(
         string query, int maxResults = DefaultMaxResults, CancellationToken cancellationToken = default)
     {
-        var results = new List<(int, long, string, string, string, string)>();
+        var results = new List<(int, long, string, string, string, string, string?)>();
         await using var conn = await DbConnectionFactory.OpenConnectionAsync(cancellationToken);
 
         // LIMIT one more than we intend to keep: if that extra row comes
@@ -177,7 +179,7 @@ public class TextNodeRepository
         // is exactly what Truncated needs to know. Cheaper and more honest
         // than a second COUNT(*) over the same predicate.
         const string sql = @"
-            SELECT w.WorkId, tn.TextNodeId, a.Name, w.Title, tn.CitationRef, tn.Text
+            SELECT w.WorkId, tn.TextNodeId, a.Name, w.Title, tn.CitationRef, tn.Text, tn.Milestone
             FROM TextNodes tn
             JOIN Editions e ON tn.EditionId = e.EditionId
             JOIN Works w ON e.WorkId = w.WorkId
@@ -201,7 +203,8 @@ public class TextNodeRepository
                 reader.GetString(2),
                 reader.GetString(3),
                 reader.GetString(4),
-                reader.GetString(5)));
+                reader.GetString(5),
+                reader.IsDBNull(6) ? null : reader.GetString(6)));
         }
 
         var truncated = results.Count > maxResults;
@@ -234,7 +237,7 @@ public class TextNodeRepository
         // qualify - and must not be confused with "no era filter".
         if (filters.EraAuthorIds is { Count: 0 }) return SearchHits.Empty;
 
-        var results = new List<(int, long, string, string, string, string)>();
+        var results = new List<(int, long, string, string, string, string, string?)>();
         await using var conn = await DbConnectionFactory.OpenConnectionAsync(cancellationToken);
         await using var cmd = conn.CreateCommand();
         cmd.CommandTimeout = 180;
@@ -249,7 +252,7 @@ public class TextNodeRepository
         cmd.Parameters.AddWithValue("@Limit", filters.MaxResults + 1);
 
         cmd.CommandText = $@"
-            SELECT w.WorkId, tn.TextNodeId, a.Name, w.Title, tn.CitationRef, tn.Text
+            SELECT w.WorkId, tn.TextNodeId, a.Name, w.Title, tn.CitationRef, tn.Text, tn.Milestone
             FROM TextNodes tn
             JOIN Editions e ON tn.EditionId = e.EditionId
             JOIN Works w ON e.WorkId = w.WorkId
@@ -445,7 +448,7 @@ public class TextNodeRepository
         SearchFilters filters,
         string query,
         bool indexAvailable,
-        List<(int, long, string, string, string, string)> results,
+        List<(int, long, string, string, string, string, string?)> results,
         CancellationToken cancellationToken)
     {
         // Only for the LIKE fallback. The index path has already matched on
@@ -479,7 +482,8 @@ public class TextNodeRepository
 
             results.Add((
                 reader.GetInt32(0), reader.GetInt64(1), reader.GetString(2),
-                reader.GetString(3), reader.GetString(4), text));
+                reader.GetString(3), reader.GetString(4), text,
+                reader.IsDBNull(6) ? null : reader.GetString(6)));
         }
 
         // Measured against rows read rather than rows kept: the whole-word
@@ -736,7 +740,7 @@ public class TextNodeRepository
             ? allNormalized.Take(MaxFormsPerQuery).ToList()
             : allNormalized;
 
-        var results = new List<(int, long, string, string, string, string)>();
+        var results = new List<(int, long, string, string, string, string, string?)>();
         if (normalized.Count == 0) return SearchHits.Empty;
 
         await using var cmd = conn.CreateCommand();
@@ -757,7 +761,7 @@ public class TextNodeRepository
         // though they were the first 5000 alphabetically. Out here it means
         // what it looks like it means.
         cmd.CommandText = $@"
-            SELECT w.WorkId, tn.TextNodeId, a.Name, w.Title, tn.CitationRef, tn.Text
+            SELECT w.WorkId, tn.TextNodeId, a.Name, w.Title, tn.CitationRef, tn.Text, tn.Milestone
             FROM (
                 SELECT DISTINCT TextNodeId
                 FROM WordIndex
@@ -776,7 +780,8 @@ public class TextNodeRepository
         {
             results.Add((
                 reader.GetInt32(0), reader.GetInt64(1), reader.GetString(2),
-                reader.GetString(3), reader.GetString(4), reader.GetString(5)));
+                reader.GetString(3), reader.GetString(4), reader.GetString(5),
+                reader.IsDBNull(6) ? null : reader.GetString(6)));
         }
 
         var rowsTruncated = results.Count > maxResults;
@@ -788,7 +793,7 @@ public class TextNodeRepository
     private async Task<SearchHits> SearchByFormsWithLikeAsync(
         IReadOnlyList<string> forms, int maxResults, List<int>? workIds, CancellationToken cancellationToken)
     {
-        var results = new List<(int, long, string, string, string, string)>();
+        var results = new List<(int, long, string, string, string, string, string?)>();
 
         // Cap the SQL side - a big paradigm can run to hundreds of forms and
         // there's no point building a huge OR. The rest get caught by the
@@ -810,7 +815,7 @@ public class TextNodeRepository
         cmd.Parameters.AddWithValue("@Limit", maxResults + 1);
 
         cmd.CommandText = $@"
-            SELECT w.WorkId, tn.TextNodeId, a.Name, w.Title, tn.CitationRef, tn.Text
+            SELECT w.WorkId, tn.TextNodeId, a.Name, w.Title, tn.CitationRef, tn.Text, tn.Milestone
             FROM TextNodes tn
             JOIN Editions e ON tn.EditionId = e.EditionId
             JOIN Works w ON e.WorkId = w.WorkId
@@ -842,7 +847,8 @@ public class TextNodeRepository
 
             results.Add((
                 reader.GetInt32(0), reader.GetInt64(1), reader.GetString(2),
-                reader.GetString(3), reader.GetString(4), text));
+                reader.GetString(3), reader.GetString(4), text,
+                reader.IsDBNull(6) ? null : reader.GetString(6)));
         }
 
         // The whole-word filter above runs after the LIMIT, so this path can
@@ -870,7 +876,7 @@ public class TextNodeRepository
 
         const string sql = @"
             SELECT TextNodeId, EditionId, CitationRef, SortOrder, Text,
-                   COALESCE(NodeKind, 'line'), COALESCE(IsVerse, 0)
+                   COALESCE(NodeKind, 'line'), COALESCE(IsVerse, 0), Milestone
             FROM TextNodes
             WHERE EditionId = @EditionId
               AND SortOrder >= (SELECT SortOrder FROM TextNodes WHERE TextNodeId = @StartId)
@@ -894,7 +900,8 @@ public class TextNodeRepository
                 SortOrder = reader.GetInt32(3),
                 Text = reader.GetString(4),
                 NodeKind = reader.GetString(5),
-                IsVerse = reader.GetInt32(6) != 0
+                IsVerse = reader.GetInt32(6) != 0,
+                Milestone = reader.IsDBNull(7) ? null : reader.GetString(7)
             });
         }
 
