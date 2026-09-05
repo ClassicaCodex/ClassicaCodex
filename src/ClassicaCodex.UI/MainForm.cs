@@ -4,7 +4,7 @@ using ClassicaCodex.Data.Repositories;
 
 namespace ClassicaCodex.UI;
 
-public class MainForm : ScaledForm
+public partial class MainForm : ScaledForm
 {
     private readonly TreeView _libraryTree;
     private readonly Button _treeToggleButton;
@@ -502,6 +502,7 @@ public class MainForm : ScaledForm
         _translationPane.TopItemChanged += (_, _) => SyncScroll(_translationPane, _originalPane);
         _originalPane.MouseClick += (_, e) => SyncSelectionFromClick(_originalPane, _translationPane, e);
         _translationPane.MouseClick += (_, e) => SyncSelectionFromClick(_translationPane, _originalPane, e);
+        InitializeArcadeReaderTracking();
 
         // A work can have more than one edition of the same kind - most
         // often several different translators for the same original text.
@@ -2604,6 +2605,14 @@ public class MainForm : ScaledForm
     {
         switch (keyData)
         {
+            case Keys.Control | Keys.Shift | Keys.F12:
+                OpenArcade();
+                return true;
+
+            case Keys.Control | Keys.Shift | Keys.Enter when _arcadeForm is { IsDisposed: false }:
+                _arcadeForm.SubmitReaderSelection();
+                return true;
+
             case Keys.Alt | Keys.Left:
                 _ = GoHistoryAsync(-1);
                 return true;
