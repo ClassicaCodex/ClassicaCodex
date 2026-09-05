@@ -14,7 +14,7 @@ public class BookmarksForm : ScaledForm
     private readonly Button _deleteButton;
     private readonly BookmarkRepository _bookmarkRepo = new();
 
-    private List<(int BookmarkId, int WorkId, long TextNodeId, string AuthorName, string WorkTitle, string CitationRef, string Text, string? Note, DateTime CreatedAt)> _currentBookmarks = new();
+    private List<(int BookmarkId, int WorkId, long TextNodeId, string AuthorName, string WorkTitle, string CitationRef, string Text, string? Note, DateTime CreatedAt, string? Milestone)> _currentBookmarks = new();
 
     /// <summary>
     /// Set by MainForm before showing this dialog. Double-clicking a
@@ -60,7 +60,7 @@ public class BookmarksForm : ScaledForm
         {
             if (i >= _currentBookmarks.Count) return null;
             var b = _currentBookmarks[i];
-            var full = $"{b.AuthorName}, {b.WorkTitle} [{PassageCitation.Display(b.CitationRef)}]: {b.Text}";
+            var full = $"{b.AuthorName}, {b.WorkTitle} [{PassageCitation.Display(b.CitationRef, b.Milestone)}]: {b.Text}";
             return string.IsNullOrEmpty(b.Note) ? full : $"{full}\nNote: {b.Note}";
         });
 

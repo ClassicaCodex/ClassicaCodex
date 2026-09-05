@@ -46,8 +46,8 @@ public sealed class CorpusInvestigatorForm : ScaledForm
         var seedPanel = new TableLayoutPanel { Dock = DockStyle.Top, Height = 150, Padding = new Padding(10), ColumnCount = 2, RowCount = 2 };
         seedPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50)); seedPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50));
         seedPanel.RowStyles.Add(new RowStyle(SizeType.Absolute, 26)); seedPanel.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
-        seedPanel.Controls.Add(Label($"Reviewed source — {seed.SourceAuthorName}, {seed.SourceWorkTitle} [{PassageCitation.Display(seed.Investigation.SourceCitationRef)}]"), 0, 0);
-        seedPanel.Controls.Add(Label($"Seed parallel — {seed.Result.TargetAuthorName}, {seed.Result.TargetWorkTitle} [{PassageCitation.Display(seed.Result.TargetCitationRef)}]"), 1, 0);
+        seedPanel.Controls.Add(Label($"Reviewed source — {seed.SourceAuthorName}, {seed.SourceWorkTitle} [{PassageCitation.Display(seed.Investigation.SourceCitationRef, seed.Investigation.SourceMilestone)}]"), 0, 0);
+        seedPanel.Controls.Add(Label($"Seed parallel — {seed.Result.TargetAuthorName}, {seed.Result.TargetWorkTitle} [{PassageCitation.Display(seed.Result.TargetCitationRef, seed.Result.TargetMilestone)}]"), 1, 0);
         seedPanel.Controls.Add(PassageBox(seed.Investigation.SourceText), 0, 1); seedPanel.Controls.Add(PassageBox(seed.Result.TargetText), 1, 1);
 
         var left = new Panel { Dock = DockStyle.Fill, Padding = new Padding(10) };

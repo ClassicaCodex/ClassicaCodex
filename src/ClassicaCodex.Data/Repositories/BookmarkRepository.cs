@@ -57,10 +57,10 @@ public class BookmarkRepository
     /// so the Bookmarks window can say so rather than appearing to have lost
     /// them.
     /// </summary>
-    public async Task<List<(int BookmarkId, int WorkId, long TextNodeId, string AuthorName, string WorkTitle, string CitationRef, string Text, string? Note, DateTime CreatedAt)>> GetAllAsync(
+    public async Task<List<(int BookmarkId, int WorkId, long TextNodeId, string AuthorName, string WorkTitle, string CitationRef, string Text, string? Note, DateTime CreatedAt, string? Milestone)>> GetAllAsync(
         CancellationToken cancellationToken = default)
     {
-        var results = new List<(int, int, long, string, string, string, string, string?, DateTime)>();
+        var results = new List<(int, int, long, string, string, string, string, string?, DateTime, string?)>();
         await using var conn = await DbConnectionFactory.OpenConnectionAsync(cancellationToken);
 
         // MIN(tn.TextNodeId) because one citation ref can legitimately match
@@ -70,7 +70,7 @@ public class BookmarkRepository
         // bookmark instead of one per matching line.
         const string sql = @"
             SELECT b.BookmarkId, w.WorkId, MIN(tn.TextNodeId), a.Name, w.Title,
-                   b.CitationRef, tn.Text, b.Note, b.CreatedAt
+                   b.CitationRef, tn.Text, b.Note, b.CreatedAt, tn.Milestone
             FROM Bookmarks b
             JOIN TextNodes tn ON b.EditionId = tn.EditionId AND b.CitationRef = tn.CitationRef
             JOIN Editions e ON tn.EditionId = e.EditionId
@@ -94,7 +94,8 @@ public class BookmarkRepository
                 reader.GetString(5),
                 reader.GetString(6),
                 reader.IsDBNull(7) ? null : reader.GetString(7),
-                reader.GetDateTime(8)));
+                reader.GetDateTime(8),
+                reader.IsDBNull(9) ? null : reader.GetString(9)));
         }
 
         return results;

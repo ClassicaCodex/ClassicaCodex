@@ -11,7 +11,7 @@ public class EchoResultsForm : ScaledForm
     private readonly ListBox _resultsList;
     private readonly TextNodeRepository _textNodeRepo = new();
 
-    private List<(int WorkId, long TextNodeId, string AuthorName, string WorkTitle, string CitationRef, string Text, int SharedWordCount)> _currentResults = new();
+    private List<(int WorkId, long TextNodeId, string AuthorName, string WorkTitle, string CitationRef, string Text, int SharedWordCount, string? Milestone)> _currentResults = new();
 
     /// <summary>Set by MainForm before showing this dialog.</summary>
     public Func<int, long, Task>? OnNavigate { get; set; }
@@ -58,7 +58,7 @@ public class EchoResultsForm : ScaledForm
             i => i < _currentResults.Count ? _currentResults[i].CitationRef : null);
         ListResultHelpers.AttachCopyToClipboardMenu(_resultsList,
             i => i < _currentResults.Count
-                ? $"{_currentResults[i].AuthorName}, {_currentResults[i].WorkTitle} [{PassageCitation.Display(_currentResults[i].CitationRef)}]: {_currentResults[i].Text}"
+                ? $"{_currentResults[i].AuthorName}, {_currentResults[i].WorkTitle} [{PassageCitation.Display(_currentResults[i].CitationRef, _currentResults[i].Milestone)}]: {_currentResults[i].Text}"
                 : null);
         ListResultHelpers.AttachExportMenu(_resultsList, () => (
             "Intertextual echoes",
@@ -89,7 +89,7 @@ public class EchoResultsForm : ScaledForm
         if (source == null) { MessageBox.Show(this, "The source passage is no longer present in the local corpus."); return; }
         var request = new ClassicaCodex.Core.EchoCaptureRequest(
             ClassicaCodex.Core.ResearchEchoMethod.RareWordOverlap, source,
-            $"Rare-word echoes of {source.WorkTitle} {PassageCitation.Display(source.CitationRef)}",
+            $"Rare-word echoes of {source.WorkTitle} {PassageCitation.Display(source.CitationRef, source.Milestone)}",
             "Local corpus; same original/translation edition kind as the source",
             "Normalized rare-word overlap; ranked by the number of shared rare source words.",
             null, null, null,

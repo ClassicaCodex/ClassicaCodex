@@ -1305,7 +1305,7 @@ public class TextNodeRepository
     /// can't detect an echo between the Greek original and an English
     /// translation of a different work, since those aren't the same words.
     /// </summary>
-    public async Task<List<(int WorkId, long TextNodeId, string AuthorName, string WorkTitle, string CitationRef, string Text, int SharedWordCount)>> FindEchoesAsync(
+    public async Task<List<(int WorkId, long TextNodeId, string AuthorName, string WorkTitle, string CitationRef, string Text, int SharedWordCount, string? Milestone)>> FindEchoesAsync(
         long sourceTextNodeId, CancellationToken cancellationToken = default)
     {
         var source = await GetTextNodeContextAsync(sourceTextNodeId, cancellationToken);
@@ -1364,6 +1364,7 @@ public class TextNodeRepository
                     .Where(w => w.Length > 0)
                     .Distinct(StringComparer.Ordinal)
                     .Count(significantSet.Contains)
+                , c.Milestone
             ))
             .Where(c => c.SharedWordCount > 0)
             .OrderByDescending(c => c.SharedWordCount)
@@ -1471,10 +1472,10 @@ public class TextNodeRepository
     /// raw rows so a LIKE fallback on a huge corpus can't run away -
     /// scoring/ranking happens afterward in FindEchoesAsync.
     /// </summary>
-    private async Task<List<(int WorkId, long TextNodeId, string AuthorName, string WorkTitle, string CitationRef, string Text)>> FindTextNodesContainingAnyWordAsync(
+    private async Task<List<(int WorkId, long TextNodeId, string AuthorName, string WorkTitle, string CitationRef, string Text, string? Milestone)>> FindTextNodesContainingAnyWordAsync(
         List<string> words, string editionKind, long excludeTextNodeId, CancellationToken cancellationToken)
     {
-        var results = new List<(int, long, string, string, string, string)>();
+        var results = new List<(int, long, string, string, string, string, string?)>();
 
         // One connection for the method, whichever branch below ends up
         // running - the has-data check, the indexed query if it's there,
@@ -1502,7 +1503,7 @@ public class TextNodeRepository
             cmd.Parameters.AddWithValue("@ExcludeId", excludeTextNodeId);
 
             cmd.CommandText = $@"
-                SELECT w.WorkId, tn.TextNodeId, a.Name, w.Title, tn.CitationRef, tn.Text
+                SELECT w.WorkId, tn.TextNodeId, a.Name, w.Title, tn.CitationRef, tn.Text, tn.Milestone
                 FROM (
                     SELECT DISTINCT TextNodeId FROM WordIndex WHERE NormalizedWord IN ({string.Join(",", paramNames)})
                 ) ids
@@ -1518,7 +1519,8 @@ public class TextNodeRepository
             {
                 results.Add((
                     reader.GetInt32(0), reader.GetInt64(1), reader.GetString(2),
-                    reader.GetString(3), reader.GetString(4), reader.GetString(5)));
+                    reader.GetString(3), reader.GetString(4), reader.GetString(5),
+                    reader.IsDBNull(6) ? null : reader.GetString(6)));
             }
 
             return results;
@@ -1537,7 +1539,7 @@ public class TextNodeRepository
         likeCmd.Parameters.AddWithValue("@ExcludeId", excludeTextNodeId);
 
         likeCmd.CommandText = $@"
-            SELECT w.WorkId, tn.TextNodeId, a.Name, w.Title, tn.CitationRef, tn.Text
+            SELECT w.WorkId, tn.TextNodeId, a.Name, w.Title, tn.CitationRef, tn.Text, tn.Milestone
             FROM TextNodes tn
             JOIN Editions e ON tn.EditionId = e.EditionId
             JOIN Works w ON e.WorkId = w.WorkId
@@ -1550,7 +1552,8 @@ public class TextNodeRepository
         {
             results.Add((
                 likeReader.GetInt32(0), likeReader.GetInt64(1), likeReader.GetString(2),
-                likeReader.GetString(3), likeReader.GetString(4), likeReader.GetString(5)));
+                likeReader.GetString(3), likeReader.GetString(4), likeReader.GetString(5),
+                likeReader.IsDBNull(6) ? null : likeReader.GetString(6)));
         }
 
         return results;

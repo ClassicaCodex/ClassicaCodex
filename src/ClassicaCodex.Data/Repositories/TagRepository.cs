@@ -230,14 +230,14 @@ public class TagRepository
         return results;
     }
 
-    public async Task<List<(int WorkId, long TextNodeId, string AuthorName, string WorkTitle, string CitationRef, string Text)>> GetByTagAsync(
+    public async Task<List<(int WorkId, long TextNodeId, string AuthorName, string WorkTitle, string CitationRef, string Text, string? Milestone)>> GetByTagAsync(
         string tagName, CancellationToken cancellationToken = default)
     {
-        var results = new List<(int, long, string, string, string, string)>();
+        var results = new List<(int, long, string, string, string, string, string?)>();
         await using var conn = await DbConnectionFactory.OpenConnectionAsync(cancellationToken);
 
         const string sql = @"
-            SELECT w.WorkId, tn.TextNodeId, a.Name, w.Title, tn.CitationRef, tn.Text
+            SELECT w.WorkId, tn.TextNodeId, a.Name, w.Title, tn.CitationRef, tn.Text, tn.Milestone
             FROM PassageTags tnt
             JOIN Tags t ON tnt.TagId = t.TagId
             JOIN TextNodes tn ON tnt.EditionId = tn.EditionId AND tnt.CitationRef = tn.CitationRef
@@ -260,7 +260,8 @@ public class TagRepository
                 reader.GetString(2),
                 reader.GetString(3),
                 reader.GetString(4),
-                reader.GetString(5)));
+                reader.GetString(5),
+                reader.IsDBNull(6) ? null : reader.GetString(6)));
         }
 
         return results;
@@ -468,15 +469,15 @@ public class TagRepository
     /// "what specifically connects these two tags", for whichever mode
     /// produced the graph currently on screen.
     /// </summary>
-    public async Task<List<(string TagName, int WorkId, long TextNodeId, string AuthorName, string WorkTitle, string CitationRef, string Text)>> GetEdgePassagesAsync(
+    public async Task<List<(string TagName, int WorkId, long TextNodeId, string AuthorName, string WorkTitle, string CitationRef, string Text, string? Milestone)>> GetEdgePassagesAsync(
         string tagNameA, string tagNameB, bool useProximity, int windowLines, CancellationToken cancellationToken = default)
     {
-        var results = new List<(string, int, long, string, string, string, string)>();
+        var results = new List<(string, int, long, string, string, string, string, string?)>();
 
         await using var conn = await DbConnectionFactory.OpenConnectionAsync(cancellationToken);
 
         const string rowsSql = @"
-            SELECT t.Name, tn.TextNodeId, e.EditionId, w.WorkId, tn.SortOrder, a.Name, w.Title, tn.CitationRef, tn.Text
+            SELECT t.Name, tn.TextNodeId, e.EditionId, w.WorkId, tn.SortOrder, a.Name, w.Title, tn.CitationRef, tn.Text, tn.Milestone
             FROM PassageTags tnt
             JOIN Tags t ON tnt.TagId = t.TagId
             JOIN TextNodes tn ON tnt.EditionId = tn.EditionId AND tnt.CitationRef = tn.CitationRef
@@ -486,8 +487,8 @@ public class TagRepository
             WHERE t.Name IN (@NameA, @NameB)
             ORDER BY a.Name, w.Title, tn.SortOrder;";
 
-        var rowsA = new List<(long TextNodeId, int EditionId, int WorkId, int SortOrder, string AuthorName, string WorkTitle, string CitationRef, string Text)>();
-        var rowsB = new List<(long TextNodeId, int EditionId, int WorkId, int SortOrder, string AuthorName, string WorkTitle, string CitationRef, string Text)>();
+        var rowsA = new List<(long TextNodeId, int EditionId, int WorkId, int SortOrder, string AuthorName, string WorkTitle, string CitationRef, string Text, string? Milestone)>();
+        var rowsB = new List<(long TextNodeId, int EditionId, int WorkId, int SortOrder, string AuthorName, string WorkTitle, string CitationRef, string Text, string? Milestone)>();
 
         await using (var cmd = conn.CreateCommand())
         {
@@ -501,7 +502,8 @@ public class TagRepository
                 var tagName = reader.GetString(0);
                 var row = (
                     reader.GetInt64(1), reader.GetInt32(2), reader.GetInt32(3), reader.GetInt32(4),
-                    reader.GetString(5), reader.GetString(6), reader.GetString(7), reader.GetString(8));
+                    reader.GetString(5), reader.GetString(6), reader.GetString(7), reader.GetString(8),
+                    reader.IsDBNull(9) ? null : reader.GetString(9));
 
                 if (string.Equals(tagName, tagNameA, StringComparison.Ordinal)) rowsA.Add(row);
                 else rowsB.Add(row);
@@ -517,13 +519,13 @@ public class TagRepository
             {
                 var isNear = rowsB.Any(rowB =>
                     rowB.EditionId == rowA.EditionId && Math.Abs(rowB.SortOrder - rowA.SortOrder) <= windowLines);
-                if (isNear) results.Add((tagNameA, rowA.WorkId, rowA.TextNodeId, rowA.AuthorName, rowA.WorkTitle, rowA.CitationRef, rowA.Text));
+                if (isNear) results.Add((tagNameA, rowA.WorkId, rowA.TextNodeId, rowA.AuthorName, rowA.WorkTitle, rowA.CitationRef, rowA.Text, rowA.Milestone));
             }
             foreach (var rowB in rowsB)
             {
                 var isNear = rowsA.Any(rowA =>
                     rowA.EditionId == rowB.EditionId && Math.Abs(rowA.SortOrder - rowB.SortOrder) <= windowLines);
-                if (isNear) results.Add((tagNameB, rowB.WorkId, rowB.TextNodeId, rowB.AuthorName, rowB.WorkTitle, rowB.CitationRef, rowB.Text));
+                if (isNear) results.Add((tagNameB, rowB.WorkId, rowB.TextNodeId, rowB.AuthorName, rowB.WorkTitle, rowB.CitationRef, rowB.Text, rowB.Milestone));
             }
         }
         else
@@ -536,11 +538,11 @@ public class TagRepository
 
             foreach (var rowA in rowsA.Where(r => sharedWorks.Contains(r.WorkId)))
             {
-                results.Add((tagNameA, rowA.WorkId, rowA.TextNodeId, rowA.AuthorName, rowA.WorkTitle, rowA.CitationRef, rowA.Text));
+                results.Add((tagNameA, rowA.WorkId, rowA.TextNodeId, rowA.AuthorName, rowA.WorkTitle, rowA.CitationRef, rowA.Text, rowA.Milestone));
             }
             foreach (var rowB in rowsB.Where(r => sharedWorks.Contains(r.WorkId)))
             {
-                results.Add((tagNameB, rowB.WorkId, rowB.TextNodeId, rowB.AuthorName, rowB.WorkTitle, rowB.CitationRef, rowB.Text));
+                results.Add((tagNameB, rowB.WorkId, rowB.TextNodeId, rowB.AuthorName, rowB.WorkTitle, rowB.CitationRef, rowB.Text, rowB.Milestone));
             }
         }
 

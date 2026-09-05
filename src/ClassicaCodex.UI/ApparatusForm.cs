@@ -192,7 +192,7 @@ public class ApparatusForm : ScaledForm
     /// </summary>
     private string Describe(ApparatusEntry e)
     {
-        var prefix = _wholeEditionRadio.Checked ? $"[{PassageCitation.Display(e.CitationRef)}] " : string.Empty;
+        var prefix = _wholeEditionRadio.Checked ? $"[{PassageCitation.Display(e.CitationRef, e.Milestone)}] " : string.Empty;
 
         if (e.Kind == "variant")
         {
@@ -224,7 +224,7 @@ public class ApparatusForm : ScaledForm
         var e = _entries[_entryList.SelectedIndex];
         var lines = new List<string>();
 
-        if (_wholeEditionRadio.Checked) lines.Add($"Line {PassageCitation.Display(e.CitationRef)}");
+        if (_wholeEditionRadio.Checked) lines.Add($"Line {PassageCitation.Display(e.CitationRef, e.Milestone)}");
 
         lines.Add(e.Kind == "variant" ? "Manuscript variant" : "Editor's note");
         if (!string.IsNullOrWhiteSpace(e.Lemma)) lines.Add($"Adopted reading: {e.Lemma}");

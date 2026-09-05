@@ -9,7 +9,7 @@ public enum ResearchEchoDirectionality { Unknown, SourceToTarget, TargetToSource
 
 public sealed record PassageResearchIdentity(
     int WorkId, long TextNodeId, int EditionId, string AuthorName, string WorkTitle,
-    string WorkCtsUrn, string EditionCtsUrn, string CitationRef, string Text, string? Language);
+    string WorkCtsUrn, string EditionCtsUrn, string CitationRef, string Text, string? Language, string? Milestone = null);
 
 public sealed class ResearchEchoInvestigation
 {
@@ -25,6 +25,14 @@ public sealed class ResearchEchoInvestigation
     public string SourceEditionCtsUrn { get; set; } = string.Empty;
     public string SourceCitationRef { get; set; } = string.Empty;
     public string SourceText { get; set; } = string.Empty;
+
+    /// <summary>
+    /// How the source passage is cited - see <see cref="Models.TextNode.Milestone"/>.
+    /// Resolved from the line when the record is read, not stored with it, so
+    /// an echo captured before this existed shows it too, and a re-ingest that
+    /// renumbers nodes cannot leave it stale.
+    /// </summary>
+    public string? SourceMilestone { get; set; }
     public string? SourceLanguage { get; set; }
     public string? TargetScope { get; set; }
     public string? Settings { get; set; }
@@ -48,6 +56,9 @@ public sealed class ResearchEchoResult
     public string TargetEditionCtsUrn { get; set; } = string.Empty;
     public string TargetCitationRef { get; set; } = string.Empty;
     public string TargetText { get; set; } = string.Empty;
+
+    /// <summary>How the target passage is cited. Resolved on read, like SourceMilestone.</summary>
+    public string? TargetMilestone { get; set; }
     public string? TargetLanguage { get; set; }
     public double? Score { get; set; }
     public string? ScoreLabel { get; set; }

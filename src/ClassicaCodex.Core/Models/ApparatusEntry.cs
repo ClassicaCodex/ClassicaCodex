@@ -26,6 +26,14 @@ public class ApparatusEntry
     /// </summary>
     public string CitationRef { get; set; } = string.Empty;
 
+    /// <summary>
+    /// How the line this entry discusses is cited - see
+    /// <see cref="TextNode.Milestone"/>. Read from the line rather than stored
+    /// here: the apparatus is keyed to a citation, and the citation already
+    /// knows.
+    /// </summary>
+    public string? Milestone { get; set; }
+
     /// <summary>Order within the line, so several entries on one line keep the source's sequence.</summary>
     public int SortOrder { get; set; }
 

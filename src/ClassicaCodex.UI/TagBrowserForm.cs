@@ -10,7 +10,7 @@ public class TagBrowserForm : ScaledForm
     private readonly ListBox _resultsList;
     private readonly TagRepository _tagRepo = new();
 
-    private List<(int WorkId, long TextNodeId, string AuthorName, string WorkTitle, string CitationRef, string Text)> _currentResults = new();
+    private List<(int WorkId, long TextNodeId, string AuthorName, string WorkTitle, string CitationRef, string Text, string? Milestone)> _currentResults = new();
 
     /// <summary>
     /// Set by MainForm before showing this dialog. Double-clicking a result
@@ -60,7 +60,7 @@ public class TagBrowserForm : ScaledForm
             i => i < _currentResults.Count ? _currentResults[i].CitationRef : null);
         ListResultHelpers.AttachCopyToClipboardMenu(_resultsList,
             i => i < _currentResults.Count
-                ? $"{_currentResults[i].AuthorName}, {_currentResults[i].WorkTitle} [{PassageCitation.Display(_currentResults[i].CitationRef)}]: {_currentResults[i].Text}"
+                ? $"{_currentResults[i].AuthorName}, {_currentResults[i].WorkTitle} [{PassageCitation.Display(_currentResults[i].CitationRef, _currentResults[i].Milestone)}]: {_currentResults[i].Text}"
                 : null);
         ListResultHelpers.AttachExportMenu(_resultsList, () => (
             _tagList.SelectedItem is Tag selected
@@ -220,7 +220,7 @@ public class TagBrowserForm : ScaledForm
     private async Task LoadResultsAsync()
     {
         _resultsList.Items.Clear();
-        _currentResults = new List<(int, long, string, string, string, string)>();
+        _currentResults = new List<(int, long, string, string, string, string, string?)>();
 
         if (_tagList.SelectedItem is not Tag tag) return;
 

@@ -79,4 +79,44 @@ public class PassageCitationTests
         Assert.NotEqual(stored, PassageCitation.Display(stored));
         Assert.Equal(PassageAligner.ExtractPassageRef(stored), PassageCitation.Display(stored));
     }
+
+    // ---- the canonical reference, where an edition records one -------------
+
+    /// <summary>
+    /// Republic 327a, not 1.327.1. Every view that shows a citation goes
+    /// through here, so this is the one place the preference is decided.
+    /// </summary>
+    [Theory]
+    [InlineData("urn:cts:greekLit:tlg0059.tlg030.perseus-grc2.1.327.1", "327a–c", "327a–c")]
+    [InlineData("urn:cts:greekLit:tlg0086.tlg010.perseus-grc2.1.1.1", "1094a1–15", "1094a1–15")]
+    public void ACanonicalReferenceIsPreferredToTheStructuralOne(
+        string stored, string milestone, string expected) =>
+        Assert.Equal(expected, PassageCitation.Display(stored, milestone));
+
+    /// <summary>
+    /// Which is most of the corpus: Homer is cited by book and line, and the
+    /// structural reference already says so.
+    /// </summary>
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("   ")]
+    public void WithoutOneTheStructuralReferenceIsStillTheAnswer(string? milestone) =>
+        Assert.Equal("1.1",
+            PassageCitation.Display("urn:cts:greekLit:tlg0012.tlg002.perseus-grc2.1.1", milestone));
+
+    /// <summary>
+    /// The canonical reference is a label and never a key. A bookmark on
+    /// Euthyphro 2a resolves through the stored citation, because three
+    /// speeches share that section and only one of them is the bookmarked one.
+    /// </summary>
+    [Fact]
+    public void ACanonicalReferenceIsNotAKeyEither()
+    {
+        const string stored = "urn:cts:greekLit:tlg0059.tlg001.perseus-grc1.2.1";
+
+        Assert.Equal("2a", PassageCitation.Display(stored, "2a"));
+        Assert.Equal("2.1", PassageCitation.Display(stored));
+        Assert.Equal("[2a]", PassageCitation.Bracketed(stored, "2a"));
+    }
 }

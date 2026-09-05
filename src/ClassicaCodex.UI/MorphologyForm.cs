@@ -46,7 +46,7 @@ public class MorphologyForm : ScaledForm
     /// </summary>
     private readonly HashSet<int> _scopeWorkIds = new();
 
-    private List<(int WorkId, long TextNodeId, string AuthorName, string WorkTitle, string CitationRef, string Text, string MatchedForm, string Headword, string Tag)> _currentResults = new();
+    private List<(int WorkId, long TextNodeId, string AuthorName, string WorkTitle, string CitationRef, string Text, string MatchedForm, string Headword, string Tag, string? Milestone)> _currentResults = new();
 
     /// <summary>Set by MainForm before showing this dialog.</summary>
     public Func<int, long, Task>? OnNavigate { get; set; }
@@ -163,7 +163,7 @@ public class MorphologyForm : ScaledForm
             i => i < _currentResults.Count ? _currentResults[i].CitationRef : null);
         ListResultHelpers.AttachCopyToClipboardMenu(_resultsList,
             i => i < _currentResults.Count
-                ? $"{_currentResults[i].AuthorName}, {_currentResults[i].WorkTitle} [{PassageCitation.Display(_currentResults[i].CitationRef)}]: {_currentResults[i].Text}"
+                ? $"{_currentResults[i].AuthorName}, {_currentResults[i].WorkTitle} [{PassageCitation.Display(_currentResults[i].CitationRef, _currentResults[i].Milestone)}]: {_currentResults[i].Text}"
                 : null);
         ListResultHelpers.AttachExportMenu(_resultsList, () => (
             "Morphology search results",
@@ -321,7 +321,7 @@ public class MorphologyForm : ScaledForm
         }
 
         _resultsList.Items.Clear();
-        _currentResults = new List<(int, long, string, string, string, string, string, string, string)>();
+        _currentResults = new List<(int, long, string, string, string, string, string, string, string, string?)>();
         _statusLabel.Text = "Searching...";
         _searchButton.Enabled = false;
 
