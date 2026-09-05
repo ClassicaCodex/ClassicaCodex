@@ -1320,6 +1320,29 @@ public partial class MainForm : ScaledForm
         menu.Items.Add(showItem);
         menu.Opening += (_, _) => BuildKindMenu(showItem, list);
 
+        // Beside the Show submenu rather than inside it. That submenu hides
+        // itself when an edition has only one kind of node in it, which is
+        // most verse - and verse is exactly where a line number in the margin
+        // earns its place.
+        var marginItem = new ToolStripMenuItem("Citations in the margin") { CheckOnClick = true };
+        menu.Items.Add(marginItem);
+        menu.Opening += (_, _) => marginItem.Checked = CitationMarginSettings.Enabled;
+        marginItem.Click += (_, _) =>
+        {
+            CitationMarginSettings.Enabled = marginItem.Checked;
+
+            // Re-measured rather than reloaded: the margin takes width from
+            // the text, so every row that wraps wraps differently and its
+            // height with it - but the rows themselves are the same rows, and
+            // repopulating would send the reader back to the top of the work
+            // for having flipped a display switch.
+            foreach (var pane in new[] { _originalPane, _translationPane })
+            {
+                pane.ShowCitationMargin = marginItem.Checked;
+                pane.Relayout();
+            }
+        };
+
         // Registered so the icon is re-resolved when the theme changes: it
         // ships both a dark and a light variant, and the cached image is per
         // theme.
