@@ -92,6 +92,56 @@ row, and shows the word **as that edition prints it**, so searching `uirtus`
 lines up `virtus`, `uirtus` and `Virtus` in one column. It is also about a
 hundred times faster: 13 ms against 2,564 ms.
 
+## The era filter was putting a tenth of the library in the wrong century
+
+Authors are dated from a lookup table, and the era filter includes or excludes
+a work on the strength of it while saying nothing on screen about how it
+decided. Matching was a plain substring test, which produced exactly the
+failures that shape suggests:
+
+| author | was dated | why |
+|---|---|---|
+| **Anonymous** — 269,429 lines | 560–580 CE | *"Anonymous pilgrim of Piacenza"* contains it |
+| **Scholia in Homerum** — 37,374 lines | 750–650 BCE | dated to Homer himself |
+| **Elias Neoplatonicus** | 428–348 BCE | "plato" inside Neo·**plato**·nicus |
+| **Appendix Vergiliana** | 70–19 BCE | the collection defined by *not* being Vergil |
+
+and the same for the lives of Homer and Aesop, the *Certamen*, the scholia on
+Pindar, Euripides and Euclid, Solon's pseudonymous letters, and Pseudo-Arrianus.
+More than 300,000 lines in the wrong century.
+
+Matching is now by whole word, a name that describes a work *about* someone
+never inherits that person's dates, and a generic anonym has to match exactly.
+Then the other half of the problem: 444 of 748 authors had no dates at all, so
+fourteen entries were added for the largest of them — **Silius Italicus** and
+**Valerius Flaccus** among them, which is not a good look for a classics tool
+to have been missing.
+
+Lines the era filter can place: **1,499,158 → 1,687,790**, with the wrong ones
+gone as well. What remains undated is undated correctly.
+
+## Cite a passage without retyping it
+
+Export Passage now writes **BibTeX** and **RIS** beside text, Word and PDF, so
+a passage you find here goes into Zotero as a reference rather than by hand.
+
+```bibtex
+@incollection{Augustine-Saint:Epistulae:1.1,
+  author = {Augustine, Saint},
+  title = {Epistulae},
+  booktitle = {Latin Church Fathers (CSEL)},
+  pages = {1.1},
+  url = {https://scaife.perseus.org/reader/urn:cts:latinLit:stoa0040.stoa001.opp-lat1},
+  abstract = {urn:cts:latinLit:stoa0040.stoa001.opp-lat1; author 354 CE-430 CE; …}
+}
+```
+
+One entry for the run on screen rather than one per line. It does not invent a
+publication year an ancient work does not have — the author's floruit goes in
+the note instead — and it only writes a URL where one resolves, so CTS URNs get
+a Scaife link and Menota's identifiers get none rather than a link that goes
+nowhere.
+
 ## Smaller things
 
 - **Word Study led with a headword the dictionary could not answer.** Only
@@ -115,6 +165,12 @@ hundred times faster: 13 ms against 2,564 ms.
 - **Results are highlighted again.** The search got better at finding lines the
   literal query does not appear in, and the highlighter could not mark them —
   299 of 300 rows for `μηνιν` came back with nothing lit up.
+- **A passage queued by the research bench is titled by its citation**, not by
+  the full CTS URN — "Misopogon 2.1" rather than
+  "Misopogon urn:cts:greekLit:tlg2003.tlg012.perseus-grc2.2.1".
+- **Three labels had room for their text at 100% and nowhere else.** Measured
+  at 125% and 150%, where two lines of the concordance's status wanted 50px in
+  a 34px box.
 
 ## Known and deferred
 
@@ -126,5 +182,9 @@ for 3.5 rather than rushed into a point release.
 ## Checks
 
 Verified against a full 2.3-million-line library, and by building one from
-empty with this code: 14 setup steps, 30 minutes, all integrity checks clean,
-68,871,775 index entries. 843 tests, zero build warnings.
+empty with this code: 14 setup steps, 30 minutes, all ten integrity checks
+clean, 68,871,775 index entries.
+
+The search window, the concordance, the translation dialog and the research
+bench were driven as the real forms rather than read, against that library and
+against the live API. **905 tests, zero warnings on a from-scratch build.**
