@@ -63,6 +63,7 @@ public class SyncListView : ListBox
             _resizeDebounceTimer.Dispose();
             _toolTip.Dispose();
             _athetizedFont?.Dispose();
+            _marginFont?.Dispose();
         }
 
         base.Dispose(disposing);
@@ -136,6 +137,91 @@ public class SyncListView : ListBox
         _heightCacheByWidth.Clear();
         _cachedWidthOrder.Clear();
         _lastMeasuredWidth = -1;
+
+        _gutterWidth = -1;
+        _marginFont?.Dispose();
+        _marginFont = null;
+    }
+
+    private int _gutterWidth = -1;
+    private Font? _marginFont;
+
+    /// <summary>
+    /// Whether this pane prints references in its margin. Read once per pane
+    /// rather than per row: the setting cannot change while a row is being
+    /// drawn, and touching the file system from a paint handler would be a
+    /// disk read per line per repaint.
+    /// </summary>
+    public bool ShowCitationMargin
+    {
+        get => _showCitationMargin;
+        set
+        {
+            if (_showCitationMargin == value) return;
+            _showCitationMargin = value;
+
+            // Every row's height was measured against the other layout, and
+            // the resize path skips a remeasure when the control's width has
+            // not changed - which it has not. Forgetting this leaves a pane
+            // whose margin appeared but whose rows are still sized for text
+            // that had the full width.
+            _lastMeasuredWidth = -1;
+        }
+    }
+
+    private bool _showCitationMargin = CitationMarginSettings.Enabled;
+
+    /// <summary>
+    /// Smaller than the text, as marginal numerals are set in print - and it
+    /// is the difference that makes them read as apparatus rather than as
+    /// something the author wrote.
+    /// </summary>
+    private Font MarginFont => _marginFont ??= new Font(Font.FontFamily,
+        Math.Max(6f, Font.Size * 0.82f), FontStyle.Regular, Font.Unit);
+
+    /// <summary>
+    /// How much width the margin takes, measured from the font so it follows
+    /// the reading size and the system text size alike.
+    ///
+    /// Sized from the font rather than from the marks actually present, which
+    /// would be the tighter fit and the wrong trade: measurement runs while
+    /// the pane is still filling, before the marks are all known, and a gutter
+    /// that changed width afterwards would leave every row sized for a layout
+    /// it no longer has. A fixed width is one both passes can agree on.
+    /// </summary>
+    private int GutterWidth
+    {
+        get
+        {
+            if (!ShowCitationMargin) return 0;
+            if (_gutterWidth >= 0) return _gutterWidth;
+
+            var sample = new string('8', CitationMargin.MaxLength);
+            _gutterWidth = TextRenderer.MeasureText(sample, MarginFont,
+                new Size(int.MaxValue, int.MaxValue), TextFormatFlags.NoPadding).Width + 10;
+            return _gutterWidth;
+        }
+    }
+
+    /// <summary>
+    /// The nearest line above <paramref name="index"/>, which is what decides
+    /// whether this one is marked.
+    ///
+    /// Walks back rather than taking the item directly above because a
+    /// dialogue puts a speaker between every pair of lines - see
+    /// <see cref="CitationMargin.MarkFor"/>, whose whole restraint depends on
+    /// being handed a line. The walk is short in practice: one step in verse,
+    /// two in a dialogue.
+    /// </summary>
+    private TextNode? PreviousLine(int index)
+    {
+        for (var i = index - 1; i >= 0; i--)
+        {
+            if (Items[i] is not TextNode node) continue;
+            if (string.Equals(node.NodeKind, TextNodeKinds.Line, StringComparison.Ordinal)) return node;
+        }
+
+        return null;
     }
 
     /// <summary>
@@ -228,6 +314,21 @@ public class SyncListView : ListBox
         _resizeDebounceTimer.Start();
     }
 
+    /// <summary>
+    /// Re-measures every row against the current layout, keeping the reader's
+    /// place in the work.
+    ///
+    /// For a change that alters how much width the text has rather than what
+    /// the text is - turning the margin on or off. Repopulating the pane would
+    /// do it too, and would send the reader back to the top of the Iliad for
+    /// having flipped a display switch.
+    /// </summary>
+    public void Relayout()
+    {
+        RemeasureAllItems();
+        Invalidate();
+    }
+
     private void RemeasureAllItems()
     {
         if (_isRemeasuring) return;
@@ -270,7 +371,7 @@ public class SyncListView : ListBox
             return;
         }
 
-        var width = Math.Max(ClientSize.Width - 8, 50);
+        var width = Math.Max(ClientSize.Width - 8 - GutterWidth, 50);
 
         // OwnerDrawVariable means this runs once for EVERY item as the list
         // is populated - the control needs the total height before it can
@@ -377,12 +478,43 @@ public class SyncListView : ListBox
 
             var font = athetized ? GetAthetizedFont() : Font;
 
-            var rect = new Rectangle(e.Bounds.X + 3, e.Bounds.Y + 2, e.Bounds.Width - 6, e.Bounds.Height - 4);
+            var gutter = GutterWidth;
+            var rect = new Rectangle(e.Bounds.X + 3 + gutter, e.Bounds.Y + 2,
+                                     e.Bounds.Width - 6 - gutter, e.Bounds.Height - 4);
             TextRenderer.DrawText(e.Graphics, text, font, rect, foreColor,
                 TextFormatFlags.WordBreak | TextFormatFlags.NoPadding);
+
+            if (gutter > 0) DrawMargin(e, gutter, selected);
         }
 
         e.DrawFocusRectangle();
+    }
+
+    /// <summary>
+    /// The reference beside the line, where an editor would have printed one -
+    /// see <see cref="CitationMargin"/> for when that is.
+    ///
+    /// Aligned right against the text so the marks form a column the eye can
+    /// run down, and drawn at the row's first line rather than centred in it,
+    /// because a wrapped passage should be marked where it starts.
+    /// </summary>
+    private void DrawMargin(DrawItemEventArgs e, int gutter, bool selected)
+    {
+        if (e.Index < 0 || e.Index >= Items.Count || Items[e.Index] is not TextNode node) return;
+
+        // Checked before the walk below, not just inside MarkFor. A speech
+        // attribution is never marked, and a pane showing only attributions -
+        // which the Show menu permits - would otherwise search the whole work
+        // for a line that is not there, once per row, on every repaint.
+        if (!string.Equals(node.NodeKind, TextNodeKinds.Line, StringComparison.Ordinal)) return;
+
+        var mark = CitationMargin.MarkFor(node, PreviousLine(e.Index));
+        if (mark == null) return;
+
+        var rect = new Rectangle(e.Bounds.X + 3, e.Bounds.Y + 3, gutter - 8, MarginFont.Height + 2);
+        TextRenderer.DrawText(e.Graphics, mark, MarginFont, rect,
+            selected ? ReadingTheme.SelectionText : ReadingTheme.MutedText,
+            TextFormatFlags.Right | TextFormatFlags.NoPadding | TextFormatFlags.SingleLine);
     }
 
     private Font? _athetizedFont;
