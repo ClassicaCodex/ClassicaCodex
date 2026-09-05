@@ -365,6 +365,37 @@ public static class AuthorEraData
 
         ("Paul, the Apostle, Saint", 5, 67),
         ("Jean Bodin", 1530, 1596),
+
+        // Authors a full library actually carries in quantity and that this
+        // table could not see, so the Era filter passed over them in silence.
+        // Measured against one: 444 of 748 authors were undated, and the
+        // twenty largest of those came to a fifth of the library's lines.
+        //
+        // Keyed on the catalog's own spelling, for the reason given below
+        // about Iamblichus - and twice where the catalog itself is of two
+        // minds, which for Isidore of Seville it is.
+        ("Philo Judaeus", -20, 50),
+        ("Silius Italicus", 26, 101),
+        ("Valerius Flaccus", 45, 95),
+        ("Aelius Herodianus", 150, 200),
+        ("Libanius", 314, 393),
+        ("Ambrose, Saint, Bishop of Milan", 339, 397),
+        ("Quintus Smyrnaeus", 350, 400),
+        ("Nonnus of Panopolis", 400, 470),
+        ("Gregorius I Magnus", 540, 604),
+        ("Isidorus Hispalensis", 560, 636),
+        ("Isidorus Hispaliensis", 560, 636),
+
+        // Alcuinus above is the same man, and stopped reaching him when
+        // matching became whole-word: "Alcuin" is not a word inside
+        // "Alcuinus". The catalog spells him both ways, so the table does too.
+        ("Alcuin", 735, 804),
+
+        // Compilations rather than authors, but each made at a datable moment
+        // and asked about as a source - which is the question the era filter
+        // is for.
+        ("Chronicon Paschale", 600, 640),
+        ("Suda", 960, 1000),
     };
 
     /// <summary>
@@ -393,8 +424,53 @@ public static class AuthorEraData
     /// </summary>
     public static IEnumerable<string> Keys => Entries.Select(e => e.Key);
 
+    /// <summary>
+    /// Names that are a description rather than a person, and must never
+    /// inherit dates from the person they mention.
+    ///
+    /// "Scholia in Homerum" is not Homer. The Homeric scholia are Hellenistic
+    /// to Byzantine commentary written centuries after him, and dating them to
+    /// 750 BCE is not an approximation but a category error - it puts 37,374
+    /// lines of late scholarship into archaic Greece. The same goes for the
+    /// lives, the certamen, the Byzantine exegeses, and the Appendix
+    /// Vergiliana, which is precisely the collection that is NOT by Vergil.
+    /// </summary>
+    private static readonly string[] NotThePersonThemselves =
+    {
+        "scholia", "scholion", "vita ", "vitae", "certamen", "anonymi",
+        "appendix", "commentaria", "commentarium", "epistulae ", "pseudo"
+    };
+
+    /// <summary>
+    /// Names too generic to identify anyone, which therefore may only ever
+    /// match a key exactly.
+    ///
+    /// "Anonymous" was matching "Anonymous pilgrim of Piacenza" and taking his
+    /// dates - so 269,429 lines, more than a tenth of a full library, sat in
+    /// the 560s CE because one anonymous pilgrim did.
+    /// </summary>
+    private static readonly string[] TooGenericToMatchLoosely =
+    {
+        "anonymous", "anonymus", "anonymi", "incertus", "incerti",
+        "auctores varii", "aa vv", "various", "unknown"
+    };
+
+    /// <summary>
+    /// The dates for an author, or null where they are not known - and null
+    /// is a better answer than a plausible wrong one, because the era filter
+    /// silently includes or excludes on the strength of it.
+    ///
+    /// Matching is exact first, then by whole word in either direction. The
+    /// whole-word part is load-bearing: it used to be a bare substring test,
+    /// which dated "Scholia in Homerum" to Homer, "Vitae Aesopi" to Aesop,
+    /// "Appendix Vergiliana" to Vergil, "Solonis Epistulae" to Solon, and -
+    /// the best of them - "Elias Neoplatonicus" to Plato, a sixth-century CE
+    /// commentator sent back a thousand years by the letters inside
+    /// "Neoplatonicus".
+    /// </summary>
     public static (int StartYear, int EndYear)? Lookup(string authorName)
     {
+        if (string.IsNullOrWhiteSpace(authorName)) return null;
         var normalized = authorName.Trim();
 
         foreach (var (key, start, end) in Entries)
@@ -403,16 +479,48 @@ public static class AuthorEraData
                 return (start, end);
         }
 
+        // Past this point every match is approximate, and these two kinds of
+        // name have no business being approximated.
+        if (NotThePersonThemselves.Any(m => normalized.Contains(m, StringComparison.OrdinalIgnoreCase)))
+            return null;
+
+        if (TooGenericToMatchLoosely.Any(g => string.Equals(g, normalized, StringComparison.OrdinalIgnoreCase)))
+            return null;
+
         foreach (var (key, start, end) in Entries)
         {
-            if (normalized.Contains(key, StringComparison.OrdinalIgnoreCase) ||
-                key.Contains(normalized, StringComparison.OrdinalIgnoreCase))
-            {
+            if (ContainsWholeWord(normalized, key) || ContainsWholeWord(key, normalized))
                 return (start, end);
-            }
         }
 
         return null;
+    }
+
+    /// <summary>
+    /// Whether <paramref name="needle"/> appears in <paramref name="haystack"/>
+    /// bounded by non-letters - so "Homer" is found in "Homer of Smyrna" and
+    /// not in "Homerum", and "Plato" is found in "Plato" and not inside
+    /// "Neoplatonicus".
+    /// </summary>
+    private static bool ContainsWholeWord(string haystack, string needle)
+    {
+        if (needle.Length == 0) return false;
+
+        var from = 0;
+        while (from <= haystack.Length - needle.Length)
+        {
+            var at = haystack.IndexOf(needle, from, StringComparison.OrdinalIgnoreCase);
+            if (at < 0) return false;
+
+            var beforeOk = at == 0 || !char.IsLetter(haystack[at - 1]);
+            var end = at + needle.Length;
+            var afterOk = end >= haystack.Length || !char.IsLetter(haystack[end]);
+            if (beforeOk && afterOk) return true;
+
+            from = at + 1;
+        }
+
+        return false;
     }
 
     public static string FormatYear(int year)
