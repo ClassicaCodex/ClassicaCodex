@@ -108,7 +108,8 @@ public sealed class TempDatabase : IDisposable
         (28, "ResearchEchoResults", "Directionality"),
         (28, "ResearchEchoResults", "MotifTags"),
         (28, "ResearchEchoResults", "ParallelNote"),
-        (35, "TextNodes",      "IsVerse")
+        (35, "TextNodes",      "IsVerse"),
+        (38, "TextNodes",      "Milestone")
         // Migrations 31 (ResearchProjects, ResearchQuestions), 33 (Editions.Collection)
         // and 34 (RecentSearches.Collections) add columns by rebuilding their tables
         // rather than by ALTER, so none of them belong here: a rebuild replaces the

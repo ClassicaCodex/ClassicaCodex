@@ -22,7 +22,7 @@ public class PlacesMapForm : ScaledForm
 
     private readonly ArtifactBrowserControl _artifactBrowser;
 
-    private List<(int WorkId, long TextNodeId, string AuthorName, string WorkTitle, string CitationRef, string Text)> _currentPassages = new();
+    private List<(int WorkId, long TextNodeId, string AuthorName, string WorkTitle, string CitationRef, string Text, string? Milestone)> _currentPassages = new();
 
     /// <summary>Tags on the currently listed passages, keyed by node.</summary>
     private Dictionary<long, List<string>> _tagsByNode = new();
@@ -191,7 +191,7 @@ public class PlacesMapForm : ScaledForm
             i => i < _currentPassages.Count ? _currentPassages[i].CitationRef : null);
         ListResultHelpers.AttachCopyToClipboardMenu(_passageList,
             i => i < _currentPassages.Count
-                ? $"{_currentPassages[i].AuthorName}, {_currentPassages[i].WorkTitle} [{PassageCitation.Display(_currentPassages[i].CitationRef)}]: {_currentPassages[i].Text}"
+                ? $"{_currentPassages[i].AuthorName}, {_currentPassages[i].WorkTitle} [{PassageCitation.Display(_currentPassages[i].CitationRef, _currentPassages[i].Milestone)}]: {_currentPassages[i].Text}"
                 : null);
         ListResultHelpers.AttachExportMenu(_passageList, () => (
             $"Passages mentioning {_selectedPlaceName}",

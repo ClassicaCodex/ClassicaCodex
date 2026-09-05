@@ -76,7 +76,7 @@ public static class SchemaInitializer
     /// 7 to 13 until version 3 was cut, at which point they all failed at
     /// once and said nothing about what had actually broken.
     /// </summary>
-    public const int TargetSchemaVersion = 37;
+    public const int TargetSchemaVersion = 38;
 
     public static async Task EnsureSchemaAsync(CancellationToken cancellationToken = default)
     {
@@ -1364,6 +1364,21 @@ public static class SchemaInitializer
         // duplicate goes, then anything left with no twin is simply trimmed.
         // That order matters - trimming first would collide with the twin on
         // the unique index and take the whole migration down with it.
+        // Stephanus and Bekker pagination, which the parser used to discard
+        // with the <milestone/> that carried it. Beside CitationRef rather
+        // than replacing it: a citation is an identity here - bookmarks, tags,
+        // apparatus and bilingual pairing all resolve through
+        // (EditionId, CitationRef) - and several passages legitimately share
+        // one Stephanus section, so a reference a reader cites by cannot also
+        // be the key a bookmark holds.
+        //
+        // The column arrives empty and fills on the next ingest of a text that
+        // has the markers. Nothing else needs it, and no other work changes.
+        [38] = new[]
+        {
+            "ALTER TABLE TextNodes ADD COLUMN Milestone TEXT NULL;"
+        },
+
         [37] = new[]
         {
             @"UPDATE Editions
@@ -2029,6 +2044,7 @@ public static class SchemaInitializer
             IsAthetized INTEGER NOT NULL DEFAULT 0,
             NodeKind    TEXT NOT NULL DEFAULT 'line',
             IsVerse     INTEGER NOT NULL DEFAULT 0,
+            Milestone   TEXT NULL,
             CONSTRAINT FK_TextNodes_Editions FOREIGN KEY (EditionId) REFERENCES Editions(EditionId)
         );",
 

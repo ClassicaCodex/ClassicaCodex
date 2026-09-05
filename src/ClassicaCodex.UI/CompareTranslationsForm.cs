@@ -293,7 +293,7 @@ public class CompareTranslationsForm : ScaledForm
 
                 var menu = ListResultHelpers.AttachCopyToClipboardMenu(cl.List,
                     i => i < nodes.Count
-                        ? $"{TranslatorLabel(cl.Translation)} [{PassageCitation.Display(nodes[i].CitationRef)}]: {nodes[i].Text}"
+                        ? $"{TranslatorLabel(cl.Translation)} [{PassageCitation.Display(nodes[i].CitationRef, nodes[i].Milestone)}]: {nodes[i].Text}"
                         : null);
 
                 AttachExportMenu(menu, cl.Translation, nodes);

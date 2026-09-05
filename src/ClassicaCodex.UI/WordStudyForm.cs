@@ -29,7 +29,7 @@ public class WordStudyForm : ScaledForm
     private readonly TextNodeRepository _textNodeRepo = new();
     private readonly DefinitionRepository _definitionRepo = new();
 
-    private List<(int WorkId, long TextNodeId, string AuthorName, string WorkTitle, string CitationRef, string Text)> _currentOccurrences = new();
+    private List<(int WorkId, long TextNodeId, string AuthorName, string WorkTitle, string CitationRef, string Text, string? Milestone)> _currentOccurrences = new();
     private List<(string Headword, string? PartOfSpeech)> _currentHeadwords = new();
     private HashSet<string> _highlightForms = new(StringComparer.Ordinal);
 
@@ -113,7 +113,7 @@ public class WordStudyForm : ScaledForm
 
         var sourceLabel = new Label
         {
-            Text = $"[{PassageCitation.Display(sourceNode.CitationRef)}] {sourceNode.Text}",
+            Text = $"[{PassageCitation.Display(sourceNode.CitationRef, sourceNode.Milestone)}] {sourceNode.Text}",
             Left = 12,
             Top = 10,
             Width = 1360,
@@ -248,7 +248,7 @@ public class WordStudyForm : ScaledForm
             i => i < _currentOccurrences.Count ? _currentOccurrences[i].CitationRef : null);
         ListResultHelpers.AttachCopyToClipboardMenu(_occurrenceList,
             i => i < _currentOccurrences.Count
-                ? $"{_currentOccurrences[i].AuthorName}, {_currentOccurrences[i].WorkTitle} [{PassageCitation.Display(_currentOccurrences[i].CitationRef)}]: {_currentOccurrences[i].Text}"
+                ? $"{_currentOccurrences[i].AuthorName}, {_currentOccurrences[i].WorkTitle} [{PassageCitation.Display(_currentOccurrences[i].CitationRef, _currentOccurrences[i].Milestone)}]: {_currentOccurrences[i].Text}"
                 : null);
         ListResultHelpers.AttachExportMenu(_occurrenceList, () => (
             $"Occurrences of {SelectedHeadwordOrDefault()}",

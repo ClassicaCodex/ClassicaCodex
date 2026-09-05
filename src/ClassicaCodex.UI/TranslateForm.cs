@@ -108,7 +108,7 @@ public class TranslateForm : ScaledForm
             Top = 12,
             Width = 590,
             Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right,
-            Text = $"{authorName}, {workTitle} \u2014 [{PassageCitation.Display(node.CitationRef)}]"
+            Text = $"{authorName}, {workTitle} \u2014 [{PassageCitation.Display(node.CitationRef, node.Milestone)}]"
         };
 
         var originalLabel = new Label { Left = 16, Top = 38, Width = 300, Text = "Selected passage:" };

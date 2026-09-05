@@ -27,7 +27,7 @@ public class EchoResultsForm : ScaledForm
 
         _sourceLabel = new Label
         {
-            Text = $"Looking for echoes of: [{PassageCitation.Display(sourceNode.CitationRef)}] {sourceNode.Text}",
+            Text = $"Looking for echoes of: [{PassageCitation.Display(sourceNode.CitationRef, sourceNode.Milestone)}] {sourceNode.Text}",
             Left = 12,
             Top = 10,
             Width = 860,

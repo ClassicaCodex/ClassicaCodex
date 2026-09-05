@@ -48,6 +48,22 @@ public static class PassageCitation
             : PassageAligner.ExtractPassageRef(citationRef);
 
     /// <summary>
+    /// The same, preferring the way the scholarly world cites the passage
+    /// where the edition records it - Republic 327a rather than 1.327.1,
+    /// Nicomachean Ethics 1094a1 rather than 1.1.1.
+    ///
+    /// Only Plato, Aristotle and a handful of others carry one; for the rest
+    /// of the corpus this is the single-argument version, because a structural
+    /// reference IS how Homer is cited. See
+    /// <see cref="Models.TextNode.Milestone"/> for why the two are stored
+    /// apart, and note which way round they are used: the structural reference
+    /// remains the identity that a bookmark resolves through, and this is only
+    /// ever what gets shown.
+    /// </summary>
+    public static string Display(string? citationRef, string? milestone) =>
+        string.IsNullOrWhiteSpace(milestone) ? Display(citationRef) : milestone.Trim();
+
+    /// <summary>
     /// The same, bracketed, for the many places that write "[1.1]" beside a
     /// line. Empty for a passage with no reference, rather than an empty pair
     /// of brackets.
@@ -55,6 +71,13 @@ public static class PassageCitation
     public static string Bracketed(string? citationRef)
     {
         var display = Display(citationRef);
+        return display.Length == 0 ? string.Empty : $"[{display}]";
+    }
+
+    /// <summary>The same, preferring the canonical reference where there is one.</summary>
+    public static string Bracketed(string? citationRef, string? milestone)
+    {
+        var display = Display(citationRef, milestone);
         return display.Length == 0 ? string.Empty : $"[{display}]";
     }
 }

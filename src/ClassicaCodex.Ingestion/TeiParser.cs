@@ -446,6 +446,9 @@ public class TeiParser
         /// <summary>See <see cref="TextNode.NodeKind"/>.</summary>
         public string NodeKind { get; set; } = TextNodeKinds.Line;
 
+        /// <summary>See <see cref="TextNode.Milestone"/>.</summary>
+        public string? Milestone { get; set; }
+
         /// <summary>See <see cref="TextNode.IsVerse"/>.</summary>
         public bool IsVerse { get; set; }
     }
@@ -688,6 +691,21 @@ public class TeiParser
     private readonly CitationDisambiguator _citations = new();
 
     /// <summary>
+    /// Stephanus and Bekker pagination, carried along the walk. See
+    /// <see cref="CanonicalMilestones"/> for why this cannot be read off the
+    /// element a node is built from.
+    /// </summary>
+    private readonly CanonicalMilestones _milestones = new();
+
+    /// <summary>
+    /// Whether an element is commentary about the text rather than the text.
+    /// Exposed for <see cref="CanonicalMilestones"/>, which walks the same
+    /// tree and must make the same distinction.
+    /// </summary>
+    internal static bool IsEditorialElement(XElement element) =>
+        EditorialElements.Contains(element.Name.LocalName);
+
+    /// <summary>
     /// Apparatus found on an element that produced no text node, waiting for
     /// one to attach to.
     ///
@@ -737,6 +755,7 @@ public class TeiParser
         _apparatus.Clear();
         _pendingApparatus.Clear();
         _citations.Reset();
+        _milestones.Begin(body);
         WalkDiv(body, new List<string>(), nodes, ref sortCounter, new Dictionary<string, int>());
 
         // Fallback: nothing leaf-like was found (milestone-style text) - take
@@ -1017,13 +1036,22 @@ public class TeiParser
                 // IsSpeakerLabel: Perseus puts Plato's attributions inside the
                 // <said> rather than beside it, and FlattenElement drops them
                 // from the line so they are not counted twice.
+                // Read the speech's canonical reference before emitting any of
+                // it. The labels below are hoisted out of source order on
+                // purpose, but the marker governing them sits before the
+                // <label> in the file - Perseus opens the Euthyphro
+                // <said><milestone n="2a"/><label>ΕΥΘ.</label> - so letting
+                // each emit find its own would give the attribution no
+                // reference and the words under it 2a.
+                var milestone = _milestones.Enter(child);
+
                 foreach (var label in child.Descendants().Where(d =>
                              string.Equals(d.Name.LocalName, "label", StringComparison.OrdinalIgnoreCase)
                              && IsSpeakerLabel(d)))
                 {
                     var speakerSeen = NextSegmentNumber(citationTrail, "speaker", leafCounters);
                     EmitBlock(label, citationTrail, $"speaker{speakerSeen}",
-                              TextNodeKinds.Speaker, nodes, ref sortCounter);
+                              TextNodeKinds.Speaker, nodes, ref sortCounter, milestone);
                 }
 
                 var n = child.Attribute("n")?.Value;
@@ -1063,7 +1091,8 @@ public class TeiParser
                     SortOrder = sortCounter++,
                     Text = text.Trim(),
                     NodeKind = TextNodeKinds.Line,
-                    IsVerse = IsVerseElement(child.Name.LocalName)
+                    IsVerse = IsVerseElement(child.Name.LocalName),
+                    Milestone = milestone
                 });
             }
             else if (!HasHandledDescendant(child))
@@ -1246,6 +1275,14 @@ public class TeiParser
         var carried = inlineChildren.ToList();
         inlineChildren.Clear();
 
+        // Before the empty check, not after. A run that is nothing but a
+        // marker still moves the reader's position: Euthyphro opens
+        // <said><milestone n="2a"/><label>ΣΩ.</label>, so the run before the
+        // speaker holds 2a and no words at all. Returning early left the
+        // marker unread and the speech attribution at the head of the dialogue
+        // with no reference while the line under it had one.
+        var milestone = _milestones.Enter(carried);
+
         if (text.Length == 0)
         {
             _pendingApparatus.AddRange(
@@ -1266,7 +1303,8 @@ public class TeiParser
             SortOrder = sortCounter++,
             Text = text,
             NodeKind = KindFor(element.Name.LocalName),
-            IsVerse = IsVerseElement(element.Name.LocalName)
+            IsVerse = IsVerseElement(element.Name.LocalName),
+            Milestone = milestone
         });
     }
 
@@ -1348,7 +1386,8 @@ public class TeiParser
         string segment,
         string kind,
         List<ParsedNode> nodes,
-        ref int sortCounter)
+        ref int sortCounter,
+        string? milestone = null)
     {
         var text = FlattenText(element);
         if (string.IsNullOrWhiteSpace(text))
@@ -1368,7 +1407,11 @@ public class TeiParser
             CitationRef = reference,
             SortOrder = sortCounter++,
             Text = text.Trim(),
-            NodeKind = kind
+            NodeKind = kind,
+            // A caller that already read the reference for the passage this
+            // block was lifted out of passes it in; everything else finds
+            // its own.
+            Milestone = milestone ?? _milestones.Enter(element)
         });
     }
 
@@ -1628,7 +1671,8 @@ public class TeiParser
             Text = p.Text,
             IsAthetized = p.IsAthetized,
             NodeKind = p.NodeKind,
-            IsVerse = p.IsVerse
+            IsVerse = p.IsVerse,
+            Milestone = p.Milestone
         }).ToList();
     }
 }

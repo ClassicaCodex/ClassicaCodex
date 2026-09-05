@@ -34,7 +34,7 @@ public class AutoTagForm : ScaledForm
     private readonly TextNodeRepository _textNodeRepo = new();
     private readonly TagRepository _tagRepo = new();
 
-    private List<(int WorkId, long TextNodeId, string AuthorName, string WorkTitle, string CitationRef, string Text)> _currentResults = new();
+    private List<(int WorkId, long TextNodeId, string AuthorName, string WorkTitle, string CitationRef, string Text, string? Milestone)> _currentResults = new();
 
     /// <summary>The forms actually searched for, used to highlight them in the results list.</summary>
     private List<string> _highlightForms = new();
@@ -206,7 +206,7 @@ public class AutoTagForm : ScaledForm
             i => i < _currentResults.Count ? _currentResults[i].CitationRef : null);
         ListResultHelpers.AttachCopyToClipboardMenu(_resultsList,
             i => i < _currentResults.Count
-                ? $"{_currentResults[i].AuthorName}, {_currentResults[i].WorkTitle} [{PassageCitation.Display(_currentResults[i].CitationRef)}]: {_currentResults[i].Text}"
+                ? $"{_currentResults[i].AuthorName}, {_currentResults[i].WorkTitle} [{PassageCitation.Display(_currentResults[i].CitationRef, _currentResults[i].Milestone)}]: {_currentResults[i].Text}"
                 : null);
         ListResultHelpers.AttachExportMenu(_resultsList, () => (
             $"Auto-Tag matches for {_nameBox.Text.Trim()}",

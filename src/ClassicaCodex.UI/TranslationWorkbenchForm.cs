@@ -559,7 +559,7 @@ public class TranslationWorkbenchForm : ScaledForm
         _index = Math.Clamp(_index, 0, _sourcePassages.Count - 1);
         var passage = _sourcePassages[_index];
 
-        _headerLabel.Text = $"{_authorName}, {_work.Title}  [{PassageCitation.Display(passage.CitationRef)}]";
+        _headerLabel.Text = $"{_authorName}, {_work.Title}  [{PassageCitation.Display(passage.CitationRef, passage.Milestone)}]";
         RenderPassageWithContext();
 
         _sourceWords.BeginUpdate();
@@ -1185,7 +1185,7 @@ public class TranslationWorkbenchForm : ScaledForm
         _revealed = true;
         RefreshRevealButton();
 
-        _wordPanel.Text = $"Published translation of [{PassageCitation.Display(_sourcePassages[_index].CitationRef)}]\r\n\r\n{published}";
+        _wordPanel.Text = $"Published translation of [{PassageCitation.Display(_sourcePassages[_index].CitationRef, _sourcePassages[_index].Milestone)}]\r\n\r\n{published}";
     }
 
     /// <summary>
@@ -1249,7 +1249,7 @@ public class TranslationWorkbenchForm : ScaledForm
         }
 
         var passage = _sourcePassages[_index];
-        if (!ConfirmSend($"this passage, [{PassageCitation.Display(passage.CitationRef)}]", passage.Text.Length)) return;
+        if (!ConfirmSend($"this passage, [{PassageCitation.Display(passage.CitationRef, passage.Milestone)}]", passage.Text.Length)) return;
 
         _suggestButton.Enabled = false;
         _statusLabel.Text = "AI translating this passage...";
@@ -1264,7 +1264,7 @@ public class TranslationWorkbenchForm : ScaledForm
             // that arrives already typed stops being something to weigh
             // against and becomes the answer.
             _wordPanel.Text =
-                $"AI translation of [{PassageCitation.Display(passage.CitationRef)}]\r\n\r\n{suggestion}\r\n\r\n" +
+                $"AI translation of [{PassageCitation.Display(passage.CitationRef, passage.Milestone)}]\r\n\r\n{suggestion}\r\n\r\n" +
                 "(AI-generated - a rendering to weigh against yours, not a correct answer.)";
             _statusLabel.Text = "AI translation shown on the left - yours stays as you wrote it.";
         }

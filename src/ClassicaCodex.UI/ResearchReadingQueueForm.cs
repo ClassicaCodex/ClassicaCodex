@@ -156,7 +156,7 @@ public sealed class ResearchReadingQueueForm : ScaledForm
         {
             ResearchProjectId = _project.ResearchProjectId,
             Kind = ResearchReadingKind.CorpusPassage,
-            Title = $"{_work.Title} {PassageCitation.Display(node.CitationRef)}",
+            Title = $"{_work.Title} {PassageCitation.Display(node.CitationRef, node.Milestone)}",
             WorkCtsUrn = _work.CtsUrn,
             EditionCtsUrn = edition.CtsUrn,
             CitationRef = node.CitationRef,

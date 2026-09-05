@@ -49,14 +49,14 @@ public class SearchForm : ScaledForm
     private readonly RecentSearchRepository _recentRepo = new();
     private readonly EditionRepository _editionRepo = new();
 
-    private List<(int WorkId, long TextNodeId, string AuthorName, string WorkTitle, string CitationRef, string Text)> _results = new();
+    private List<(int WorkId, long TextNodeId, string AuthorName, string WorkTitle, string CitationRef, string Text, string? Milestone)> _results = new();
 
     /// <summary>
     /// The passages actually on screen - every result, or one document's worth
     /// when a document row has been opened. Everything that indexes the list by
     /// row reads this rather than <see cref="_results"/>.
     /// </summary>
-    private List<(int WorkId, long TextNodeId, string AuthorName, string WorkTitle, string CitationRef, string Text)> _visible = new();
+    private List<(int WorkId, long TextNodeId, string AuthorName, string WorkTitle, string CitationRef, string Text, string? Milestone)> _visible = new();
 
     /// <summary>
     /// One row per work, with how many matches fell in it - counted across
@@ -90,7 +90,7 @@ public class SearchForm : ScaledForm
     /// the search itself found, and therefore cannot change what an export
     /// of the whole search would contain.
     /// </summary>
-    private List<(int WorkId, long TextNodeId, string AuthorName, string WorkTitle, string CitationRef, string Text)> _openDocumentRows = new();
+    private List<(int WorkId, long TextNodeId, string AuthorName, string WorkTitle, string CitationRef, string Text, string? Milestone)> _openDocumentRows = new();
 
     private bool _openDocumentTruncated;
 
@@ -382,7 +382,7 @@ public class SearchForm : ScaledForm
             i => i >= _displayedCount ? null
                 : DocumentView
                     ? $"{_documents[i].AuthorName}, {_documents[i].WorkTitle} — {_documents[i].Matches} match(es)"
-                    : $"{_visible[i].AuthorName}, {_visible[i].WorkTitle} [{PassageCitation.Display(_visible[i].CitationRef)}]: {_visible[i].Text}");
+                    : $"{_visible[i].AuthorName}, {_visible[i].WorkTitle} [{PassageCitation.Display(_visible[i].CitationRef, _visible[i].Milestone)}]: {_visible[i].Text}");
 
         // Export stays passage-level in both views: a list of documents and their
         // counts is not something anyone wants to paste into a notebook, and the
