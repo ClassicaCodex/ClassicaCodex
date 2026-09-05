@@ -294,8 +294,23 @@ public class AboutForm : ScaledForm
         WindowShortcuts.CloseOnEscape(this);
     }
 
+    /// <summary>
+    /// The font a label on this page actually draws in.
+    ///
+    /// SystemFonts.DefaultFont was used here, for measuring and for styling
+    /// alike, and it is not that font. It returns Microsoft Sans Serif 8.25pt
+    /// for backward compatibility, while a control that sets no font of its
+    /// own inherits Control.DefaultFont - Segoe UI 9pt. So every bold line on
+    /// this page was set in a different typeface from the prose around it, and
+    /// the paragraphs were measured in a narrower font than they were drawn
+    /// in. At 100% the slack absorbed the difference. At 125% it did not, and
+    /// the last line of a paragraph went missing.
+    /// </summary>
+    private static Font PageFont => Control.DefaultFont;
+
     private static void AddHeading(Control parent, string text, ref int y, float size, FontStyle style)
     {
+        var font = new Font("Segoe UI", size, style);
         var label = new Label
         {
             Text = text,
@@ -304,8 +319,13 @@ public class AboutForm : ScaledForm
             Top = y,
             Width = 672,
             AutoSize = false,
-            Height = (int)(size * 1.6),
-            Font = new Font("Segoe UI", size, style)
+            // Measured, not derived from the point size. Height was
+            // (int)(size * 1.6), which reads a size in points as though it
+            // were pixels - true enough at 96 DPI, where 14pt is 18.6px and
+            // 22px holds it, and wrong at 120, where the same heading is
+            // 23.3px tall and had its descenders sliced off.
+            Height = font.Height + 6,
+            Font = font
         };
         parent.Controls.Add(label);
         y += label.Height + 6;
@@ -325,7 +345,7 @@ public class AboutForm : ScaledForm
             // AddPrivacyItem does. Label's internal text padding otherwise lets
             // TextRenderer predict one fewer line than WinForms ultimately draws at
             // some DPI and font combinations, and the last line is clipped.
-            Height = TextRenderer.MeasureText(text, SystemFonts.DefaultFont,
+            Height = TextRenderer.MeasureText(text, PageFont,
                 new Size(width - 10, int.MaxValue), TextFormatFlags.WordBreak).Height + 10,
             ForeColor = color ?? Color.Black
         };
@@ -342,8 +362,8 @@ public class AboutForm : ScaledForm
             Left = 22,
             Top = y,
             Width = 660,
-            Height = 20,
-            Font = new Font(SystemFonts.DefaultFont, FontStyle.Bold)
+            Height = PageFont.Height + 4,
+            Font = new Font(PageFont, FontStyle.Bold)
         };
         parent.Controls.Add(titleLabel);
         y += titleLabel.Height + 2;
@@ -360,7 +380,7 @@ public class AboutForm : ScaledForm
             // Measure a slightly narrower line than the label's nominal width. Label's
             // internal text padding otherwise lets TextRenderer predict one fewer line
             // than WinForms ultimately draws at some DPI/font combinations.
-            Height = TextRenderer.MeasureText(description, SystemFonts.DefaultFont,
+            Height = TextRenderer.MeasureText(description, PageFont,
                 new Size(descriptionWidth - 10, int.MaxValue), TextFormatFlags.WordBreak).Height + 10,
             ForeColor = Color.DimGray
         };
@@ -383,13 +403,16 @@ public class AboutForm : ScaledForm
             Font = new Font("Segoe UI", 11, FontStyle.Bold)
         };
         parent.Controls.Add(titleLabel);
-        y += 24;
+        // Advanced by the font rather than by a constant: a fixed 24 was a
+        // line and a gap at 96 DPI and less than a line at 120, so each
+        // section crept up into the one above it.
+        y += PageFont.Height + 8;
 
         AddParagraph(parent, description, ref y, 672, Color.DimGray);
 
         var sourceLabel = new Label { Text = "Source: " + sourceLine, UseMnemonic = false, Left = 16, Top = y, Width = 672 };
         parent.Controls.Add(sourceLabel);
-        y += 20;
+        y += PageFont.Height + 4;
 
         var licenseLabel = new Label
         {
@@ -397,11 +420,16 @@ public class AboutForm : ScaledForm
             UseMnemonic = false,
             Left = 16,
             Top = y,
-            Width = 400,
-            Font = new Font(SystemFonts.DefaultFont, FontStyle.Bold)
+            // The full width the rest of the page uses. 400 held the longest
+            // of these - "Creative Commons Attribution-ShareAlike 4.0
+            // International" - in bold at 96 DPI and nowhere above it, and a
+            // licence name is the one line on this page that has to be read
+            // whole.
+            Width = 672,
+            Font = new Font(PageFont, FontStyle.Bold)
         };
         parent.Controls.Add(licenseLabel);
-        y += 20;
+        y += PageFont.Height + 4;
 
         var link = new LinkLabel { Text = url, Left = 16, Top = y, Width = 672 };
         link.LinkClicked += (_, _) =>
@@ -410,7 +438,7 @@ public class AboutForm : ScaledForm
             catch { /* if the shell can't open it, there's nothing more useful to do here */ }
         };
         parent.Controls.Add(link);
-        y += 22;
+        y += PageFont.Height + 6;
 
         if (!string.IsNullOrEmpty(note))
         {
@@ -420,8 +448,8 @@ public class AboutForm : ScaledForm
             // two longest notes on the page, the NonCommercial licence and the image
             // redistribution terms. Exactly the sentences that must not be half shown.
             var noteFont = highlightNotice
-                ? new Font(SystemFonts.DefaultFont, FontStyle.Bold)
-                : SystemFonts.DefaultFont;
+                ? new Font(PageFont, FontStyle.Bold)
+                : PageFont;
             var noteLabel = new Label
             {
                 Text = note,
