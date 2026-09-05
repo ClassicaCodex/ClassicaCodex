@@ -162,6 +162,9 @@ public class GuidedSetupForm : ScaledForm
         _statusIcon = new PictureBox { Left = 0, Top = 4, Width = 32, Height = 32, SizeMode = PictureBoxSizeMode.Zoom };
         _titleLabel = new Label
         {
+            // Holds a source's name, which can contain an ampersand - see the
+            // note in SetupWizardForm, which shows the same names.
+            UseMnemonic = false,
             Left = 44,
             Top = 8,
             Width = 572,

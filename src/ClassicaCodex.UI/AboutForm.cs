@@ -299,6 +299,7 @@ public class AboutForm : ScaledForm
         var label = new Label
         {
             Text = text,
+            UseMnemonic = false,
             Left = 16,
             Top = y,
             Width = 672,
@@ -315,6 +316,7 @@ public class AboutForm : ScaledForm
         var label = new Label
         {
             Text = text,
+            UseMnemonic = false,
             Left = 16,
             Top = y,
             Width = width,
@@ -336,6 +338,7 @@ public class AboutForm : ScaledForm
         var titleLabel = new Label
         {
             Text = "•  " + title,
+            UseMnemonic = false,
             Left = 22,
             Top = y,
             Width = 660,
@@ -349,6 +352,7 @@ public class AboutForm : ScaledForm
         var descriptionLabel = new Label
         {
             Text = description,
+            UseMnemonic = false,
             Left = 38,
             Top = y,
             Width = descriptionWidth,
@@ -372,6 +376,7 @@ public class AboutForm : ScaledForm
         var titleLabel = new Label
         {
             Text = title,
+            UseMnemonic = false,
             Left = 16,
             Top = y,
             Width = 672,
@@ -382,13 +387,14 @@ public class AboutForm : ScaledForm
 
         AddParagraph(parent, description, ref y, 672, Color.DimGray);
 
-        var sourceLabel = new Label { Text = "Source: " + sourceLine, Left = 16, Top = y, Width = 672 };
+        var sourceLabel = new Label { Text = "Source: " + sourceLine, UseMnemonic = false, Left = 16, Top = y, Width = 672 };
         parent.Controls.Add(sourceLabel);
         y += 20;
 
         var licenseLabel = new Label
         {
             Text = "License: " + licenseName,
+            UseMnemonic = false,
             Left = 16,
             Top = y,
             Width = 400,
@@ -419,6 +425,7 @@ public class AboutForm : ScaledForm
             var noteLabel = new Label
             {
                 Text = note,
+            UseMnemonic = false,
                 Left = 16,
                 Top = y,
                 Width = 672,

@@ -37,7 +37,7 @@ public class ResearchBenchForm : ScaledForm
     private readonly TextBox _excerpt = new();
     private readonly Label _originLine = new();
     private readonly LinkLabel _openAnalysis = new();
-    private readonly LinkLabel _sourceFiles = new();
+    private readonly LinkLabel _sourceFiles = new() { UseMnemonic = false };
     private readonly TextBox _interpretation = new();
     private readonly TextBox _generatorPrompt = new();
     private readonly TextBox _researcherNote = new();

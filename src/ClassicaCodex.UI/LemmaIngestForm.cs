@@ -31,6 +31,7 @@ public class LemmaIngestForm : ScaledForm
 
         var explainer = new Label
         {
+            UseMnemonic = false,
             Left = 16,
             Top = 14,
             Width = 710,

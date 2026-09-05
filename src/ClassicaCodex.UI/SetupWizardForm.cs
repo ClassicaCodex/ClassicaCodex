@@ -464,6 +464,10 @@ public class SetupWizardForm : ScaledForm
         var titleLabel = new Label
         {
             Text = source.Title,
+            // A source is named, not accelerated. Without this "Dictionaries
+            // (LSJ + Lewis & Short)" is drawn "Lewis  Short" with the S
+            // underlined, which is what a Label does with an & by default.
+            UseMnemonic = false,
             Left = 36,
             Top = y,
             Width = 836,
