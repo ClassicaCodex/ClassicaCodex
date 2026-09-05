@@ -131,7 +131,7 @@ stays out of reach until you've written something.
 ## Features
 
 - **Read** the original alongside a translation, for any work in the Perseus corpus
-- **Search** that understands word forms — searching a headword finds every inflection of it, not just exact spellings
+- **Search that reads past the spelling** — accents and breathings, all three shapes of sigma, and both halves of Latin u/v and i/j, so one query reaches every edition's way of printing a word. For every *inflected form* of a headword, Word Study asks the lemma data
 - **Morphology search** — find every line matching a specific grammatical form (case, tense, mood, voice…), not just a specific word
 - **Tag** people, places, and themes across every author at once, and browse everything tagged with a given name (with **Auto-Tag** to suggest matches for a name automatically), and **bookmark** individual lines with your own notes
 - **Myth Network** — a graph of which figures and places co-occur, built from your own tags as you read, not a fixed dataset
@@ -406,7 +406,7 @@ Re-ingesting is what applies this to an existing library — the text that was
 dropped was never stored, so a migration cannot recover it. Citation references
 are unchanged, so annotations, bookmarks and tags survive re-ingesting intact.
 
-The schema has moved through sixteen migrations. Existing databases upgrade in
+The schema has moved through thirty-seven migrations. Existing databases upgrade in
 place on first launch — annotations, bookmarks and tags are carried forward.
 
 ## Questions, ideas, and things that break
