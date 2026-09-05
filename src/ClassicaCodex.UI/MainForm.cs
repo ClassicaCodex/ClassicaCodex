@@ -514,9 +514,31 @@ public partial class MainForm : ScaledForm
         _originalEditionCombo.SelectedIndexChanged += async (_, _) => await OnOriginalEditionChangedAsync();
         _translationEditionCombo.SelectedIndexChanged += async (_, _) => await OnTranslationEditionChangedAsync();
 
+        // Where the reader is, spelled out under each pane.
+        //
+        // The margin marks where a section STARTS and then stays quiet, which
+        // is what a printed edition does and what makes it readable - but
+        // Perseus divides the Republic a whole Stephanus page to a paragraph,
+        // so a reader partway down one has the mark for 327a above them and no
+        // way to know the passage runs to 327c without hovering over it. This
+        // says the whole reference, for the line actually selected.
+        //
+        // One per pane rather than one for the reader: the two sides are
+        // different editions and cite differently - Jowett's Republic and the
+        // Greek agree on 327a, an Iliad and its translation need not agree on
+        // anything - and a single line would have to pick one and be wrong
+        // about the other.
+        _originalReference = CreateReferenceLabel(_originalPane);
+        _translationReference = CreateReferenceLabel(_translationPane);
+
+        // Added after the pane, which is Dock.Fill: WinForms gives edges to
+        // controls in reverse order of addition, so the pane has to go in
+        // first to take what is left rather than all of it.
         splitContainer.Panel1.Controls.Add(_originalPane);
+        splitContainer.Panel1.Controls.Add(_originalReference);
         splitContainer.Panel1.Controls.Add(_originalEditionCombo);
         splitContainer.Panel2.Controls.Add(_translationPane);
+        splitContainer.Panel2.Controls.Add(_translationReference);
         splitContainer.Panel2.Controls.Add(_translationEditionCombo);
 
         Controls.Add(tagsButton);
@@ -1250,6 +1272,65 @@ public partial class MainForm : ScaledForm
             _libraryTree.SelectedNode = node;
             node.EnsureVisible();
         }
+    }
+
+    private readonly Label _originalReference;
+    private readonly Label _translationReference;
+
+    /// <summary>
+    /// The strip under a pane naming the selected passage, kept up to date by
+    /// the pane itself.
+    ///
+    /// The reference only - not the author and work. Those are already on
+    /// screen in the library tree and the edition list above this, and reading
+    /// them out of the database on every arrow key would be a query per
+    /// keystroke to repeat what the window already says.
+    /// </summary>
+    private Label CreateReferenceLabel(SyncListView pane)
+    {
+        var label = new Label
+        {
+            Dock = DockStyle.Bottom,
+            Height = 22,
+            TextAlign = ContentAlignment.MiddleLeft,
+            UseMnemonic = false,
+            ForeColor = ReadingTheme.MutedText,
+            Padding = new Padding(4, 0, 4, 0)
+        };
+
+        _paneReference[pane] = label;
+        pane.SelectedIndexChanged += (_, _) => label.Text = ReferenceFor(pane);
+        return label;
+    }
+
+    private readonly Dictionary<SyncListView, Label> _paneReference = new();
+
+    /// <summary>
+    /// Re-reads the strip under a pane, for when the pane changed underneath
+    /// it rather than the selection within it.
+    ///
+    /// Opening a different work does not necessarily move the selection - it
+    /// can land on the same index in the new text - so the strip is not
+    /// guaranteed the change notification it otherwise lives on, and was left
+    /// naming a passage from the work before. Which is worse than naming
+    /// nothing: it is a reference, beside a text it does not belong to.
+    /// </summary>
+    private void RefreshReferenceLabel(SyncListView pane)
+    {
+        if (_paneReference.TryGetValue(pane, out var label)) label.Text = ReferenceFor(pane);
+    }
+
+    private static string ReferenceFor(SyncListView pane)
+    {
+        if (pane.SelectedIndex < 0 || pane.SelectedIndex >= pane.Items.Count) return string.Empty;
+        if (pane.Items[pane.SelectedIndex] is not TextNode node) return string.Empty;
+
+        var reference = PassageCitation.Display(node.CitationRef, node.Milestone);
+        if (reference.Length == 0) return string.Empty;
+
+        // The doubt travels with the reference, since this is the string a
+        // reader is most likely to copy out of the window.
+        return node.IsAthetized ? reference + "  —  bracketed by the editor" : reference;
     }
 
     private SyncListView CreateReaderList(Font font)
@@ -2501,6 +2582,7 @@ public partial class MainForm : ScaledForm
         finally
         {
             pane.EndUpdate();
+            RefreshReferenceLabel(pane);
         }
     }
 
