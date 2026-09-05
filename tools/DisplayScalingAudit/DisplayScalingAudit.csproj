@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <UseWindowsForms>true</UseWindowsForms>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>ClassicaCodex.Tools.DisplayScalingAudit</RootNamespace>
+    <IsPackable>false</IsPackable>
+    <!-- Never part of a release: this opens every window in the application
+         and photographs the ones it doubts, which is a developer's tool. -->
+    <IsPublishable>false</IsPublishable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\ClassicaCodex.UI\ClassicaCodex.UI.csproj" />
+  </ItemGroup>
+
+</Project>

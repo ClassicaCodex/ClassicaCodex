@@ -25,6 +25,10 @@ Debug/
 Release/
 
 publish/
+
+# Reports and screenshots from tools/DisplayScalingAudit. Generated per
+# machine and per display setting, so never the same twice.
+display-scaling/
 Publish/
 
 ################################################################################
