@@ -67,7 +67,8 @@ public class BookmarksForm : ScaledForm
         ListResultHelpers.AttachExportMenu(_bookmarkList, () => (
             "Bookmarks",
             _currentBookmarks.Select(b => new ExportPassage(
-                b.WorkId, b.TextNodeId, b.AuthorName, b.WorkTitle, b.CitationRef, b.Text)).ToList()), this);
+                b.WorkId, b.TextNodeId, b.AuthorName, b.WorkTitle, b.CitationRef, b.Text,
+                Milestone: b.Milestone)).ToList()), this);
 
         // And as rows, alongside the document export rather than instead of it.
         // The passage export writes prose to quote from; this writes the note

@@ -69,7 +69,8 @@ public class ReceptionTrackerForm : ScaledForm
         ListResultHelpers.AttachExportMenu(_laterList, () => (
             $"Reception of [{PassageCitation.Display(_sourceNode.CitationRef, _sourceNode.Milestone)}] - later authors",
             _later.Select(r => new ExportPassage(
-                r.WorkId, r.TextNodeId, r.AuthorName, r.WorkTitle, r.CitationRef, r.Text)).ToList()), this);
+                r.WorkId, r.TextNodeId, r.AuthorName, r.WorkTitle, r.CitationRef, r.Text,
+                Milestone: r.Milestone)).ToList()), this);
 
         var earlierLabel = new Label { Text = "Earlier authors (this may echo them):", Left = 434, Top = 56, Width = 410 };
         _earlierList = new ListBox
@@ -87,7 +88,8 @@ public class ReceptionTrackerForm : ScaledForm
         ListResultHelpers.AttachExportMenu(_earlierList, () => (
             $"Reception of [{PassageCitation.Display(_sourceNode.CitationRef, _sourceNode.Milestone)}] - earlier authors",
             _earlier.Select(r => new ExportPassage(
-                r.WorkId, r.TextNodeId, r.AuthorName, r.WorkTitle, r.CitationRef, r.Text)).ToList()), this);
+                r.WorkId, r.TextNodeId, r.AuthorName, r.WorkTitle, r.CitationRef, r.Text,
+                Milestone: r.Milestone)).ToList()), this);
 
         var unknownLabel = new Label { Text = "Unknown era (can't place chronologically):", Left = 856, Top = 56, Width = 410 };
         _unknownList = new ListBox
@@ -105,7 +107,8 @@ public class ReceptionTrackerForm : ScaledForm
         ListResultHelpers.AttachExportMenu(_unknownList, () => (
             $"Reception of [{PassageCitation.Display(_sourceNode.CitationRef, _sourceNode.Milestone)}] - undated authors",
             _unknown.Select(r => new ExportPassage(
-                r.WorkId, r.TextNodeId, r.AuthorName, r.WorkTitle, r.CitationRef, r.Text)).ToList()), this);
+                r.WorkId, r.TextNodeId, r.AuthorName, r.WorkTitle, r.CitationRef, r.Text,
+                Milestone: r.Milestone)).ToList()), this);
 
         Controls.Add(_sourceLabel);
         Controls.Add(laterLabel);

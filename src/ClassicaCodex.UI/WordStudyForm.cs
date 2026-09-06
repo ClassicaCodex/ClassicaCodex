@@ -253,7 +253,8 @@ public class WordStudyForm : ScaledForm
         ListResultHelpers.AttachExportMenu(_occurrenceList, () => (
             $"Occurrences of {SelectedHeadwordOrDefault()}",
             _currentOccurrences.Select(r => new ExportPassage(
-                r.WorkId, r.TextNodeId, r.AuthorName, r.WorkTitle, r.CitationRef, r.Text)).ToList()), this);
+                r.WorkId, r.TextNodeId, r.AuthorName, r.WorkTitle, r.CitationRef, r.Text,
+                Milestone: r.Milestone)).ToList()), this);
 
         _statusLabel = new Label
         {

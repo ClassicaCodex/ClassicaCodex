@@ -67,7 +67,8 @@ public class TagBrowserForm : ScaledForm
                 ? $"Passages tagged \u201c{selected.Name}\u201d"
                 : "Tagged passages",
             _currentResults.Select(r => new ExportPassage(
-                r.WorkId, r.TextNodeId, r.AuthorName, r.WorkTitle, r.CitationRef, r.Text)).ToList()), this);
+                r.WorkId, r.TextNodeId, r.AuthorName, r.WorkTitle, r.CitationRef, r.Text,
+                Milestone: r.Milestone)).ToList()), this);
 
         // The same passages as rows, for the questions a document cannot answer
         // - which authors a tag actually spans, how it is distributed across a

@@ -168,7 +168,8 @@ public class MorphologyForm : ScaledForm
         ListResultHelpers.AttachExportMenu(_resultsList, () => (
             "Morphology search results",
             _currentResults.Select(r => new ExportPassage(
-                r.WorkId, r.TextNodeId, r.AuthorName, r.WorkTitle, r.CitationRef, r.Text)).ToList()), this);
+                r.WorkId, r.TextNodeId, r.AuthorName, r.WorkTitle, r.CitationRef, r.Text,
+                Milestone: r.Milestone)).ToList()), this);
 
         Controls.Add(intro);
         Controls.Add(languageLabel);

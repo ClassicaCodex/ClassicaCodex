@@ -259,6 +259,47 @@ public static class ListResultHelpers
     }
 
     /// <summary>
+    /// The same cut as <see cref="RowText"/>, but positioned so that a
+    /// particular stretch of the passage stays visible.
+    ///
+    /// Taking the opening of a long passage is the right default, and it is
+    /// wrong wherever the row exists to show a hit: the match can sit past
+    /// the cut, leaving a row whose text contains no sign of what matched.
+    /// Auto-Tag is the sharp case, because it asks you to confirm each match
+    /// before it writes tags.
+    ///
+    /// The window keeps a little of what precedes the match, so the phrase
+    /// reads as a phrase rather than starting mid-word, and marks each cut
+    /// end with an ellipsis so it is clear the line was trimmed.
+    /// </summary>
+    /// <param name="text">The whole passage.</param>
+    /// <param name="matchStart">Where the match begins, or a negative number if there is none.</param>
+    /// <param name="matchLength">How long the match is.</param>
+    /// <param name="limit">Maximum characters to return, excluding ellipses.</param>
+    public static string RowTextAround(string? text, int matchStart, int matchLength, int limit = 400)
+    {
+        if (string.IsNullOrEmpty(text)) return string.Empty;
+        if (text.Length <= limit) return text;
+        if (matchStart < 0 || matchStart >= text.Length) return RowText(text, limit);
+
+        // Enough lead-in to read the match in context, and the rest after it.
+        const int lead = 60;
+        var start = Math.Max(0, matchStart - lead);
+
+        // A match longer than the whole window would leave nothing to show;
+        // the window still starts at the match so its opening is visible.
+        var end = Math.Min(text.Length, start + limit);
+        if (end <= matchStart) end = Math.Min(text.Length, matchStart + limit);
+
+        // Never split a surrogate pair at either edge.
+        if (start > 0 && char.IsLowSurrogate(text[start])) start++;
+        if (end < text.Length && char.IsLowSurrogate(text[end])) end--;
+
+        var window = text[start..end];
+        return (start > 0 ? "…" : string.Empty) + window + (end < text.Length ? "…" : string.Empty);
+    }
+
+    /// <summary>
     /// Sizes an owner-drawn list's horizontal scrollbar to its widest row.
     ///
     /// Plain lists get this from the theme, which sets HorizontalScrollbar on

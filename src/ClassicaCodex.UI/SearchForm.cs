@@ -391,7 +391,8 @@ public class SearchForm : ScaledForm
         ListResultHelpers.AttachExportMenu(_resultsList, () => (
             DescribeSearch(),
             _visible.Select(r => new ExportPassage(
-                r.WorkId, r.TextNodeId, r.AuthorName, r.WorkTitle, r.CitationRef, r.Text)).ToList()), this);
+                r.WorkId, r.TextNodeId, r.AuthorName, r.WorkTitle, r.CitationRef, r.Text,
+                Milestone: r.Milestone)).ToList()), this);
 
         _statusLabel = new Label
         {

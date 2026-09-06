@@ -142,6 +142,7 @@ public class SetupWizardForm : ScaledForm
             Left = 332,
             Top = y + 62,
             Width = 540,
+            Height = 34,
             ForeColor = Color.DimGray
         };
 
@@ -234,6 +235,7 @@ public class SetupWizardForm : ScaledForm
             Left = 192,
             Top = y + 68,
             Width = 680,
+            Height = 34,
             ForeColor = Color.DimGray
         };
 
