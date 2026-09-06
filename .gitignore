@@ -26,6 +26,14 @@ Release/
 
 publish/
 
+# A release is published to a version-named folder and zipped beside it. Both
+# are build output and belong on the release, not in the history - the zip
+# alone is 78MB. Ignored by pattern rather than by name because the only thing
+# that changes between releases is the number, and "git add -A" the evening of
+# a release will otherwise pick up both.
+publish-*/
+ClassicaCodex-v*-win-x64.zip
+
 # Reports and screenshots from tools/DisplayScalingAudit. Generated per
 # machine and per display setting, so never the same twice.
 display-scaling/
