@@ -282,7 +282,7 @@ public class CompareTranslationsForm : ScaledForm
                 cl.List.BeginUpdate();
                 foreach (var n in nodes)
                 {
-                    cl.List.Items.Add(n.Text);
+                    cl.List.Items.Add(ListResultHelpers.RowText(n.Text, ListResultHelpers.ComparisonRowLimit));
                 }
                 cl.List.EndUpdate();
 
@@ -382,7 +382,7 @@ public class CompareTranslationsForm : ScaledForm
 
             column.List.BeginUpdate();
             column.List.Items.Clear();
-            foreach (var n in column.Nodes) column.List.Items.Add(n.Text);
+            foreach (var n in column.Nodes) column.List.Items.Add(ListResultHelpers.RowText(n.Text, ListResultHelpers.ComparisonRowLimit));
             column.List.EndUpdate();
 
             if (selected >= 0 && selected < column.List.Items.Count) column.List.SelectedIndex = selected;

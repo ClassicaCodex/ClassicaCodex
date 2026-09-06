@@ -233,7 +233,7 @@ public class ConcordanceForm : ScaledForm
             _currentPassages = matches
                 .Select(m => new ExportPassage(
                     m.WorkId, m.TextNodeId, m.AuthorName, m.WorkTitle, m.CitationRef, m.Text,
-                    BuildKwicDetail(m.Text, targets)))
+                    BuildKwicDetail(m.Text, targets), m.Milestone))
                 .ToList();
 
             var rowCount = 0;

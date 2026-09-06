@@ -431,7 +431,7 @@ public class LemmaRepository
         // result set.
         cmd.CommandText = $@"
             SELECT w.WorkId, tn.TextNodeId, a.Name, w.Title, tn.CitationRef, tn.Text,
-                   m.Form, m.Headword, m.PartOfSpeech
+                   m.Form, m.Headword, m.PartOfSpeech, tn.Milestone
             FROM (
                 SELECT DISTINCT l.NormalizedForm, l.Form, l.Headword, l.PartOfSpeech
                 FROM Lemmas l

@@ -204,7 +204,8 @@ public class CrossLanguageEchoForm : ScaledForm
                 _comparisonWorkTitle,
                 r.Node.CitationRef,
                 r.Node.Text,
-                $"[{r.Candidate.Confidence}] {r.Candidate.Rationale}")).ToList()),
+                $"[{r.Candidate.Confidence}] {r.Candidate.Rationale}",
+                r.Node.Milestone)).ToList()),
             this,
             "why each was suggested");
 

@@ -168,7 +168,8 @@ public class MorphologyForm : ScaledForm
         ListResultHelpers.AttachExportMenu(_resultsList, () => (
             "Morphology search results",
             _currentResults.Select(r => new ExportPassage(
-                r.WorkId, r.TextNodeId, r.AuthorName, r.WorkTitle, r.CitationRef, r.Text)).ToList()), this);
+                r.WorkId, r.TextNodeId, r.AuthorName, r.WorkTitle, r.CitationRef, r.Text,
+                Milestone: r.Milestone)).ToList()), this);
 
         Controls.Add(intro);
         Controls.Add(languageLabel);
@@ -341,7 +342,7 @@ public class MorphologyForm : ScaledForm
                 // right-click copy, and in the export, which is where it is
                 // wanted: at the point of citing one, not while reading two
                 // thousand.
-                _resultsList.Items.Add($"{r.AuthorName}, {r.WorkTitle}  ({r.MatchedForm} < {r.Headword}): {r.Text}");
+                _resultsList.Items.Add($"{r.AuthorName}, {r.WorkTitle}  ({r.MatchedForm} < {r.Headword}): {ListResultHelpers.RowText(r.Text)}");
             }
 
             if (_currentResults.Count == 0)

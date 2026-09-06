@@ -36,90 +36,13 @@ public class AutoTagForm : ScaledForm
 
     private List<(int WorkId, long TextNodeId, string AuthorName, string WorkTitle, string CitationRef, string Text, string? Milestone)> _currentResults = new();
 
-    /// <summary>The forms actually searched for, used to highlight them in the results list.</summary>
+    /// <summary>The forms actually searched for, used to find the match in each row.</summary>
     private List<string> _highlightForms = new();
-
-    /// <summary>
-    /// Draws one result row with the matched forms highlighted, so it's
-    /// obvious where in a long passage the hit actually is rather than
-    /// having to hunt for it.
-    ///
-    /// CheckedListBox owner-draw means drawing the checkbox too - WinForms
-    /// stops rendering it once DrawMode leaves Normal.
-    /// </summary>
-    private void ResultsList_DrawItem(object? sender, DrawItemEventArgs e)
-    {
-        if (e.Index < 0 || e.Index >= _resultsList.Items.Count) return;
-
-        var selected = (e.State & DrawItemState.Selected) != 0;
-        // The app's own selection colors, not the raw OS ones - Windows'
-        // default highlight blue is tuned for a white surface and reads too
-        // harsh against the dark one; ReadingTheme.SelectionBackground is
-        // the same deliberately toned-down color MainForm and BookmarksForm
-        // already use for exactly this situation.
-        var backColor = selected ? ReadingTheme.SelectionBackground : _resultsList.BackColor;
-        var foreColor = selected ? ReadingTheme.SelectionText : _resultsList.ForeColor;
-
-        using (var backBrush = new SolidBrush(backColor))
-        {
-            e.Graphics.FillRectangle(backBrush, e.Bounds);
-        }
-
-        var checkSize = 14;
-        var checkBounds = new Rectangle(
-            e.Bounds.Left + 2,
-            e.Bounds.Top + (e.Bounds.Height - checkSize) / 2,
-            checkSize, checkSize);
-
-        System.Windows.Forms.VisualStyles.CheckBoxState checkState =
-            _resultsList.GetItemChecked(e.Index)
-                ? System.Windows.Forms.VisualStyles.CheckBoxState.CheckedNormal
-                : System.Windows.Forms.VisualStyles.CheckBoxState.UncheckedNormal;
-        CheckBoxRenderer.DrawCheckBox(e.Graphics, checkBounds.Location, checkState);
-
-        var text = _resultsList.Items[e.Index]?.ToString() ?? string.Empty;
-        var x = checkBounds.Right + 4;
-        var font = _resultsList.Font;
-
-        void DrawPart(string part, bool highlighted)
-        {
-            if (part.Length == 0) return;
-
-            var size = TextRenderer.MeasureText(e.Graphics, part, font,
-                new Size(int.MaxValue, e.Bounds.Height), TextFormatFlags.NoPadding);
-            var rect = new Rectangle(x, e.Bounds.Top, size.Width, e.Bounds.Height);
-
-            if (highlighted)
-            {
-                using var highlightBrush = new SolidBrush(
-                    ReadingTheme.IsDark ? Color.FromArgb(120, 92, 20) : Color.Khaki);
-                e.Graphics.FillRectangle(highlightBrush, rect);
-            }
-
-            TextRenderer.DrawText(e.Graphics, part, font, rect, foreColor,
-                TextFormatFlags.NoPadding | TextFormatFlags.VerticalCenter);
-            x += size.Width;
-        }
-
-        var spans = FindHighlightSpans(text, _highlightForms);
-        var pos = 0;
-        foreach (var (start, length) in spans)
-        {
-            if (start < pos) continue; // overlapping match, already covered
-            DrawPart(text[pos..start], highlighted: false);
-            DrawPart(text.Substring(start, length), highlighted: true);
-            pos = start + length;
-        }
-        DrawPart(text[pos..], highlighted: false);
-
-        e.DrawFocusRectangle();
-    }
 
     /// <summary>
     /// Where each searched form appears in a line, as (start, length) pairs
     /// in reading order. Longer forms are matched first so a longer form
-    /// wins over a shorter one it contains, and overlaps are dropped by the
-    /// caller rather than double-drawn.
+    /// wins over a shorter one it contains.
     /// </summary>
     private static List<(int Start, int Length)> FindHighlightSpans(string text, List<string> forms)
     {
@@ -197,11 +120,18 @@ public class AutoTagForm : ScaledForm
             Width = 1060,
             Height = 480,
             Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right,
-            CheckOnClick = true,
-            DrawMode = DrawMode.OwnerDrawFixed
+            CheckOnClick = true
+
+            // No DrawMode here, and no DrawItem handler: CheckedListBox
+            // overrides DrawMode with a setter that discards the value and a
+            // getter that always answers Normal, so owner-draw cannot be
+            // turned on and DrawItem never fires. This form carried both for
+            // some time, to highlight the matched forms in each row; measured
+            // against a plain ListBox in the same window, the ListBox's
+            // DrawItem fired for every item and this one's fired for none.
+            // The rows put the match in view instead - see RunSearchAsync.
         };
         _resultsList.DoubleClick += async (_, _) => await JumpToSelectedAsync();
-        _resultsList.DrawItem += ResultsList_DrawItem;
         ListResultHelpers.AttachCitationTooltip(_resultsList,
             i => i < _currentResults.Count ? _currentResults[i].CitationRef : null);
         ListResultHelpers.AttachCopyToClipboardMenu(_resultsList,
@@ -211,7 +141,8 @@ public class AutoTagForm : ScaledForm
         ListResultHelpers.AttachExportMenu(_resultsList, () => (
             $"Auto-Tag matches for {_nameBox.Text.Trim()}",
             _currentResults.Select(r => new ExportPassage(
-                r.WorkId, r.TextNodeId, r.AuthorName, r.WorkTitle, r.CitationRef, r.Text)).ToList()), this);
+                r.WorkId, r.TextNodeId, r.AuthorName, r.WorkTitle, r.CitationRef, r.Text,
+                Milestone: r.Milestone)).ToList()), this);
 
         _checkAllButton = new Button { Text = "Check All", Left = 12, Top = 618, Width = 100, Height = 28, Anchor = AnchorStyles.Bottom | AnchorStyles.Left };
         _checkAllButton.Click += (_, _) => SetAllChecked(true);
@@ -298,8 +229,17 @@ public class AutoTagForm : ScaledForm
 
             foreach (var r in _currentResults)
             {
+                // Position the row's window on the first match rather than on
+                // the opening of the passage. Some of this corpus is ingested
+                // in whole sections, so the form a search matched is often
+                // thousands of characters in - past the cut, leaving a row
+                // that shows no reason for being in the list at all.
+                var spans = FindHighlightSpans(r.Text, _highlightForms);
+                var first = spans.Count > 0 ? spans[0] : (Start: -1, Length: 0);
+
                 var index = _resultsList.Items.Add(
-                    $"{r.AuthorName}, {r.WorkTitle}: {r.Text}");
+                    $"{r.AuthorName}, {r.WorkTitle}: " +
+                    ListResultHelpers.RowTextAround(r.Text, first.Start, first.Length));
                 _resultsList.SetItemChecked(index, true);
             }
 

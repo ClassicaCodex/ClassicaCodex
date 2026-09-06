@@ -241,7 +241,26 @@ internal static class Program
             new Size(available, int.MaxValue), flags | TextFormatFlags.NoPadding);
 
         var room = control is GroupBox ? control.Height - 18 : control.Height;
-        if (needed.Height <= room && (wraps || needed.Width <= available)) return;
+
+        // For a Label, ask the pixels rather than the model. MeasureText
+        // answers how tall the text is; a Label lays it out inside its own
+        // insets, so it wraps at a slightly narrower width and can need a
+        // whole line more than the measurement predicts. That gap is not
+        // theoretical: this tool once passed LemmaIngestForm's intro as
+        // fitting in 92px when MeasureText said 90 and the last line was
+        // visibly cut off - measured against the rendering, it needs 96.
+        // GetPreferredSize errs the other way and flags labels that are fine.
+        if (control is Label label) needed.Height = InkHeight(label);
+
+        // Two pixels of margin, because this measurement has been observed to
+        // come out 2px short of the same scan run from a separate process
+        // against the same label, and nothing found so far explains the
+        // difference. Two pixels is a descender. Erring toward reporting a
+        // caption that turns out to be fine costs a look at a screenshot;
+        // erring the other way is how this tool passed a clipped label once
+        // already. The pictures, not this number, are still what settles it.
+        const int Margin = 2;
+        if (needed.Height + Margin <= room && (wraps || needed.Width <= available)) return;
 
         var what = needed.Height > room
             ? $"needs {needed.Height}px of height in {room}px"
@@ -249,6 +268,55 @@ internal static class Program
 
         problems.Add($"{control.GetType().Name} \"{Short(control.Text)}\" {what}"
                      + (control.Visible ? string.Empty : "  [currently hidden]"));
+    }
+
+    /// <summary>
+    /// How far down the label's text actually reaches, in pixels, found by
+    /// giving a copy of it the same width and all the height it could want,
+    /// rendering that, and looking for the lowest row with ink in it.
+    ///
+    /// The copy is drawn black on white regardless of the theme, so the scan
+    /// is looking for one thing and the reading colours cannot make text
+    /// invisible to it.
+    /// </summary>
+    private static int InkHeight(Label label)
+    {
+        const int Tall = 600;
+
+        try
+        {
+            using var copy = new Label
+            {
+                Width = label.Width,
+                Height = Tall,
+                Text = label.Text,
+                Font = label.Font,
+                Padding = label.Padding,
+                RightToLeft = label.RightToLeft,
+                UseMnemonic = label.UseMnemonic,
+                TextAlign = ContentAlignment.TopLeft,
+                AutoSize = false,
+                BackColor = Color.White,
+                ForeColor = Color.Black
+            };
+
+            using var bitmap = new Bitmap(Math.Max(label.Width, 1), Tall);
+            copy.DrawToBitmap(bitmap, new Rectangle(0, 0, bitmap.Width, Tall));
+
+            for (var y = Tall - 1; y >= 0; y--)
+                for (var x = 0; x < bitmap.Width; x++)
+                    if (bitmap.GetPixel(x, y).R < 200) return y + 1;
+
+            return 0;
+        }
+        catch
+        {
+            // Fall back to the measurement rather than lose the caption from
+            // the report entirely.
+            return TextRenderer.MeasureText(label.Text, label.Font,
+                new Size(Math.Max(label.Width - 2, 1), int.MaxValue),
+                TextFormatFlags.WordBreak | TextFormatFlags.NoPadding).Height;
+        }
     }
 
     // LinkLabel derives from Label, so it has to be asked first.

@@ -63,7 +63,8 @@ public class EchoResultsForm : ScaledForm
         ListResultHelpers.AttachExportMenu(_resultsList, () => (
             "Intertextual echoes",
             _currentResults.Select(r => new ExportPassage(
-                r.WorkId, r.TextNodeId, r.AuthorName, r.WorkTitle, r.CitationRef, r.Text)).ToList()), this);
+                r.WorkId, r.TextNodeId, r.AuthorName, r.WorkTitle, r.CitationRef, r.Text,
+                Milestone: r.Milestone)).ToList()), this);
 
         Controls.Add(_sourceLabel);
         Controls.Add(explainer);
@@ -122,7 +123,7 @@ public class EchoResultsForm : ScaledForm
         foreach (var r in _currentResults)
         {
             _resultsList.Items.Add(
-                $"[{r.SharedWordCount} shared] {r.AuthorName}, {r.WorkTitle}: {r.Text}");
+                $"[{r.SharedWordCount} shared] {r.AuthorName}, {r.WorkTitle}: {ListResultHelpers.RowText(r.Text)}");
         }
     }
 

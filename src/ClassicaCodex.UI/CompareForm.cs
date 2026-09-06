@@ -162,7 +162,7 @@ public class CompareForm : ScaledForm
             {
                 foreach (var p in passages)
                 {
-                    list.Items.Add(p.Text);
+                    list.Items.Add(ListResultHelpers.RowText(p.Text, ListResultHelpers.ComparisonRowLimit));
                 }
 
                 ListResultHelpers.AttachCitationTooltip(list,

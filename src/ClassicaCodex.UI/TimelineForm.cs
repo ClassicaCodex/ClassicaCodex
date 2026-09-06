@@ -32,15 +32,20 @@ public class TimelineForm : ScaledForm
             Text = "Loading...",
             Left = 12,
             Top = 10,
-            Width = 860
+
+            // Room for the second line. This one fills in with a count and a
+            // caveat about the dates once the timeline loads, and at this
+            // width that always wraps.
+            Width = 860,
+            Height = 34
         };
 
         _scrollHost = new Panel
         {
             Left = 12,
-            Top = 34,
+            Top = 44,
             Width = 860,
-            Height = 712,
+            Height = 702,
             Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right,
             AutoScroll = true,
             BorderStyle = BorderStyle.FixedSingle
@@ -56,15 +61,16 @@ public class TimelineForm : ScaledForm
             Text = "Click an author to see their works (double-click one to open it):",
             Left = 884,
             Top = 10,
-            Width = 300
+            Width = 300,
+            Height = 34
         };
 
         _workList = new ListBox
         {
             Left = 884,
-            Top = 34,
+            Top = 44,
             Width = 300,
-            Height = 712,
+            Height = 702,
             Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Right
         };
         _workList.DoubleClick += async (_, _) => await OpenSelectedWorkAsync();

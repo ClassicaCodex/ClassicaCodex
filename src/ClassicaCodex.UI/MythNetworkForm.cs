@@ -129,8 +129,14 @@ public class MythNetworkForm : ScaledForm
             Text = "Circle size = how often you've used the tag. Line thickness = how strongly two tags co-occur. " +
                    "Drag nodes; click one to browse its passages; right-click one to search for related artifacts.",
             Left = 296,
-            Top = 40,
-            Width = 700
+            Top = 34,
+
+            // Two lines at this width. A Label created in code is not
+            // AutoSize, so without a height it keeps the default 23px and
+            // shows only the first line - which cut this one off at "click
+            // one to browse its", taking the right-click hint with it.
+            Width = 700,
+            Height = 34
         };
 
         _selectedTagLabel = new Label
@@ -227,7 +233,7 @@ public class MythNetworkForm : ScaledForm
         _currentPassages = await _tagRepo.GetByTagAsync(tagName);
         foreach (var p in _currentPassages)
         {
-            _passageList.Items.Add($"{p.AuthorName}, {p.WorkTitle}: {p.Text}");
+            _passageList.Items.Add($"{p.AuthorName}, {p.WorkTitle}: {ListResultHelpers.RowText(p.Text)}");
         }
 
         if (_currentPassages.Count == 0)
@@ -259,7 +265,7 @@ public class MythNetworkForm : ScaledForm
 
         foreach (var p in edgePassages)
         {
-            _passageList.Items.Add($"[{p.TagName}] {p.AuthorName}, {p.WorkTitle}: {p.Text}");
+            _passageList.Items.Add($"[{p.TagName}] {p.AuthorName}, {p.WorkTitle}: {ListResultHelpers.RowText(p.Text)}");
         }
 
         if (edgePassages.Count == 0)

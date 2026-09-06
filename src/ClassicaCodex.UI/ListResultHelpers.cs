@@ -203,6 +203,103 @@ public static class ListResultHelpers
     }
 
     /// <summary>
+    /// As much of a passage as a single list row can show.
+    ///
+    /// <b>This is a crash fix, not a tidiness measure.</b> The theme turns on
+    /// HorizontalScrollbar for every ListBox, which makes WinForms call
+    /// Graphics.MeasureString on each item as it is added. GDI+ measures text
+    /// on one of two paths: a simple one with no practical length limit, and a
+    /// complex shaping path entered when the string contains a format
+    /// character, a combining mark, a control character, a right-to-left
+    /// script or an unmapped codepoint. <b>The complex path fails above about
+    /// 32,000 characters in a single run</b>, returning nothing more helpful
+    /// than "A generic error occurred in GDI+".
+    ///
+    /// This corpus meets both halves. 82 of its 2.3 million passages are over
+    /// 31,800 characters - Migne and CSEL works ingested as whole sections -
+    /// and 24 of those carry a soft hyphen (U+00AD), left behind by OCR at the
+    /// line breaks of the printed page. Facundus of Hermiane is 32,132
+    /// characters with 195 of them, and searching Auto-Tag for "Athena"
+    /// reached it as row 871 of 3,987 and took the window down.
+    ///
+    /// Both conditions are needed, which is why it was investigated once
+    /// before and written off as unreproducible: a long plain passage measures
+    /// fine at any length, and a short one full of soft hyphens measures fine
+    /// too. Only the two together fail. See RefreshHorizontalExtent below,
+    /// which was guarded at the time without the cause being found.
+    ///
+    /// Cutting the row is the fix rather than catching the throw, because
+    /// catching it drops the row: the search would quietly return fewer
+    /// results than it found. Nothing is lost by cutting - the untruncated
+    /// text stays in the list the caller holds, which is what the tooltip, the
+    /// right-click copy and the export all read from. No one reads 32,000
+    /// characters on one line of a list box anyway.
+    /// </summary>
+    /// <summary>
+    /// The cap for a view whose rows ARE the text being read rather than a
+    /// summary of it - the two comparison windows, where a row is a line of
+    /// one edition set against a line of another.
+    ///
+    /// Higher than the default because truncating a comparison is a real loss,
+    /// and still far below where GDI+ gives out. It only ever bites the 82
+    /// whole-section passages in this corpus, which are unreadable on one
+    /// non-wrapping row at any length.
+    /// </summary>
+    public const int ComparisonRowLimit = 2000;
+
+    public static string RowText(string? text, int limit = 400)
+    {
+        if (string.IsNullOrEmpty(text)) return string.Empty;
+        if (text.Length <= limit) return text;
+
+        // Not through a surrogate pair, which would leave half a character.
+        var cut = limit;
+        if (char.IsHighSurrogate(text[cut - 1])) cut--;
+        return text[..cut] + "…";
+    }
+
+    /// <summary>
+    /// The same cut as <see cref="RowText"/>, but positioned so that a
+    /// particular stretch of the passage stays visible.
+    ///
+    /// Taking the opening of a long passage is the right default, and it is
+    /// wrong wherever the row exists to show a hit: the match can sit past
+    /// the cut, leaving a row whose text contains no sign of what matched.
+    /// Auto-Tag is the sharp case, because it asks you to confirm each match
+    /// before it writes tags.
+    ///
+    /// The window keeps a little of what precedes the match, so the phrase
+    /// reads as a phrase rather than starting mid-word, and marks each cut
+    /// end with an ellipsis so it is clear the line was trimmed.
+    /// </summary>
+    /// <param name="text">The whole passage.</param>
+    /// <param name="matchStart">Where the match begins, or a negative number if there is none.</param>
+    /// <param name="matchLength">How long the match is.</param>
+    /// <param name="limit">Maximum characters to return, excluding ellipses.</param>
+    public static string RowTextAround(string? text, int matchStart, int matchLength, int limit = 400)
+    {
+        if (string.IsNullOrEmpty(text)) return string.Empty;
+        if (text.Length <= limit) return text;
+        if (matchStart < 0 || matchStart >= text.Length) return RowText(text, limit);
+
+        // Enough lead-in to read the match in context, and the rest after it.
+        const int lead = 60;
+        var start = Math.Max(0, matchStart - lead);
+
+        // A match longer than the whole window would leave nothing to show;
+        // the window still starts at the match so its opening is visible.
+        var end = Math.Min(text.Length, start + limit);
+        if (end <= matchStart) end = Math.Min(text.Length, matchStart + limit);
+
+        // Never split a surrogate pair at either edge.
+        if (start > 0 && char.IsLowSurrogate(text[start])) start++;
+        if (end < text.Length && char.IsLowSurrogate(text[end])) end--;
+
+        var window = text[start..end];
+        return (start > 0 ? "…" : string.Empty) + window + (end < text.Length ? "…" : string.Empty);
+    }
+
+    /// <summary>
     /// Sizes an owner-drawn list's horizontal scrollbar to its widest row.
     ///
     /// Plain lists get this from the theme, which sets HorizontalScrollbar on

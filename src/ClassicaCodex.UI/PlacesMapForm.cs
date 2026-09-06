@@ -54,7 +54,8 @@ public class PlacesMapForm : ScaledForm
                    "Untick a kind below to thin the map out.",
             Left = 12,
             Top = 10,
-            Width = 860
+            Width = 860,
+            Height = 34
         };
 
         // One checkbox per kind, drawn in its own pin colour so the legend is
@@ -196,7 +197,8 @@ public class PlacesMapForm : ScaledForm
         ListResultHelpers.AttachExportMenu(_passageList, () => (
             $"Passages mentioning {_selectedPlaceName}",
             _currentPassages.Select(r => new ExportPassage(
-                r.WorkId, r.TextNodeId, r.AuthorName, r.WorkTitle, r.CitationRef, r.Text)).ToList()), this);
+                r.WorkId, r.TextNodeId, r.AuthorName, r.WorkTitle, r.CitationRef, r.Text,
+                Milestone: r.Milestone)).ToList()), this);
 
         Controls.Add(legend);
         Controls.Add(_kindFilters);

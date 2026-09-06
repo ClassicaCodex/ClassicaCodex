@@ -521,11 +521,21 @@ public static class ReadingTheme
                 //
                 // Set here rather than per form for the reason the search
                 // results said it best: one rule for every list is easier to
-                // keep than an exception. Owner-drawn lists are unaffected -
-                // WinForms will not measure what it does not draw, so they
-                // stay at extent 0 and show no bar until a form sets one
-                // deliberately. That is what keeps the wrapped translation
+                // keep than an exception. An owner-drawn list shows no bar
+                // from this - its extent stays at 0 until a form sets one
+                // deliberately, which is what keeps the wrapped translation
                 // columns wrapping.
+                //
+                // It is still MEASURED, though, and this comment used to say
+                // otherwise. Setting this makes ListBox call
+                // Graphics.MeasureString on every item as it is added,
+                // whatever DrawMode says: the Auto-Tag list was observed with
+                // an extent of 0 and an internal max width of 130,830 at the
+                // moment GDI+ threw on it. The measuring is the part that can
+                // fail, and it is why every list that shows passages puts its
+                // rows through ListResultHelpers.RowText - see the note there
+                // for what GDI+ actually refuses, which is not what the last
+                // investigation of this concluded.
                 listBox.HorizontalScrollbar = true;
 
                 ApplyNativeScrollbarTheme(listBox);

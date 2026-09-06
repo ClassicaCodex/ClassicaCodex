@@ -23,7 +23,7 @@ public class LemmaIngestForm : ScaledForm
         Text = "Load Reference Data";
         AppIcons.ApplyWindowIcon(this, "LoadLemmas");
         Width = 760;
-        Height = 430;
+        Height = 466;
         StartPosition = FormStartPosition.CenterParent;
         FormBorderStyle = FormBorderStyle.FixedDialog;
         MaximizeBox = false;
@@ -35,7 +35,7 @@ public class LemmaIngestForm : ScaledForm
             Left = 16,
             Top = 14,
             Width = 710,
-            Height = 74,
+            Height = 110,
             Text = "Lemma mappings link inflected forms to dictionary headwords (λόγου → λόγος). " +
                    "Dictionaries add what those headwords actually mean.\r\n\r\nClone the data first, e.g.:\r\n" +
                    "    git clone https://github.com/gcelano/LemmatizedAncientGreekXML   (Greek lemmas)\r\n" +
@@ -43,31 +43,31 @@ public class LemmaIngestForm : ScaledForm
             ForeColor = Color.DimGray
         };
 
-        var pathLabel = new Label { Text = "Folder containing the XML:", Left = 16, Top = 96, Width = 300 };
-        _pathBox = new TextBox { Left = 16, Top = 120, Width = 600 };
-        var browseButton = new Button { Text = "Browse...", Left = 624, Top = 118, Width = 100 };
+        var pathLabel = new Label { Text = "Folder containing the XML:", Left = 16, Top = 132, Width = 300 };
+        _pathBox = new TextBox { Left = 16, Top = 156, Width = 600 };
+        var browseButton = new Button { Text = "Browse...", Left = 624, Top = 154, Width = 100 };
         browseButton.Click += (_, _) =>
         {
             using var dialog = new FolderBrowserDialog();
             if (dialog.ShowDialog() == DialogResult.OK) _pathBox.Text = dialog.SelectedPath;
         };
 
-        var dataTypeLabel = new Label { Text = "Data type:", Left = 16, Top = 156, Width = 80 };
+        var dataTypeLabel = new Label { Text = "Data type:", Left = 16, Top = 192, Width = 80 };
         _dataTypeBox = new ComboBox
         {
             Left = 100,
-            Top = 152,
+            Top = 188,
             Width = 200,
             DropDownStyle = ComboBoxStyle.DropDownList
         };
         _dataTypeBox.Items.AddRange(new object[] { "Lemma mappings", "Dictionary (lexicon)" });
         _dataTypeBox.SelectedIndex = 0;
 
-        var languageLabel = new Label { Text = "Language:", Left = 320, Top = 156, Width = 70 };
+        var languageLabel = new Label { Text = "Language:", Left = 320, Top = 192, Width = 70 };
         _languageBox = new ComboBox
         {
             Left = 392,
-            Top = 152,
+            Top = 188,
             Width = 150,
             DropDownStyle = ComboBoxStyle.DropDownList
         };
@@ -78,18 +78,18 @@ public class LemmaIngestForm : ScaledForm
         {
             Text = "Clear existing first",
             Left = 556,
-            Top = 154,
+            Top = 190,
             Width = 160,
             Checked = true
         };
 
-        _progressBar = new ProgressBar { Left = 16, Top = 196, Width = 708, Height = 22 };
-        _statusLabel = new Label { Left = 16, Top = 224, Width = 708, Height = 76, Text = "Idle." };
+        _progressBar = new ProgressBar { Left = 16, Top = 232, Width = 708, Height = 22 };
+        _statusLabel = new Label { Left = 16, Top = 260, Width = 708, Height = 76, Text = "Idle." };
 
-        _startButton = new Button { Text = "Load", Left = 16, Top = 312, Width = 150, Height = 34 };
+        _startButton = new Button { Text = "Load", Left = 16, Top = 348, Width = 150, Height = 34 };
         _startButton.Click += async (_, _) => await RunAsync();
 
-        _cancelButton = new Button { Text = "Cancel", Left = 176, Top = 312, Width = 100, Height = 34, Enabled = false };
+        _cancelButton = new Button { Text = "Cancel", Left = 176, Top = 348, Width = 100, Height = 34, Enabled = false };
         _cancelButton.Click += (_, _) => _cts?.Cancel();
 
         Controls.Add(explainer);

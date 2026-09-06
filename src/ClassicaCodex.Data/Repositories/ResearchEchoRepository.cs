@@ -456,7 +456,8 @@ public sealed class ResearchEchoRepository
         SourceWorkId = r.GetInt32(6), SourceTextNodeId = r.GetInt64(7), SourceWorkCtsUrn = r.GetString(8),
         SourceEditionCtsUrn = r.GetString(9), SourceCitationRef = r.GetString(10), SourceText = r.GetString(11),
         SourceLanguage = Text(r, 12), TargetScope = Text(r, 13), Settings = Text(r, 14), AiModel = Text(r, 15), AiPrompt = Text(r, 16),
-        AiGeneratedUtc = Date(r, 17), CreatedUtc = Date(r, 18)!.Value, UpdatedUtc = Date(r, 19)!.Value
+        AiGeneratedUtc = Date(r, 17), CreatedUtc = Date(r, 18)!.Value, UpdatedUtc = Date(r, 19)!.Value,
+        SourceMilestone = Text(r, 20)
     };
     private static ResearchEchoResult ReadResult(SqliteDataReader r) => new()
     {
@@ -469,7 +470,8 @@ public sealed class ResearchEchoRepository
         ConnectionType = Parse(r.GetString(16), ResearchEchoConnectionType.Unclassified),
         Directionality = Parse(r.GetString(17), ResearchEchoDirectionality.Unknown), MotifTags = Text(r, 18), ParallelNote = Text(r, 19),
         EvidenceItemId = r.IsDBNull(20) ? null : r.GetInt64(20), SortOrder = r.GetInt32(21),
-        CreatedUtc = Date(r, 22)!.Value, UpdatedUtc = Date(r, 23)!.Value
+        CreatedUtc = Date(r, 22)!.Value, UpdatedUtc = Date(r, 23)!.Value,
+        TargetMilestone = Text(r, 24)
     };
     private static ResearchEchoParallelAnalysis ReadParallelAnalysis(SqliteDataReader r) => new()
     {
