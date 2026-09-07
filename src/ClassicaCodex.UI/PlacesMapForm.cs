@@ -292,7 +292,19 @@ public class PlacesMapForm : ScaledForm
         // Off the UI thread - see the note in SearchForm. Clicking a place ran
         // a substring search over the whole corpus on the thread painting the
         // map, so the map stopped responding until it finished.
-        var hits = await Task.Run(() => _textNodeRepo.SearchAsync(placeName));
+        //
+        // By word, not by substring. A raw LIKE '%name%' matches the letters
+        // wherever they fall, and a short place name falls inside ordinary
+        // words constantly: clicking Ur returned five thousand passages of
+        // which exactly one mentioned Ur, the rest being "during", "figure",
+        // "purple" and the like. Measured over all 240 places on this map,
+        // 57 of them returned more noise than mentions - 86,727 passages that
+        // had nothing to do with the place clicked.
+        //
+        // SearchByFormsAsync resolves through the word index, which holds
+        // whole normalized words, so it matches the name and not the letters.
+        // The same measurement over the same 240 places afterwards: 603.
+        var hits = await Task.Run(() => _textNodeRepo.SearchByFormsAsync(new[] { placeName }));
         _currentPassages = hits.Rows;
 
         _tagsByNode = await _tagRepo.GetTagNamesForNodesAsync(
