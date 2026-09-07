@@ -62,3 +62,9 @@ it also pins what the first one did.
 
 Every affected pin has a test of its own, named for the place, so a future
 change to how words are normalized cannot take them away again quietly.
+
+The download is not code-signed, so if you would rather check it than trust it:
+
+```
+SHA-256  D7F3167E756B95945616B811C5A207EF1957038CD22C92C794FAA921A2045631
+```
