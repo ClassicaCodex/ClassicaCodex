@@ -373,6 +373,35 @@ internal static class ResultExport
     private static Cell TextCell(string value) => new()
     {
         DataType = CellValues.InlineString,
-        InlineString = new InlineString(new Text(value))
+        InlineString = new InlineString(new Text(WithinExcelsCellLimit(value)))
     };
+
+    /// <summary>
+    /// Excel refuses to open a workbook whose cell holds more than 32,767
+    /// characters - it reports the file as corrupt and offers to repair it,
+    /// which drops content.
+    ///
+    /// The export writes whole passages, and this corpus has 78 of them past
+    /// that limit, the longest 468,865 characters, across 35 editions. Any
+    /// spreadsheet export whose results happened to include one produced a
+    /// file that would not open, while the application said it had exported
+    /// successfully.
+    ///
+    /// Cut rather than refuse: the row is still worth having, and the marker
+    /// says what happened. The CSV and tab-separated writers are untouched -
+    /// they have no such limit, and are the right choice for a passage this
+    /// long.
+    /// </summary>
+    internal static string WithinExcelsCellLimit(string value)
+    {
+        const int ExcelCellLimit = 32767;
+        const string Marker = "… [cut: too long for one spreadsheet cell]";
+
+        if (string.IsNullOrEmpty(value) || value.Length <= ExcelCellLimit) return value;
+
+        var room = ExcelCellLimit - Marker.Length;
+        if (char.IsHighSurrogate(value[room - 1])) room--;
+
+        return value[..room] + Marker;
+    }
 }
