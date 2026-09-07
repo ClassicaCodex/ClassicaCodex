@@ -74,4 +74,60 @@ public class AuthorEraDataTests
     {
         Assert.NotNull(AuthorEraData.Lookup(catalogName));
     }
+
+    /// <summary>
+    /// "the Elder" and "the Younger" say "not the other one", and the loose
+    /// name match used to ignore that. Pliny the Younger was plotted on the
+    /// Timeline at 23-79 - his uncle's dates, which end sixteen years before
+    /// the nephew was born - and Seneca the Elder was given his son's, which
+    /// takes him in the other direction. The names are the ones the catalogue
+    /// actually uses, commas and all.
+    /// </summary>
+    [Theory]
+    [InlineData("Pliny, the Elder", 23, 79)]
+    [InlineData("Pliny the Elder", 23, 79)]
+    [InlineData("Pliny, the Younger", 61, 113)]
+    [InlineData("Pliny the Younger", 61, 113)]
+    [InlineData("Seneca the Elder", -54, 39)]
+    [InlineData("Seneca, Lucius Annaeus", -4, 65)]
+    public void TheElderAndTheYoungerAreDifferentPeople(string name, int start, int end)
+    {
+        var era = AuthorEraData.Lookup(name);
+
+        Assert.NotNull(era);
+        Assert.Equal(start, era!.Value.StartYear);
+        Assert.Equal(end, era.Value.EndYear);
+    }
+
+    /// <summary>
+    /// The Ephesian novelist wrote around the second century AD. Matched
+    /// loosely against the Athenian he lands in the fourth century BC, about
+    /// seven hundred years before he was born, which puts him at the far left
+    /// of the Timeline among the historians he was imitating.
+    /// </summary>
+    [Fact]
+    public void XenophonOfEphesusIsNotXenophonOfAthens()
+    {
+        var ephesus = AuthorEraData.Lookup("Xenophon of Ephesus");
+        var athens = AuthorEraData.Lookup("Xenophon");
+
+        Assert.NotNull(ephesus);
+        Assert.NotNull(athens);
+        Assert.True(ephesus!.Value.StartYear > 0, "the novelist belongs in the common era");
+        Assert.True(athens!.Value.StartYear < 0, "the Athenian belongs before it");
+    }
+
+    /// <summary>
+    /// A name with no elder/younger marker must still match loosely, or the
+    /// guard above would cost far more coverage than it buys.
+    /// </summary>
+    [Theory]
+    [InlineData("Augustine, Saint")]
+    [InlineData("William Shakespeare")]
+    [InlineData("Titus Livius (Livy)")]
+    [InlineData("Tacitus, Cornelius")]
+    public void OrdinaryNamesStillMatchLoosely(string name)
+    {
+        Assert.NotNull(AuthorEraData.Lookup(name));
+    }
 }
