@@ -486,7 +486,7 @@ public class CreateTranslationForm : ScaledForm
             // daily quota being gone are all conditions the next batch would
             // meet as well, and grinding through forty more requests to be
             // told the same thing forty more times helps nobody.
-            _statusLabel.ForeColor = Color.DarkRed;
+            _statusLabel.ForeColor = ReadingTheme.WarningText;
             _statusLabel.Text = $"Stopped: {ex.Message}";
             return null;
         }

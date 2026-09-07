@@ -201,15 +201,44 @@ public class CompareTranslationsForm : ScaledForm
         {
             _columnsHost.Controls.Clear();
 
+            // Below this a column is too narrow to read a line of prose in -
+            // a dozen words at most, wrapped to nothing.
+            const int MinimumColumnWidth = 240;
+
+            // Sharing the width equally is right until there is not enough
+            // width to share. Thucydides carries twelve translations in this
+            // library; at an equal share of a 1200px window each column is
+            // about a hundred pixels wide, which shows a word and a half of
+            // every line and no more. Past that point the columns keep their
+            // readable width and the panel scrolls instead of shrinking them
+            // all into uselessness.
+            var available = Math.Max(_columnsHost.ClientSize.Width, 1);
+            var equalShare = available / Math.Max(checkedTranslations.Count, 1);
+            var scrolls = equalShare < MinimumColumnWidth;
+
+            _columnsHost.AutoScroll = scrolls;
+
             var table = new TableLayoutPanel
             {
-                Dock = DockStyle.Fill,
+                Dock = scrolls ? DockStyle.None : DockStyle.Fill,
                 ColumnCount = checkedTranslations.Count,
                 RowCount = 1
             };
+
+            if (scrolls)
+            {
+                table.Left = 0;
+                table.Top = 0;
+                table.Width = MinimumColumnWidth * checkedTranslations.Count;
+                table.Height = _columnsHost.ClientSize.Height;
+                table.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Bottom;
+            }
+
             foreach (var _ in checkedTranslations)
             {
-                table.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100f / checkedTranslations.Count));
+                table.ColumnStyles.Add(scrolls
+                    ? new ColumnStyle(SizeType.Absolute, MinimumColumnWidth)
+                    : new ColumnStyle(SizeType.Percent, 100f / checkedTranslations.Count));
             }
             table.RowStyles.Add(new RowStyle(SizeType.Percent, 100f));
 

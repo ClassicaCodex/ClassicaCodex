@@ -122,7 +122,10 @@ public class ApparatusForm : ScaledForm
         _statusLabel = new Label
         {
             Left = 12,
-            Top = 572,
+
+            // 563, not 572. The client area is 601px tall, so a 34px label at
+            // 572 ran to 606 and had its last line of text cut through.
+            Top = 563,
             Width = 860,
             Height = 34,
             Anchor = AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right

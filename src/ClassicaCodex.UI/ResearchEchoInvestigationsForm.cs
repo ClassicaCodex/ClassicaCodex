@@ -55,7 +55,7 @@ public sealed class ResearchEchoInvestigationsForm : ScaledForm
         _results.SelectionChanged += (_, _) => ShowResult();
         _results.CellDoubleClick += async (_, _) => await OpenStudioAsync();
 
-        var review = new Panel { Dock = DockStyle.Bottom, Height = 128, Padding = new Padding(8) };
+        var review = new Panel { Dock = DockStyle.Bottom, Height = 128, Width = ClientSize.Width, Padding = new Padding(8) };
         var dispositionLabel = new Label { Text = "Human review", Left = 8, Top = 9, Width = 100 };
         _disposition.SetBounds(110, 6, 130, 26); _disposition.DataSource = Enum.GetValues<ResearchEchoDisposition>();
         var save = Button("Save review", 250, 5, 105); save.Click += async (_, _) => await SaveReviewAsync();

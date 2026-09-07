@@ -5,32 +5,49 @@ namespace ClassicaCodex.Data.Repositories;
 
 public class TagRepository
 {
-    public async Task<int> GetOrCreateAsync(string name, string? category, CancellationToken cancellationToken = default)
+    /// <summary>
+    /// The tag with this name, creating it if it is new, and the category it
+    /// actually ended up with.
+    ///
+    /// A category supplied for a tag that already has one is NOT applied, and
+    /// the caller is told so rather than left to assume. That asymmetry is
+    /// deliberate: Auto-Tag's category box carries a default ("god"), so
+    /// re-tagging an existing "Troy" while the box still shows that default
+    /// would quietly reclassify a place as a deity. Silently keeping the old
+    /// category is the lesser harm; silently doing either without saying so
+    /// was the actual bug.
+    ///
+    /// A tag with no category yet does take the one supplied - filling a gap
+    /// cannot destroy anything.
+    /// </summary>
+    public async Task<(int TagId, string? Category)> GetOrCreateAsync(
+        string name, string? category, CancellationToken cancellationToken = default)
     {
         await using var conn = await DbConnectionFactory.OpenConnectionAsync(cancellationToken);
 
-        // ON CONFLICT DO NOTHING with no WHEN MATCHED branch mirrors the old
-        // MERGE exactly: RETURNING only produces a row when the INSERT
-        // actually happened, so an existing tag still needs the fallback
-        // SELECT below, same as before.
+        // COALESCE keeps whatever the tag already had and falls back to the
+        // supplied one only where there was nothing. RETURNING then reports
+        // the category that is actually stored, whichever of the two won.
         const string sql = @"
             INSERT INTO Tags (Name, Category) VALUES (@Name, @Category)
-            ON CONFLICT(Name) DO NOTHING
-            RETURNING TagId;";
+            ON CONFLICT(Name) DO UPDATE SET Category = COALESCE(Tags.Category, excluded.Category)
+            RETURNING TagId, Category;";
 
         await using var cmd = conn.CreateCommand();
         cmd.CommandText = sql;
         cmd.Parameters.AddWithValue("@Name", name);
         cmd.Parameters.AddWithValue("@Category", (object?)category ?? DBNull.Value);
 
-        var result = await cmd.ExecuteScalarAsync(cancellationToken);
-        if (result != null) return Convert.ToInt32(result);
+        await using var reader = await cmd.ExecuteReaderAsync(cancellationToken);
+        if (await reader.ReadAsync(cancellationToken))
+        {
+            return (reader.GetInt32(0), reader.IsDBNull(1) ? null : reader.GetString(1));
+        }
 
-        const string selectSql = "SELECT TagId FROM Tags WHERE Name = @Name;";
-        await using var selectCmd = conn.CreateCommand();
-        selectCmd.CommandText = selectSql;
-        selectCmd.Parameters.AddWithValue("@Name", name);
-        return Convert.ToInt32(await selectCmd.ExecuteScalarAsync(cancellationToken));
+        // DO UPDATE always produces a row, so this is unreachable in practice -
+        // kept so a future change to the conflict clause cannot turn into a
+        // silent zero.
+        throw new InvalidOperationException($"Could not create or find the tag \"{name}\".");
     }
 
     /// <summary>

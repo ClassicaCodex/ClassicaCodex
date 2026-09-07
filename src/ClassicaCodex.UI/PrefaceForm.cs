@@ -28,7 +28,11 @@ public class PrefaceForm : ScaledForm
             Left = 12,
             Top = 12,
             Width = 720,
-            Height = 560,
+
+            // 518, not 560. The form's client area is 601px tall, and the
+            // Close button below used to be laid out from 580 to 610 - nine
+            // pixels past the bottom edge, so its lower border was cut off.
+            Height = 518,
             Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right,
             Multiline = true,
             ReadOnly = true,
@@ -42,7 +46,7 @@ public class PrefaceForm : ScaledForm
         {
             Text = "Close",
             Left = 656,
-            Top = 580,
+            Top = 542,
             Width = 76,
             Height = 30,
             Anchor = AnchorStyles.Bottom | AnchorStyles.Right,

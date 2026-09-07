@@ -45,7 +45,11 @@ public class ReceptionTrackerForm : ScaledForm
 
         _sourceLabel = new Label
         {
-            Text = $"Source: [{PassageCitation.Display(sourceNode.CitationRef, sourceNode.Milestone)}] {sourceNode.Text}",
+            // Cut - see EchoResultsForm. A caption of 65,536 characters or
+            // more is refused by the underlying control and leaves the header
+            // blank.
+            Text = $"Source: [{PassageCitation.Display(sourceNode.CitationRef, sourceNode.Milestone)}] "
+                   + ListResultHelpers.RowText(sourceNode.Text, ListResultHelpers.HeaderTextLimit),
             Left = 12,
             Top = 10,
             Width = 1260,

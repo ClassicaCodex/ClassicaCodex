@@ -1133,6 +1133,20 @@ public partial class MainForm : ScaledForm
             {
                 _libraryTree.Nodes.Add(new TreeNode($"No author matching \u201c{filter}\u201d"));
             }
+            else
+            {
+                // Nothing filtered, nothing favourited, and still nothing to
+                // show: the library itself is empty. This is what a person
+                // sees for their whole first session if they leave the setup
+                // wizard early, which it invites them to do - and without
+                // this the window is three blank panels and no explanation,
+                // which is the reading this whole block exists to prevent.
+                // Kept to roughly the length of the favourites line above,
+                // which is as much as this panel shows before it clips and
+                // grows a scrollbar.
+                _libraryTree.Nodes.Add(new TreeNode(
+                    "No texts yet - run Setup Wizard to add some"));
+            }
         }
     }
 
@@ -1712,7 +1726,7 @@ public partial class MainForm : ScaledForm
         using var prompt = new TagPromptForm(node.Text);
         if (prompt.ShowDialog(this) != DialogResult.OK || string.IsNullOrWhiteSpace(prompt.TagName)) return;
 
-        var tagId = await _tagRepo.GetOrCreateAsync(prompt.TagName, prompt.Category);
+        var (tagId, _) = await _tagRepo.GetOrCreateAsync(prompt.TagName, prompt.Category);
         await _tagRepo.TagTextNodeAsync(node.TextNodeId, tagId);
 
         list.AddPassageMark(node.CitationRef, PassageMarks.Tag);

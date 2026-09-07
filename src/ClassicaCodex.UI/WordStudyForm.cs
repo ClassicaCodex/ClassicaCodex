@@ -279,6 +279,15 @@ public class WordStudyForm : ScaledForm
         Controls.Add(scopeButton);
         Controls.Add(_occurrenceList);
 
+        Controls.Add(_statusLabel);
+
+        // Before the selection below, which searches this list. It used to run
+        // after it, so the loop was always looking through an empty list and
+        // the word the caller asked for was never found - double-clicking a
+        // word in the reader opened Word Study with nothing selected, every
+        // time.
+        PopulateWords(sourceNode.Text);
+
         // Opened on a particular word rather than at the top of the line,
         // when the caller had one in mind.
         if (!string.IsNullOrWhiteSpace(selectedWord))
@@ -292,9 +301,6 @@ public class WordStudyForm : ScaledForm
                 break;
             }
         }
-        Controls.Add(_statusLabel);
-
-        PopulateWords(sourceNode.Text);
         Load += async (_, _) => await CheckLemmaDataAsync();
         RefreshScopeLabel();
         ReadingTheme.AttachTo(this);
@@ -410,7 +416,7 @@ public class WordStudyForm : ScaledForm
             if (count == 0)
             {
                 _statusLabel.Text = "No lemma data loaded - use \"Load Lemmas...\" first.";
-                _statusLabel.ForeColor = Color.DarkRed;
+                _statusLabel.ForeColor = ReadingTheme.WarningText;
             }
             else
             {

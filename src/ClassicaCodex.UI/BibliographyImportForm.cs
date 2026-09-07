@@ -29,7 +29,7 @@ public sealed class BibliographyImportForm : ScaledForm
         StartPosition = FormStartPosition.CenterParent;
         AppIcons.ApplyWindowIcon(this, "WordStudy");
 
-        var header = new Panel { Dock = DockStyle.Top, Height = 86, Padding = new Padding(10) };
+        var header = new Panel { Dock = DockStyle.Top, Height = 86, Width = ClientSize.Width, Padding = new Padding(10) };
         var choose = new Button { Text = "Choose RIS or BibTeX…", Left = 10, Top = 10, Width = 175, Height = 30 };
         choose.Click += async (_, _) => await ChooseFileAsync();
         var questionLabel = new Label { Text = "Link imported sources to:", Left = 205, Top = 17, Width = 145 };
@@ -88,7 +88,7 @@ public sealed class BibliographyImportForm : ScaledForm
         _details.ReadOnly = true;
         _details.ScrollBars = ScrollBars.Vertical;
 
-        var footer = new Panel { Dock = DockStyle.Bottom, Height = 54, Padding = new Padding(10) };
+        var footer = new Panel { Dock = DockStyle.Bottom, Height = 54, Width = ClientSize.Width, Padding = new Padding(10) };
         _import.Text = "Import selected";
         _import.SetBounds(10, 10, 120, 30);
         _import.Enabled = false;

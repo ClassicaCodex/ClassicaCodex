@@ -107,18 +107,26 @@ public class StylometryAnalysisForm : ScaledForm
         };
 
         // --- Tab 1: reference distribution -----------------------------------
+        // Added to the TabControl BEFORE anything is put on it. A bare TabPage
+        // is 200x100, and an anchored child added to one baselines its anchor
+        // distances against that - so when the page later took its real size
+        // every anchored control grew by the difference. The two summary
+        // labels, which carry this window's entire textual output, ended up
+        // 316px below the bottom of the page and were never drawn at any
+        // window size, and the tables were laid out 1,920px wide inside a
+        // 1,068px page. Joining the control first gives the page its real
+        // size, and the anchors are computed against that.
         var distributionTab = new TabPage("Reference distribution");
+        _tabs.TabPages.Add(distributionTab);
+
+        distributionTab.Padding = new Padding(8);
 
         _metricsList = new ListView
         {
-            Left = 8,
-            Top = 8,
-            Width = 1052,
-            Height = 400,
+            Dock = DockStyle.Fill,
             View = View.Details,
             FullRowSelect = true,
-            GridLines = true,
-            Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right
+            GridLines = true
         };
         _metricsList.Columns.Add("Work", 240);
         _metricsList.Columns.Add("Depth to first outsider", 150);
@@ -129,18 +137,27 @@ public class StylometryAnalysisForm : ScaledForm
 
         _summaryLabel = new Label
         {
-            Left = 8,
-            Top = 416,
-            Width = 1052,
-            Height = 170,
-            Anchor = AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right
+            Dock = DockStyle.Bottom,
+            Height = 170
         };
 
+        // Docked, not anchored. Anchors are resolved against the size the page
+        // had when the child was added, and a TabPage has no real size until
+        // its TabControl has a handle - so every anchored child here was laid
+        // out against a bare 200x100 page and then grew by the difference when
+        // the page took its real 1068x602. The tables came out 1,920px wide
+        // and these two labels, which carry the window's entire textual
+        // output, sat 316px below the bottom of the page and were never drawn
+        // at any window size.
+        //
+        // Docking has no baseline to get wrong. Fill goes in first so that it
+        // is resolved last and takes whatever the edges leave.
         distributionTab.Controls.Add(_metricsList);
         distributionTab.Controls.Add(_summaryLabel);
 
         // --- Tab 2: stability across settings --------------------------------
         var stabilityTab = new TabPage("Stability across settings");
+        _tabs.TabPages.Add(stabilityTab);
 
         var stabilityHelp = new Label
         {
@@ -149,30 +166,26 @@ public class StylometryAnalysisForm : ScaledForm
                    "was about the preprocessing. Steadiness here is necessary and not sufficient - " +
                    "depth holds its band across feature counts and still moves by up to twenty ranks " +
                    "on a 500-token change of sample size, so vary sample size too before believing a row.",
-            Left = 8,
-            Top = 8,
-            Width = 1052,
-            Height = 34,
-            Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right
+            Dock = DockStyle.Top,
+            Height = 34
         };
 
         _stabilityList = new ListView
         {
-            Left = 8,
-            Top = 48,
-            Width = 1052,
-            Height = 540,
+            Dock = DockStyle.Fill,
             View = View.Details,
             FullRowSelect = true,
-            GridLines = true,
-            Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right
+            GridLines = true
         };
 
-        stabilityTab.Controls.Add(stabilityHelp);
+        // Fill added first so it is resolved last - see tab 1.
+        stabilityTab.Padding = new Padding(8);
         stabilityTab.Controls.Add(_stabilityList);
+        stabilityTab.Controls.Add(stabilityHelp);
 
         // --- Tab 3: length confound ------------------------------------------
         var lengthTab = new TabPage("Length confound");
+        _tabs.TabPages.Add(lengthTab);
 
         var lengthHelp = new Label
         {
@@ -182,23 +195,16 @@ public class StylometryAnalysisForm : ScaledForm
                    "with length - rho about 0.58 on whole works, and with sample count once samples " +
                    "are equalised - so treat a correlation here as confirmation rather than news, " +
                    "and treat its absence as the surprising result worth checking.",
-            Left = 8,
-            Top = 8,
-            Width = 1052,
-            Height = 48,
-            Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right
+            Dock = DockStyle.Top,
+            Height = 48
         };
 
         _lengthList = new ListView
         {
-            Left = 8,
-            Top = 62,
-            Width = 1052,
-            Height = 370,
+            Dock = DockStyle.Fill,
             View = View.Details,
             FullRowSelect = true,
-            GridLines = true,
-            Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right
+            GridLines = true
         };
         _lengthList.Columns.Add("Work", 260);
         _lengthList.Columns.Add("Tokens", 90);
@@ -210,20 +216,18 @@ public class StylometryAnalysisForm : ScaledForm
 
         _lengthSummary = new Label
         {
-            Left = 8,
-            Top = 440,
-            Width = 1052,
-            Height = 150,
-            Anchor = AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right
+            Dock = DockStyle.Bottom,
+            Height = 150
         };
 
-        lengthTab.Controls.Add(lengthHelp);
+        // Fill added first so it is resolved last and takes what the two
+        // edges leave - see tab 1.
+        lengthTab.Padding = new Padding(8);
         lengthTab.Controls.Add(_lengthList);
         lengthTab.Controls.Add(_lengthSummary);
+        lengthTab.Controls.Add(lengthHelp);
 
-        _tabs.TabPages.Add(distributionTab);
-        _tabs.TabPages.Add(stabilityTab);
-        _tabs.TabPages.Add(lengthTab);
+        // The pages joined _tabs as each was created, above.
 
         Controls.Add(profileLabel);
         Controls.Add(_profileCombo);

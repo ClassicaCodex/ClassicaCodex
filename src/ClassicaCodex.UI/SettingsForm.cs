@@ -83,13 +83,17 @@ public class SettingsForm : ScaledForm
         Controls.Add(_statusLabel);
         Controls.Add(_connectButton);
 
+        // This dialog is where dark mode is reachable from the setup wizard,
+        // and it was the one window that never followed it.
+        ReadingTheme.AttachTo(this);
+
         WindowShortcuts.CloseOnEscape(this);
     }
 
     private async void ConnectButton_Click(object? sender, EventArgs e)
     {
         _connectButton.Enabled = false;
-        _statusLabel.ForeColor = Color.Black;
+        _statusLabel.ForeColor = ReadingTheme.Text;
         _statusLabel.Text = "Preparing database...";
 
         try
@@ -106,7 +110,7 @@ public class SettingsForm : ScaledForm
         }
         catch (Exception ex)
         {
-            _statusLabel.ForeColor = Color.DarkRed;
+            _statusLabel.ForeColor = ReadingTheme.WarningText;
             _statusLabel.Text = $"Couldn't prepare the database: {ex.Message}";
             _connectButton.Enabled = true;
         }

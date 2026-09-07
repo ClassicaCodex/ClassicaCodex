@@ -32,6 +32,14 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <!-- So the export writers can be tested. They are internal because
+         nothing outside this assembly calls them, not because their
+         behaviour is uninteresting - and what they put in a cell is very
+         interesting indeed to anyone who opens the file afterwards. -->
+    <InternalsVisibleTo Include="ClassicaCodex.UI.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\ClassicaCodex.Core\ClassicaCodex.Core.csproj" />
     <ProjectReference Include="..\ClassicaCodex.Data\ClassicaCodex.Data.csproj" />
     <ProjectReference Include="..\ClassicaCodex.Ingestion\ClassicaCodex.Ingestion.csproj" />

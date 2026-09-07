@@ -140,10 +140,19 @@ public class TimelineCanvas : Panel
         var row = (p.Y - TopMargin) / RowHeight;
         if (row < 0 || row >= _entries.Count) return null;
 
-        var entry = _entries[row];
-        var x1 = YearToX(entry.StartYear);
-        var x2 = YearToX(entry.EndYear);
-        return p.X >= x1 - 2 && p.X <= x2 + 2 ? entry : null;
+        // The whole row, not just the bar.
+        //
+        // The bar is only as wide as the author's dates, and the name is drawn
+        // at the left edge of the row - so for anyone who did not happen to
+        // live at the very start of the timeline, the name sat hundreds of
+        // pixels away from the only thing that answered a click. Clicking an
+        // author's name, which is the obvious thing to click, did nothing at
+        // all. Short-lived authors made it worse: their bar is a few pixels
+        // wide and has to be hit exactly.
+        //
+        // A row belongs to one author for its whole width, so there is nothing
+        // else here for a click to have meant.
+        return _entries[row];
     }
 
     private void TimelineCanvas_MouseMove(object? sender, MouseEventArgs e)

@@ -895,6 +895,48 @@ public class SearchForm : ScaledForm
             .ToList();
 
     /// <summary>
+    /// The words the last search was actually looking for, used only to decide
+    /// which part of a long passage to show. Whole-word and all-words searches
+    /// match on individual words, so the query is split; a contains search is
+    /// looking for the string as typed.
+    /// </summary>
+    private List<string> SearchTermsForDisplay()
+    {
+        var query = _lastFilters?.Query?.Trim();
+        if (string.IsNullOrEmpty(query)) return new List<string>();
+
+        if (_lastFilters!.MatchMode == SearchMatchMode.Contains)
+            return new List<string> { query };
+
+        return query
+            .Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries)
+            .Where(w => w.Length > 1)
+            .OrderByDescending(w => w.Length)
+            .ToList();
+    }
+
+    /// <summary>
+    /// Where the first of those words appears, or (-1, 0) if none of them do -
+    /// which happens legitimately, since the search matches on a normalized
+    /// copy of the text and the passage may spell the word with different
+    /// accents. The row then falls back to the opening of the passage.
+    /// </summary>
+    private static (int Start, int Length) FirstMatch(string text, List<string> terms)
+    {
+        var best = -1;
+        var length = 0;
+
+        foreach (var term in terms)
+        {
+            var at = text.IndexOf(term, StringComparison.OrdinalIgnoreCase);
+            if (at < 0) continue;
+            if (best < 0 || at < best) { best = at; length = term.Length; }
+        }
+
+        return (best, length);
+    }
+
+    /// <summary>
     /// Fills the list from the last search's results, in whichever view is
     /// selected. Never queries: the same matches are being shown a different way.
     /// </summary>
@@ -946,8 +988,22 @@ public class SearchForm : ScaledForm
             }
             else
             {
+                var terms = SearchTermsForDisplay();
+
                 foreach (var r in _visible.Take(DisplayLimit))
-                    _resultsList.Items.Add($"{r.AuthorName}, {r.WorkTitle}: {ListResultHelpers.RowText(r.Text)}");
+                {
+                    // Position the row's window on the match rather than on
+                    // the start of the passage. Much of this corpus is
+                    // ingested in whole sections, so a hit thousands of
+                    // characters in used to show the opening of the section
+                    // and no sign of what matched - a result the reader has
+                    // to open the passage to make sense of.
+                    var (start, length) = FirstMatch(r.Text, terms);
+
+                    _resultsList.Items.Add(
+                        $"{r.AuthorName}, {r.WorkTitle}: "
+                        + ListResultHelpers.RowTextAround(r.Text, start, length));
+                }
             }
 
             if (_results.Count == 0)

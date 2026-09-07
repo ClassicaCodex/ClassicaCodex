@@ -20,7 +20,7 @@ public sealed partial class ResearchBibliographyForm : ScaledForm
     {
         _project=project;Text=$"Bibliography & Zotero Export — {project.Name}";Width=1120;Height=720;
         MinimumSize=new Size(820,520);StartPosition=FormStartPosition.CenterParent;AppIcons.ApplyWindowIcon(this,"WordStudy");
-        var header=new Panel{Dock=DockStyle.Top,Height=78,Padding=new Padding(10)};
+        var header=new Panel{Dock=DockStyle.Top,Height=78,Width=ClientSize.Width,Padding=new Padding(10)};
         var intro=new Label{Text="Scholarship evidence retains structured citation metadata. Edit citekeys, select records, then export for Zotero or another reference manager.",Left=10,Top=10,Width=1060,Height=22,Anchor=AnchorStyles.Top|AnchorStyles.Left|AnchorStyles.Right};
         var save=Btn("Save citekeys",10,39,110);save.Click+=async(_,_)=>await SaveKeysAsync(showConfirmation:true);
         var bib=Btn("Export BibTeX…",130,39,125);bib.Click+=async(_,_)=>await ExportAsync("BibTeX");
@@ -79,7 +79,25 @@ public sealed partial class ResearchBibliographyForm : ScaledForm
         var bib=format=="BibTeX";using var dialog=new SaveFileDialog{Title=$"Export {format} bibliography",Filter=bib?"BibTeX (*.bib)|*.bib":"RIS (*.ris)|*.ris",DefaultExt=bib?"bib":"ris",FileName=SafeName(_project.Name)+(bib?".bib":".ris")};
         if(dialog.ShowDialog(this)!=DialogResult.OK)return;
         var text=bib?BibliographyExport.ToBibTeX(selected):BibliographyExport.ToRis(selected);
-        await File.WriteAllTextAsync(dialog.FileName,text,new UTF8Encoding(false));
+
+        // Say so rather than fall over. This runs from an async void click
+        // handler, so a write that fails - a read-only folder, a full disk, a
+        // .bib already open in a reference manager - escaped to the crash
+        // reporter and put up an unhandled-exception dialog, where every other
+        // export in the application reports the failure and carries on. The
+        // log entry is only written once the file actually exists, so the
+        // project's history does not record an export that never happened.
+        try
+        {
+            await File.WriteAllTextAsync(dialog.FileName,text,new UTF8Encoding(false));
+        }
+        catch(Exception ex)
+        {
+            MessageBox.Show(this,$"Could not write the file.{Environment.NewLine}{Environment.NewLine}{ex.Message}",
+                "Export failed",MessageBoxButtons.OK,MessageBoxIcon.Error);
+            return;
+        }
+
         await new ResearchRepository().AddSystemResearchLogEntryAsync(new ResearchLogEntry{ResearchProjectId=_project.ResearchProjectId,Kind=ResearchLogEntryKind.BibliographyExported,Summary=$"Exported {selected.Count} source(s) as {format}",Details=Path.GetFileName(dialog.FileName)});
         _status.Text=$"Exported {selected.Count} source(s) to {Path.GetFileName(dialog.FileName)}.";
     }

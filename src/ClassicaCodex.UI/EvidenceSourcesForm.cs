@@ -25,7 +25,7 @@ public sealed class EvidenceSourcesForm : ScaledForm
     {
         _evidence=evidence; Text=$"Source Files & Page Notes — {evidence.Title}"; Width=1050; Height=760;
         MinimumSize=new Size(800,600); StartPosition=FormStartPosition.CenterParent; AppIcons.ApplyWindowIcon(this,"WordStudy");
-        var top=new Panel{Dock=DockStyle.Top,Height=150,Padding=new Padding(10)};
+        var top=new Panel{Dock=DockStyle.Top,Height=150,Width=ClientSize.Width,Padding=new Padding(10)};
         _files.SetBounds(10,10,500,96); _files.SelectedIndexChanged+=async(_,_)=>await FileChangedAsync();
         var attach=Btn("Attach PDF…",525,10,105); attach.Click+=async(_,_)=>await AttachAsync();
         var open=Btn("Open PDF",638,10,90); open.Click+=(_,_)=>OpenFile();
@@ -43,7 +43,7 @@ public sealed class EvidenceSourcesForm : ScaledForm
         _annotations.Columns.Add(Col("Note","Researcher note",300));
         _annotations.SelectionChanged+=(_,_)=>ShowAnnotation(CurrentAnnotation);
 
-        var editor=new Panel{Dock=DockStyle.Bottom,Height=245,Padding=new Padding(10)};
+        var editor=new Panel{Dock=DockStyle.Bottom,Height=245,Width=ClientSize.Width,Padding=new Padding(10)};
         editor.Controls.Add(Label("PDF page number",10,8)); _page.SetBounds(10,29,100,26); editor.Controls.Add(_page);
         editor.Controls.Add(Label("Human review",125,8)); _judgment.SetBounds(125,29,180,26); _judgment.DropDownStyle=ComboBoxStyle.DropDownList;
         _judgment.DataSource=Enum.GetValues<EvidenceJudgment>(); editor.Controls.Add(_judgment);

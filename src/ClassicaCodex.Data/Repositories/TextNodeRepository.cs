@@ -378,7 +378,18 @@ public class TextNodeRepository
 
         if (filters.Collections.Count > 0)
         {
-            where.Add($"e.Collection IN ({AddParameters(cmd, "coll", filters.Collections)})");
+            // An edition belonging to no collection is never excluded by a
+            // collection filter. The collections are the corpora that were
+            // ingested; a translation the reader wrote themselves belongs to
+            // none of them, and "e.Collection IN (...)" is false for NULL, so
+            // ticking every box in the Collections menu used to hide exactly
+            // the editions the reader had made. Two ways of saying
+            // "everything" - tick them all, or the menu's own "Show all
+            // collections", which unticks them - gave different answers, and
+            // the one that looked more thorough was the one that quietly
+            // dropped 622 of their own passages.
+            where.Add($"(e.Collection IN ({AddParameters(cmd, "coll", filters.Collections)}) "
+                      + "OR e.Collection IS NULL)");
         }
 
         if (filters.OriginalsOnly != null)
@@ -808,7 +819,14 @@ public class TextNodeRepository
         cmd.CommandTimeout = 180;
         for (var i = 0; i < sqlForms.Count; i++)
         {
-            clauses.Add($"tn.Text LIKE @f{i} ESCAPE '\'");
+            // Two backslashes, not one. This is an interpolated string, not a
+            // verbatim one, so "\'" is an escaped apostrophe and the SQL that
+            // reached SQLite was ESCAPE '' - an empty escape expression, which
+            // it rejects when preparing the statement. Every other LIKE in
+            // this file gets it right; this one path was only reached when the
+            // word index is empty, which is the state of every library between
+            // a first ingest and a first index build.
+            clauses.Add($"tn.Text LIKE @f{i} ESCAPE '\\'");
             cmd.Parameters.AddWithValue($"@f{i}", $"%{EscapeLikeWildcards(sqlForms[i])}%");
         }
 

@@ -214,24 +214,34 @@ public class RenaissanceIngestService
                         SourcePath = file
                     }, cancellationToken);
 
-                    await _editionRepo.ClearTextNodesAsync(editionId, cancellationToken);
-
                     // Parsed once and used twice: the body becomes text
                     // nodes, the header becomes the edition's publication
                     // metadata. These are P4 files, so the DOCTYPE has to
                     // come off before either.
+                    //
+                    // All of it happens BEFORE the clear below, for the reason
+                    // spelled out in PerseusIngestService: the clear and the
+                    // re-insert are not one transaction, so anything that
+                    // throws between them destroys text with nothing to put
+                    // back. Reading and parsing a file that may have changed
+                    // since the last run is the step that actually fails.
                     var raw = File.ReadAllText(file);
 
                     var header = TeiHeaderReader.Read(
                         XDocument.Parse(XmlEntitySanitizer.Sanitize(StripDoctype(raw))));
+
+                    var parsed = _teiParser.ParseXml(StripDoctype(raw));
+                    var nodes = _teiParser.ToTextNodes(editionId, parsed);
+
+                    cancellationToken.ThrowIfCancellationRequested();
+
+                    await _editionRepo.ClearTextNodesAsync(editionId, cancellationToken);
 
                     if (header != null)
                     {
                         await _editionHeaderRepo.SaveAsync(editionId, header, cancellationToken);
                     }
 
-                    var parsed = _teiParser.ParseXml(StripDoctype(raw));
-                    var nodes = _teiParser.ToTextNodes(editionId, parsed);
                     await _textNodeRepo.BulkInsertAsync(nodes, cancellationToken);
                 }
                 catch (Exception ex) when (ex is not OperationCanceledException)

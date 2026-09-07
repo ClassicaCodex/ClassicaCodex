@@ -42,6 +42,10 @@ public static class AuthorEraData
         ("Isaeus", -420, -340),
         ("Plato", -428, -348),
         ("Xenophon", -430, -354),
+
+        // The novelist, not the Athenian. Loosely matched he lands in the
+        // fourth century BC, roughly seven hundred years before he wrote.
+        ("Xenophon of Ephesus", 100, 180),
         ("Aeschines", -389, -314),
         ("Demosthenes", -384, -322),
         ("Demades", -380, -319),
@@ -123,6 +127,14 @@ public static class AuthorEraData
         ("Petronius", 27, 66),
         ("Lucan", 39, 65),
         ("Pliny", 23, 79),
+
+        // The two Plinys and the two Senecas, spelled out. Without their own
+        // entries the loose match hands the nephew his uncle's dates and the
+        // father his son's - see the guard in Lookup.
+        ("Pliny the Elder", 23, 79),
+        ("Pliny the Younger", 61, 113),
+        ("Seneca the Elder", -54, 39),
+        ("Seneca the Younger", -4, 65),
         ("Quintilian", 35, 100),
         ("Martial", 38, 104),
         ("Statius", 45, 96),
@@ -468,14 +480,50 @@ public static class AuthorEraData
     /// commentator sent back a thousand years by the letters inside
     /// "Neoplatonicus".
     /// </summary>
+    /// <summary>
+    /// A name with its commas replaced by spaces and its spacing collapsed,
+    /// so "Pliny, the Elder" and "Pliny the Elder" are the same name.
+    /// </summary>
+    private static string WithoutCommas(string name) =>
+        string.Join(' ', name.Replace(',', ' ')
+                             .Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
+
+    /// <summary>
+    /// Whether two names describe the same generation.
+    ///
+    /// "the Elder" and "the Younger" exist precisely to say "not the other
+    /// one", so a name carrying either may only match a key carrying the
+    /// same. Without this the loose match reads "Pliny, the Younger" as
+    /// "Pliny" and gives him his uncle's dates - the nephew shown as dying
+    /// sixteen years before he was born - and does the same to Seneca in the
+    /// other direction, ageing the father into his son.
+    ///
+    /// Names with no such marker are unaffected, so "Augustine, Saint" still
+    /// finds "Augustine".
+    /// </summary>
+    private static bool GenerationsAgree(string name, string key)
+    {
+        var nameElder = name.Contains("elder", StringComparison.OrdinalIgnoreCase);
+        var nameYounger = name.Contains("younger", StringComparison.OrdinalIgnoreCase);
+        if (!nameElder && !nameYounger) return true;
+
+        return nameElder == key.Contains("elder", StringComparison.OrdinalIgnoreCase)
+            && nameYounger == key.Contains("younger", StringComparison.OrdinalIgnoreCase);
+    }
+
     public static (int StartYear, int EndYear)? Lookup(string authorName)
     {
         if (string.IsNullOrWhiteSpace(authorName)) return null;
-        var normalized = authorName.Trim();
+
+        // Commas out before anything is compared. Catalogues write the
+        // disambiguated names inverted - "Pliny, the Elder" - and an exact
+        // entry spelled "Pliny the Elder" would otherwise miss them, leaving
+        // both Plinys undated rather than correctly dated.
+        var normalized = WithoutCommas(authorName);
 
         foreach (var (key, start, end) in Entries)
         {
-            if (string.Equals(key, normalized, StringComparison.OrdinalIgnoreCase))
+            if (string.Equals(WithoutCommas(key), normalized, StringComparison.OrdinalIgnoreCase))
                 return (start, end);
         }
 
@@ -489,6 +537,8 @@ public static class AuthorEraData
 
         foreach (var (key, start, end) in Entries)
         {
+            if (!GenerationsAgree(normalized, key)) continue;
+
             if (ContainsWholeWord(normalized, key) || ContainsWholeWord(key, normalized))
                 return (start, end);
         }

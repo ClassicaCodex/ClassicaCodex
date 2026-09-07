@@ -98,7 +98,7 @@ public class ResearchBenchForm : ScaledForm
 
     private Control BuildHeader()
     {
-        var panel = new Panel { Dock = DockStyle.Top, Height = 116, Padding = new Padding(10) };
+        var panel = new Panel { Dock = DockStyle.Top, Height = 116, Width = ClientSize.Width, Padding = new Padding(10) };
         var attribution = _work.AttributionStatus switch
         {
             ClassicaCodex.Core.AttributionStatus.Disputed => "attribution disputed",
@@ -206,8 +206,8 @@ public class ResearchBenchForm : ScaledForm
             var keep = open != null && CurrentFilter.Admits(open.Status);
             await LoadProjectsAsync(keep ? open!.ResearchProjectId : 0);
         };
-        _projects.SetBounds(8, 62, 268, 140);
-        _projects.Anchor = AnchorStyles.Left | AnchorStyles.Top | AnchorStyles.Right;
+        _projects.Height = 140;
+        _projects.Dock = DockStyle.Top;
         _projects.SelectedIndexChanged += async (_, _) => await ProjectChangedAsync();
         // Mark anything not active at display time rather than in
         // ResearchProject.ToString, which the dossier export and several combo boxes
@@ -219,21 +219,65 @@ public class ResearchBenchForm : ScaledForm
                 e.Value = $"{p.Name}  ({StatusFilter.Describe(p.Status)})";
         };
         var questionLabel = LabelAt("Research questions", 8, 218, 250);
-        _questions.SetBounds(8, 242, 268, 340);
-        _questions.Anchor = AnchorStyles.Left | AnchorStyles.Top | AnchorStyles.Right | AnchorStyles.Bottom;
+        questionLabel.Dock = DockStyle.Top;
+
+        _questions.Dock = DockStyle.Fill;
+
         var add = ButtonAt("Add", 8, 590, 58);
         var edit = ButtonAt("Edit", 70, 590, 58);
         var remove = ButtonAt("Remove", 132, 590, 70);
         var up = ButtonAt("↑", 206, 590, 32);
         var down = ButtonAt("↓", 242, 590, 32);
-        foreach (var b in new[] { add, edit, remove, up, down })
-            b.Anchor = AnchorStyles.Left | AnchorStyles.Bottom;
         add.Click += async (_, _) => await AddQuestionAsync();
         edit.Click += async (_, _) => await EditQuestionAsync();
         remove.Click += async (_, _) => await RemoveQuestionAsync();
         up.Click += async (_, _) => await MoveQuestionAsync(-1);
         down.Click += async (_, _) => await MoveQuestionAsync(1);
-        host.Controls.AddRange(new Control[] { projectLabel, showLabel, _statusFilter, _projects, questionLabel, _questions, add, edit, remove, up, down });
+
+        var buttons = new FlowLayoutPanel
+        {
+            Dock = DockStyle.Bottom,
+            Height = 36,
+            Padding = new Padding(4, 4, 4, 0),
+            FlowDirection = FlowDirection.LeftToRight,
+            WrapContents = false
+        };
+        foreach (var b in new[] { add, edit, remove, up, down })
+        {
+            b.Margin = new Padding(0, 0, 4, 0);
+            buttons.Controls.Add(b);
+        }
+
+        var filterRow = new Panel { Dock = DockStyle.Top, Height = 30 };
+        showLabel.Dock = DockStyle.Left;
+        showLabel.Width = 44;
+        _statusFilter.Dock = DockStyle.Left;
+        _statusFilter.Width = 130;
+        filterRow.Controls.Add(_statusFilter);
+        filterRow.Controls.Add(showLabel);
+
+        projectLabel.Dock = DockStyle.Top;
+
+        // Docked, not anchored. The comment above says why a Right or Bottom
+        // anchor is wrong here - this panel is built while the SplitContainer
+        // still has its small default size, so those anchors record distances
+        // from edges that do not exist yet. The filter combo was already fixed
+        // that way; the two lists and all five buttons were not, and grew by
+        // the difference once the panel took its real size: the project and
+        // question lists ended 226px wider than the 285px panel, cutting every
+        // name off mid-word with no scrollbar, and Add / Edit / Remove / up /
+        // down sat 518px below the bottom of it, unreachable at any window
+        // size. There is no way to add a research question without them.
+        //
+        // Fill is added first so it is resolved last and takes what the edges
+        // leave.
+        host.Controls.Add(_questions);
+        host.Controls.Add(buttons);
+        host.Controls.Add(questionLabel);
+        host.Controls.Add(_projects);
+        host.Controls.Add(filterRow);
+        host.Controls.Add(projectLabel);
+        host.Padding = new Padding(8);
     }
 
     private void BuildEvidenceList(Control host)

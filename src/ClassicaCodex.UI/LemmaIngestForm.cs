@@ -106,6 +106,10 @@ public class LemmaIngestForm : ScaledForm
         Controls.Add(_startButton);
         Controls.Add(_cancelButton);
 
+        // Without this the window stays system-grey while the rest of the
+        // application is dark - a bright dialog in the middle of a dark app.
+        ReadingTheme.AttachTo(this);
+
         Load += async (_, _) => await ShowExistingCountAsync();
     }
 

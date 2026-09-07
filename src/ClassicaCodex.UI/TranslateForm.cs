@@ -359,7 +359,7 @@ public class TranslateForm : ScaledForm
         {
             _voiceComboBox.Enabled = false;
             _readAloudButton.Enabled = false;
-            _listenStatusLabel.ForeColor = Color.DarkRed;
+            _listenStatusLabel.ForeColor = ReadingTheme.WarningText;
             _listenStatusLabel.Text = "No speech voice found on this computer.";
             return;
         }
@@ -574,7 +574,7 @@ public class TranslateForm : ScaledForm
         }
         catch (Exception ex)
         {
-            _aiStatusLabel.ForeColor = Color.DarkRed;
+            _aiStatusLabel.ForeColor = ReadingTheme.WarningText;
             _aiStatusLabel.Text = $"Couldn't translate with {providerName}: {ex.Message}";
         }
         finally

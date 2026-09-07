@@ -372,7 +372,7 @@ public class CrossLanguageEchoForm : ScaledForm
         }
         catch (Exception ex)
         {
-            _statusLabel.ForeColor = Color.DarkRed;
+            _statusLabel.ForeColor = ReadingTheme.WarningText;
             _statusLabel.Text = $"Couldn't finish: {ex.Message}";
         }
         finally

@@ -374,7 +374,7 @@ public class SearchFilterTests
         using var db = await SeedLibraryAsync();
 
         var tags = new TagRepository();
-        var tagId = await tags.GetOrCreateAsync("Achilles", "person");
+        var tagId = (await tags.GetOrCreateAsync("Achilles", "person")).TagId;
         var nodeId = await db.ScalarAsync<long>(
             "SELECT TextNodeId FROM TextNodes WHERE Text LIKE '%wrath of Achilles%';");
         await tags.TagTextNodeAsync(nodeId, tagId);

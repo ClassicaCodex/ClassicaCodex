@@ -53,8 +53,8 @@ public class PassageMarkTests
         await db.InsertLinesAsync(editionId, ("1.1", "μῆνιν ἄειδε"), ("1.2", "οὐλομένην"), ("1.3", "πολλὰς"));
 
         var tags = new TagRepository();
-        var wrath = await tags.GetOrCreateAsync("wrath", null);
-        var anger = await tags.GetOrCreateAsync("anger", null);
+        var wrath = (await tags.GetOrCreateAsync("wrath", null)).TagId;
+        var anger = (await tags.GetOrCreateAsync("anger", null)).TagId;
 
         // 1.1 gets everything; 1.2 two tags, which must still read as one mark;
         // 1.3 nothing at all.

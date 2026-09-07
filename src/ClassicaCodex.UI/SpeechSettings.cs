@@ -40,8 +40,27 @@ public static class SpeechSettings
 
     public static void SetPreferredVoice(string voiceName)
     {
-        var directory = Path.GetDirectoryName(SettingsFile)!;
-        Directory.CreateDirectory(directory);
-        File.WriteAllText(SettingsFile, voiceName.Trim());
+        try
+        {
+            var directory = Path.GetDirectoryName(SettingsFile)!;
+            Directory.CreateDirectory(directory);
+            File.WriteAllText(SettingsFile, voiceName.Trim());
+        }
+        catch
+        {
+            // Same reasoning as the getter above, and as every other
+            // preference writer in the application: a voice choice that does
+            // not survive the session is a small loss, and not one worth
+            // throwing over.
+            //
+            // This one mattered more than most because of where it runs from.
+            // Opening the Translate dialog fills the voice list and selects
+            // one, which raises SelectedIndexChanged, which lands here - so
+            // the write happens while the constructor is still running, and
+            // an unwritable settings folder took the whole dialog down rather
+            // than merely forgetting the voice. The getter beside it already
+            // carried a comment about not throwing out of the constructor
+            // path; the setter on that same path did not.
+        }
     }
 }

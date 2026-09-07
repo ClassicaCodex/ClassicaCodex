@@ -43,7 +43,7 @@ public sealed class ScholarlyClaimsForm : ScaledForm
         StartPosition = FormStartPosition.CenterParent;
         AppIcons.ApplyWindowIcon(this, "WordStudy");
 
-        var header = new Panel { Dock = DockStyle.Top, Height = 52, Padding = new Padding(10) };
+        var header = new Panel { Dock = DockStyle.Top, Height = 52, Width = ClientSize.Width, Padding = new Padding(10) };
         var label = new Label { Text = "Show:", Left = 10, Top = 16, Width = 42, Height = 20 };
         _filter.SetBounds(54, 11, 360, 26);
         _filter.DropDownStyle = ComboBoxStyle.DropDownList;
