@@ -44,6 +44,17 @@ public static class ReadingTheme
 
     public static Color MutedText => IsDark ? Color.FromArgb(150, 148, 142) : Color.DimGray;
 
+    /// <summary>
+    /// Error and warning text, legible on whichever surface is current.
+    ///
+    /// Apply already remaps a label that was built DarkRed, but a status
+    /// label coloured at the moment something goes wrong is set after Apply
+    /// has run and keeps whatever literal the call site passed. DarkRed on
+    /// the dark surface is about 1.2:1 - the message is there and cannot be
+    /// read - so those call sites use this instead.
+    /// </summary>
+    public static Color WarningText => IsDark ? Color.FromArgb(255, 130, 130) : Color.DarkRed;
+
     public static Color SelectionBackground => IsDark ? Color.FromArgb(38, 79, 120) : SystemColors.Highlight;
 
     public static Color SelectionText => IsDark ? Color.FromArgb(245, 243, 238) : SystemColors.HighlightText;
@@ -619,7 +630,7 @@ public static class ReadingTheme
                 // red on a dark background isn't.
                 if (IsWarningLabel(label))
                 {
-                    label.ForeColor = IsDark ? Color.FromArgb(255, 130, 130) : Color.DarkRed;
+                    label.ForeColor = WarningText;
                     break;
                 }
 

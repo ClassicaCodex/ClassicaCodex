@@ -616,7 +616,7 @@ public class PassageExportForm : ScaledForm
         }
         catch (Exception ex)
         {
-            _statusLabel.ForeColor = Color.DarkRed;
+            _statusLabel.ForeColor = ReadingTheme.WarningText;
             _statusLabel.Text = $"Couldn't write the reference: {ex.Message}";
         }
     }

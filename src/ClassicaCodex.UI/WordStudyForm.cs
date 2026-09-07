@@ -410,7 +410,7 @@ public class WordStudyForm : ScaledForm
             if (count == 0)
             {
                 _statusLabel.Text = "No lemma data loaded - use \"Load Lemmas...\" first.";
-                _statusLabel.ForeColor = Color.DarkRed;
+                _statusLabel.ForeColor = ReadingTheme.WarningText;
             }
             else
             {

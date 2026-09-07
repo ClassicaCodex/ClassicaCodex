@@ -808,7 +808,14 @@ public class TextNodeRepository
         cmd.CommandTimeout = 180;
         for (var i = 0; i < sqlForms.Count; i++)
         {
-            clauses.Add($"tn.Text LIKE @f{i} ESCAPE '\'");
+            // Two backslashes, not one. This is an interpolated string, not a
+            // verbatim one, so "\'" is an escaped apostrophe and the SQL that
+            // reached SQLite was ESCAPE '' - an empty escape expression, which
+            // it rejects when preparing the statement. Every other LIKE in
+            // this file gets it right; this one path was only reached when the
+            // word index is empty, which is the state of every library between
+            // a first ingest and a first index build.
+            clauses.Add($"tn.Text LIKE @f{i} ESCAPE '\\'");
             cmd.Parameters.AddWithValue($"@f{i}", $"%{EscapeLikeWildcards(sqlForms[i])}%");
         }
 
