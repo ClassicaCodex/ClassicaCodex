@@ -86,3 +86,9 @@ script builds entry names itself now.
 **1,119 tests, zero warnings on a clean build** — unchanged from 3.6.6; none
 of this is behaviour a test can hold, except the colour, which is a literal
 replaced by the theme value the other seven already used.
+
+The download is not code-signed, so if you would rather check it than trust it:
+
+```
+SHA-256  6DEB84DB7C0C6396207E802FF2DE0B886200419EA4F4D6108830861773CC4DC9
+```
