@@ -5,9 +5,9 @@
     <TargetFramework>net8.0-windows</TargetFramework>
     <UseWindowsForms>true</UseWindowsForms>
     <Nullable>enable</Nullable>
-    <Version>3.6.6</Version>
-    <AssemblyVersion>3.6.6.0</AssemblyVersion>
-    <FileVersion>3.6.6.0</FileVersion>
+    <Version>3.6.7</Version>
+    <AssemblyVersion>3.6.7.0</AssemblyVersion>
+    <FileVersion>3.6.7.0</FileVersion>
     <ImplicitUsings>enable</ImplicitUsings>
     <RootNamespace>ClassicaCodex.UI</RootNamespace>
     <!-- Enables the compiler's structural checks on /// doc comments -
@@ -56,6 +56,29 @@
          in .NET Framework - it ships separately. Used only by
          TranslationSettings, to keep API keys off disk in plaintext. -->
     <PackageReference Include="System.Security.Cryptography.ProtectedData" Version="8.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- The download is a binary-only ZIP, and that is a copy of the software
+         in the sense MIT means: the licence and its copyright notice have to
+         travel with it. Until 3.6.7 they did not - the ZIP held the executable
+         and the Icons folder and nothing else, while the repository carried a
+         LICENSE nobody downloading ever saw.
+
+         Also carried because the bundle contains other people's code with its
+         own conditions - SQLitePCLRaw is Apache-2.0, whose section 4(a) wants
+         recipients given a copy of that licence, and libgit2 is GPLv2 with a
+         linking exception.
+
+         Declared here rather than copied in at packaging time so that a
+         release cannot be cut without them: the publish output is the thing
+         that gets zipped, and this puts them in it. LICENSE is linked with a
+         .txt extension because it has no extension of its own, and Windows
+         will not open it by double-click without one. -->
+    <Content Include="..\..\LICENSE" Link="LICENSE.txt"
+             CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="..\..\THIRD-PARTY-NOTICES.md" Link="THIRD-PARTY-NOTICES.md"
+             CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>
 
   <ItemGroup>

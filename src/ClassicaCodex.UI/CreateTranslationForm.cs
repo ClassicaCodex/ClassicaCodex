@@ -428,7 +428,18 @@ public class CreateTranslationForm : ScaledForm
         }
 
         var translatedCount = TranslatedLineCount;
-        _statusLabel.ForeColor = translatedCount == _sourceNodes.Count ? Color.DimGray : Color.DarkRed;
+
+        // Through the theme, not as literals. This assignment runs after
+        // ReadingTheme.Apply, and Apply only remaps a label that was *built*
+        // DarkRed - a colour set afterwards keeps whatever the call site
+        // passed. So this line went on painting "Finished this pass, but N
+        // line(s) never came back" in DarkRed on the dark surface at 1.66:1,
+        // and its quiet branch in DimGray at 3.03:1, when the seven other
+        // assignments like it were converted in 3.6.5 and this one was missed.
+        // WarningText is 6.95:1 there and MutedText 5.48:1.
+        _statusLabel.ForeColor = translatedCount == _sourceNodes.Count
+            ? ReadingTheme.MutedText
+            : ReadingTheme.WarningText;
         _statusLabel.Text = stoppedEarly
             ? (stopReason is { Length: > 0 } why && why.StartsWith("Stopped: ", StringComparison.Ordinal)
                 ? $"{why} {translatedCount:N0} of {_sourceNodes.Count:N0} lines translated and saved - " +
