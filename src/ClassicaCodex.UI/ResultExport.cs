@@ -310,12 +310,7 @@ internal static class ResultExport
 
             foreach (var value in row)
             {
-                // Numbers written as numbers, so a column can be sorted and
-                // charted without a reimport. Anything that is not a clean
-                // number - "25/25", "Euripides (23/25)", a work title - stays
-                // text, and the invariant parse is what keeps a decimal comma
-                // from turning 0.020 into twenty.
-                if (double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out var number))
+                if (IsSafelyANumber(value, out var number))
                 {
                     xlRow.Append(new Cell
                     {
@@ -333,6 +328,38 @@ internal static class ResultExport
         }
 
         workbookPart.Workbook.Save();
+    }
+
+    /// <summary>
+    /// Whether a value can be written into a numeric cell without changing
+    /// what it says.
+    ///
+    /// Numbers written as numbers let a column be sorted and charted without
+    /// a reimport, which is worth having - but only where the number means
+    /// the same thing as the text did. A passage reference does not. "1.10"
+    /// is book 1, section 10; parsed it is the number 1.1, and so is "1.100",
+    /// so a spreadsheet of search results showed both as 1.1 and no longer
+    /// distinguished the two passages at all. Sorting that column then put
+    /// section 10 between sections 1 and 2.
+    ///
+    /// The test is whether the number can be turned back into exactly the
+    /// text it came from. It cannot for anything carrying a trailing zero
+    /// after the point, so "1.10", "1.100" and also "0.020" stay text. That
+    /// last one is a real if small cost - a stylometry value written to three
+    /// places is no longer chartable - and it is the price of never silently
+    /// changing a reference into a different reference.
+    /// </summary>
+    internal static bool IsSafelyANumber(string value, out double number)
+    {
+        number = 0;
+        if (string.IsNullOrWhiteSpace(value)) return false;
+
+        var trimmed = value.Trim();
+        if (!double.TryParse(trimmed, NumberStyles.Float, CultureInfo.InvariantCulture, out number))
+            return false;
+
+        return string.Equals(
+            number.ToString("R", CultureInfo.InvariantCulture), trimmed, StringComparison.Ordinal);
     }
 
     /// <summary>
