@@ -1726,7 +1726,7 @@ public partial class MainForm : ScaledForm
         using var prompt = new TagPromptForm(node.Text);
         if (prompt.ShowDialog(this) != DialogResult.OK || string.IsNullOrWhiteSpace(prompt.TagName)) return;
 
-        var tagId = await _tagRepo.GetOrCreateAsync(prompt.TagName, prompt.Category);
+        var (tagId, _) = await _tagRepo.GetOrCreateAsync(prompt.TagName, prompt.Category);
         await _tagRepo.TagTextNodeAsync(node.TextNodeId, tagId);
 
         list.AddPassageMark(node.CitationRef, PassageMarks.Tag);

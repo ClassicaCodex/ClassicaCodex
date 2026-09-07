@@ -319,14 +319,29 @@ public class AutoTagForm : ScaledForm
 
         try
         {
-            var tagId = await _tagRepo.GetOrCreateAsync(name, category);
+            var (tagId, storedCategory) = await _tagRepo.GetOrCreateAsync(name, category);
             var tagged = await _tagRepo.BulkTagTextNodesAsync(tagId, checkedIds);
 
-            _statusLabel.Text = $"Tagged {tagged} line(s) with \"{name}\".";
+            // A category typed here is not applied to a tag that already has
+            // one - see TagRepository.GetOrCreateAsync for why keeping the old
+            // one is the safer of the two wrong-looking answers. Saying so is
+            // the part that was missing: the box was filled in, the tag kept
+            // its old category, and nothing on screen mentioned it.
+            var categoryNote =
+                !string.IsNullOrWhiteSpace(category)
+                && !string.IsNullOrWhiteSpace(storedCategory)
+                && !string.Equals(category, storedCategory, StringComparison.OrdinalIgnoreCase)
+                    ? $"\r\n\r\n\"{name}\" already existed under the category \"{storedCategory}\", so it kept that "
+                      + $"rather than taking \"{category}\". Rename or re-categorise it from the Tag Browser."
+                    : string.Empty;
+
+            _statusLabel.Text = $"Tagged {tagged} line(s) with \"{name}\"."
+                                + (categoryNote.Length > 0 ? $" Kept its existing category \"{storedCategory}\"." : string.Empty);
             TagsChanged?.Invoke();
 
             MessageBox.Show(this,
-                $"Tagged {tagged} line(s) with \"{name}\" ({checkedIds.Count - tagged} were already tagged).",
+                $"Tagged {tagged} line(s) with \"{name}\" ({checkedIds.Count - tagged} were already tagged)."
+                + categoryNote,
                 "Done", MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
         catch (Exception ex)

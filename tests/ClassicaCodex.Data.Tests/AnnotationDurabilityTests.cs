@@ -26,7 +26,7 @@ public class AnnotationDurabilityTests
         await db.InsertLinesAsync(editionId, ("1.1", "μῆνιν ἄειδε"), ("1.2", "οὐλομένην"));
 
         var tags = new TagRepository();
-        var tagId = await tags.GetOrCreateAsync("Achilles", "person");
+        var tagId = (await tags.GetOrCreateAsync("Achilles", "person")).TagId;
         await tags.TagTextNodeAsync(await db.TextNodeIdAsync(editionId, "1.1"), tagId);
 
         // The exact operation that used to throw FOREIGN KEY constraint failed.
@@ -44,7 +44,7 @@ public class AnnotationDurabilityTests
         await db.InsertLinesAsync(editionId, ("1.1", "μῆνιν ἄειδε"), ("1.2", "οὐλομένην"));
 
         var tags = new TagRepository();
-        var tagId = await tags.GetOrCreateAsync("Achilles", "person");
+        var tagId = (await tags.GetOrCreateAsync("Achilles", "person")).TagId;
         var originalNodeId = await db.TextNodeIdAsync(editionId, "1.1");
         await tags.TagTextNodeAsync(originalNodeId, tagId);
 
@@ -129,7 +129,7 @@ public class AnnotationDurabilityTests
         await db.InsertLinesAsync(editionId, ("1.1", "line"));
 
         var tags = new TagRepository();
-        var tagId = await tags.GetOrCreateAsync("Troy", "place");
+        var tagId = (await tags.GetOrCreateAsync("Troy", "place")).TagId;
 
         await tags.TagTextNodeAsync(await db.TextNodeIdAsync(editionId, "1.1"), tagId);
         await db.ReingestAsync(editionId, ("1.1", "line"));
@@ -153,7 +153,7 @@ public class AnnotationDurabilityTests
         await db.InsertLinesAsync(odyssey, ("1.1", "the man"));
 
         var tags = new TagRepository();
-        var tagId = await tags.GetOrCreateAsync("Achilles", "person");
+        var tagId = (await tags.GetOrCreateAsync("Achilles", "person")).TagId;
         await tags.TagTextNodeAsync(await db.TextNodeIdAsync(iliad, "1.1"), tagId);
 
         var tagged = Assert.Single(await tags.GetByTagAsync("Achilles"));
@@ -168,7 +168,7 @@ public class AnnotationDurabilityTests
         await db.InsertLinesAsync(editionId, ("1.1", "alpha"), ("1.2", "beta"), ("1.3", "gamma"));
 
         var tags = new TagRepository();
-        var tagId = await tags.GetOrCreateAsync("Auto", null);
+        var tagId = (await tags.GetOrCreateAsync("Auto", null)).TagId;
 
         var ids = new[]
         {
