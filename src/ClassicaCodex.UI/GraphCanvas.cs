@@ -499,14 +499,40 @@ public class GraphCanvas : Panel
         _mouseMovedDuringDrag = false;
     }
 
+    /// <summary>
+    /// Holds a dragged node inside the canvas, and survives a canvas too small
+    /// to hold it.
+    ///
+    /// This was two Math.Clamp calls of the form (radius, Width - radius).
+    /// Math.Clamp throws when its low bound exceeds its high one, so once the
+    /// canvas was narrower than twice a node's radius - a heavily used tag
+    /// draws at 30px, so under about 60px of canvas - dragging that node threw
+    /// ArgumentException: "'30' cannot be greater than 20". The Myth Network
+    /// window sets no minimum size, so narrowing it far enough and then
+    /// dragging a tag was all it took.
+    ///
+    /// Where the node cannot fit, it sits in the middle of what there is,
+    /// which is the only sensible answer and is not an exception.
+    /// </summary>
+    internal static PointF KeepInside(PointF desired, float radius, int width, int height)
+    {
+        return new PointF(OnOneAxis(desired.X, radius, width), OnOneAxis(desired.Y, radius, height));
+
+        static float OnOneAxis(float value, float radius, int extent)
+        {
+            if (extent <= radius * 2) return extent / 2f;
+            return Math.Clamp(value, radius, extent - radius);
+        }
+    }
+
     private void GraphCanvas_MouseMove(object? sender, MouseEventArgs e)
     {
         if (_dragging != null)
         {
             _mouseMovedDuringDrag = true;
-            _dragging.Position = new PointF(
-                Math.Clamp(e.Location.X - _dragOffset.X, _dragging.Radius, Width - _dragging.Radius),
-                Math.Clamp(e.Location.Y - _dragOffset.Y, _dragging.Radius, Height - _dragging.Radius));
+            _dragging.Position = KeepInside(
+                new PointF(e.Location.X - _dragOffset.X, e.Location.Y - _dragOffset.Y),
+                _dragging.Radius, Width, Height);
             Invalidate();
             return;
         }
