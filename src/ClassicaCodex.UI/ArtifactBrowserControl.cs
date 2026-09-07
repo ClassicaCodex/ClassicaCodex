@@ -58,6 +58,10 @@ public class ArtifactBrowserControl : UserControl
     private List<Artifact> _currentArtifacts = new();
     private int _currentIndex;
 
+    /// <summary>Every photo of the artifact on screen, and which of them is showing.</summary>
+    private List<ArtifactImage> _currentImages = new();
+    private int _imageIndex;
+
     public ArtifactBrowserControl()
     {
         Width = 300;
@@ -96,6 +100,17 @@ public class ArtifactBrowserControl : UserControl
             SizeMode = PictureBoxSizeMode.Zoom
         };
 
+        // Clicking the photo steps to the next photo OF THE SAME OBJECT.
+        // Previous and Next below step between objects; Perseus photographs
+        // most things several times over and there was no way at all to see
+        // any view but the first.
+        _pictureBox.Click += async (_, _) =>
+        {
+            if (_currentImages.Count < 2) return;
+            _imageIndex = (_imageIndex + 1) % _currentImages.Count;
+            await RenderCurrentArtifactAsync();
+        };
+
         _captionLabel = new Label
         {
             Left = 0,
@@ -110,6 +125,7 @@ public class ArtifactBrowserControl : UserControl
         {
             if (_currentArtifacts.Count == 0) return;
             _currentIndex = (_currentIndex - 1 + _currentArtifacts.Count) % _currentArtifacts.Count;
+            _imageIndex = 0;                 // a different object, so back to its first photo
             await RenderCurrentArtifactAsync();
         };
 
@@ -118,6 +134,7 @@ public class ArtifactBrowserControl : UserControl
         {
             if (_currentArtifacts.Count == 0) return;
             _currentIndex = (_currentIndex + 1) % _currentArtifacts.Count;
+            _imageIndex = 0;
             await RenderCurrentArtifactAsync();
         };
 
@@ -166,6 +183,7 @@ public class ArtifactBrowserControl : UserControl
             ? _allArtifacts
             : _allArtifacts.Where(a => a.Type == selected.Category).ToList();
         _currentIndex = 0;
+        _imageIndex = 0;
     }
 
     /// <summary>One entry in the category filter dropdown - null Category means "All categories".</summary>
@@ -209,22 +227,45 @@ public class ArtifactBrowserControl : UserControl
         _prevButton.Enabled = _currentArtifacts.Count > 1;
         _nextButton.Enabled = _currentArtifacts.Count > 1;
 
-        var images = await _artifactRepo.GetImagesForArtifactAsync(artifact.ArtifactId);
-        var firstImage = images.FirstOrDefault();
+        // Every photo of this object, not just the first. Perseus supplies
+        // several views of most things it has photographed - this library
+        // holds 45,688 images across 4,754 objects, an average of nine each
+        // and 2,586 for one of them - and showing only images[0] left 40,934
+        // of them, nine in ten, downloaded and stored and unreachable.
+        _currentImages = await _artifactRepo.GetImagesForArtifactAsync(artifact.ArtifactId);
+        if (_imageIndex >= _currentImages.Count) _imageIndex = 0;
+
+        var image = _currentImages.Count > 0 ? _currentImages[_imageIndex] : null;
 
         _captionLabel.Text = !string.IsNullOrWhiteSpace(artifact.Description)
             ? artifact.Description
-            : firstImage?.Caption ?? "(no description available)";
+            : image?.Caption ?? "(no description available)";
 
-        if (firstImage == null)
+        if (image == null)
         {
             _captionLabel.Text += "\r\n(no photo available for this object)";
+            _pictureBox.Cursor = Cursors.Default;
             return;
+        }
+
+        // Clicking the photo is how you reach the rest. There is no room on
+        // this control for another pair of buttons - Previous and Next
+        // already mean the previous and next OBJECT, and giving them a second
+        // meaning would be worse than the gap.
+        if (_currentImages.Count > 1)
+        {
+            _captionLabel.Text +=
+                $"\r\nPhoto {_imageIndex + 1} of {_currentImages.Count} - click the photo for the next";
+            _pictureBox.Cursor = Cursors.Hand;
+        }
+        else
+        {
+            _pictureBox.Cursor = Cursors.Default;
         }
 
         try
         {
-            var bytes = await GetImageBytesAsync(firstImage.ImageId);
+            var bytes = await GetImageBytesAsync(image.ImageId);
             _pictureBox.Image = Image.FromStream(new MemoryStream(bytes));
         }
         catch
