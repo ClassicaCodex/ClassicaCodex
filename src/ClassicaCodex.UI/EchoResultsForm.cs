@@ -27,7 +27,14 @@ public class EchoResultsForm : ScaledForm
 
         _sourceLabel = new Label
         {
-            Text = $"Looking for echoes of: [{PassageCitation.Display(sourceNode.CitationRef, sourceNode.Milestone)}] {sourceNode.Text}",
+            // Cut, because a Win32 static control silently refuses a caption
+            // of 65,536 characters or more: Text comes back empty and the
+            // header shows nothing at all, so the one line telling you which
+            // passage you are looking at disappears exactly on the passages
+            // that are hardest to identify. Two lines is all this shows in
+            // any case.
+            Text = $"Looking for echoes of: [{PassageCitation.Display(sourceNode.CitationRef, sourceNode.Milestone)}] "
+                   + ListResultHelpers.RowText(sourceNode.Text, ListResultHelpers.HeaderTextLimit),
             Left = 12,
             Top = 10,
             Width = 860,

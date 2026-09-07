@@ -247,6 +247,19 @@ public static class ListResultHelpers
     /// </summary>
     public const int ComparisonRowLimit = 2000;
 
+    /// <summary>
+    /// What a two-line window header can hold. Used where a passage is named
+    /// in a caption rather than listed - "Source: [1.1] ..." above Find
+    /// Echoes and Reception Tracker.
+    ///
+    /// Cutting here is not about GDI+. A Win32 static control refuses a
+    /// caption of 65,536 characters or more outright: the assignment appears
+    /// to succeed, Text reads back as the empty string, and the header draws
+    /// nothing - so the line identifying the passage vanished on precisely
+    /// the longest passages, where it was needed most.
+    /// </summary>
+    public const int HeaderTextLimit = 300;
+
     public static string RowText(string? text, int limit = 400)
     {
         if (string.IsNullOrEmpty(text)) return string.Empty;
