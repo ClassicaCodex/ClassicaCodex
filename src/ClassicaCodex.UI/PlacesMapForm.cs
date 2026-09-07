@@ -301,10 +301,18 @@ public class PlacesMapForm : ScaledForm
         // 57 of them returned more noise than mentions - 86,727 passages that
         // had nothing to do with the place clicked.
         //
-        // SearchByFormsAsync resolves through the word index, which holds
+        // SearchPhraseAsync resolves through the word index, which holds
         // whole normalized words, so it matches the name and not the letters.
         // The same measurement over the same 240 places afterwards: 603.
-        var hits = await Task.Run(() => _textNodeRepo.SearchByFormsAsync(new[] { placeName }));
+        //
+        // Phrase, not forms. SearchByFormsAsync was the first attempt and it
+        // took every name with a space in it to nothing at all: normalization
+        // strips the space, so "Euxine sea" arrived at the index as the single
+        // token "euxinesea". Eight of these 240 pins - the Euxine sea, the
+        // Arabian Gulf, Egyptian Thebes, lake Moeris, Hippo Regius, Colonia
+        // Agrippina, Monte Cassino, Boeotian Thebes - answered a click with an
+        // empty list, having answered it with real mentions before.
+        var hits = await Task.Run(() => _textNodeRepo.SearchPhraseAsync(placeName));
         _currentPassages = hits.Rows;
 
         _tagsByNode = await _tagRepo.GetTagNamesForNodesAsync(

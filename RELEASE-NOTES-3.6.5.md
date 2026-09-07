@@ -26,11 +26,15 @@ ingest could not bring it back, because the file was still bad.
 
 The catch block said the edition kept the passages it had. It did not.
 
-This is not hypothetical, and it is not a bug found by reading. It emptied a
-work in a real 2.3-million-passage library during the sweep that found it —
-three passages, its only edition, so the work became unreadable. They went back
-only because the source file was still good; had the file been the thing that
-went wrong, nothing could have restored them.
+Found by reading the ingest path, not by hitting it. An earlier version of
+these notes said this bug had emptied a work in a real 2.3-million-passage
+library. That was a misattribution: the work was emptied by the test harness
+auditing the application, which opened every window against a live library, and
+no ingest ran at all. The paragraph is withdrawn.
+
+The bug itself is not in doubt, and there is a test for it now: it truncates a
+source file mid-run and requires the edition's passage count to be unchanged.
+It fails against the old ordering and passes against the new one.
 
 Fixed by parsing before anything is cleared, so a bad file now fails with the
 library untouched. The same ordering is applied to the Renaissance ingest,
@@ -58,6 +62,12 @@ was new installations, on the feature the myth network exists for.
   exactly one mentioned Ur — the rest being "during", "figure", "purple".
   Across all 240 places on the map, 57 returned more noise than mentions:
   86,727 passages that had nothing to do with the place clicked. Now 603.
+
+  This build carried a regression, fixed in 3.6.6: a name with a space in it
+  was folded into a single token — "Euxine sea" became "euxinesea" — which
+  matches nothing, so eight of the 240 pins returned no results at all rather
+  than too many. Single-word names, the other 232, were unaffected. Upgrade to
+  3.6.6 if you use the map.
 
 - **Half of some search results showed the wrong part of the passage.** Rows
   are cut to a readable length and were cut from the start, so a hit thousands
@@ -131,7 +141,7 @@ was new installations, on the feature the myth network exists for.
   followed the theme and opened as bright white windows out of a dark
   application.
 - Error messages in six windows were drawn in a red that is unreadable on the
-  dark surface, at about 1.2:1 contrast.
+  dark surface, at about 1.7:1 contrast.
 - Clicking an author's name on the Timeline did nothing; only the bar answered.
 - The Myth Network hid every edge after a reload with lighter connections.
 - Auto-Tag's category box was discarded in silence for a tag that already
@@ -151,3 +161,9 @@ unchanged.
 All 80 windows now open with real arguments from a full library — including the
 53 that need a work, a passage or a project and had never been opened by
 anything — and none of them lays a control outside itself.
+
+The download is not code-signed, so if you would rather check it than trust it:
+
+```
+SHA-256  736F90BF85DDA8F689D95505753FE510749186A7176585FED3BB50B7BFCE70F4
+```
