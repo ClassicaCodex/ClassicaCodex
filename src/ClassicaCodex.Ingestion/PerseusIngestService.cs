@@ -335,6 +335,32 @@ public class PerseusIngestService
                     continue;
                 }
 
+                // Parse BEFORE clearing anything. The clear and the re-insert
+                // are not in one transaction, so whatever happens between them
+                // is destruction with nothing to put back - and a parse is the
+                // step most likely to fail, because it reads a file that may
+                // have been changed, truncated or half-downloaded since the
+                // last run.
+                //
+                // Ordered the other way round, as this was, a work that had
+                // ingested cleanly for months was permanently emptied the
+                // first time its source file went bad: the clear succeeded,
+                // the parse threw, the catch below recorded a failed file, and
+                // the text was gone. The catch's own comment said the edition
+                // kept the text nodes it had, which was the opposite of what
+                // happened. Re-running ingest could not bring it back either,
+                // because the file was still bad.
+                //
+                // Parsing first does not make the pair atomic - a cancel or a
+                // crash during the insert still empties the edition - but it
+                // removes the one failure that happens in normal use.
+                var parsed = _teiParser.Parse(editionFile);
+                var nodes = _teiParser.ToTextNodes(editionId, parsed);
+
+                // And do not start destroying on the way out of a cancelled
+                // run: the clear takes the token, but by then it is too late.
+                cancellationToken.ThrowIfCancellationRequested();
+
                 // Clear and re-insert so re-running ingestion after a repo
                 // update doesn't leave stale/duplicate text nodes behind.
                 await _editionRepo.ClearTextNodesAsync(editionId, cancellationToken);
@@ -344,8 +370,6 @@ public class PerseusIngestService
                     await _editionHeaderRepo.SaveAsync(editionId, header, cancellationToken);
                 }
 
-                var parsed = _teiParser.Parse(editionFile);
-                var nodes = _teiParser.ToTextNodes(editionId, parsed);
                 await _textNodeRepo.BulkInsertAsync(nodes, cancellationToken);
 
                 // Apparatus comes from the same parse - LastApparatus describes
@@ -358,9 +382,13 @@ public class PerseusIngestService
             {
                 // One malformed file (bad XML, an entity we don't recognize,
                 // an unexpected structure) shouldn't take down a multi-hour
-                // ingest run. The Edition row (if it got created) stays with
-                // whatever TextNodes it has - rerun ingest later to retry
-                // just the files that failed.
+                // ingest run. The Edition row keeps the text it already had,
+                // because the parse above happens before anything is cleared -
+                // rerun ingest later to retry just the files that failed.
+                //
+                // That sentence used to be here and was untrue: the clear ran
+                // first, so a file going bad silently destroyed the good copy
+                // in the library. It is true now, and there is a test for it.
                 FailedFiles.Add((editionFile, ex.Message));
             }
         }
