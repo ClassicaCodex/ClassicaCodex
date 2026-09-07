@@ -59,11 +59,28 @@ internal static class Program
             ? args[0]
             : Path.Combine(Directory.GetCurrentDirectory(), "display-scaling");
 
-        // The library this application would open on its own. Most windows do
-        // not need one, and the few that do are reported as unopenable rather
-        // than stopping the run - a scaling audit is still worth having on a
-        // machine that has never been set up.
-        try { DbConnectionFactory.TryConfigureFromPreferred(); }
+        // A throwaway database of its own, never the reader's.
+        //
+        // This used to call TryConfigureFromPreferred(), which resolves the
+        // library the application itself opens - and then opened every window
+        // in the product against it, read-write, with synthetic arguments.
+        // Windows save on close. That is how this tool deleted passages out of
+        // a real 2.3-million-passage library: not through a bug in the
+        // product, but because an audit was pointed at someone's only copy.
+        //
+        // A scaling audit needs a schema, not a corpus, so an empty file is
+        // the whole requirement. remember: false is the load-bearing half of
+        // that line - Configure with its default would write this temporary
+        // path into the application's saved settings, and the next real launch
+        // would open an empty library instead of the reader's own.
+        try
+        {
+            var scratch = Path.Combine(
+                Path.GetTempPath(), "ccx-display-scaling-audit", "audit.db");
+            Directory.CreateDirectory(Path.GetDirectoryName(scratch)!);
+            DbConnectionFactory.Configure(scratch, remember: false);
+            SchemaInitializer.EnsureSchemaAsync().GetAwaiter().GetResult();
+        }
         catch (Exception ex) { Report.Add($"(no library configured: {ex.GetType().Name})"); }
 
         var host = new Form

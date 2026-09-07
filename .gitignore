@@ -85,9 +85,9 @@ _ReSharper*/
 ################################################################################
 
 # Uncomment if your database is generated locally
- *.db
- *.sqlite
- *.sqlite3
+*.db
+*.sqlite
+*.sqlite3
 
 ################################################################################
 # Temporary Files

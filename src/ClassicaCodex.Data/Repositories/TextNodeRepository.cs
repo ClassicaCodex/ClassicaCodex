@@ -716,6 +716,125 @@ public class TextNodeRepository
     }
 
     /// <summary>
+    /// Finds a name that may run to more than one word - what a click on the
+    /// places map asks for.
+    ///
+    /// <see cref="SearchByFormsAsync"/> reads what it is given as alternative
+    /// spellings of a single word and ORs them, and normalization drops
+    /// everything that is not a letter. A name with a space in it therefore
+    /// reaches the word index as one impossible token: "Euxine sea" becomes
+    /// "euxinesea", which no line contains. Eight of the map's 240 pins
+    /// returned nothing at all because of that, having returned real mentions
+    /// before it - 84 for the Euxine sea, 57 for the Arabian Gulf, 42 for lake
+    /// Moeris.
+    ///
+    /// One word behaves exactly as SearchByFormsAsync does, which is the whole
+    /// point of the change that introduced this path: clicking Ur must not
+    /// return "during", "figure" and "purple".
+    ///
+    /// More than one word requires every word through the index - each lookup
+    /// is a prefix seek on the index's own primary key, so this stays cheap -
+    /// and then requires the phrase itself to be present, so "Egyptian Thebes"
+    /// does not match a line carrying both words a paragraph apart. Together
+    /// the two conditions return exactly the lines a substring search would
+    /// have found, without reading every line in the corpus to find them.
+    /// </summary>
+    public async Task<SearchHits> SearchPhraseAsync(
+        string phrase, int maxResults = DefaultMaxResults,
+        IReadOnlyCollection<int>? workIds = null, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(phrase)) return SearchHits.Empty;
+
+        var words = IndexableWordsOf(phrase);
+        if (words.Count == 0) return SearchHits.Empty;
+
+        if (words.Count == 1)
+            return await SearchByFormsAsync(new[] { phrase }, maxResults, workIds, cancellationToken);
+
+        var scope = workIds == null || workIds.Count == 0 ? null : workIds.Distinct().ToList();
+
+        var indexed = await TrySearchPhraseViaWordIndexAsync(
+            phrase, words, maxResults, scope, cancellationToken);
+        if (indexed != null) return indexed;
+
+        // No word index built yet. The substring search is the right answer
+        // for a phrase already - it is only slower, and it is what this did
+        // before the index path existed.
+        return await SearchAsync(phrase, maxResults, cancellationToken);
+    }
+
+    /// <summary>
+    /// The distinct words of a phrase in the shape the word index stores them.
+    /// Deliberately the same three steps as WordIndexService.TokenizeLine: a
+    /// lookup built any other way would not find what the index holds.
+    /// </summary>
+    private static List<string> IndexableWordsOf(string phrase) => phrase
+        .Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries)
+        .Select(WordNormalizer.Normalize)
+        .Where(w => w.Length > 0 && w.Length <= 200)
+        .Distinct(StringComparer.Ordinal)
+        .ToList();
+
+    /// <summary>
+    /// Phrase search against the inverted index. Returns null (not an empty
+    /// list) when the index has not been built, so the caller can fall back
+    /// rather than report that nothing matched - the same contract
+    /// <see cref="TrySearchViaWordIndexAsync"/> keeps.
+    /// </summary>
+    private async Task<SearchHits?> TrySearchPhraseViaWordIndexAsync(
+        string phrase, IReadOnlyList<string> words, int maxResults,
+        List<int>? workIds, CancellationToken cancellationToken)
+    {
+        await using var conn = await DbConnectionFactory.OpenConnectionAsync(cancellationToken);
+        if (!await WordIndexRepository.HasDataAsync(conn, cancellationToken)) return null;
+
+        await using var cmd = conn.CreateCommand();
+        cmd.CommandTimeout = 120;
+
+        var required = new List<string>();
+        for (var i = 0; i < words.Count && i < MaxFormsPerQuery; i++)
+        {
+            required.Add(
+                $"tn.TextNodeId IN (SELECT TextNodeId FROM WordIndex WHERE NormalizedWord = @w{i})");
+            cmd.Parameters.AddWithValue($"@w{i}", words[i]);
+        }
+
+        cmd.Parameters.AddWithValue("@Phrase", $"%{EscapeLikeWildcards(phrase.Trim())}%");
+        cmd.Parameters.AddWithValue("@Limit", maxResults + 1);
+
+        // Verbatim string: the backslash in ESCAPE '\' is a literal backslash
+        // here. Written as "\\" inside an ordinary interpolated string it
+        // would be an escaped apostrophe, which is how a sibling query came to
+        // send SQLite ESCAPE '' and fail outright.
+        cmd.CommandText = $@"
+            SELECT w.WorkId, tn.TextNodeId, a.Name, w.Title, tn.CitationRef, tn.Text, tn.Milestone
+            FROM TextNodes tn
+            JOIN Editions e ON tn.EditionId = e.EditionId
+            JOIN Works w ON e.WorkId = w.WorkId
+            JOIN Authors a ON w.AuthorId = a.AuthorId
+            WHERE {string.Join(" AND ", required)}
+              AND tn.Text LIKE @Phrase ESCAPE '\'
+              {WorkScopeClause(cmd, workIds, "AND")}
+            ORDER BY a.Name, w.Title, tn.SortOrder
+            LIMIT @Limit;";
+
+        var results = new List<(int, long, string, string, string, string, string?)>();
+        await using var reader = await cmd.ExecuteReaderAsync(cancellationToken);
+        while (await reader.ReadAsync(cancellationToken))
+        {
+            results.Add((
+                reader.GetInt32(0), reader.GetInt64(1), reader.GetString(2),
+                reader.GetString(3), reader.GetString(4), reader.GetString(5),
+                reader.IsDBNull(6) ? null : reader.GetString(6)));
+        }
+
+        var truncated = results.Count > maxResults;
+        if (truncated) results.RemoveRange(maxResults, results.Count - maxResults);
+
+        return new SearchHits(results, truncated);
+    }
+
+    /// <summary>
     /// The WHERE fragment restricting a search to chosen works, with its
     /// parameters registered on the command. Empty when unrestricted.
     ///
