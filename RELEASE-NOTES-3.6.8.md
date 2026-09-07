@@ -97,3 +97,9 @@ switch would silently bring the whole thing back.
 Every contrast figure quoted above is computed with the WCAG formula against
 the surface the text actually sits on, and the ones this release introduces
 are asserted in the suite rather than checked once by hand.
+
+The download is not code-signed, so if you would rather check it than trust it:
+
+```
+SHA-256  DB896C92243AC5A904B42649197BEF5998DA1076E733498A9C7A2FB6CBE7B522
+```
