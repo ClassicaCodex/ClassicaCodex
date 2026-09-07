@@ -20,7 +20,7 @@ public sealed partial class ResearchBibliographyForm : ScaledForm
     {
         _project=project;Text=$"Bibliography & Zotero Export — {project.Name}";Width=1120;Height=720;
         MinimumSize=new Size(820,520);StartPosition=FormStartPosition.CenterParent;AppIcons.ApplyWindowIcon(this,"WordStudy");
-        var header=new Panel{Dock=DockStyle.Top,Height=78,Padding=new Padding(10)};
+        var header=new Panel{Dock=DockStyle.Top,Height=78,Width=ClientSize.Width,Padding=new Padding(10)};
         var intro=new Label{Text="Scholarship evidence retains structured citation metadata. Edit citekeys, select records, then export for Zotero or another reference manager.",Left=10,Top=10,Width=1060,Height=22,Anchor=AnchorStyles.Top|AnchorStyles.Left|AnchorStyles.Right};
         var save=Btn("Save citekeys",10,39,110);save.Click+=async(_,_)=>await SaveKeysAsync(showConfirmation:true);
         var bib=Btn("Export BibTeX…",130,39,125);bib.Click+=async(_,_)=>await ExportAsync("BibTeX");

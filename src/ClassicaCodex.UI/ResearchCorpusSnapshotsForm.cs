@@ -24,7 +24,7 @@ public sealed class ResearchCorpusSnapshotsForm : ScaledForm
     {
         _project=project;Text=$"Corpus Snapshots — {project.Name}";Width=1180;Height=760;MinimumSize=new Size(850,560);
         StartPosition=FormStartPosition.CenterParent;AppIcons.ApplyWindowIcon(this,"Stylometry");
-        var capturePanel=new Panel{Dock=DockStyle.Top,Height=116,Padding=new Padding(10)};
+        var capturePanel=new Panel{Dock=DockStyle.Top,Height=116,Width=ClientSize.Width,Padding=new Padding(10)};
         capturePanel.Controls.Add(Label("Snapshot name",10,7,180));_name.SetBounds(10,28,300,26);capturePanel.Controls.Add(_name);
         capturePanel.Controls.Add(Label("Corpus scope",325,7,160));_scope.SetBounds(325,28,210,26);_scope.DropDownStyle=ComboBoxStyle.DropDownList;
         _scope.DataSource=new[]{new ScopeChoice(CorpusSnapshotScope.ProjectWork,"This work only"),new ScopeChoice(CorpusSnapshotScope.SameAuthor,"All works by this author"),new ScopeChoice(CorpusSnapshotScope.EntireCorpus,"Entire installed corpus")};capturePanel.Controls.Add(_scope);
@@ -35,7 +35,7 @@ public sealed class ResearchCorpusSnapshotsForm : ScaledForm
         capturePanel.Controls.AddRange(new Control[]{_capture,_cancel,_status});
 
         var split=new SplitContainer{Dock=DockStyle.Fill};
-        var toolbar=new Panel{Dock=DockStyle.Top,Height=46,Padding=new Padding(8)};
+        var toolbar=new Panel{Dock=DockStyle.Top,Height=46,Width=ClientSize.Width,Padding=new Padding(8)};
         _compare=Btn("Compare with current",8,8,145);_compare.Click+=async(_,_)=>await CompareAsync();
         var remove=Btn("Remove",163,8,85);remove.Click+=async(_,_)=>await RemoveAsync();
         toolbar.Controls.AddRange(new Control[]{_compare,remove});_snapshots.Dock=DockStyle.Fill;_snapshots.SelectedIndexChanged+=async(_,_)=>await ShowSnapshotAsync();
