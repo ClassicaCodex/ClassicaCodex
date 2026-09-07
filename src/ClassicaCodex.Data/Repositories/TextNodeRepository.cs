@@ -725,7 +725,7 @@ public class TextNodeRepository
     /// reaches the word index as one impossible token: "Euxine sea" becomes
     /// "euxinesea", which no line contains. Eight of the map's 240 pins
     /// returned nothing at all because of that, having returned real mentions
-    /// before it - 84 for the Euxine sea, 57 for the Arabian Gulf, 42 for lake
+    /// before it - 86 for the Euxine sea, 57 for the Arabian Gulf, 12 for lake
     /// Moeris.
     ///
     /// One word behaves exactly as SearchByFormsAsync does, which is the whole

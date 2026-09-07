@@ -611,7 +611,7 @@ public class PassageExportForm : ScaledForm
 
             await File.WriteAllTextAsync(fileName, text, new System.Text.UTF8Encoding(false));
 
-            _statusLabel.ForeColor = Color.DimGray;
+            _statusLabel.ForeColor = ReadingTheme.MutedText;
             _statusLabel.Text = $"Saved a {(asBibTeX ? "BibTeX" : "RIS")} reference to {Path.GetFileName(fileName)}.";
         }
         catch (Exception ex)

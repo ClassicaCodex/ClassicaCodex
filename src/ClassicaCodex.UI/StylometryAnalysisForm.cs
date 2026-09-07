@@ -532,7 +532,10 @@ public class StylometryAnalysisForm : ScaledForm
             // Works whose depth rank is far from their length rank are the ones
             // length does NOT explain - the residuals, and the only rows where
             // an authorship reading is even available.
-            if (gap >= n / 3.0) item.BackColor = Color.FromArgb(232, 245, 233);
+            if (gap >= n / 3.0)
+                item.BackColor = ReadingTheme.IsDark
+                    ? Color.FromArgb(42, 62, 46)
+                    : Color.FromArgb(232, 245, 233);
 
             _lengthList.Items.Add(item);
         }
@@ -653,7 +656,9 @@ public class StylometryAnalysisForm : ScaledForm
             // A work whose depth doubles between settings has not been measured
             // yet - it has been measured twice, differently.
             if (values.Count >= 2 && values.Max() - values.Min() > values.Min())
-                item.BackColor = Color.FromArgb(255, 248, 225);
+                item.BackColor = ReadingTheme.IsDark
+                    ? Color.FromArgb(66, 58, 38)
+                    : Color.FromArgb(255, 248, 225);
 
             _stabilityList.Items.Add(item);
         }

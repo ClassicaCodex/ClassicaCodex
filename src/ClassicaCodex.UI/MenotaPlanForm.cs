@@ -325,8 +325,17 @@ public class MenotaPlanForm : ScaledForm
             // wrong, so it is the one flagged. Colour rather than a warning
             // dialog: there is nothing to acknowledge, only something to look
             // at before confirming.
+            //
+            // Theme-aware, because a row's own DefaultCellStyle is the one
+            // thing ReadingTheme.Apply cannot reach - it sets the grid's
+            // styles, and a per-row style outranks all of them. The literal
+            // that used to be here survived every theme pass and drew at
+            // 2.66:1 on the dark surface, so the row singled out for attention
+            // was the one hardest to read.
             if (work.MatchBasis == "unmatched")
-                _grid.Rows[index].DefaultCellStyle.ForeColor = Color.FromArgb(160, 60, 20);
+                _grid.Rows[index].DefaultCellStyle.ForeColor = ReadingTheme.IsDark
+                    ? Color.FromArgb(240, 170, 110)
+                    : Color.FromArgb(160, 60, 20);
         }
     }
 

@@ -329,7 +329,7 @@ public class CrossLanguageEchoForm : ScaledForm
         }
 
         _findButton.Enabled = false;
-        _statusLabel.ForeColor = Color.DimGray;
+        _statusLabel.ForeColor = ReadingTheme.MutedText;
         _statusLabel.Text = "Reading the comparison work...";
         _resultsListBox.Items.Clear();
         _verifiedResults = new List<(TextNode, EchoCandidate)>();
@@ -724,7 +724,7 @@ public class CrossLanguageEchoForm : ScaledForm
             statusParts.Add($"Only compared through [{truncatedAtRef}] - the work is longer than this tool sends in one request.");
         }
 
-        _statusLabel.ForeColor = Color.DimGray;
+        _statusLabel.ForeColor = ReadingTheme.MutedText;
         _statusLabel.Text = string.Join(" ", statusParts);
     }
 
