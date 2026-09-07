@@ -19,7 +19,7 @@ namespace ClassicaCodex.Data.Tests;
 /// 240 pins - the Euxine sea, the Arabian Gulf, Egyptian Thebes, lake Moeris,
 /// Hippo Regius, Colonia Agrippina, Monte Cassino and Boeotian Thebes -
 /// answered a click with an empty list where they had previously answered with
-/// real mentions: 84, 57, 14, 12, 9, 3, 2 and 2 of them.
+/// real mentions: 86, 57, 13, 12, 9, 3, 2 and 2 of them.
 ///
 /// So there are two ways to be wrong here and a test for each: matching the
 /// letters, and matching nothing.

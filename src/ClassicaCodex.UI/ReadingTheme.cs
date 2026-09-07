@@ -42,7 +42,15 @@ public static class ReadingTheme
 
     public static Color Text => IsDark ? Color.FromArgb(232, 228, 218) : Color.Black;
 
-    public static Color MutedText => IsDark ? Color.FromArgb(150, 148, 142) : Color.DimGray;
+    /// <summary>
+    /// Secondary text - hints, counts, the quiet half of a status line.
+    ///
+    /// The light value is three steps darker than the DimGray it used to be.
+    /// DimGray on the parchment background is 4.46:1, which misses the 4.5:1
+    /// minimum by a margin nobody would see but a checker would; this is
+    /// 4.66:1 and indistinguishable to the eye.
+    /// </summary>
+    public static Color MutedText => IsDark ? Color.FromArgb(150, 148, 142) : Color.FromArgb(102, 102, 102);
 
     /// <summary>
     /// Error and warning text, legible on whichever surface is current.
@@ -50,10 +58,27 @@ public static class ReadingTheme
     /// Apply already remaps a label that was built DarkRed, but a status
     /// label coloured at the moment something goes wrong is set after Apply
     /// has run and keeps whatever literal the call site passed. DarkRed on
-    /// the dark surface is about 1.2:1 - the message is there and cannot be
-    /// read - so those call sites use this instead.
+    /// the dark surface is 1.66:1 - the message is there and cannot be read -
+    /// so those call sites use this instead, which is 6.95:1.
     /// </summary>
     public static Color WarningText => IsDark ? Color.FromArgb(255, 130, 130) : Color.DarkRed;
+
+    /// <summary>
+    /// Hyperlink text.
+    ///
+    /// A LinkLabel paints its link with LinkColor, not ForeColor, and nothing
+    /// here read LinkColor until 3.6.8 - so Apply set the ForeColor of a
+    /// control that does not use it, and seven links across four themed
+    /// windows kept the WinForms default blue. On the dark surface that is
+    /// 1.94:1, barely better than the DarkRed above, and the links included
+    /// the two that a new reader needs in order to set up AI translation at
+    /// all. This is 7.59:1 dark and 7.36:1 light.
+    ///
+    /// The values are the ones Research Bench had already chosen for its own
+    /// links by hand; that window was the only one that knew LinkColor
+    /// existed, and its choice is now everyone's.
+    /// </summary>
+    public static Color LinkText => IsDark ? Color.FromArgb(115, 180, 245) : Color.FromArgb(0, 70, 140);
 
     public static Color SelectionBackground => IsDark ? Color.FromArgb(38, 79, 120) : SystemColors.Highlight;
 
@@ -174,7 +199,17 @@ public static class ReadingTheme
         if (sender is not ListView list) return;
 
         var selected = e.Item != null && e.Item.Selected && list.Focused;
-        using (var back = new SolidBrush(selected ? SelectionBackground : list.BackColor))
+
+        // A row that set its own BackColor keeps it. This used to fill every
+        // row with the list's colour, which silently threw away per-row
+        // highlighting: Stylometry marks its most interesting rows that way -
+        // the authors closest to the target, the samples whose stability is
+        // worth doubting - and not one of those marks was ever drawn, in
+        // either theme, from the day this owner-draw painter was added.
+        //
+        // ListViewItem.BackColor reports the list's own colour when the row
+        // has not set one, so the comparison is what tells them apart.
+        using (var back = new SolidBrush(RowBackground(e.Item, list, selected)))
         {
             e.Graphics.FillRectangle(back, e.Bounds);
         }
@@ -183,6 +218,25 @@ public static class ReadingTheme
 
         using var gridPen = new Pen(Border);
         e.Graphics.DrawLine(gridPen, e.Bounds.Left, e.Bounds.Bottom - 1, e.Bounds.Right, e.Bounds.Bottom - 1);
+    }
+
+    /// <summary>
+    /// What colour a list row is painted: the selection colour when it is
+    /// selected, the row's own colour when it set one, and otherwise the
+    /// list's.
+    ///
+    /// Separated out so it can be tested without a Graphics surface, because
+    /// the middle case is the one that was missing and nothing would have
+    /// caught it: the painter filled every row with the list's colour, and
+    /// three row highlights in Stylometry - the whole point of those two
+    /// tables - were computed, assigned, and thrown away on the way to the
+    /// screen.
+    /// </summary>
+    internal static Color RowBackground(ListViewItem? item, ListView list, bool selected)
+    {
+        if (selected) return SelectionBackground;
+        if (item == null) return list.BackColor;
+        return item.BackColor != list.BackColor ? item.BackColor : list.BackColor;
     }
 
     private static void DrawThemedListSubItem(object? sender, DrawListViewSubItemEventArgs e)
@@ -618,6 +672,25 @@ public static class ReadingTheme
             case CheckBox or RadioButton:
                 control.BackColor = Color.Transparent;
                 control.ForeColor = Text;
+                break;
+
+            // Before the Label case, and it has to stay there: LinkLabel
+            // derives from Label, so a `case Label` above this one would claim
+            // it and set the one colour LinkLabel does not paint its text
+            // with. That is exactly what happened until 3.6.8 - the link came
+            // out in the WinForms default blue at 1.94:1 on the dark surface,
+            // and no amount of ForeColor was ever going to change it.
+            case LinkLabel link:
+                link.BackColor = Color.Transparent;
+                link.ForeColor = Text;
+                link.LinkColor = LinkText;
+                link.ActiveLinkColor = SelectionText;
+
+                // Visited defaults to purple, 1.77:1 on the dark surface -
+                // worse than the unvisited blue this is fixing. These links go
+                // to a handful of documentation pages, so distinguishing a
+                // visited one is worth less than being able to read it.
+                link.VisitedLinkColor = LinkText;
                 break;
 
             case Label label:

@@ -363,7 +363,7 @@ public class CreateTranslationForm : ScaledForm
         {
             if (_cancellation.IsCancellationRequested) { stoppedEarly = true; break; }
 
-            _statusLabel.ForeColor = Color.DimGray;
+            _statusLabel.ForeColor = ReadingTheme.MutedText;
             _statusLabel.Text = $"Translating batch {b + 1} of {batches.Count} " +
                                  $"({TranslatedLineCount:N0} of {_sourceNodes.Count:N0} lines so far)...";
 

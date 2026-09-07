@@ -24,6 +24,10 @@
     filename. That is what left 3.4.0 with 184 loose files where the Icons
     folder should have been, so the archive is checked for them afterwards.
 
+.PARAMETER AllowDirty
+    Build from a dirty working tree. For trying the script out only: the
+    result carries a commit stamp that does not describe it.
+
 .PARAMETER OutputRoot
     Where to build. Defaults to a temp folder, deliberately outside the
     repository: a 170MB publish tree inside it is one 'git add -A' away from
@@ -34,7 +38,11 @@
 #>
 [CmdletBinding()]
 param(
-    [string] $OutputRoot = (Join-Path $env:TEMP 'classicacodex-release')
+    [string] $OutputRoot = (Join-Path $env:TEMP 'classicacodex-release'),
+
+    # Build from a dirty tree anyway. For trying the script out; the result
+    # carries a commit stamp that does not describe it, so never publish one.
+    [switch] $AllowDirty
 )
 
 $ErrorActionPreference = 'Stop'
@@ -52,10 +60,17 @@ if (-not $version) { throw "No <Version> found in $uiProject" }
 $commit = (& git -C $repo rev-parse --short HEAD).Trim()
 if ($LASTEXITCODE -ne 0 -or -not $commit) { throw 'Could not read the commit from git.' }
 
+# Fatal, not a warning. The whole point of reading the commit from git is
+# that ProductVersion should describe what is in the binary; building from a
+# dirty tree puts a commit in the version string that does not. -AllowDirty
+# exists for trying the script out, and says so in the output.
 $dirty = (& git -C $repo status --porcelain)
 if ($dirty) {
-    Write-Warning "The working tree is not clean, so $commit does not describe what is being built:"
-    $dirty | ForEach-Object { Write-Warning "  $_" }
+    $dirty | ForEach-Object { Write-Host "  $_" }
+    if (-not $AllowDirty) {
+        throw "The working tree is not clean, so $commit would not describe what is built. Commit first, or pass -AllowDirty for a trial run."
+    }
+    Write-Warning "-AllowDirty: building anyway. $commit does NOT describe this build - do not publish it."
 }
 
 $payload = Join-Path $OutputRoot "publish-$version"
@@ -121,6 +136,7 @@ try {
     $entries = $archive.Entries.Count
 } finally { $archive.Dispose() }
 if ($backslashes -gt 0) { throw "$backslashes entries use a backslash separator; extractors will not make folders from them." }
+if ($icons -eq 0) { throw 'The archive contains no Icons/ entries; the toolbars would ship without their icons.' }
 
 $exe = Get-Item (Join-Path $payload 'ClassicaCodex.UI.exe')
 
@@ -132,7 +148,10 @@ $exe = Get-Item (Join-Path $payload 'ClassicaCodex.UI.exe')
 $pathLeaked = ($LASTEXITCODE -eq 0)
 $global:LASTEXITCODE = 0
 if ($pathLeaked) {
-    Write-Warning "The executable still contains the build path $repo - check -p:DebugType=none survived."
+    # Fatal. Shipping the build machine's directory layout to strangers is
+    # what 3.6.7 was for, and a warning at the end of a long build is a
+    # warning nobody reads.
+    throw "The executable still contains the build path $repo - -p:DebugType=none did not take effect."
 }
 
 $hash = (Get-FileHash $zip -Algorithm SHA256).Hash

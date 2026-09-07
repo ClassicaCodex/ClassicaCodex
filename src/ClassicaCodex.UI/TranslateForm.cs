@@ -403,7 +403,7 @@ public class TranslateForm : ScaledForm
     {
         var speaking = SpeechService.IsSpeaking;
         _stopReadingButton.Enabled = speaking;
-        _listenStatusLabel.ForeColor = Color.DimGray;
+        _listenStatusLabel.ForeColor = ReadingTheme.MutedText;
         _listenStatusLabel.Text = speaking ? "Speaking..." : string.Empty;
 
         if (!speaking) _listenPollTimer.Stop();
@@ -562,7 +562,7 @@ public class TranslateForm : ScaledForm
 
         _claudeButton.Enabled = false;
         _geminiButton.Enabled = false;
-        _aiStatusLabel.ForeColor = Color.DimGray;
+        _aiStatusLabel.ForeColor = ReadingTheme.MutedText;
         _aiStatusLabel.Text = $"Translating with {providerName}...";
         _aiResultBox.Text = string.Empty;
 

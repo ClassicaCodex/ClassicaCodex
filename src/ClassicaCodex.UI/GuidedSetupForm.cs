@@ -528,11 +528,19 @@ public class GuidedSetupForm : ScaledForm
                         _ => readiness.Message
                     };
 
+                    // Set after the theme has been applied, so these have to
+                    // carry their own dark values - all three literals that
+                    // used to be here were between 3.0:1 and 3.5:1 on the dark
+                    // surface, the Problem branch included, and that branch
+                    // renders a caught exception's message on the first screen
+                    // a new reader ever sees.
                     _readinessLabel.ForeColor = readiness.State switch
                     {
-                        SetupReadinessState.Ready => Color.FromArgb(30, 120, 60),
-                        SetupReadinessState.Problem => Color.FromArgb(170, 95, 20),
-                        _ => Color.DimGray
+                        SetupReadinessState.Ready => ReadingTheme.IsDark
+                            ? Color.FromArgb(120, 205, 145)
+                            : Color.FromArgb(26, 112, 55),
+                        SetupReadinessState.Problem => ReadingTheme.WarningText,
+                        _ => ReadingTheme.MutedText
                     };
 
                     _readinessLabel.Visible = true;
