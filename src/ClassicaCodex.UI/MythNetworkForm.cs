@@ -223,6 +223,20 @@ public class MythNetworkForm : ScaledForm
         var maxWeight = _canvas.MaxEdgeWeight;
         _thresholdTrackBar.Maximum = Math.Max(maxWeight, 1);
         _thresholdTrackBar.TickFrequency = Math.Max(maxWeight / 20, 1);
+
+        // Put the slider's value back into the canvas, because the two could
+        // otherwise disagree without either of them showing it.
+        //
+        // Setting Maximum makes WinForms clamp Value down to it, silently, and
+        // the canvas only ever heard about a new threshold from the Scroll
+        // handler - which a clamp does not raise. So switching co-occurrence
+        // mode from a dataset with heavy edges to one with light edges left
+        // the canvas filtering at the old, much higher number while the slider
+        // read the new, much lower one: every edge gone, the graph a field of
+        // unconnected circles, and nothing on screen to explain it. Dragging
+        // the slider fixed it, which is a poor thing to have to discover.
+        _thresholdValueLabel.Text = _thresholdTrackBar.Value.ToString();
+        _canvas.SetMinSharedWorks(_thresholdTrackBar.Value);
     }
 
     private async Task LoadPassagesAsync(string tagName)
