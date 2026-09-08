@@ -69,3 +69,9 @@ line telling a reader the removal had been complete when it had not.
 **1,133 tests, zero warnings on a clean build.** The release script now also
 refuses to finish if the libgit2 licence file is missing from the payload,
 alongside the checks it already made for the other three.
+
+The download is not code-signed, so if you would rather check it than trust it:
+
+```
+SHA-256  5DEABC1F5CFF27C18FC85580A50F487F22D80A9781F1B3444FC174691138DDD1
+```
