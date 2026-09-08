@@ -86,3 +86,9 @@ in 3.6.9 that turned out not to work.
 and the missing-space cases that were being lost, and — because the four-letter
 threshold looks arbitrary until you see what three would cost — the "noble
 mansions" case that sets it.
+
+The download is not code-signed, so if you would rather check it than trust it:
+
+```
+SHA-256  F9A54DE5F141DED9D08EF1A7A387910017F2E242C943767A6C5DEA7AE78007D5
+```
