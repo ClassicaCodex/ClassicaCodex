@@ -568,8 +568,6 @@ public class CreateTranslationForm : ScaledForm
             });
         }
 
-        await _editionRepo.ClearTextNodesAsync(_workingEditionId.Value);
-
         var nodesToSave = new List<TextNode>();
         var sortOrder = 0;
         foreach (var sourceNode in _sourceNodes)
@@ -596,14 +594,24 @@ public class CreateTranslationForm : ScaledForm
             });
         }
 
-        await _textNodeRepo.BulkInsertAsync(nodesToSave);
+        // Matched onto what is already there rather than cleared and
+        // rewritten. A line keeps its TextNodeId across saves, which matters
+        // because the word index is keyed on those ids.
+        //
+        // Clearing and re-inserting gave every line a new id on every batch.
+        // That orphaned all of this edition's index rows each time, and
+        // clearing the orphans meant a scan of the whole index - there is no
+        // access path to it by line id - so the save cost grew with the
+        // number of lines already translated. On a full corpus that reached
+        // fifteen minutes and more per batch, with SQLite's single write lock
+        // held throughout, which is enough to lock the reader out of its own
+        // library mid-run. Now a batch touches the lines it changed.
+        var changes = await _textNodeRepo.SyncEditionAsync(_workingEditionId.Value, nodesToSave);
 
         // Right after the TextNodes themselves, not before and not as a
         // separate step someone has to remember - this is the actual fix
         // for Create Translation silently going stale in Auto-Tag's
-        // lemma-expansion search. Edition-scoped, not a full corpus
-        // rebuild: a few thousand lines at most, so this stays fast enough
-        // to run after every single batch without slowing anything down.
+        // lemma-expansion search.
         //
         // ONLY WHEN THERE IS ALREADY AN INDEX TO KEEP FRESH, and that
         // condition is load-bearing rather than an optimisation.
@@ -621,9 +629,9 @@ public class CreateTranslationForm : ScaledForm
         // Keeping an existing index current is what this call is for.
         // Bootstrapping one from a single edition is not, and the Setup
         // Wizard is where a whole index gets built.
-        if (await _wordIndexRepo.HasDataAsync())
+        if (changes.Any && await _wordIndexRepo.HasDataAsync())
         {
-            await _wordIndexService.ReindexEditionAsync(_workingEditionId.Value);
+            await _wordIndexService.ApplyChangesAsync(changes);
         }
     }
 }

@@ -182,6 +182,65 @@ public class WordIndexService
     }
 
     /// <summary>
+    /// Keeps the index current for a handful of changed lines, without
+    /// touching anything else.
+    ///
+    /// This is what Create Translation uses now, and the difference from
+    /// ReindexEditionAsync is the whole point. That method clears the
+    /// edition's rows first, and clearing by edition means a skip-scan of the
+    /// entire index - about 2.2 million probes per line on a full corpus.
+    /// Saving after every batch paid that repeatedly, and the bill grew as
+    /// the translation got longer, because every batch re-indexed everything
+    /// translated so far.
+    ///
+    /// Here the caller already knows which lines changed and what they used
+    /// to say, so the rows to remove can be named exactly, and naming them
+    /// makes each one a primary-key seek. A batch of twenty translated lines
+    /// costs a few thousand seeks instead of tens of billions.
+    ///
+    /// The old text is not reconstructed or guessed: it comes from what the
+    /// database held before the write, which is why SyncEditionAsync returns
+    /// it rather than just reporting that something changed.
+    /// </summary>
+    public async Task ApplyChangesAsync(
+        TextNodeRepository.EditionTextChanges changes, CancellationToken cancellationToken = default)
+    {
+        if (!changes.Any) return;
+
+        var stale = new List<(string Word, long TextNodeId)>();
+        var fresh = new List<(string Word, long TextNodeId)>();
+
+        static void Collect(List<(string Word, long TextNodeId)> into, long id, string text)
+        {
+            var words = 0;
+            foreach (var word in TokenizeLine(text))
+            {
+                into.Add((word, id));
+                words++;
+            }
+
+            // The same wordless-line rule the two builders use. Skipping it
+            // here would leave a line that says only "-" counted as unindexed
+            // for ever, and the staleness check reads that count.
+            if (words == 0) into.Add((NoIndexableWordsMarker, id));
+        }
+
+        foreach (var (id, oldText, newText) in changes.Rewritten)
+        {
+            Collect(stale, id, oldText);
+            Collect(fresh, id, newText);
+        }
+
+        foreach (var (id, text) in changes.Removed) Collect(stale, id, text);
+        foreach (var (id, text) in changes.Added) Collect(fresh, id, text);
+
+        // Removed first. A word that survives a rewrite would otherwise be
+        // deleted after it was re-inserted, taking the live row with it.
+        await _wordIndexRepo.DeleteExactAsync(stale, cancellationToken);
+        await _wordIndexRepo.BulkInsertAsync(fresh, cancellationToken);
+    }
+
+    /// <summary>
     /// One line's distinct, normalized, indexable words - shared by both
     /// BuildAsync and ReindexEditionAsync so a full rebuild and an
     /// incremental one can never quietly disagree on what counts as a word.

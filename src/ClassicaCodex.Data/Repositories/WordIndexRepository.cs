@@ -108,6 +108,22 @@ public class WordIndexRepository
     /// insert) - the old index rows would otherwise point at ids that no
     /// longer exist, rather than just being absent.
     /// </summary>
+    /// <summary>
+    /// Removes every index row belonging to an edition.
+    ///
+    /// EXPENSIVE, and unavoidably so. This table is WITHOUT ROWID keyed
+    /// (NormalizedWord, TextNodeId), so there is no access path by line
+    /// alone: SQLite answers a WHERE on TextNodeId with a skip-scan, probing
+    /// once per distinct word. On a full corpus that is 2.2 million distinct
+    /// words, so the cost is roughly 2.2 million probes per line of the
+    /// edition - measured on a 70.8-million-row index, an edition of 8,088
+    /// lines had not finished after fifteen minutes, while an edition of no
+    /// lines took 1.4 seconds.
+    ///
+    /// Right for a whole-edition re-ingest, which happens once. Wrong for
+    /// keeping an index current as someone works, which is what
+    /// <see cref="DeleteExactAsync"/> is for.
+    /// </summary>
     public async Task DeleteByEditionAsync(int editionId, CancellationToken cancellationToken = default)
     {
         await using var conn = await DbConnectionFactory.OpenConnectionAsync(cancellationToken);
@@ -117,6 +133,48 @@ public class WordIndexRepository
         cmd.Parameters.AddWithValue("@EditionId", editionId);
         cmd.CommandTimeout = 60;
         await cmd.ExecuteNonQueryAsync(cancellationToken);
+    }
+
+    /// <summary>
+    /// Removes exactly these (word, line) pairs.
+    ///
+    /// Each one is a primary-key lookup, because the pair IS the primary key
+    /// - which is the whole reason this exists beside DeleteByEditionAsync.
+    /// Deleting the same rows by edition costs a skip-scan of the entire
+    /// index; naming them costs a seek apiece.
+    ///
+    /// The caller has to know which words a line contributed, which means
+    /// tokenizing the text as it stood BEFORE the change. Get that wrong and
+    /// rows are orphaned rather than removed - so the one caller reads the
+    /// old text out of the database rather than reconstructing it.
+    /// </summary>
+    public async Task DeleteExactAsync(
+        IReadOnlyCollection<(string Word, long TextNodeId)> entries,
+        CancellationToken cancellationToken = default)
+    {
+        if (entries.Count == 0) return;
+
+        await using var conn = await DbConnectionFactory.OpenConnectionAsync(cancellationToken);
+        await using var transaction = await conn.BeginTransactionAsync(cancellationToken);
+
+        await using (var cmd = conn.CreateCommand())
+        {
+            cmd.Transaction = (SqliteTransaction)transaction;
+            cmd.CommandText =
+                "DELETE FROM WordIndex WHERE NormalizedWord = @Word AND TextNodeId = @TextNodeId;";
+            var word = cmd.Parameters.Add("@Word", SqliteType.Text);
+            var node = cmd.Parameters.Add("@TextNodeId", SqliteType.Integer);
+
+            foreach (var entry in entries)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                word.Value = entry.Word;
+                node.Value = entry.TextNodeId;
+                await cmd.ExecuteNonQueryAsync(cancellationToken);
+            }
+        }
+
+        await transaction.CommitAsync(cancellationToken);
     }
 
     /// <summary>
