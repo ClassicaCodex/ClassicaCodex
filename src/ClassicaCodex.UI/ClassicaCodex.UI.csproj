@@ -5,9 +5,9 @@
     <TargetFramework>net8.0-windows</TargetFramework>
     <UseWindowsForms>true</UseWindowsForms>
     <Nullable>enable</Nullable>
-    <Version>3.6.8</Version>
-    <AssemblyVersion>3.6.8.0</AssemblyVersion>
-    <FileVersion>3.6.8.0</FileVersion>
+    <Version>3.6.9</Version>
+    <AssemblyVersion>3.6.9.0</AssemblyVersion>
+    <FileVersion>3.6.9.0</FileVersion>
     <ImplicitUsings>enable</ImplicitUsings>
     <RootNamespace>ClassicaCodex.UI</RootNamespace>
     <!-- Enables the compiler's structural checks on /// doc comments -
@@ -79,7 +79,65 @@
              CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
     <Content Include="..\..\THIRD-PARTY-NOTICES.md" Link="THIRD-PARTY-NOTICES.md"
              CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+
+    <!-- The runtime's own notices, carried verbatim from the runtime pack.
+         A self-contained build bundles the .NET runtime, and the runtime
+         bundles other people's code in turn - zlib and Brotli are compiled
+         into System.IO.Compression.Native.dll, and eleven of this file's
+         forty-four sections are BSD-family notices whose terms ask that they
+         be reproduced in binary redistributions. Ours is not the only notice
+         file that has to travel with the download. -->
+    <Content Include="..\..\THIRD-PARTY-NOTICES-DOTNET.txt" Link="THIRD-PARTY-NOTICES-DOTNET.txt"
+             CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>
+
+  <!--
+    PDFsharp ships PdfSharp.WPFonts.dll, and that assembly embeds six Microsoft
+    Segoe WP typefaces. Their own name tables read "Microsoft Corporation. All
+    Rights Reserved." and "You may use this font as permitted by the EULA for
+    the product in which this font is included" - the product being the Windows
+    Phone SDK, not this one. empira's MIT grant covers PDFsharp's code; it
+    cannot relicense Microsoft's typefaces, so every release up to 3.6.8
+    redistributed proprietary fonts under a notice claiming they were MIT.
+
+    Nothing here uses them. This application draws PDFs through PdfSharp.dll
+    with its own WindowsFontResolver, so the fonts and the sample resolver that
+    references them are dead weight with a licence attached.
+
+    PdfSharp.Snippets goes with it: it is PDFsharp's sample code, unused here,
+    and it holds the only reference to WPFonts - removing the fonts while
+    leaving the type that loads them is how a MissingAssembly turns up later.
+  -->
+  <Target Name="ExcludeProprietaryFonts"
+          AfterTargets="ComputeResolvedFilesToPublishList"
+          BeforeTargets="_ComputeFilesToBundle">
+    <!--
+      Gathered into a list first, then removed by that list. A Remove with a
+      metadata Condition on the item being removed does not batch the way it
+      reads: written that way this target ran, reported nothing, and left both
+      assemblies in the bundle. An Include with a Condition does batch over
+      metadata, so the two-step form is the one that actually works.
+
+      BeforeTargets is _ComputeFilesToBundle, not GenerateSingleFileBundle.
+      _ComputeFilesToBundle MOVES items - it copies ResolvedFileToPublish into
+      _FilesToBundle and then empties it - and it is a dependency of
+      GenerateSingleFileBundle, so it has already run by the time anything
+      "before" that target fires. Hooked there, this target reported both
+      assemblies excluded and both shipped anyway.
+    -->
+    <ItemGroup>
+      <_ProprietaryAssemblies Include="@(ResolvedFileToPublish)"
+                              Condition="'%(Filename)' == 'PdfSharp.WPFonts'
+                                      Or '%(Filename)' == 'PdfSharp.Snippets'" />
+      <ResolvedFileToPublish Remove="@(_ProprietaryAssemblies)" />
+      <ReferenceCopyLocalPaths Remove="@(_ProprietaryAssemblies)" />
+    </ItemGroup>
+
+    <Error Condition="'@(_ProprietaryAssemblies)' == ''"
+           Text="ExcludeProprietaryFonts matched nothing. Either PDFsharp stopped shipping PdfSharp.WPFonts, or it renamed it - check before assuming the fonts are gone." />
+
+    <Message Importance="high" Text="Excluded from the bundle: @(_ProprietaryAssemblies->'%(Filename)%(Extension)', ', ')" />
+  </Target>
 
   <ItemGroup>
     <!-- Shipped beside the executable; AppIcons loads them at runtime and

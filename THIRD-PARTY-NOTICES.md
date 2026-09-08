@@ -4,20 +4,52 @@ Classica Codex ships as one self-contained executable. The .NET runtime, and
 the libraries below, are compiled or bundled into it, so this file travels
 with the download rather than only with the source.
 
-Classica Codex's own licence is in `LICENSE` beside this file.
+Classica Codex's own licence is in `LICENSE.txt` beside this file.
+
+Versions are NuGet package versions, except for the native libraries, which
+carry the version of the binary actually bundled.
 
 | Component | Version | Licence | Copyright |
 |---|---|---|---|
-| .NET runtime and libraries | 8.0 | MIT | © Microsoft Corporation |
+| .NET runtime and libraries | 8.0.30 | MIT | © Microsoft Corporation |
 | Microsoft.Data.Sqlite, Microsoft.Data.Sqlite.Core | 8.0.8 | MIT | © Microsoft Corporation |
+| Microsoft.Extensions.Logging.Abstractions | 8.0.3 | MIT | © Microsoft Corporation |
+| Microsoft.Extensions.DependencyInjection.Abstractions | 8.0.2 | MIT | © Microsoft Corporation |
 | System.Speech | 8.0.0 | MIT | © Microsoft Corporation |
 | System.Security.Cryptography.ProtectedData | 8.0.0 | MIT | © Microsoft Corporation |
-| DocumentFormat.OpenXml | 3.0.2 | MIT | © Microsoft Corporation |
+| DocumentFormat.OpenXml, DocumentFormat.OpenXml.Framework | 3.0.2 | MIT | © Microsoft Corporation |
 | PDFsharp | 6.2.4 | MIT | © PDFsharp Team, empira Software GmbH |
 | LibGit2Sharp | 0.32.0 | MIT | © LibGit2Sharp contributors |
 | SQLitePCLRaw (core, bundle_e_sqlite3, provider.e_sqlite3, lib.e_sqlite3) | 2.1.6 | Apache-2.0 | © 2014-2023 SourceGear, LLC |
-| libgit2 (`git2-5853918.dll`, via LibGit2Sharp.NativeBinaries 2.0.324) | 2.0.324 | GPLv2 with linking exception | © the libgit2 contributors |
-| SQLite (`e_sqlite3.dll`, via SQLitePCLRaw) | 3.x | Public domain | — |
+| libgit2 (`git2-5853918.dll`, via LibGit2Sharp.NativeBinaries 2.0.324) | 1.8.6 | GPLv2 with linking exception | © the libgit2 contributors |
+| SQLite (`e_sqlite3.dll`, via SQLitePCLRaw) | 3.41.2 | Public domain | — |
+
+## The .NET runtime's own notices
+
+A self-contained build bundles the .NET runtime, and the runtime bundles other
+people's code in turn — zlib and Brotli are compiled into
+`System.IO.Compression.Native.dll`, among others. Those notices are reproduced
+verbatim in **`THIRD-PARTY-NOTICES-DOTNET.txt`**, beside this file: forty-four
+sections, eleven of them BSD-family terms that ask to be reproduced in binary
+redistributions such as this one.
+
+## Fonts, and what is deliberately not here
+
+PDFsharp ships an assembly, `PdfSharp.WPFonts.dll`, which embeds six Microsoft
+Segoe WP typefaces. Their own metadata reads "Microsoft Corporation. All Rights
+Reserved." and "You may use this font as permitted by the EULA for the product
+in which this font is included" — the product being the Windows Phone SDK.
+empira's MIT grant covers PDFsharp's own code and cannot relicense Microsoft's
+typefaces.
+
+Releases up to and including 3.6.8 bundled that assembly and described the
+whole of PDFsharp as MIT, which was wrong. It is excluded from the build as of
+3.6.9, along with `PdfSharp.Snippets.dll`, which was the only thing referencing
+it. This application draws PDFs through `PdfSharp.dll` and its own font
+resolver, so neither was ever used.
+
+No font is redistributed with this application. PDFs are drawn with fonts
+already installed on the machine that makes them.
 
 ## SQLite
 

@@ -99,10 +99,66 @@ Get-ChildItem $payload -Filter '*.pdb' | Remove-Item -Force
 
 # The licence and notices come from the project file, so their absence means
 # that broke rather than that someone forgot a copy step.
-foreach ($required in 'ClassicaCodex.UI.exe', 'LICENSE.txt', 'THIRD-PARTY-NOTICES.md') {
+foreach ($required in 'ClassicaCodex.UI.exe', 'LICENSE.txt', 'THIRD-PARTY-NOTICES.md',
+                      'THIRD-PARTY-NOTICES-DOTNET.txt') {
     if (-not (Test-Path (Join-Path $payload $required))) { throw "$required is missing from the publish output." }
 }
 if (-not (Test-Path (Join-Path $payload 'Icons'))) { throw 'The Icons folder is missing from the publish output.' }
+
+# Nothing here may redistribute someone else's fonts. PdfSharp.WPFonts.dll
+# embeds Microsoft's Segoe WP typefaces under a EULA that has nothing to do
+# with this application, and it arrived silently as part of a PDFsharp package
+# reference - no .csproj ever named it.
+#
+# Searched inside the executable, not beside it. This is a single-file build:
+# every dependency is bundled into ClassicaCodex.UI.exe and NOTHING else is on
+# disk to test for. The first version of this check called Test-Path on the
+# payload folder, passed cheerfully, and let a build ship with the fonts still
+# in it - a check that cannot fail is worse than no check, because it is
+# reported as a pass.
+# The test is for the FONT DATA, not for the assembly's name.
+#
+# "PdfSharp.WPFonts.dll" legitimately survives in the executable even when the
+# assembly is gone: the single-file bundle embeds a deps.json manifest that
+# lists every asset the package graph resolved, and that manifest is metadata,
+# not payload. Testing for the name failed a build that had correctly dropped
+# the fonts, which is the mirror of the earlier mistake - one check that could
+# not fail, then one that could not pass.
+#
+# What cannot be there if the fonts are not there is the fonts' own name-table
+# text, which is UTF-16, so the nulls come out first. Excluded: 6 occurrences
+# of the EULA line and the Segoe WP family names. Included: none.
+# Decoded in one pass as UTF-16, rather than filtered byte by byte. Piping
+# 180 million bytes through Where-Object to strip nulls does work and takes
+# longer than the build it is checking; Encoding.Unicode.GetString reads the
+# whole file once. Most of the result is nonsense, which does not matter - the
+# only question is whether these particular strings are in it.
+$exePath = Join-Path $payload 'ClassicaCodex.UI.exe'
+$raw = [System.IO.File]::ReadAllBytes($exePath)
+
+# Three decodes, because one is not enough to be sure.
+#
+# UTF-16 needs two-byte alignment, and a string starting at an odd offset in
+# the file decodes to nothing recognisable - checking only the even alignment
+# found one of the three markers in a build that contained all three. The
+# odd-offset pass is the same bytes shifted by one, and the ASCII pass catches
+# any marker stored single-byte.
+$views = @(
+    [System.Text.Encoding]::Unicode.GetString($raw)
+    [System.Text.Encoding]::Unicode.GetString($raw, 1, $raw.Length - 1)
+    [System.Text.Encoding]::ASCII.GetString($raw)
+)
+$raw = $null
+
+foreach ($marker in 'You may use this font as permitted by the EULA', 'Segoe WP Bold', 'Segoe WP Semilight') {
+    foreach ($view in $views) {
+        if ($view.Contains($marker)) {
+            throw "The executable contains font data matching '$marker'. This application redistributes no fonts - check the ExcludeProprietaryFonts target in ClassicaCodex.UI.csproj."
+        }
+    }
+}
+$views = $null
+[System.GC]::Collect()
 
 Add-Type -AssemblyName System.IO.Compression
 Add-Type -AssemblyName System.IO.Compression.FileSystem
