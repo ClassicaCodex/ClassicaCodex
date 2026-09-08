@@ -5,9 +5,9 @@
     <TargetFramework>net8.0-windows</TargetFramework>
     <UseWindowsForms>true</UseWindowsForms>
     <Nullable>enable</Nullable>
-    <Version>3.6.9</Version>
-    <AssemblyVersion>3.6.9.0</AssemblyVersion>
-    <FileVersion>3.6.9.0</FileVersion>
+    <Version>3.6.10</Version>
+    <AssemblyVersion>3.6.10.0</AssemblyVersion>
+    <FileVersion>3.6.10.0</FileVersion>
     <ImplicitUsings>enable</ImplicitUsings>
     <RootNamespace>ClassicaCodex.UI</RootNamespace>
     <!-- Enables the compiler's structural checks on /// doc comments -
@@ -104,9 +104,19 @@
     with its own WindowsFontResolver, so the fonts and the sample resolver that
     references them are dead weight with a licence attached.
 
-    PdfSharp.Snippets goes with it: it is PDFsharp's sample code, unused here,
-    and it holds the only reference to WPFonts - removing the fonts while
-    leaving the type that loads them is how a MissingAssembly turns up later.
+    PdfSharp.Snippets and PdfSharp.Quality go with it. Both are PDFsharp's own
+    sample and benchmark scaffolding, neither is referenced from anywhere in
+    this solution, and between them they hold every reference to WPFonts -
+    removing the fonts while leaving an assembly that loads them is how a
+    FileNotFoundException turns up later, in the one code path nobody tested.
+
+    Quality was missed when 3.6.9 removed the other two, so 3.6.9 shipped it
+    carrying a reference to an assembly no longer in the bundle. Nothing
+    reaches it - PdfSharp.dll itself references only PdfSharp.Shared and
+    PdfSharp.System, so the loader never has cause to resolve Quality - but
+    "unreachable" is what was said about two checks that turned out not to
+    work, and a dangling reference is not something to leave in a shipped
+    binary on that basis.
   -->
   <Target Name="ExcludeProprietaryFonts"
           AfterTargets="ComputeResolvedFilesToPublishList"
@@ -128,7 +138,8 @@
     <ItemGroup>
       <_ProprietaryAssemblies Include="@(ResolvedFileToPublish)"
                               Condition="'%(Filename)' == 'PdfSharp.WPFonts'
-                                      Or '%(Filename)' == 'PdfSharp.Snippets'" />
+                                      Or '%(Filename)' == 'PdfSharp.Snippets'
+                                      Or '%(Filename)' == 'PdfSharp.Quality'" />
       <ResolvedFileToPublish Remove="@(_ProprietaryAssemblies)" />
       <ReferenceCopyLocalPaths Remove="@(_ProprietaryAssemblies)" />
     </ItemGroup>

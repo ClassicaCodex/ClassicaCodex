@@ -90,6 +90,81 @@ public class PlaceNameSearchTests
     }
 
     /// <summary>
+    /// A phrase does not always sit on whole-word boundaries. "the Persian
+    /// and Arabian Gulfs" is a mention of the Arabian Gulf, but the index
+    /// holds "gulfs", not "gulf" - and the exact conjunct that 3.6.6 shipped
+    /// rejected it. Three real mentions of that pin were lost this way.
+    /// </summary>
+    [Fact]
+    public async Task APluralStillCountsAsAMention()
+    {
+        using var db = await TempDatabase.CreateAsync();
+        await SeedAsync(db, buildIndex: true,
+            "beyond lie the Persian and Arabian Gulfs, and the coast of Ethiopia");
+
+        var hits = await new TextNodeRepository().SearchPhraseAsync("Arabian Gulf", 50);
+
+        Assert.Equal(1, hits.Count);
+    }
+
+    /// <summary>
+    /// Strabo's text runs a word into the next where the source has no space
+    /// after a quotation mark, so the token is "thebesand". The phrase is
+    /// still there to read.
+    /// </summary>
+    [Fact]
+    public async Task AWordRunIntoTheNextByMissingPunctuationStillCounts()
+    {
+        using var db = await TempDatabase.CreateAsync();
+        await SeedAsync(db, buildIndex: true,
+            "nor all that comes to Egyptian Thebes.”And of its power there is this proof");
+
+        var hits = await new TextNodeRepository().SearchPhraseAsync("Egyptian Thebes", 50);
+
+        Assert.Equal(1, hits.Count);
+    }
+
+    /// <summary>
+    /// Why prefix matching stops at four letters, kept as a test because the
+    /// threshold looks arbitrary until you see what three would cost.
+    ///
+    /// "Le Mans" is not in this corpus at all, but "noble mansions" and "ille
+    /// mansuetudine" contain its letters. Matching "le" by prefix would find
+    /// some word beginning "le" in almost any passage - "less", "left",
+    /// "legions" - so the conjunct would stop excluding anything and the pin
+    /// would answer with twenty-two passages about mansions.
+    /// </summary>
+    [Fact]
+    public async Task AShortWordIsNotMatchedByPrefix()
+    {
+        using var db = await TempDatabase.CreateAsync();
+        await SeedAsync(db, buildIndex: true,
+            "gold and ivory and noble mansions are of little worth",
+            "euery idle mans suite, and busie letters, were left unread");
+
+        var hits = await new TextNodeRepository().SearchPhraseAsync("Le Mans", 50);
+
+        Assert.Equal(0, hits.Count);
+    }
+
+    /// <summary>
+    /// Prefix matching widens the candidates, never the answer: the phrase
+    /// itself is still required, so a longer word sharing a prefix is not a
+    /// mention.
+    /// </summary>
+    [Fact]
+    public async Task ALongerWordSharingAPrefixIsNotAMention()
+    {
+        using var db = await TempDatabase.CreateAsync();
+        await SeedAsync(db, buildIndex: true,
+            "the Thebaid and the Egyptians were counted among them");
+
+        var hits = await new TextNodeRepository().SearchPhraseAsync("Egyptian Thebes", 50);
+
+        Assert.Equal(0, hits.Count);
+    }
+
+    /// <summary>
     /// The other way to be wrong. Requiring both words but not the phrase
     /// would call this a mention of Egyptian Thebes; it is not one.
     /// </summary>
