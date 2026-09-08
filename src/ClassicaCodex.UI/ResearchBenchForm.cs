@@ -80,12 +80,17 @@ public class ResearchBenchForm : ScaledForm
         ReadingTheme.AttachTo(this, () =>
         {
             _statusLine.ForeColor = ReadingTheme.MutedText;
-            _openAnalysis.LinkColor = ReadingTheme.IsDark
-                ? Color.FromArgb(115, 180, 245)
-                : Color.FromArgb(0, 70, 140);
-            _openAnalysis.ActiveLinkColor = ReadingTheme.SelectionText;
-            _sourceFiles.LinkColor = _openAnalysis.LinkColor;
-            _sourceFiles.ActiveLinkColor = ReadingTheme.SelectionText;
+
+            // Through the theme now, not by hand. These four lines carried the
+            // literals this window chose before the theme knew LinkColor
+            // existed - and kept its own copy of the pressed-state colour
+            // after 3.6.8 changed the shared one, so a fix applied everywhere
+            // else stopped here. Apply already themes both of these links;
+            // this callback only needs to not undo it.
+            _openAnalysis.LinkColor = ReadingTheme.LinkText;
+            _openAnalysis.ActiveLinkColor = ReadingTheme.ActiveLinkText;
+            _sourceFiles.LinkColor = ReadingTheme.LinkText;
+            _sourceFiles.ActiveLinkColor = ReadingTheme.ActiveLinkText;
         });
         WindowShortcuts.CloseOnEscape(this);
         Shown += async (_, _) =>

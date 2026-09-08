@@ -735,9 +735,29 @@ public class TextNodeRepository
     /// More than one word requires every word through the index - each lookup
     /// is a prefix seek on the index's own primary key, so this stays cheap -
     /// and then requires the phrase itself to be present, so "Egyptian Thebes"
-    /// does not match a line carrying both words a paragraph apart. Together
-    /// the two conditions return exactly the lines a substring search would
-    /// have found, without reading every line in the corpus to find them.
+    /// does not match a line carrying both words a paragraph apart.
+    ///
+    /// This is NOT the same set a substring search returns, and it is not
+    /// meant to be. It is deliberately smaller: "Le Mans" as a substring
+    /// matches "noble mansions", "ille mansuetudine" and "noble mans house",
+    /// thirty passages of which none is the city, and requiring both words as
+    /// words is what removes them.
+    ///
+    /// It is also, in two ways, slightly smaller than it should be, both
+    /// measured rather than supposed:
+    ///
+    ///  - A spelling variant in the middle of a word is missed. Strabo's
+    ///    "Aegyptian Thebes" matches the phrase but tokenizes to "aegyptian",
+    ///    which no prefix of "egyptian" reaches. One mention across the map's
+    ///    nine multi-word pins.
+    ///
+    ///  - Accents and non-ASCII case are matched inconsistently between the
+    ///    two branches. The index holds normalized words, so a one-word search
+    ///    finds Tanais and Tanaïs alike; the phrase LIKE uses SQLite's default
+    ///    collation, which folds ASCII only, so a two-word phrase typed
+    ///    without its accents finds nothing. Fixing that needs a normalized
+    ///    copy of the text to match against, which is a schema change, not a
+    ///    query change.
     /// </summary>
     public async Task<SearchHits> SearchPhraseAsync(
         string phrase, int maxResults = DefaultMaxResults,
@@ -761,6 +781,29 @@ public class TextNodeRepository
         // for a phrase already - it is only slower, and it is what this did
         // before the index path existed.
         return await SearchAsync(phrase, maxResults, cancellationToken);
+    }
+
+    /// <summary>
+    /// Words at least this long are matched by prefix in a phrase search, so
+    /// that a plural or a word run together with the next by missing
+    /// punctuation still counts. See TrySearchPhraseViaWordIndexAsync for why
+    /// it is four and not three or five.
+    /// </summary>
+    private const int PrefixMatchFromLength = 4;
+
+    /// <summary>
+    /// The exclusive upper bound of a prefix range: everything that starts
+    /// with <paramref name="word"/> sorts at or after it and before this.
+    ///
+    /// The index compares with SQLite's default BINARY collation, which orders
+    /// UTF-8 bytes - and UTF-8 preserves code point order, so incrementing the
+    /// last code point gives a correct bound for Greek and Latin alike.
+    /// </summary>
+    private static string PrefixUpperBound(string word)
+    {
+        var chars = word.ToCharArray();
+        chars[^1]++;
+        return new string(chars);
     }
 
     /// <summary>
@@ -794,9 +837,45 @@ public class TextNodeRepository
         var required = new List<string>();
         for (var i = 0; i < words.Count && i < MaxFormsPerQuery; i++)
         {
-            required.Add(
-                $"tn.TextNodeId IN (SELECT TextNodeId FROM WordIndex WHERE NormalizedWord = @w{i})");
-            cmd.Parameters.AddWithValue($"@w{i}", words[i]);
+            var word = words[i];
+
+            // A word of four letters or more is matched by prefix, not
+            // exactly. The index holds whole words, and a phrase does not
+            // always sit on whole-word boundaries in the text: "the Persian
+            // and Arabian Gulfs" tokenizes "Gulfs", which is not "gulf", and
+            // Strabo's "to Egyptian Thebes."And of its power" has no space
+            // after the quotation mark, so the token is "thebesand". The
+            // phrase LIKE below matches both; the exact conjunct rejected
+            // them, losing five real mentions across the map's nine
+            // multi-word pins.
+            //
+            // Four is the threshold because shorter words are too ambiguous
+            // to prefix. "Le Mans" is the case that sets it: "le" as a prefix
+            // matches "less", "left", "legions" - some word in almost any
+            // passage - so the conjunct stops excluding anything and the pin
+            // returns "noble mansions" and "ille mansuetudine" again. Those
+            // twenty-two are exactly the noise this whole path exists to
+            // remove. Measured over all nine pins: at four, Le Mans stays at
+            // nothing and the five real mentions come back; at five, "gulf"
+            // falls below the threshold and three of them are lost again.
+            //
+            // Widening this can only ever add candidates - the phrase LIKE
+            // stays the precision filter - which is why it costs nothing in
+            // accuracy and 1-26ms in time.
+            if (word.Length >= PrefixMatchFromLength)
+            {
+                required.Add(
+                    $"tn.TextNodeId IN (SELECT TextNodeId FROM WordIndex " +
+                    $"WHERE NormalizedWord >= @w{i} AND NormalizedWord < @wend{i})");
+                cmd.Parameters.AddWithValue($"@w{i}", word);
+                cmd.Parameters.AddWithValue($"@wend{i}", PrefixUpperBound(word));
+            }
+            else
+            {
+                required.Add(
+                    $"tn.TextNodeId IN (SELECT TextNodeId FROM WordIndex WHERE NormalizedWord = @w{i})");
+                cmd.Parameters.AddWithValue($"@w{i}", word);
+            }
         }
 
         cmd.Parameters.AddWithValue("@Phrase", $"%{EscapeLikeWildcards(phrase.Trim())}%");

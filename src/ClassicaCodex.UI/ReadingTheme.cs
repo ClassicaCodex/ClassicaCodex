@@ -80,6 +80,24 @@ public static class ReadingTheme
     /// </summary>
     public static Color LinkText => IsDark ? Color.FromArgb(115, 180, 245) : Color.FromArgb(0, 70, 140);
 
+    /// <summary>
+    /// A link while the mouse is held down on it.
+    ///
+    /// Not SelectionText, which is what 3.6.8 used. SelectionText is meant for
+    /// text drawn on SelectionBackground, and in light mode it is the system
+    /// highlight foreground - pure white. A LinkLabel is given a transparent
+    /// background, so it paints on the page instead: white on the parchment
+    /// background is 1.23:1, and on the lighter surface 1.07:1. The WinForms
+    /// default it replaced was red, at 3.25:1 - so that change made the
+    /// pressed state worse rather than better on every link in the
+    /// application.
+    ///
+    /// This is a colour for text on the page: 10.21:1 on the dark background,
+    /// 5.79:1 on the light one, and far enough round the wheel from LinkText
+    /// to read as a press rather than as the same colour.
+    /// </summary>
+    public static Color ActiveLinkText => IsDark ? Color.FromArgb(255, 190, 120) : Color.FromArgb(150, 60, 0);
+
     public static Color SelectionBackground => IsDark ? Color.FromArgb(38, 79, 120) : SystemColors.Highlight;
 
     public static Color SelectionText => IsDark ? Color.FromArgb(245, 243, 238) : SystemColors.HighlightText;
@@ -684,7 +702,7 @@ public static class ReadingTheme
                 link.BackColor = Color.Transparent;
                 link.ForeColor = Text;
                 link.LinkColor = LinkText;
-                link.ActiveLinkColor = SelectionText;
+                link.ActiveLinkColor = ActiveLinkText;
 
                 // Visited defaults to purple, 1.77:1 on the dark surface -
                 // worse than the unvisited blue this is fixing. These links go
@@ -770,8 +788,23 @@ public static class ReadingTheme
     /// both palettes' muted colors so a mode switch doesn't permanently
     /// promote a hint label to full-contrast body text.
     /// </summary>
+    /// <summary>
+    /// Whether a label is already carrying a muted colour, and should keep one
+    /// rather than being promoted to body text.
+    ///
+    /// This has to recognise every value MutedText has ever returned, not just
+    /// the current pair, because Apply runs more than once on the same label -
+    /// at construction, at Shown, and again on every theme toggle. 3.6.8 moved
+    /// the light value off DimGray to clear the 4.5:1 minimum and did not add
+    /// the new value here, so the round-trip broke: pass one muted a label
+    /// correctly, pass two no longer recognised what pass one had written and
+    /// promoted it to full-strength text. The reading pane's two reference
+    /// strips are built with MutedText directly, so they lost their muting on
+    /// the first Apply rather than the second.
+    /// </summary>
     private static bool IsSubduedLabel(Label label) =>
         label.ForeColor == Color.DimGray
+        || label.ForeColor == Color.FromArgb(102, 102, 102)
         || label.ForeColor == Color.FromArgb(150, 148, 142)
         || label.ForeColor == Color.DarkSlateGray;
 
