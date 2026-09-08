@@ -100,3 +100,9 @@ script, which now refuses to finish if the font data is present, if the licence
 or notice files are missing, if the archive has no icons, if entry names carry
 backslashes, if the build path survived into the executable, or if the working
 tree was dirty when the commit stamp was read.
+
+The download is not code-signed, so if you would rather check it than trust it:
+
+```
+SHA-256  6E3025FC75989D68235A57181FB0812E12D687DC1C51F66221A5A5588554E495
+```
