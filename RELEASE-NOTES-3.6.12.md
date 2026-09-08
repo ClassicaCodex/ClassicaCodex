@@ -83,3 +83,9 @@ them in, and also clears the orphaned rows the old save path left behind.
 part that is easy to get wrong: that a word common to both the old and new
 version of a line survives being rewritten, because the withdrawal and the
 re-indexing overlap on exactly that word.
+
+The download is not code-signed, so if you would rather check it than trust it:
+
+```
+SHA-256  7EF901792A40B7D1CE8AAF6BD82D9DFA3BE33C7E9DF454C4BED7460147BEEB0A
+```
