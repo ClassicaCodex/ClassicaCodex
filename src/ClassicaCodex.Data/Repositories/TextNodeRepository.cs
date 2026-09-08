@@ -1375,6 +1375,142 @@ public class TextNodeRepository
     }
 
     /// <summary>
+    /// What <see cref="SyncEditionAsync"/> changed, in the form the word
+    /// index needs to keep itself current: which lines were rewritten and
+    /// what they used to say, which are new, and which are gone.
+    ///
+    /// The old text is carried because the index is keyed on the words a
+    /// line contained, and after the line has been rewritten there is no
+    /// other way to know what those were.
+    /// </summary>
+    public sealed class EditionTextChanges
+    {
+        public List<(long TextNodeId, string OldText, string NewText)> Rewritten { get; } = new();
+        public List<(long TextNodeId, string Text)> Added { get; } = new();
+        public List<(long TextNodeId, string Text)> Removed { get; } = new();
+
+        public bool Any => Rewritten.Count > 0 || Added.Count > 0 || Removed.Count > 0;
+    }
+
+    /// <summary>
+    /// Brings an edition's lines into line with what the caller wants them to
+    /// be, matching on citation reference, and says what it changed.
+    ///
+    /// The point is that a line keeps its TextNodeId. The obvious way to do
+    /// this - delete the edition's lines and insert the new set - gives every
+    /// line a new id on every save, and that has two costs that are easy to
+    /// miss. The word index is keyed on line ids, so every row it holds for
+    /// this edition is orphaned each time; and the only way to clear those
+    /// orphans afterwards is a scan of the whole index, because nothing can
+    /// find rows by line id. Create Translation saved after every batch, so a
+    /// long run paid both costs once per batch, and the cost of the second
+    /// grew with the number of lines already translated.
+    ///
+    /// Matching is on citation reference because that is what the two sides
+    /// of a translation genuinely share. Sort order and node kind are
+    /// updated in place when they differ; a line whose text is unchanged is
+    /// not touched at all, and does not appear in the result.
+    /// </summary>
+    public async Task<EditionTextChanges> SyncEditionAsync(
+        int editionId, IReadOnlyList<TextNode> desired, CancellationToken cancellationToken = default)
+    {
+        var changes = new EditionTextChanges();
+
+        await using var conn = await DbConnectionFactory.OpenConnectionAsync(cancellationToken);
+        await using var transaction = await conn.BeginTransactionAsync(cancellationToken);
+
+        // Existing lines by citation reference. A duplicate reference should
+        // not happen and is not an error worth throwing over - the first is
+        // kept and the rest are treated as lines that should no longer exist,
+        // which is how they get cleaned up rather than accumulating.
+        var existing = new Dictionary<string, (long Id, string Text, int SortOrder, string NodeKind)>(StringComparer.Ordinal);
+        var surplus = new List<(long Id, string Text)>();
+
+        await using (var read = conn.CreateCommand())
+        {
+            read.Transaction = (SqliteTransaction)transaction;
+            read.CommandText =
+                "SELECT TextNodeId, CitationRef, Text, SortOrder, NodeKind FROM TextNodes WHERE EditionId = @EditionId;";
+            read.Parameters.AddWithValue("@EditionId", editionId);
+
+            await using var reader = await read.ExecuteReaderAsync(cancellationToken);
+            while (await reader.ReadAsync(cancellationToken))
+            {
+                var row = (reader.GetInt64(0), reader.GetString(2), reader.GetInt32(3), reader.GetString(4));
+                var citation = reader.GetString(1);
+                if (!existing.TryAdd(citation, row)) surplus.Add((row.Item1, row.Item2));
+            }
+        }
+
+        var wanted = new HashSet<string>(StringComparer.Ordinal);
+
+        foreach (var node in desired)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            wanted.Add(node.CitationRef);
+
+            if (existing.TryGetValue(node.CitationRef, out var current))
+            {
+                var textChanged = !string.Equals(current.Text, node.Text, StringComparison.Ordinal);
+                var shapeChanged = current.SortOrder != node.SortOrder
+                                   || !string.Equals(current.NodeKind, node.NodeKind, StringComparison.Ordinal);
+                if (!textChanged && !shapeChanged) continue;
+
+                await using var update = conn.CreateCommand();
+                update.Transaction = (SqliteTransaction)transaction;
+                update.CommandText =
+                    "UPDATE TextNodes SET Text = @Text, SortOrder = @SortOrder, NodeKind = @NodeKind " +
+                    "WHERE TextNodeId = @TextNodeId;";
+                update.Parameters.AddWithValue("@Text", node.Text);
+                update.Parameters.AddWithValue("@SortOrder", node.SortOrder);
+                update.Parameters.AddWithValue("@NodeKind", node.NodeKind);
+                update.Parameters.AddWithValue("@TextNodeId", current.Id);
+                await update.ExecuteNonQueryAsync(cancellationToken);
+
+                if (textChanged) changes.Rewritten.Add((current.Id, current.Text, node.Text));
+                continue;
+            }
+
+            await using var insert = conn.CreateCommand();
+            insert.Transaction = (SqliteTransaction)transaction;
+            insert.CommandText =
+                "INSERT INTO TextNodes (EditionId, CitationRef, SortOrder, Text, IsAthetized, NodeKind, IsVerse, Milestone) " +
+                "VALUES (@EditionId, @CitationRef, @SortOrder, @Text, @IsAthetized, @NodeKind, @IsVerse, @Milestone); " +
+                "SELECT last_insert_rowid();";
+            insert.Parameters.AddWithValue("@EditionId", editionId);
+            insert.Parameters.AddWithValue("@CitationRef", node.CitationRef);
+            insert.Parameters.AddWithValue("@SortOrder", node.SortOrder);
+            insert.Parameters.AddWithValue("@Text", node.Text);
+            insert.Parameters.AddWithValue("@IsAthetized", node.IsAthetized ? 1 : 0);
+            insert.Parameters.AddWithValue("@NodeKind", node.NodeKind);
+            insert.Parameters.AddWithValue("@IsVerse", node.IsVerse ? 1 : 0);
+            insert.Parameters.AddWithValue("@Milestone", (object?)node.Milestone ?? DBNull.Value);
+
+            var newId = Convert.ToInt64(await insert.ExecuteScalarAsync(cancellationToken));
+            changes.Added.Add((newId, node.Text));
+        }
+
+        foreach (var (citation, row) in existing)
+        {
+            if (wanted.Contains(citation)) continue;
+            surplus.Add((row.Id, row.Text));
+        }
+
+        foreach (var (id, text) in surplus)
+        {
+            await using var delete = conn.CreateCommand();
+            delete.Transaction = (SqliteTransaction)transaction;
+            delete.CommandText = "DELETE FROM TextNodes WHERE TextNodeId = @TextNodeId;";
+            delete.Parameters.AddWithValue("@TextNodeId", id);
+            await delete.ExecuteNonQueryAsync(cancellationToken);
+            changes.Removed.Add((id, text));
+        }
+
+        await transaction.CommitAsync(cancellationToken);
+        return changes;
+    }
+
+    /// <summary>
     /// Saves one translated line, replacing whatever was there for that
     /// citation reference.
     ///
@@ -1388,11 +1524,40 @@ public class TextNodeRepository
     /// that keeps "how much is done" an honest count of real work, which is
     /// what the progress figure and the resume point both read.
     /// </summary>
-    public async Task SaveTranslatedLineAsync(
+    /// <returns>
+    /// What changed, in the shape the word index needs. Nothing else in this
+    /// method's behaviour changed when that return value was added; the
+    /// caller could not previously keep the index current because it was
+    /// never told what had happened, and so it did not try.
+    /// </returns>
+    public async Task<EditionTextChanges> SaveTranslatedLineAsync(
         int editionId, string citationRef, int sortOrder, string? text,
         CancellationToken cancellationToken = default)
     {
+        var changes = new EditionTextChanges();
+
         await using var conn = await DbConnectionFactory.OpenConnectionAsync(cancellationToken);
+
+        // What is there now, before anything is written. Both branches need
+        // it: to delete a line's index rows you have to know the words it
+        // contributed, and after the write there is no way to find out.
+        long existingId = 0;
+        string existingText = string.Empty;
+        await using (var look = conn.CreateCommand())
+        {
+            look.CommandText =
+                "SELECT TextNodeId, Text FROM TextNodes WHERE EditionId = @EditionId AND CitationRef = @CitationRef " +
+                "ORDER BY TextNodeId LIMIT 1;";
+            look.Parameters.AddWithValue("@EditionId", editionId);
+            look.Parameters.AddWithValue("@CitationRef", citationRef);
+            await using var reader = await look.ExecuteReaderAsync(cancellationToken);
+            if (await reader.ReadAsync(cancellationToken))
+            {
+                existingId = reader.GetInt64(0);
+                existingText = reader.GetString(1);
+            }
+        }
+
         await using var cmd = conn.CreateCommand();
 
         if (string.IsNullOrWhiteSpace(text))
@@ -1402,20 +1567,53 @@ public class TextNodeRepository
             cmd.Parameters.AddWithValue("@EditionId", editionId);
             cmd.Parameters.AddWithValue("@CitationRef", citationRef);
             await cmd.ExecuteNonQueryAsync(cancellationToken);
-            return;
+            if (existingId != 0) changes.Removed.Add((existingId, existingText));
+            return changes;
+        }
+
+        var trimmed = text.Trim();
+
+        // Updated in place when the line already exists, rather than deleted
+        // and re-inserted. The old pair of statements gave the line a new
+        // TextNodeId every time it was saved, and the word index is keyed on
+        // that id - so each edit orphaned the line's index rows and the only
+        // way to find them again was a scan of the whole index.
+        if (existingId != 0)
+        {
+            if (string.Equals(existingText, trimmed, StringComparison.Ordinal))
+            {
+                // Still worth writing the sort order, which can move without
+                // the text changing, but there is nothing for the index here.
+                cmd.CommandText = "UPDATE TextNodes SET SortOrder = @SortOrder WHERE TextNodeId = @TextNodeId;";
+                cmd.Parameters.AddWithValue("@SortOrder", sortOrder);
+                cmd.Parameters.AddWithValue("@TextNodeId", existingId);
+                await cmd.ExecuteNonQueryAsync(cancellationToken);
+                return changes;
+            }
+
+            cmd.CommandText =
+                "UPDATE TextNodes SET Text = @Text, SortOrder = @SortOrder WHERE TextNodeId = @TextNodeId;";
+            cmd.Parameters.AddWithValue("@Text", trimmed);
+            cmd.Parameters.AddWithValue("@SortOrder", sortOrder);
+            cmd.Parameters.AddWithValue("@TextNodeId", existingId);
+            await cmd.ExecuteNonQueryAsync(cancellationToken);
+            changes.Rewritten.Add((existingId, existingText, trimmed));
+            return changes;
         }
 
         cmd.CommandText = @"
-            DELETE FROM TextNodes WHERE EditionId = @EditionId AND CitationRef = @CitationRef;
             INSERT INTO TextNodes (EditionId, CitationRef, SortOrder, Text)
-            VALUES (@EditionId, @CitationRef, @SortOrder, @Text);";
+            VALUES (@EditionId, @CitationRef, @SortOrder, @Text);
+            SELECT last_insert_rowid();";
 
         cmd.Parameters.AddWithValue("@EditionId", editionId);
         cmd.Parameters.AddWithValue("@CitationRef", citationRef);
         cmd.Parameters.AddWithValue("@SortOrder", sortOrder);
-        cmd.Parameters.AddWithValue("@Text", text.Trim());
+        cmd.Parameters.AddWithValue("@Text", trimmed);
 
-        await cmd.ExecuteNonQueryAsync(cancellationToken);
+        var newId = Convert.ToInt64(await cmd.ExecuteScalarAsync(cancellationToken));
+        changes.Added.Add((newId, trimmed));
+        return changes;
     }
 
     /// <summary>Author/work/citation context for a single text node - used by the reception tracker.</summary>

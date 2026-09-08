@@ -64,6 +64,8 @@ public class TranslationWorkbenchForm : ScaledForm
     private readonly LemmaRepository _lemmaRepo = new();
     private readonly DefinitionRepository _definitionRepo = new();
     private readonly TextNodeRepository _textNodeRepo = new();
+    private readonly WordIndexRepository _wordIndexRepo = new();
+    private readonly ClassicaCodex.Ingestion.WordIndexService _wordIndexService = new();
 
     private PassageAligner? _publishedAligner;
 
@@ -1306,8 +1308,27 @@ public class TranslationWorkbenchForm : ScaledForm
 
         try
         {
-            await _textNodeRepo.SaveTranslatedLineAsync(
+            var changes = await _textNodeRepo.SaveTranslatedLineAsync(
                 _translationEditionId, passage.CitationRef, _index, text);
+
+            // A line you write here is a line you will want to find again.
+            //
+            // Until now nothing on this path touched the word index at all,
+            // so on a library that has one - and whole-word search is the
+            // default, which uses it - your own translations were not in it.
+            // The passage was saved, was visible in the reader, and could not
+            // be searched for. Editing one made it worse, because the line
+            // took a new id each time and left its old index rows behind.
+            //
+            // Guarded the same way Create Translation guards it: only when an
+            // index already exists. Writing rows into an empty index would
+            // make every search believe the library is indexed when the only
+            // thing in it is this translation - see the note in
+            // CreateTranslationForm, which explains that trap at length.
+            if (changes.Any && await _wordIndexRepo.HasDataAsync())
+            {
+                await _wordIndexService.ApplyChangesAsync(changes);
+            }
 
             if (text.Length == 0) _myTranslations.Remove(passage.CitationRef);
             else _myTranslations[passage.CitationRef] = text;
