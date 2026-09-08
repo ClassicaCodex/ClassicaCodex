@@ -24,14 +24,40 @@ carry the version of the binary actually bundled.
 | libgit2 (`git2-5853918.dll`, via LibGit2Sharp.NativeBinaries 2.0.324) | 1.8.6 | GPLv2 with linking exception | © the libgit2 contributors |
 | SQLite (`e_sqlite3.dll`, via SQLitePCLRaw) | 3.41.2 | Public domain | — |
 
+## libgit2, and the source you are entitled to
+
+`git2-5853918.dll` is libgit2 1.8.6, the one component here under a copyleft
+licence: GPLv2, with a linking exception that permits linking it into an
+application under any licence. Its full licence text travels with this
+download as **`THIRD-PARTY-NOTICES-LIBGIT2.txt`**, verbatim from its own
+package, together with the notices for the PCRE2, zlib and xdiff code vendored
+inside it.
+
+The corresponding source is at <https://github.com/libgit2/libgit2>, tag
+v1.8.6, and the binary here is the unmodified build distributed as
+LibGit2Sharp.NativeBinaries 2.0.324. **On request, and for three years from the
+date of this release, the maintainers of Classica Codex will supply a complete
+machine-readable copy of that source** — open an issue at
+<https://github.com/ClassicaCodex/ClassicaCodex>.
+
 ## The .NET runtime's own notices
 
 A self-contained build bundles the .NET runtime, and the runtime bundles other
-people's code in turn — zlib and Brotli are compiled into
-`System.IO.Compression.Native.dll`, among others. Those notices are reproduced
+people's code in turn — zlib, Brotli and others, statically linked into the
+executable rather than shipped as separate files. Those notices are reproduced
 verbatim in **`THIRD-PARTY-NOTICES-DOTNET.txt`**, beside this file: forty-four
-sections, eleven of them BSD-family terms that ask to be reproduced in binary
+sections, several of them BSD-family terms that ask to be reproduced in binary
 redistributions such as this one.
+
+Two native binaries in that bundle come from Microsoft's WindowsDesktop
+runtime pack and describe themselves as parts of other Microsoft products
+rather than of .NET: `vcruntime140_cor3.dll`, which identifies as the Microsoft
+C Runtime Library, and `D3DCompiler_47_cor3.dll`, which identifies as the
+Direct3D HLSL compiler for redistribution. Both are redistributed here under
+the runtime pack's MIT licence, which is the only licence that pack carries and
+under which Microsoft both authored and published them; neither carries terms
+of its own. They are named here because the table above would otherwise imply
+they are .NET Foundation code, and they are not.
 
 ## Fonts, and what is deliberately not here
 
@@ -44,9 +70,12 @@ typefaces.
 
 Releases up to and including 3.6.8 bundled that assembly and described the
 whole of PDFsharp as MIT, which was wrong. It is excluded from the build as of
-3.6.9, along with `PdfSharp.Snippets.dll`, which was the only thing referencing
-it. This application draws PDFs through `PdfSharp.dll` and its own font
-resolver, so neither was ever used.
+3.6.9, along with `PdfSharp.Snippets.dll` and — from 3.6.10 — `PdfSharp.Quality.dll`.
+Both of those are PDFsharp's own sample and benchmark scaffolding, and between
+them they hold every reference to the font assembly; 3.6.9 said
+Snippets was the only one, which was untrue while Quality was still in the
+bundle. This application draws PDFs through `PdfSharp.dll` and its own font
+resolver, so none of the three was ever used.
 
 No font is redistributed with this application. PDFs are drawn with fonts
 already installed on the machine that makes them.
@@ -55,13 +84,6 @@ already installed on the machine that makes them.
 
 SQLite is in the public domain. Its authors have dedicated the code to the
 public domain and it carries no licence conditions. <https://sqlite.org/copyright.html>
-
-## libgit2
-
-libgit2 is licensed under GNU GPL v2 **with a linking exception**, which
-permits linking it into an application under any licence, including this one.
-Its source and the full text of that licence and exception are at
-<https://github.com/libgit2/libgit2>.
 
 ## MIT License
 

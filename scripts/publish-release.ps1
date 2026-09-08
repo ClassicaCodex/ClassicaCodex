@@ -100,7 +100,8 @@ Get-ChildItem $payload -Filter '*.pdb' | Remove-Item -Force
 # The licence and notices come from the project file, so their absence means
 # that broke rather than that someone forgot a copy step.
 foreach ($required in 'ClassicaCodex.UI.exe', 'LICENSE.txt', 'THIRD-PARTY-NOTICES.md',
-                      'THIRD-PARTY-NOTICES-DOTNET.txt') {
+                      'THIRD-PARTY-NOTICES-DOTNET.txt',
+                      'THIRD-PARTY-NOTICES-LIBGIT2.txt') {
     if (-not (Test-Path (Join-Path $payload $required))) { throw "$required is missing from the publish output." }
 }
 if (-not (Test-Path (Join-Path $payload 'Icons'))) { throw 'The Icons folder is missing from the publish output.' }

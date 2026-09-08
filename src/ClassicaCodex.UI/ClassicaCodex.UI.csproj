@@ -5,9 +5,9 @@
     <TargetFramework>net8.0-windows</TargetFramework>
     <UseWindowsForms>true</UseWindowsForms>
     <Nullable>enable</Nullable>
-    <Version>3.6.10</Version>
-    <AssemblyVersion>3.6.10.0</AssemblyVersion>
-    <FileVersion>3.6.10.0</FileVersion>
+    <Version>3.6.11</Version>
+    <AssemblyVersion>3.6.11.0</AssemblyVersion>
+    <FileVersion>3.6.11.0</FileVersion>
     <ImplicitUsings>enable</ImplicitUsings>
     <RootNamespace>ClassicaCodex.UI</RootNamespace>
     <!-- Enables the compiler's structural checks on /// doc comments -
@@ -82,12 +82,26 @@
 
     <!-- The runtime's own notices, carried verbatim from the runtime pack.
          A self-contained build bundles the .NET runtime, and the runtime
-         bundles other people's code in turn - zlib and Brotli are compiled
-         into System.IO.Compression.Native.dll, and eleven of this file's
-         forty-four sections are BSD-family notices whose terms ask that they
-         be reproduced in binary redistributions. Ours is not the only notice
-         file that has to travel with the download. -->
+         bundles other people's code in turn - zlib and Brotli among them,
+         statically linked into the executable rather than shipped as separate
+         files, which is why no System.IO.Compression.Native.dll appears in the
+         download. Several of this file's forty-four sections are BSD-family
+         notices whose terms ask that they be reproduced in binary
+         redistributions. Ours is not the only notice file that has to travel
+         with the download. -->
     <Content Include="..\..\THIRD-PARTY-NOTICES-DOTNET.txt" Link="THIRD-PARTY-NOTICES-DOTNET.txt"
+             CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+
+    <!-- libgit2's own licence file, verbatim from its package: the GPLv2
+         text, the linking exception that permits this use, and the notices
+         for the PCRE2, zlib and xdiff code vendored inside git2-5853918.dll.
+
+         libgit2 is the one copyleft component in the bundle, and GPLv2
+         section 1 asks that a copy of the licence travel with the program.
+         Up to 3.6.10 this download reproduced MIT and Apache-2.0 in full and
+         the GPL not at all - the permissive licences that ask least were
+         honoured, and the only one that asks something was not. -->
+    <Content Include="..\..\THIRD-PARTY-NOTICES-LIBGIT2.txt" Link="THIRD-PARTY-NOTICES-LIBGIT2.txt"
              CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>
 

@@ -289,7 +289,7 @@ suspecting.
 
 ## Status
 
-Version 3.6.10.
+Version 3.6.11.
 
 Version 1 was a reader. Version 2 made it a searchable, taggable,
 cross-referenced library and added the translation workbench. Version 3 adds the
