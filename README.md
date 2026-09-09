@@ -135,7 +135,7 @@ stays out of reach until you've written something.
 - **Morphology search** — find every line matching a specific grammatical form (case, tense, mood, voice…), not just a specific word
 - **Tag** people, places, and themes across every author at once, and browse everything tagged with a given name (with **Auto-Tag** to suggest matches for a name automatically), and **bookmark** individual lines with your own notes
 - **Myth Network** — a graph of which figures and places co-occur, built from your own tags as you read, not a fixed dataset
-- **Places Map** — an actual map of the ancient world, 200 places filterable by kind; click one to see every passage that mentions it
+- **Places Map** — an actual map of the ancient world, 220 places filterable by kind; click one to see every passage that mentions it
 - **Word Study** — dictionary definitions (LSJ for Greek, Lewis & Short for Latin) and every attested form of a word
 - **Core Vocabulary** — every headword in a work ranked by how much of the text it accounts for, with a running total: learn the top N and you can read half of it. Counted from the text itself, and honest about the share it can't cover
 - **Where should I start?** — a short curated list of works that are reasonable to translate first, filtered to what's in your library, and a plain warning about the ones that aren't
@@ -177,20 +177,27 @@ Windows will almost certainly stop you the first time with a blue "Windows prote
 
 Extract the whole archive before running it, not just the `.exe`. Running it from inside the ZIP, or copying the executable out on its own, leaves its libraries behind and it won't start.
 
-On first launch, a setup wizard walks you through everything else — it'll ask which of two ways you'd like to do that:
+On first launch you go straight into **Guided Setup** — one step at a time,
+plain language, no file paths or repository URLs on screen. **Advanced Setup**,
+which puts every data source on one screen for pointing at files you already
+have, is available afterwards from Setup Wizard on the main toolbar.
 
-- **Guided Setup** (default on first run) — one step at a time, plain language, no file paths or repository URLs on screen
-- **Advanced Setup** — every data source on one screen, for pointing at files you've already downloaded or wanting more control over where things go
+Take what you want and skip the rest. **If you add a collection later, rebuild
+the word index afterwards** — ingesting does not update it, and until it is
+rebuilt the new texts will not appear in searches. The word-index step says so
+when it is out of date.
 
-Take what you want and skip the rest; anything skipped can be added later. With
-everything selected, including the word index that makes searching fast, it runs
-about an hour — but it's unattended, so start it and go and do something else.
+Budget **two to three hours** with everything selected, most of it unattended.
+You also need room: about 9 GB of downloads plus a library that reaches roughly
+3 GB, and the downloads are unpacked twice — once into your temporary folder,
+once into `Documents\ClassicaCodexData` — so the largest step wants about 7 GB
+free on the drive holding `%TEMP%` at the same time.
 
 <img width="625" alt="The Guided Setup wizard, one data source per step with a plain-language description of what it is and how long it takes" src="https://github.com/user-attachments/assets/8f6f405a-eebc-44db-a801-0ef0bcfe0a29" />
 
 ### What to expect the first time
 
-**Full Setup takes about an hour**, most of it unattended and you can skip what you don't want and it's faster. The wizard downloads several corpora, parses them, ingests them into SQLite, and then builds the word index that makes search fast. On a clean Windows machine with a decent connection that came to roughly an hour end to end; a slower link will take longer. The Greek and Latin Lemma data and Word Indexing for faster searching takes the longest time.
+**Full setup takes two to three hours**, most of it unattended, and skipping what you don't want makes it shorter. The wizard downloads several corpora, parses them, ingests them into SQLite, and then builds the word index that makes search fast. The three slowest steps say so themselves as you reach them: the Greek lemma data is 3.6 GB and around an hour on its own, the word index about fifteen minutes on a full library, the Latin lemma data about six minutes — so an hour is what the longest single step costs, not the whole job. A slower connection will take longer.
 
 It is probably not stuck. Progress is reported at each stage, but individual stages — ingestion especially — can sit on one line for several minutes at a time. Leave it running until you get resolution.
 
@@ -289,7 +296,7 @@ suspecting.
 
 ## Status
 
-Version 3.6.13.
+Version 3.6.14.
 
 Version 1 was a reader. Version 2 made it a searchable, taggable,
 cross-referenced library and added the translation workbench. Version 3 adds the
@@ -321,7 +328,7 @@ quotes verse inside his narrative, and the parser took the poems and dropped
 what surrounded them — and 1,679 editor's notes keyed to citations no passage
 answered to. Both are fixed and both were measured, before and after, against
 the corpus rather than against a test case. The word index also stopped storing
-itself twice, which takes a finished install from about 1.7 GB to 1.1 GB, and
+itself twice, which cut the index roughly in half, and
 the hexameter scanner reached the surface: Word Study now says what the metre
 makes of the word you picked, which for Latin is the only thing that can, since
 no edition prints the vowel lengths that tell a nominative from an ablative.
@@ -418,8 +425,16 @@ Re-ingesting is what applies this to an existing library — the text that was
 dropped was never stored, so a migration cannot recover it. Citation references
 are unchanged, so annotations, bookmarks and tags survive re-ingesting intact.
 
-The schema has moved through thirty-seven migrations. Existing databases upgrade in
+The schema has moved through thirty-eight migrations. Existing databases upgrade in
 place on first launch — annotations, bookmarks and tags are carried forward.
+
+## Release history
+
+Only the current release is published for download — it is always at
+[the releases page](https://github.com/ClassicaCodex/ClassicaCodex/releases/latest).
+Notes for every past version are in [`release-notes/`](release-notes/), newest
+first. Those are historical: the download links and checksums in them refer to
+the versions they describe, not to the current one.
 
 ## Questions, ideas, and things that break
 

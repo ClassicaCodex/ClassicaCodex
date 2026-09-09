@@ -1,3 +1,9 @@
+> **Historical.** These are the notes for Classica Codex 3.4.0, which is no longer
+> available for download. Only the current release is published; get it from
+> [the releases page](https://github.com/ClassicaCodex/ClassicaCodex/releases/latest).
+> Any download link or SHA-256 below refers to the 3.4.0 ZIP, not to the current
+> one, so do not check a current download against a checksum printed here.
+
 # Classica Codex 3.4.0
 
 The result of an audit rather than a plan. The application was read end to
@@ -22,7 +28,7 @@ whole-word search falls back to matching the spelling as typed and loses its
 accent-insensitivity. Back the file up before the first launch, as always.
 
 Coming from 3.0.1 or earlier? Read the [3.3.0
-notes](https://github.com/ClassicaCodex/ClassicaCodex/releases/tag/v3.3.0)
+notes](RELEASE-NOTES-3.3.0.md)
 first — that release migrates from schema 14 and carries three versions of work.
 
 ---

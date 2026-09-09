@@ -5,9 +5,9 @@
     <TargetFramework>net8.0-windows</TargetFramework>
     <UseWindowsForms>true</UseWindowsForms>
     <Nullable>enable</Nullable>
-    <Version>3.6.13</Version>
-    <AssemblyVersion>3.6.13.0</AssemblyVersion>
-    <FileVersion>3.6.13.0</FileVersion>
+    <Version>3.6.14</Version>
+    <AssemblyVersion>3.6.14.0</AssemblyVersion>
+    <FileVersion>3.6.14.0</FileVersion>
     <ImplicitUsings>enable</ImplicitUsings>
     <RootNamespace>ClassicaCodex.UI</RootNamespace>
     <!-- Enables the compiler's structural checks on /// doc comments -
@@ -94,7 +94,9 @@
 
     <!-- libgit2's own licence file, verbatim from its package: the GPLv2
          text, the linking exception that permits this use, and the notices
-         for the PCRE2, zlib and xdiff code vendored inside git2-5853918.dll.
+         for the code libgit2 vendors in turn - PCRE2, zlib, llhttp,
+         ntlmclient, wildmatch, SHA-1 collision detection, the winhttp
+         definition files and Clar - all of it inside git2-5853918.dll.
 
          libgit2 is the one copyleft component in the bundle, and GPLv2
          section 1 asks that a copy of the licence travel with the program.

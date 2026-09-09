@@ -125,14 +125,21 @@ public class PlaceNameSearchTests
     }
 
     /// <summary>
-    /// Why prefix matching stops at four letters, kept as a test because the
-    /// threshold looks arbitrary until you see what three would cost.
+    /// The lower bound on the prefix threshold.
     ///
     /// "Le Mans" is not in this corpus at all, but "noble mansions" and "ille
-    /// mansuetudine" contain its letters. Matching "le" by prefix would find
-    /// some word beginning "le" in almost any passage - "less", "left",
-    /// "legions" - so the conjunct would stop excluding anything and the pin
-    /// would answer with twenty-two passages about mansions.
+    /// mansuetudine" contain its letters. Matching "le" by prefix finds some
+    /// word beginning "le" in almost any passage - "less", "left", "legions" -
+    /// so the conjunct stops excluding anything and the pin answers with
+    /// twenty-two passages about mansions.
+    ///
+    /// This pins the threshold above TWO, not above three: "le" is two
+    /// letters, so three already leaves it matched exactly. The upper bound is
+    /// pinned by APluralStillCountsAsAMention, where "gulf" is four letters
+    /// and has to be prefixed - that one fails at five. Between them the two
+    /// tests bracket the threshold to three or four, and four is what the code
+    /// picks. Measured over all nine multi-word pins, three and four give
+    /// identical results everywhere.
     /// </summary>
     [Fact]
     public async Task AShortWordIsNotMatchedByPrefix()

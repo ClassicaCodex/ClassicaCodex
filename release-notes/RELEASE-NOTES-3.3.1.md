@@ -1,3 +1,9 @@
+> **Historical.** These are the notes for Classica Codex 3.3.1, which is no longer
+> available for download. Only the current release is published; get it from
+> [the releases page](https://github.com/ClassicaCodex/ClassicaCodex/releases/latest).
+> Any download link or SHA-256 below refers to the 3.3.1 ZIP, not to the current
+> one, so do not check a current download against a checksum printed here.
+
 # Classica Codex 3.3.1
 
 A point release that finishes something 3.3.0 started. If you have 3.3.0, this
@@ -10,7 +16,7 @@ protected your PC" box on first run because the app isn't code-signed; click
 **More info**, then **Run anyway**.
 
 Coming from 3.0.1 or earlier? Read the [3.3.0
-notes](https://github.com/ClassicaCodex/ClassicaCodex/releases/tag/v3.3.0)
+notes](RELEASE-NOTES-3.3.0.md)
 first — that release carries three versions of work and migrates your database
 from schema 14 to 34, and it asks you to back the file up before the first
 launch. That advice still stands; this release adds nothing to it.

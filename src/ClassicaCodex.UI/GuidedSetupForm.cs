@@ -42,6 +42,8 @@ public class GuidedSetupForm : ScaledForm
     private bool _databaseComplete;
     private readonly List<bool> _sourceComplete = new();
     private bool _wordIndexComplete;
+    private long _indexedLines;
+    private long _totalLines;
 
     private CancellationTokenSource? _cts;
     private System.Windows.Forms.Timer? _heartbeat;
@@ -407,7 +409,33 @@ public class GuidedSetupForm : ScaledForm
             _sourceComplete.Add(await source.CheckComplete());
         }
 
-        _wordIndexComplete = await _wordIndexRepo.HasDataAsync();
+        // "Is every line indexed?", not "does the index have any rows?".
+        //
+        // HasDataAsync was what this asked, and it is true of an index built
+        // once and never touched again - so ingesting a collection afterwards
+        // left this step showing Complete and "Already built" while the new
+        // collection was entirely absent from the index. No ingest service
+        // touches WordIndex; a re-ingest also gives every line a new id, which
+        // orphans the rows the old ones had. And search decides whether to
+        // consult the index by asking the same has-any-rows question, so it
+        // consults a half-populated index and the missing lines are invisible
+        // rather than merely slow to find.
+        //
+        // The README tells a newcomer that anything skipped "can be added
+        // later", which is exactly the path into this.
+        //
+        // Off the UI thread because the honest count is expensive: WordIndex
+        // is keyed (word, line), so counting distinct lines reads every row -
+        // seventy million of them on a full library, about twenty seconds.
+        // WordIndexForm has done it this way since it was written; this is the
+        // same check, finally asked on the screen a newcomer actually sees.
+        var (totalLines, indexedLines) = await Task.Run(async () => (
+            await _wordIndexRepo.GetTextNodeCountAsync(),
+            await _wordIndexRepo.GetIndexedTextNodeCountAsync()));
+
+        _indexedLines = indexedLines;
+        _totalLines = totalLines;
+        _wordIndexComplete = totalLines > 0 && indexedLines >= totalLines;
     }
 
     private void RenderStep()
@@ -562,9 +590,25 @@ public class GuidedSetupForm : ScaledForm
                     "Makes searching fast once the texts above are loaded - without it, every search has " +
                     "to scan the whole library from scratch. Run this once everything above is done; safe " +
                     "to run again any time. Takes about fifteen minutes.";
-                _statusIcon.Image = AppIcons.Get(_wordIndexComplete ? "Complete" : "Error", 32);
-                _actionButton.Text = _wordIndexComplete ? "Rebuild Index" : "Build Word Index";
-                _statusLabel.Text = _wordIndexComplete ? "Already built." : "Not built yet.";
+                // Three states, not two. "Built once and now out of date" is
+                // the one that used to read as finished, and it is the one a
+                // reader is most likely to be in: build the index, ingest
+                // another collection afterwards, and the lines from it are
+                // absent from the index and therefore absent from search.
+                var partial = !_wordIndexComplete && _indexedLines > 0;
+
+                _statusIcon.Image = AppIcons.Get(
+                    _wordIndexComplete ? "Complete" : partial ? "Warning" : "Error", 32);
+
+                _actionButton.Text = _indexedLines > 0 ? "Rebuild Index" : "Build Word Index";
+
+                _statusLabel.Text = _wordIndexComplete
+                    ? $"Up to date - {_indexedLines:N0} lines indexed."
+                    : partial
+                        ? $"Out of date - {_indexedLines:N0} of {_totalLines:N0} lines indexed. " +
+                          $"{_totalLines - _indexedLines:N0} added since the last build will not turn up in " +
+                          "searches until this is rebuilt."
+                        : "Not built yet.";
             }
         }
 

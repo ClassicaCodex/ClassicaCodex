@@ -1,3 +1,9 @@
+> **Historical.** These are the notes for Classica Codex 3.6.6, which is no longer
+> available for download. Only the current release is published; get it from
+> [the releases page](https://github.com/ClassicaCodex/ClassicaCodex/releases/latest).
+> Any download link or SHA-256 below refers to the 3.6.6 ZIP, not to the current
+> one, so do not check a current download against a checksum printed here.
+
 # Classica Codex 3.6.6
 
 One fix. 3.6.5 repaired the places map and broke part of it in the same
