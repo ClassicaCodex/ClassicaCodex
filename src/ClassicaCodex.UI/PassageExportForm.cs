@@ -361,7 +361,11 @@ public class PassageExportForm : ScaledForm
             var matched = _currentLines.Count(l => ResolveCounterpartIndices(l.CitationRef) != null);
             _statusLabel.Text = matched == _currentLines.Count
                 ? $"{nodes.Count} line(s), all paired."
-                : $"{nodes.Count} line(s); {matched} paired by citation ref. Unpaired translation passages (introductions, cast lists) are still included.";
+                : _entireWorkModeRadio.Checked
+                    ? $"{nodes.Count} line(s); {matched} paired by citation ref. Unpaired translation " +
+                      "passages (introductions, cast lists) are included too, because this is the whole work."
+                    : $"{nodes.Count} line(s); {matched} paired by citation ref. The rest have no " +
+                      "translation passage to pair with, and nothing else from the translation is included.";
         }
         else
         {
@@ -398,6 +402,45 @@ public class PassageExportForm : ScaledForm
     /// original with no translation beside it is honest; inventing an
     /// alignment that isn't in the source data wouldn't be.
     /// </summary>
+    /// <summary>
+    /// Which counterpart passages belong in an export of these lines.
+    ///
+    /// The whole work takes the whole counterpart edition, and that is the
+    /// point: a translation carries an introduction, a cast list, a chapter
+    /// heading over sections the original numbers one by one, and none of it
+    /// pairs with anything. Leave it out of a whole-work export and the
+    /// translation is missing its own front matter.
+    ///
+    /// Any narrower scope takes only what the exported lines actually resolve
+    /// to. Both export layouts used to take everything regardless: the
+    /// combined one joined every counterpart passage in the edition, and the
+    /// interleaved one swept up everything before the first match and then
+    /// everything left over. Exporting a single passage with its translation
+    /// therefore wrote out the whole translation - which is what a reader
+    /// reported after exporting one passage and finding several translated
+    /// ones in the file.
+    ///
+    /// Separated from the two layouts so the decision can be tested on its
+    /// own. Nothing else here can be: it needs a Form.
+    /// </summary>
+    internal static List<int> CounterpartIndicesForExport(
+        IReadOnlyList<string> citationRefs, PassageAligner aligner, bool wholeWork)
+    {
+        if (wholeWork) return Enumerable.Range(0, aligner.Ordered.Count).ToList();
+
+        // Sorted and distinct: reading order, and a counterpart that several
+        // exported lines resolve to appears once.
+        var chosen = new SortedSet<int>();
+        foreach (var citationRef in citationRefs)
+        {
+            var indices = aligner.ResolveIndices(citationRef);
+            if (indices == null) continue;
+            foreach (var index in indices) chosen.Add(index);
+        }
+
+        return chosen.ToList();
+    }
+
     private List<(string Label, string Text)> BuildRenderChunks()
     {
         if (_currentLines.Count == 0) return new();
@@ -425,10 +468,16 @@ public class PassageExportForm : ScaledForm
 
             // Combined + bilingual reads best as two continuous blocks - the
             // whole passage in one language, then the whole passage in the
-            // other. Every counterpart passage is included exactly once, in
-            // its own reading order, so introductions and cast lists survive
-            // even though nothing in the original pairs with them.
-            var counterpartText = string.Join(" ", _aligner!.Ordered.Select(c => c.Text));
+            // other. Each counterpart passage appears once, in its own reading
+            // order; for the whole work that is all of them, so introductions
+            // and cast lists survive even though nothing in the original pairs
+            // with them, and for a narrower scope it is what the exported
+            // lines resolve to and nothing more.
+            var counterpartText = string.Join(" ", CounterpartIndicesForExport(
+                    _currentLines.Select(l => l.CitationRef).ToList(),
+                    _aligner!,
+                    _entireWorkModeRadio.Checked)
+                .Select(i => _aligner!.Ordered[i].Text));
 
             var result = new List<(string, string)> { (rangeLabel, primaryText) };
             if (counterpartText.Length > 0)
@@ -467,11 +516,30 @@ public class PassageExportForm : ScaledForm
             chunks.Add(($"({counterpartLabel})", counterpartOrdered[index].Text));
         }
 
+        // Sweeping in the counterpart passages that matched nothing is right
+        // for the whole work and wrong for anything less.
+        //
+        // A translation carries material the original does not divide the same
+        // way, or at all: a translator's introduction, a cast list, a chapter
+        // heading covering sections the original numbers individually. Export
+        // a whole work bilingually and those belong in it - leave them out and
+        // the translation is missing its own front matter.
+        //
+        // Export five lines, or one, and they do not. The loops that gathered
+        // them ran regardless of scope: everything standing before the match
+        // came first, then the match, then a final pass over the entire
+        // counterpart edition picked up everything after it. Exporting a
+        // single passage with its translation therefore wrote out the whole
+        // translation. That is what someone reported after exporting one
+        // passage and finding several translated ones in the file - and on a
+        // longer work it would have been the lot.
+        var wholeWork = _entireWorkModeRadio.Checked;
+
         foreach (var line in _currentLines)
         {
             var indices = ResolveCounterpartIndices(line.CitationRef);
 
-            if (indices is { Count: > 0 })
+            if (wholeWork && indices is { Count: > 0 })
             {
                 // Anything in the counterpart edition standing before this
                 // match and still unemitted belongs here - ahead of the line
@@ -492,8 +560,13 @@ public class PassageExportForm : ScaledForm
         }
 
         // Whatever's left: counterpart passages that follow the last matched
-        // line, or never matched anything at all.
-        for (var i = 0; i < counterpartOrdered.Count; i++) EmitCounterpart(i);
+        // line, or never matched anything at all. Only for the whole work -
+        // for a narrower scope, what paired with the exported lines is the
+        // whole of what belongs.
+        if (wholeWork)
+        {
+            for (var i = 0; i < counterpartOrdered.Count; i++) EmitCounterpart(i);
+        }
 
         return chunks;
     }
