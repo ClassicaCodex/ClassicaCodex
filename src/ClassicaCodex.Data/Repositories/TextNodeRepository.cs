@@ -1419,81 +1419,129 @@ public class TextNodeRepository
         await using var conn = await DbConnectionFactory.OpenConnectionAsync(cancellationToken);
         await using var transaction = await conn.BeginTransactionAsync(cancellationToken);
 
-        // Existing lines by citation reference. A duplicate reference should
-        // not happen and is not an error worth throwing over - the first is
-        // kept and the rest are treated as lines that should no longer exist,
-        // which is how they get cleaned up rather than accumulating.
-        var existing = new Dictionary<string, (long Id, string Text, int SortOrder, string NodeKind)>(StringComparer.Ordinal);
-        var surplus = new List<(long Id, string Text)>();
+        // Existing lines grouped by citation reference, in TextNodeId order.
+        //
+        // A LIST per reference, not one row, because a reference can repeat
+        // and in real corpora does: the schema's index on (EditionId,
+        // CitationRef) is deliberately not unique, and this library holds
+        // three editions where a reference appears twice with different text.
+        //
+        // The first version of this method kept one row per reference and
+        // treated every other as a line that should no longer exist. That
+        // turned a duplicate someone already had into a deletion the moment
+        // they saved - and which of the two survived was decided by the query
+        // plan, because the read had no ORDER BY. On this library that would
+        // have taken an existing AI translation of the eddic poems from 519
+        // lines to 517 on the next save, silently.
+        //
+        // Ordered so the pairing below is deterministic rather than whatever
+        // index SQLite chose to scan.
+        var existing = new Dictionary<string, List<(long Id, string Text, int SortOrder, string NodeKind)>>(StringComparer.Ordinal);
 
         await using (var read = conn.CreateCommand())
         {
             read.Transaction = (SqliteTransaction)transaction;
             read.CommandText =
-                "SELECT TextNodeId, CitationRef, Text, SortOrder, NodeKind FROM TextNodes WHERE EditionId = @EditionId;";
+                "SELECT TextNodeId, CitationRef, Text, SortOrder, NodeKind FROM TextNodes " +
+                "WHERE EditionId = @EditionId ORDER BY TextNodeId;";
             read.Parameters.AddWithValue("@EditionId", editionId);
 
             await using var reader = await read.ExecuteReaderAsync(cancellationToken);
             while (await reader.ReadAsync(cancellationToken))
             {
-                var row = (reader.GetInt64(0), reader.GetString(2), reader.GetInt32(3), reader.GetString(4));
                 var citation = reader.GetString(1);
-                if (!existing.TryAdd(citation, row)) surplus.Add((row.Item1, row.Item2));
+                if (!existing.TryGetValue(citation, out var rows))
+                {
+                    rows = new List<(long, string, int, string)>();
+                    existing[citation] = rows;
+                }
+
+                rows.Add((reader.GetInt64(0), reader.GetString(2), reader.GetInt32(3), reader.GetString(4)));
             }
         }
 
-        var wanted = new HashSet<string>(StringComparer.Ordinal);
-
+        // Wanted lines grouped the same way, so the nth line for a reference
+        // is matched against the nth stored line for it. A caller that hands
+        // over two lines for one reference - which Create Translation does,
+        // because it walks the source edition's rows and the source has the
+        // duplicate - gets two lines back, not one.
+        var wantedByCitation = new Dictionary<string, List<TextNode>>(StringComparer.Ordinal);
         foreach (var node in desired)
         {
-            cancellationToken.ThrowIfCancellationRequested();
-            wanted.Add(node.CitationRef);
-
-            if (existing.TryGetValue(node.CitationRef, out var current))
+            if (!wantedByCitation.TryGetValue(node.CitationRef, out var group))
             {
-                var textChanged = !string.Equals(current.Text, node.Text, StringComparison.Ordinal);
-                var shapeChanged = current.SortOrder != node.SortOrder
-                                   || !string.Equals(current.NodeKind, node.NodeKind, StringComparison.Ordinal);
-                if (!textChanged && !shapeChanged) continue;
-
-                await using var update = conn.CreateCommand();
-                update.Transaction = (SqliteTransaction)transaction;
-                update.CommandText =
-                    "UPDATE TextNodes SET Text = @Text, SortOrder = @SortOrder, NodeKind = @NodeKind " +
-                    "WHERE TextNodeId = @TextNodeId;";
-                update.Parameters.AddWithValue("@Text", node.Text);
-                update.Parameters.AddWithValue("@SortOrder", node.SortOrder);
-                update.Parameters.AddWithValue("@NodeKind", node.NodeKind);
-                update.Parameters.AddWithValue("@TextNodeId", current.Id);
-                await update.ExecuteNonQueryAsync(cancellationToken);
-
-                if (textChanged) changes.Rewritten.Add((current.Id, current.Text, node.Text));
-                continue;
+                group = new List<TextNode>();
+                wantedByCitation[node.CitationRef] = group;
             }
 
-            await using var insert = conn.CreateCommand();
-            insert.Transaction = (SqliteTransaction)transaction;
-            insert.CommandText =
-                "INSERT INTO TextNodes (EditionId, CitationRef, SortOrder, Text, IsAthetized, NodeKind, IsVerse, Milestone) " +
-                "VALUES (@EditionId, @CitationRef, @SortOrder, @Text, @IsAthetized, @NodeKind, @IsVerse, @Milestone); " +
-                "SELECT last_insert_rowid();";
-            insert.Parameters.AddWithValue("@EditionId", editionId);
-            insert.Parameters.AddWithValue("@CitationRef", node.CitationRef);
-            insert.Parameters.AddWithValue("@SortOrder", node.SortOrder);
-            insert.Parameters.AddWithValue("@Text", node.Text);
-            insert.Parameters.AddWithValue("@IsAthetized", node.IsAthetized ? 1 : 0);
-            insert.Parameters.AddWithValue("@NodeKind", node.NodeKind);
-            insert.Parameters.AddWithValue("@IsVerse", node.IsVerse ? 1 : 0);
-            insert.Parameters.AddWithValue("@Milestone", (object?)node.Milestone ?? DBNull.Value);
-
-            var newId = Convert.ToInt64(await insert.ExecuteScalarAsync(cancellationToken));
-            changes.Added.Add((newId, node.Text));
+            group.Add(node);
         }
 
-        foreach (var (citation, row) in existing)
+        var surplus = new List<(long Id, string Text)>();
+
+        foreach (var (citation, group) in wantedByCitation)
         {
-            if (wanted.Contains(citation)) continue;
-            surplus.Add((row.Id, row.Text));
+            cancellationToken.ThrowIfCancellationRequested();
+            existing.TryGetValue(citation, out var stored);
+
+            for (var i = 0; i < group.Count; i++)
+            {
+                var node = group[i];
+
+                if (stored != null && i < stored.Count)
+                {
+                    var current = stored[i];
+                    var textChanged = !string.Equals(current.Text, node.Text, StringComparison.Ordinal);
+                    var shapeChanged = current.SortOrder != node.SortOrder
+                                       || !string.Equals(current.NodeKind, node.NodeKind, StringComparison.Ordinal);
+                    if (!textChanged && !shapeChanged) continue;
+
+                    await using var update = conn.CreateCommand();
+                    update.Transaction = (SqliteTransaction)transaction;
+                    update.CommandText =
+                        "UPDATE TextNodes SET Text = @Text, SortOrder = @SortOrder, NodeKind = @NodeKind " +
+                        "WHERE TextNodeId = @TextNodeId;";
+                    update.Parameters.AddWithValue("@Text", node.Text);
+                    update.Parameters.AddWithValue("@SortOrder", node.SortOrder);
+                    update.Parameters.AddWithValue("@NodeKind", node.NodeKind);
+                    update.Parameters.AddWithValue("@TextNodeId", current.Id);
+                    await update.ExecuteNonQueryAsync(cancellationToken);
+
+                    if (textChanged) changes.Rewritten.Add((current.Id, current.Text, node.Text));
+                    continue;
+                }
+
+                await using var insert = conn.CreateCommand();
+                insert.Transaction = (SqliteTransaction)transaction;
+                insert.CommandText =
+                    "INSERT INTO TextNodes (EditionId, CitationRef, SortOrder, Text, IsAthetized, NodeKind, IsVerse, Milestone) " +
+                    "VALUES (@EditionId, @CitationRef, @SortOrder, @Text, @IsAthetized, @NodeKind, @IsVerse, @Milestone); " +
+                    "SELECT last_insert_rowid();";
+                insert.Parameters.AddWithValue("@EditionId", editionId);
+                insert.Parameters.AddWithValue("@CitationRef", node.CitationRef);
+                insert.Parameters.AddWithValue("@SortOrder", node.SortOrder);
+                insert.Parameters.AddWithValue("@Text", node.Text);
+                insert.Parameters.AddWithValue("@IsAthetized", node.IsAthetized ? 1 : 0);
+                insert.Parameters.AddWithValue("@NodeKind", node.NodeKind);
+                insert.Parameters.AddWithValue("@IsVerse", node.IsVerse ? 1 : 0);
+                insert.Parameters.AddWithValue("@Milestone", (object?)node.Milestone ?? DBNull.Value);
+
+                var newId = Convert.ToInt64(await insert.ExecuteScalarAsync(cancellationToken));
+                changes.Added.Add((newId, node.Text));
+            }
+
+            // More stored lines for this reference than were asked for. The
+            // extras go, because the caller has said how many it wants.
+            if (stored != null)
+            {
+                for (var i = group.Count; i < stored.Count; i++) surplus.Add((stored[i].Id, stored[i].Text));
+            }
+        }
+
+        foreach (var (citation, rows) in existing)
+        {
+            if (wantedByCitation.ContainsKey(citation)) continue;
+            foreach (var row in rows) surplus.Add((row.Id, row.Text));
         }
 
         foreach (var (id, text) in surplus)
@@ -1538,24 +1586,52 @@ public class TextNodeRepository
 
         await using var conn = await DbConnectionFactory.OpenConnectionAsync(cancellationToken);
 
-        // What is there now, before anything is written. Both branches need
-        // it: to delete a line's index rows you have to know the words it
-        // contributed, and after the write there is no way to find out.
-        long existingId = 0;
-        string existingText = string.Empty;
+        // This method can delete a passage, so it checks what it has been
+        // pointed at before it does.
+        //
+        // Nothing reachable through the interface can get this wrong: the
+        // workbench is only ever handed the reader's own translation, chosen
+        // by looking for ".mine-" in its identifier. But a substring of a URN
+        // is the only thing standing between "clear this line" and "delete
+        // three passages of Herodotus", and a test harness in this project
+        // passed a source edition here and did exactly that. Kind is a column;
+        // reading it costs one lookup and closes the gap for good.
+        await using (var kindCheck = conn.CreateCommand())
+        {
+            kindCheck.CommandText = "SELECT Kind FROM Editions WHERE EditionId = @EditionId;";
+            kindCheck.Parameters.AddWithValue("@EditionId", editionId);
+            var kind = await kindCheck.ExecuteScalarAsync(cancellationToken) as string;
+
+            if (kind == null)
+                throw new InvalidOperationException($"Edition {editionId} does not exist.");
+
+            if (!string.Equals(kind, nameof(EditionKind.Translation), StringComparison.Ordinal))
+                throw new InvalidOperationException(
+                    $"Edition {editionId} is {kind}, not a translation. SaveTranslatedLineAsync writes and " +
+                    "deletes passages, and must only ever be given a translation the reader owns.");
+        }
+
+        // EVERY row for this reference, not the first one.
+        //
+        // A citation reference can repeat - the index on (EditionId,
+        // CitationRef) is not unique, and this library has editions where one
+        // does. The delete below has always been unbounded, so it removes all
+        // of them; reading only the first meant reporting only the first, and
+        // every other line's index rows were left pointing at a passage that
+        // no longer existed. SQLite reuses rowids, so those words would
+        // eventually attach themselves to an unrelated passage and show up in
+        // its search results.
+        var stored = new List<(long Id, string Text)>();
         await using (var look = conn.CreateCommand())
         {
             look.CommandText =
                 "SELECT TextNodeId, Text FROM TextNodes WHERE EditionId = @EditionId AND CitationRef = @CitationRef " +
-                "ORDER BY TextNodeId LIMIT 1;";
+                "ORDER BY TextNodeId;";
             look.Parameters.AddWithValue("@EditionId", editionId);
             look.Parameters.AddWithValue("@CitationRef", citationRef);
             await using var reader = await look.ExecuteReaderAsync(cancellationToken);
-            if (await reader.ReadAsync(cancellationToken))
-            {
-                existingId = reader.GetInt64(0);
-                existingText = reader.GetString(1);
-            }
+            while (await reader.ReadAsync(cancellationToken))
+                stored.Add((reader.GetInt64(0), reader.GetString(1)));
         }
 
         await using var cmd = conn.CreateCommand();
@@ -1567,37 +1643,41 @@ public class TextNodeRepository
             cmd.Parameters.AddWithValue("@EditionId", editionId);
             cmd.Parameters.AddWithValue("@CitationRef", citationRef);
             await cmd.ExecuteNonQueryAsync(cancellationToken);
-            if (existingId != 0) changes.Removed.Add((existingId, existingText));
+            foreach (var row in stored) changes.Removed.Add((row.Id, row.Text));
             return changes;
         }
 
         var trimmed = text.Trim();
 
-        // Updated in place when the line already exists, rather than deleted
-        // and re-inserted. The old pair of statements gave the line a new
-        // TextNodeId every time it was saved, and the word index is keyed on
-        // that id - so each edit orphaned the line's index rows and the only
-        // way to find them again was a scan of the whole index.
-        if (existingId != 0)
+        // Updated in place, rather than deleted and re-inserted. The old pair
+        // of statements gave the line a new TextNodeId every time it was
+        // saved, and the word index is keyed on that id - so each edit
+        // orphaned the line's index rows, and the only way to find them again
+        // was a scan of the whole index.
+        //
+        // Every row for the reference gets the text, for the same reason the
+        // delete takes them all: there is one translation per citation
+        // reference here, and leaving a second row holding the previous
+        // wording would show the reader two different translations of one
+        // passage. Nothing is deleted to achieve that.
+        if (stored.Count > 0)
         {
-            if (string.Equals(existingText, trimmed, StringComparison.Ordinal))
+            foreach (var row in stored)
             {
-                // Still worth writing the sort order, which can move without
-                // the text changing, but there is nothing for the index here.
-                cmd.CommandText = "UPDATE TextNodes SET SortOrder = @SortOrder WHERE TextNodeId = @TextNodeId;";
-                cmd.Parameters.AddWithValue("@SortOrder", sortOrder);
-                cmd.Parameters.AddWithValue("@TextNodeId", existingId);
-                await cmd.ExecuteNonQueryAsync(cancellationToken);
-                return changes;
+                var textChanged = !string.Equals(row.Text, trimmed, StringComparison.Ordinal);
+
+                await using var update = conn.CreateCommand();
+                update.CommandText = textChanged
+                    ? "UPDATE TextNodes SET Text = @Text, SortOrder = @SortOrder WHERE TextNodeId = @TextNodeId;"
+                    : "UPDATE TextNodes SET SortOrder = @SortOrder WHERE TextNodeId = @TextNodeId;";
+                if (textChanged) update.Parameters.AddWithValue("@Text", trimmed);
+                update.Parameters.AddWithValue("@SortOrder", sortOrder);
+                update.Parameters.AddWithValue("@TextNodeId", row.Id);
+                await update.ExecuteNonQueryAsync(cancellationToken);
+
+                if (textChanged) changes.Rewritten.Add((row.Id, row.Text, trimmed));
             }
 
-            cmd.CommandText =
-                "UPDATE TextNodes SET Text = @Text, SortOrder = @SortOrder WHERE TextNodeId = @TextNodeId;";
-            cmd.Parameters.AddWithValue("@Text", trimmed);
-            cmd.Parameters.AddWithValue("@SortOrder", sortOrder);
-            cmd.Parameters.AddWithValue("@TextNodeId", existingId);
-            await cmd.ExecuteNonQueryAsync(cancellationToken);
-            changes.Rewritten.Add((existingId, existingText, trimmed));
             return changes;
         }
 

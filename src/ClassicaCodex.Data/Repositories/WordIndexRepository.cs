@@ -100,15 +100,6 @@ public class WordIndexRepository
     }
 
     /// <summary>
-    /// Removes just one edition's entries, ahead of re-indexing it - not the
-    /// whole-table ClearAsync a full rebuild uses. Needed because
-    /// CreateTranslationForm's save clears and reinserts an in-progress
-    /// edition's TextNodes on every batch, which means the TextNodeIds
-    /// themselves change each time (fresh auto-increment values on every
-    /// insert) - the old index rows would otherwise point at ids that no
-    /// longer exist, rather than just being absent.
-    /// </summary>
-    /// <summary>
     /// Removes every index row belonging to an edition.
     ///
     /// EXPENSIVE, and unavoidably so. This table is WITHOUT ROWID keyed

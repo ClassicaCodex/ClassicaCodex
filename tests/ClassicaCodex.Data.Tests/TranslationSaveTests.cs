@@ -243,6 +243,163 @@ public class TranslationSaveTests
         Assert.Equal(0, await OrphanedIndexRowsAsync(db));
     }
 
+    /// <summary>
+    /// A citation reference can repeat. The index on (EditionId, CitationRef)
+    /// is deliberately not unique, and this corpus has three editions where
+    /// one does - the eddic poems carry 1.45.10 and 1.45.11 twice, with
+    /// different text.
+    ///
+    /// The first version of SyncEditionAsync kept one row per reference and
+    /// deleted the rest as lines that should no longer exist. That turned a
+    /// duplicate the reader already had into a deletion on the next save: an
+    /// existing 519-line AI translation would have become 517 lines, silently.
+    /// </summary>
+    [Fact]
+    public async Task TwoLinesSharingACitationReferenceBothSurvive()
+    {
+        using var db = await TempDatabase.CreateAsync();
+        await SeedEditionAsync(db);
+        var repo = new TextNodeRepository();
+
+        // Shaped like the eddic poems: the source carries the reference twice,
+        // so the form hands over two lines for it.
+        var wanted = Lines(("1.45.10", "but the giant breaks free"), ("1.45.10", "but the giant breaks free"));
+        await repo.SyncEditionAsync(1, wanted);
+        Assert.Equal(2, (await repo.GetByEditionAsync(1)).Count);
+
+        // The save that used to delete one of them.
+        var changes = await repo.SyncEditionAsync(1, wanted);
+
+        Assert.Equal(2, (await repo.GetByEditionAsync(1)).Count);
+        Assert.Empty(changes.Removed);
+        Assert.False(changes.Any);
+    }
+
+    /// <summary>
+    /// And the identities have to hold too, or the index is orphaned even
+    /// though the count looks right.
+    /// </summary>
+    [Fact]
+    public async Task DuplicateLinesKeepTheirIdentitiesAcrossSaves()
+    {
+        using var db = await TempDatabase.CreateAsync();
+        await SeedEditionAsync(db);
+        var repo = new TextNodeRepository();
+
+        var wanted = Lines(("1.45.11", "shakes"), ("1.45.11", "shakes"));
+        await repo.SyncEditionAsync(1, wanted);
+        var first = (await repo.GetByEditionAsync(1)).Select(n => n.TextNodeId).OrderBy(i => i).ToList();
+
+        await repo.SyncEditionAsync(1, wanted);
+        var second = (await repo.GetByEditionAsync(1)).Select(n => n.TextNodeId).OrderBy(i => i).ToList();
+
+        Assert.Equal(first, second);
+    }
+
+    /// <summary>
+    /// Asking for fewer lines than are stored for a reference does still
+    /// remove the extras - the caller has said how many it wants - but it is
+    /// reported, so the index follows.
+    /// </summary>
+    [Fact]
+    public async Task AskingForFewerLinesThanAreStoredRemovesAndReportsTheExtras()
+    {
+        using var db = await TempDatabase.CreateAsync();
+        await SeedEditionAsync(db);
+        var repo = new TextNodeRepository();
+
+        await repo.SyncEditionAsync(1, Lines(("1.1", "one"), ("1.1", "two")));
+        var changes = await repo.SyncEditionAsync(1, Lines(("1.1", "one")));
+
+        Assert.Single(await repo.GetByEditionAsync(1));
+        Assert.Single(changes.Removed);
+    }
+
+    /// <summary>
+    /// The workbench's clear. The delete has always taken every row for the
+    /// reference; reporting only the first left the others' index rows
+    /// pointing at a passage that no longer existed - and SQLite reuses
+    /// rowids, so those words would eventually surface in an unrelated
+    /// passage's search results.
+    /// </summary>
+    [Fact]
+    public async Task ClearingAReferenceWithTwoLinesWithdrawsBothFromTheIndex()
+    {
+        using var db = await TempDatabase.CreateAsync();
+        await SeedEditionAsync(db);
+        var repo = new TextNodeRepository();
+        var index = new WordIndexService();
+
+        await index.ApplyChangesAsync(await repo.SyncEditionAsync(1,
+            Lines(("1.1", "alpha unique"), ("1.1", "beta distinct"))));
+        Assert.Equal(1, await RowsForWordAsync(db, "beta"));
+
+        await index.ApplyChangesAsync(await repo.SaveTranslatedLineAsync(1, "1.1", 0, ""));
+
+        Assert.Empty(await repo.GetByEditionAsync(1));
+        Assert.Equal(0, await RowsForWordAsync(db, "alpha"));
+        Assert.Equal(0, await RowsForWordAsync(db, "beta"));
+        Assert.Equal(0, await OrphanedIndexRowsAsync(db));
+    }
+
+    /// <summary>
+    /// Writing a translation for a reference that has two rows must not
+    /// destroy one of them.
+    /// </summary>
+    [Fact]
+    public async Task SavingOverADuplicatedReferenceLosesNothing()
+    {
+        using var db = await TempDatabase.CreateAsync();
+        await SeedEditionAsync(db);
+        var repo = new TextNodeRepository();
+        var index = new WordIndexService();
+
+        await index.ApplyChangesAsync(await repo.SyncEditionAsync(1,
+            Lines(("1.1", "first wording"), ("1.1", "second wording"))));
+
+        await index.ApplyChangesAsync(await repo.SaveTranslatedLineAsync(1, "1.1", 0, "agreed wording"));
+
+        var rows = await repo.GetByEditionAsync(1);
+        Assert.Equal(2, rows.Count);
+        Assert.All(rows, r => Assert.Equal("agreed wording", r.Text));
+        Assert.Equal(0, await RowsForWordAsync(db, "first"));
+        Assert.Equal(0, await RowsForWordAsync(db, "second"));
+        Assert.Equal(2, await RowsForWordAsync(db, "agreed"));
+        Assert.Equal(0, await OrphanedIndexRowsAsync(db));
+    }
+
+    /// <summary>
+    /// The last line of defence on the one method here that deletes passages.
+    ///
+    /// A harness in this project once handed it a source edition and deleted
+    /// three passages of a real library. Nothing reachable through the
+    /// interface can do that - the workbench is only given the reader's own
+    /// translation - but the only thing enforcing it was a substring of a URN
+    /// chosen by the caller.
+    /// </summary>
+    [Fact]
+    public async Task WritingToAnOriginalEditionIsRefused()
+    {
+        using var db = await TempDatabase.CreateAsync();
+        await db.ExecuteAsync(
+            @"INSERT INTO Authors (AuthorId, CtsUrn, Name, Namespace)
+                VALUES (1, 'urn:cts:greekLit:tlg0016', 'Herodotus', 'greekLit');
+              INSERT INTO Works (WorkId, AuthorId, CtsUrn, Title)
+                VALUES (1, 1, 'urn:cts:greekLit:tlg0016.tlg001', 'Histories');
+              INSERT INTO Editions (EditionId, WorkId, CtsUrn, Kind, Language)
+                VALUES (7, 1, 'tlg0016.tlg001.perseus-grc1', 'Original', 'grc');
+              INSERT INTO TextNodes (EditionId, CitationRef, SortOrder, Text)
+                VALUES (7, '1.1', 0, 'the enquiries of Herodotus of Halicarnassus');");
+
+        var repo = new TextNodeRepository();
+
+        // The exact shape of the accident: an empty box, which means delete.
+        await Assert.ThrowsAsync<InvalidOperationException>(
+            () => repo.SaveTranslatedLineAsync(7, "1.1", 0, ""));
+
+        Assert.Single(await repo.GetByEditionAsync(7));
+    }
+
     [Fact]
     public async Task DeletingByPairRemovesOnlyThatPair()
     {
