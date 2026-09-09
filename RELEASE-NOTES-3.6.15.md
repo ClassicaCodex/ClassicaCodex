@@ -53,3 +53,9 @@ translated passage.
 The decision about how much of a translation belongs in an export is now a
 separate function so it could be tested at all. Nothing else in that method can
 be — it needs a live window.
+
+The download is not code-signed, so if you would rather check it than trust it:
+
+```
+SHA-256  85137B4E33935B2435AC5C852E57B3B6D25A13D5DF840F243D74DEED9CF7E25E
+```
