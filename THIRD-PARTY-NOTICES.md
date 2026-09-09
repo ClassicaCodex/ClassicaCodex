@@ -30,8 +30,9 @@ carry the version of the binary actually bundled.
 licence: GPLv2, with a linking exception that permits linking it into an
 application under any licence. Its full licence text travels with this
 download as **`THIRD-PARTY-NOTICES-LIBGIT2.txt`**, verbatim from its own
-package, together with the notices for the PCRE2, zlib and xdiff code vendored
-inside it.
+package, together with the notices for the code libgit2 vendors in turn: PCRE2,
+zlib, llhttp, ntlmclient, wildmatch, the SHA-1 collision-detection code, the
+winhttp definition files and the Clar test framework.
 
 The corresponding source is at <https://github.com/libgit2/libgit2>, tag
 v1.8.6, and the binary here is the unmodified build distributed as

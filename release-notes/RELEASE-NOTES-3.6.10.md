@@ -1,3 +1,9 @@
+> **Historical.** These are the notes for Classica Codex 3.6.10, which is no longer
+> available for download. Only the current release is published; get it from
+> [the releases page](https://github.com/ClassicaCodex/ClassicaCodex/releases/latest).
+> Any download link or SHA-256 below refers to the 3.6.10 ZIP, not to the current
+> one, so do not check a current download against a checksum printed here.
+
 # Classica Codex 3.6.10
 
 Four fixes from an adversarial review of 3.6.9, three of them defects the
@@ -38,6 +44,16 @@ Four letters, not three or five: "le" as a prefix matches "less", "left",
 excluding anything and Le Mans would answer with twenty-two passages about
 mansions. At five, "gulf" falls below the threshold and those three mentions are
 lost again. Every other pin is unchanged, and the slowest query measured 91ms.
+
+> **Correction, added in 3.6.14.** "Not three" is wrong, and the arithmetic is
+> simple: "le" is **two** letters, so a threshold of three already leaves it
+> matched exactly rather than by prefix. Re-measured at every threshold over
+> all nine multi-word pins, Le Mans returns those twenty-two passages at a
+> threshold of **two** and nothing at three, four or five — and three and four
+> give identical results on every pin in the corpus. The upper bound is real:
+> "gulf" is four letters, so five does lose those three mentions. The honest
+> statement is that the threshold has to be at least three and at most four,
+> and four was chosen with a letter to spare.
 
 One mention still escapes: Strabo also spells it "Aegyptian Thebes", which no
 prefix of "egyptian" reaches. And a phrase typed without its accents will not

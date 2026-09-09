@@ -1,3 +1,9 @@
+> **Historical.** These are the notes for Classica Codex 3.6.12, which is no longer
+> available for download. Only the current release is published; get it from
+> [the releases page](https://github.com/ClassicaCodex/ClassicaCodex/releases/latest).
+> Any download link or SHA-256 below refers to the 3.6.12 ZIP, not to the current
+> one, so do not check a current download against a checksum printed here.
+
 # Classica Codex 3.6.12
 
 Translating stops being slow, and translations you write yourself become
@@ -49,6 +55,16 @@ index:
 
 Flat because the cost now follows what you just wrote, not how much you have
 written.
+
+> **Correction, added in 3.6.14.** Every timing on this page was a single
+> measurement, and re-measuring on a byte copy of the same library — replaying
+> the exact save sequence rather than its parts — gives different numbers. The
+> old path cost **102 s** for one isolated save of 100 lines, and 22, 56, 103,
+> 133 and 171 s across five cumulative batches; the new path costs about
+> **11 ms** per batch of twenty, with 48 ms on the first while caches warm.
+> What the table was claiming — that the cost stops growing with the length of
+> the translation — holds, and a re-save with nothing changed is under a
+> millisecond. The individual figures were too flattering in both columns.
 
 ## Translations you wrote yourself were not searchable
 

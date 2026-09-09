@@ -1935,7 +1935,18 @@ public partial class MainForm : ScaledForm
             // Resume an existing hand-written edition rather than starting a
             // second one - the workbench is for working through a text over
             // time, and silently beginning again would be the opposite.
-            var mine = editions.FirstOrDefault(e => e.CtsUrn.Contains(".mine-", StringComparison.Ordinal));
+            // Kind as well as the URN, not the URN alone.
+            //
+            // This edition is handed to the workbench, which deletes a passage
+            // when its box is cleared - so a substring match was the only
+            // thing standing between "clear this line" and deleting from an
+            // ingested text. Kind is already in hand one statement above, for
+            // the originals list; asking for it here costs nothing. The
+            // repository refuses a non-translation now too, and this is the
+            // half that means the refusal is never reached.
+            var mine = editions.FirstOrDefault(e =>
+                e.Kind == EditionKind.Translation
+                && e.CtsUrn.Contains(".mine-", StringComparison.Ordinal));
 
             var lineCounts = new Dictionary<int, int>();
             foreach (var edition in editions)

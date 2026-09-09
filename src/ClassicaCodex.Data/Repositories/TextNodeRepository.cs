@@ -849,15 +849,25 @@ public class TextNodeRepository
             // them, losing five real mentions across the map's nine
             // multi-word pins.
             //
-            // Four is the threshold because shorter words are too ambiguous
-            // to prefix. "Le Mans" is the case that sets it: "le" as a prefix
-            // matches "less", "left", "legions" - some word in almost any
-            // passage - so the conjunct stops excluding anything and the pin
-            // returns "noble mansions" and "ille mansuetudine" again. Those
-            // twenty-two are exactly the noise this whole path exists to
-            // remove. Measured over all nine pins: at four, Le Mans stays at
-            // nothing and the five real mentions come back; at five, "gulf"
-            // falls below the threshold and three of them are lost again.
+            // The threshold is bounded from both sides, and four sits inside
+            // the range rather than on its edge.
+            //
+            // From below by "Le Mans". Prefix-matching "le" pulls in "less",
+            // "left", "legions" - some word in almost any passage - so the
+            // conjunct stops excluding anything and the pin answers with
+            // "noble mansions" and "ille mansuetudine", the twenty-two
+            // passages this path exists to remove. "le" is two letters, so
+            // anything above two already leaves it matched exactly: measured
+            // over all nine multi-word pins, Le Mans returns 22 at a threshold
+            // of two and nothing at three, four or five.
+            //
+            // From above by "gulf", four letters, which has to be prefixed for
+            // "the Persian and Arabian Gulfs" to count. At five it is matched
+            // exactly instead and three real mentions go.
+            //
+            // So three and four both work, and are indistinguishable on every
+            // pin in this corpus. Four is the choice, one letter clear of the
+            // bound that actually bites.
             //
             // Widening this can only ever add candidates - the phrase LIKE
             // stays the precision filter - which is why it costs nothing in
