@@ -68,3 +68,9 @@ restored. The sixth asserts that writing to an original edition is refused.
 Also from this review: a doc comment on the word index's whole-edition delete
 still described the behaviour 3.6.12 removed, and was shipping that way in the
 built documentation. Corrected.
+
+The download is not code-signed, so if you would rather check it than trust it:
+
+```
+SHA-256  8DAC17A18DB076FEE7EA3EF5E91FE75114398A23A53CD01048A10AFDC69AFAF6
+```
