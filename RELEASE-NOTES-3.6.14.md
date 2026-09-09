@@ -117,3 +117,9 @@ data and a rebuild corrects it, but nothing currently says it needs one.
 ## Checks
 
 **1,151 tests, zero warnings on a clean build.**
+
+The download is not code-signed, so if you would rather check it than trust it:
+
+```
+SHA-256  1482C9024AC2AB76E76B0EBC908061104006F1C0BE6F6731AF2E5B31D5F62D05
+```
