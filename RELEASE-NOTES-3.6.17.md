@@ -94,5 +94,5 @@ does.
 The download is not code-signed, so if you would rather check it than trust it:
 
 ```
-SHA-256  (recorded below once the release is built)
+SHA-256  5B9CD1258A1F410C14703912970AAF45B478FAA60E58198ABF2DBF527359A589
 ```
