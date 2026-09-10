@@ -188,7 +188,13 @@ public class ValidationForm : ScaledForm
         {
             Left = 12, Top = 52, Width = LeftWidth - 30, Height = 262,
             CheckOnClick = true,
-            IntegralHeight = false
+            IntegralHeight = false,
+
+            // Filled before the theme reaches it - see
+            // ReadingTheme.ListHorizontalScrollbar. Up to 370 authors on this
+            // library, so the saving is a tenth of a second rather than a
+            // second, but it is the same defect.
+            HorizontalScrollbar = ReadingTheme.ListHorizontalScrollbar
         };
 
         poolGroup.Controls.Add(_poolPreset);
