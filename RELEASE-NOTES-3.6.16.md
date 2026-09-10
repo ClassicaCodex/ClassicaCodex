@@ -148,5 +148,5 @@ three result sizes: identical answers, every time.
 The download is not code-signed, so if you would rather check it than trust it:
 
 ```
-SHA-256  (recorded below once the release is built)
+SHA-256  1BC8A1EB21EB0C225886665DA8050AB76C9F8C35E47D3711F3C76F02CFE455A2
 ```
