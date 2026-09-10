@@ -83,5 +83,5 @@ when the folder moves; and no test or tool hardcodes the old location.
 The download is not code-signed, so if you would rather check it than trust it:
 
 ```
-SHA-256  (recorded below once the release is built)
+SHA-256  86703BACA49C12A8D338FE056828470C029C31FFC6892164DB59642ACD8FF965
 ```
