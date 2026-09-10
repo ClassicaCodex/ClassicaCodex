@@ -36,8 +36,15 @@ namespace ClassicaCodex.Data.Tests;
 /// So every list that shows passages puts its rows through
 /// ListResultHelpers.RowText, and this fails if a new one forgets. The reader
 /// panes are exempt and must stay that way - SyncListView keeps
-/// HorizontalScrollbar off and is never measured, which is what lets it show
-/// a 77,659-character passage whole.
+/// HorizontalScrollbar off, so the scroll-extent measurement that crashes is
+/// never asked for there.
+///
+/// That exemption used to be described as what let the reader show a
+/// 77,659-character passage whole. It never did: a list row cannot exceed 255
+/// pixels, so what the reader showed was as much of such a passage as fitted.
+/// It shows them whole now because it divides them across rows - see
+/// ReaderRowSplitter - which is a different mechanism, and does not change
+/// what this test is guarding.
 /// </summary>
 public class PassageRowLengthTests
 {
