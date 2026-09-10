@@ -29,7 +29,7 @@ public partial class MainForm
             {
                 var pane = _arcadeReaderPane ?? _originalPane;
                 if (pane.SelectedIndex < 0 || pane.SelectedIndex >= pane.Items.Count
-                    || pane.Items[pane.SelectedIndex] is not TextNode node) return null;
+                    || pane.NodeAt(pane.SelectedIndex) is not { } node) return null;
                 return node.TextNodeId;
             },
             () => DbConnectionFactory.DatabasePath,
@@ -54,7 +54,7 @@ public partial class MainForm
         await NavigateToPassageAsync(workId, textNodeId);
         foreach (var pane in new[] { _originalPane, _translationPane })
         {
-            if (pane.SelectedItem is not TextNode node || node.TextNodeId != textNodeId) continue;
+            if (pane.NodeAt(pane.SelectedIndex) is not { } node || node.TextNodeId != textNodeId) continue;
 
             // Put the clue at the top even with wrapped, variable-height rows.
             // Track this pane explicitly: the player may have last used the other one.

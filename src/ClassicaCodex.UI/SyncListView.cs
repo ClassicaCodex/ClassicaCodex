@@ -9,9 +9,16 @@ namespace ClassicaCodex.UI;
 /// row height is fixed, not variable per item). Built on ListBox instead,
 /// since ListBox natively supports per-item measurement via OwnerDrawVariable.
 ///
-/// Items are TextNode objects directly, not wrapper objects - callers add
-/// nodes straight into .Items and read them back the same way, rather than
-/// going through a Tag property on a wrapper as ListViewItem required.
+/// Items are <see cref="ReaderRow"/> objects: a whole passage where one fits,
+/// and otherwise one of the pieces it was divided into. They used to be
+/// TextNodes directly, on the assumption that one row meant one passage, and
+/// that assumption could not survive the control's 255-pixel ceiling on row
+/// height - about seven per cent of this corpus is taller than that, and used
+/// to show only as much of itself as would fit.
+///
+/// Callers hand it passages through <see cref="SetPassagesAsync"/> and read
+/// them back with <see cref="NodeAt"/>, which answers with the passage
+/// whichever of its rows is asked about.
 ///
 /// Also exposes TopItemChanged (for scroll sync) and a citation-ref tooltip
 /// on hover, replacing what ListView gave for free.
@@ -49,7 +56,11 @@ public class SyncListView : ListBox
         _resizeDebounceTimer.Tick += (_, _) =>
         {
             _resizeDebounceTimer.Stop();
-            RemeasureAllItems();
+
+            // Not awaited, and nothing waits on it: this is a timer tick, and
+            // the work it starts is a re-cut of every passage for the new
+            // width, which belongs on a worker rather than in a Tick handler.
+            _ = RelayoutAsync();
         };
     }
 
@@ -141,6 +152,28 @@ public class SyncListView : ListBox
         _gutterWidth = -1;
         _marginFont?.Dispose();
         _marginFont = null;
+
+        // A font change moves where the cuts fall, not just how tall the rows
+        // are - bigger text needs more rows for the same passage. Invalidating
+        // the caches was enough while a row was a whole passage; now it would
+        // leave the pane showing pieces cut for a font it is no longer using,
+        // which is text in the wrong places rather than merely wrong heights.
+        //
+        // Through the same debounce as a resize, because the reading-size
+        // dialog raises this on every click of its spinner.
+        QueueRelayout();
+    }
+
+    /// <summary>
+    /// Asks for the passages to be cut again shortly, collapsing a burst of
+    /// changes - a drag, or a spinner being clicked - into one pass.
+    /// </summary>
+    private void QueueRelayout()
+    {
+        if (!IsHandleCreated) return;
+
+        _resizeDebounceTimer.Stop();
+        _resizeDebounceTimer.Start();
     }
 
     private int _gutterWidth = -1;
@@ -204,6 +237,71 @@ public class SyncListView : ListBox
     }
 
     /// <summary>
+    /// The row at this index, or null where the row is one of the pane's
+    /// placeholder messages rather than a passage.
+    /// </summary>
+    internal ReaderRow? RowAt(int index) =>
+        index >= 0 && index < Items.Count ? Items[index] as ReaderRow : null;
+
+    /// <summary>
+    /// The passage at this index, whichever of its rows the index names.
+    ///
+    /// The one question nearly every caller actually has. A passage too tall
+    /// for a single row is several rows, and a reader who clicks the third of
+    /// them has selected the passage, not a third of one - so tagging,
+    /// bookmarking, translating and the rest all resolve through here rather
+    /// than casting the item.
+    /// </summary>
+    public TextNode? NodeAt(int index) => RowAt(index)?.Node;
+
+    /// <summary>
+    /// The first row of the passage the given index belongs to.
+    ///
+    /// What "go to this passage" means once a passage can occupy several rows:
+    /// the top of it, not wherever in the middle the caller happened to land.
+    /// </summary>
+    public int FirstRowOfPassage(int index)
+    {
+        var row = RowAt(index);
+        if (row == null) return index;
+
+        return Math.Max(index - row.SegmentIndex, 0);
+    }
+
+    /// <summary>
+    /// How many passages precede this row - the row's passage ordinal.
+    ///
+    /// This is what the two panes are kept in step by. Row number cannot do it
+    /// once a passage can be several rows, because the two editions divide
+    /// their text differently and split differently in consequence.
+    /// </summary>
+    public int PassageOrdinalAt(int index)
+    {
+        var ordinal = -1;
+
+        for (var i = 0; i <= index && i < Items.Count; i++)
+        {
+            if (Items[i] is ReaderRow { IsFirst: true }) ordinal++;
+        }
+
+        return Math.Max(ordinal, 0);
+    }
+
+    /// <summary>The first row of the nth passage in this pane.</summary>
+    public int RowOfPassageOrdinal(int ordinal)
+    {
+        var seen = -1;
+
+        for (var i = 0; i < Items.Count; i++)
+        {
+            if (Items[i] is not ReaderRow { IsFirst: true }) continue;
+            if (++seen == ordinal) return i;
+        }
+
+        return Math.Max(Items.Count - 1, 0);
+    }
+
+    /// <summary>
     /// The nearest line above <paramref name="index"/>, which is what decides
     /// whether this one is marked.
     ///
@@ -212,13 +310,21 @@ public class SyncListView : ListBox
     /// <see cref="CitationMargin.MarkFor"/>, whose whole restraint depends on
     /// being handed a line. The walk is short in practice: one step in verse,
     /// two in a dialogue.
+    ///
+    /// Rows belonging to the same passage are stepped over rather than
+    /// answered with. Without that, a passage divided over four rows compares
+    /// itself with itself and prints its own reference four times down the
+    /// margin, telling the reader it is four passages.
     /// </summary>
     private TextNode? PreviousLine(int index)
     {
+        var self = NodeAt(index);
+
         for (var i = index - 1; i >= 0; i--)
         {
-            if (Items[i] is not TextNode node) continue;
-            if (string.Equals(node.NodeKind, TextNodeKinds.Line, StringComparison.Ordinal)) return node;
+            if (Items[i] is not ReaderRow row) continue;
+            if (self != null && ReferenceEquals(row.Node, self)) continue;
+            if (string.Equals(row.Node.NodeKind, TextNodeKinds.Line, StringComparison.Ordinal)) return row.Node;
         }
 
         return null;
@@ -295,7 +401,7 @@ public class SyncListView : ListBox
 
         if (_isRemeasuring) return;
         if (Items.Count == 0) return;
-        if (ClientSize.Width == _lastMeasuredWidth) return;
+        if (UsableWidth == _lastMeasuredWidth) return;
 
         // Deliberately NOT remeasuring inline. Dragging a window edge or a
         // splitter fires Resize continuously - dozens of times a second -
@@ -325,41 +431,77 @@ public class SyncListView : ListBox
     /// </summary>
     public void Relayout()
     {
-        RemeasureAllItems();
-        Invalidate();
+        _ = RelayoutAsync();
     }
 
-    private void RemeasureAllItems()
+    /// <summary>
+    /// Cuts the passages again for the width the pane now has, and puts the
+    /// reader back where they were.
+    ///
+    /// Re-adding the existing rows is what this used to do, and it stopped
+    /// being enough the moment a row could be part of a passage: where the cuts
+    /// fall depends on the width, so a pane dragged narrower would show pieces
+    /// that no longer fit, and one dragged wider would show short pieces with
+    /// space beside them. Yesterday's pieces are not the right pieces.
+    ///
+    /// The reader's place is kept by passage and piece rather than by row
+    /// number, for the same reason: the row count itself changes.
+    /// </summary>
+    private async Task RelayoutAsync()
     {
         if (_isRemeasuring) return;
-        if (Items.Count == 0) return;
-        if (ClientSize.Width == _lastMeasuredWidth) return;
+        if (_passages.Count == 0) return;
+        if (UsableWidth == _lastMeasuredWidth) return;
 
-        _lastMeasuredWidth = ClientSize.Width;
         _isRemeasuring = true;
         try
         {
-            var items = new object[Items.Count];
-            Items.CopyTo(items, 0);
+            var anchor = CurrentAnchor();
 
-            // Preserved across the rebuild - Clear() drops both, and losing
-            // your place in the text every time the window is resized would
-            // be its own bug.
-            var selectedIndex = SelectedIndex;
-            var topIndex = TopIndex;
+            await SetPassagesAsync(_passages).ConfigureAwait(true);
 
-            BeginUpdate();
-            Items.Clear();
-            Items.AddRange(items);
-            EndUpdate();
-
-            if (selectedIndex >= 0 && selectedIndex < Items.Count) SelectedIndex = selectedIndex;
-            if (topIndex >= 0 && topIndex < Items.Count) TopIndex = topIndex;
+            if (!IsDisposed) RestoreAnchor(anchor);
         }
         finally
         {
             _isRemeasuring = false;
         }
+
+        if (!IsDisposed) Invalidate();
+    }
+
+    /// <summary>
+    /// Where the reader is, in terms that survive the rows being cut
+    /// differently: which passage is at the top of the pane, and which is
+    /// selected.
+    /// </summary>
+    private (long TopNodeId, long SelectedNodeId) CurrentAnchor() =>
+        (NodeAt(TopIndex)?.TextNodeId ?? -1, NodeAt(SelectedIndex)?.TextNodeId ?? -1);
+
+    private void RestoreAnchor((long TopNodeId, long SelectedNodeId) anchor)
+    {
+        if (anchor.SelectedNodeId >= 0)
+        {
+            var row = RowOfNode(anchor.SelectedNodeId);
+            if (row >= 0) SelectOnly(row);
+        }
+
+        if (anchor.TopNodeId >= 0)
+        {
+            var row = RowOfNode(anchor.TopNodeId);
+            if (row >= 0) TopIndex = row;
+        }
+    }
+
+    /// <summary>The first row showing this passage, or -1 if it is not here.</summary>
+    public int RowOfNode(long textNodeId)
+    {
+        for (var i = 0; i < Items.Count; i++)
+        {
+            if (Items[i] is ReaderRow { IsFirst: true } row && row.Node.TextNodeId == textNodeId) return i;
+        }
+
+        return -1;
     }
 
     private void OnMeasureItem(object? sender, MeasureItemEventArgs e)
@@ -411,8 +553,9 @@ public class SyncListView : ListBox
     ///
     /// Takes the font and the glyph bounds as arguments rather than reading
     /// them off the control so that it can run on a worker thread - see
-    /// <see cref="PrewarmHeightsAsync"/>. It touches no control state and no
-    /// cache, which is what makes that safe.
+    /// <see cref="SetPassagesAsync"/>, which cuts and measures a whole work
+    /// there. It touches no control state and no cache, which is what makes
+    /// that safe.
     /// </summary>
     private static int MeasureUncappedHeight(string text, int width, Font font, int minGlyph, int maxGlyph)
     {
@@ -481,76 +624,184 @@ public class SyncListView : ListBox
     /// is measured inline exactly as before, so a prewarm that is skipped,
     /// abandoned or discarded costs time and changes nothing else.
     /// </summary>
-    public async Task PrewarmHeightsAsync(IReadOnlyList<TextNode> nodes)
+    /// <param name="isStillWanted">
+    /// Asked once more just before the rows go on screen. Cutting a work takes
+    /// seconds, and a reader can click a second work in that time; without
+    /// this the slower of the two fills would win by finishing last, and the
+    /// pane would settle on the work that was not asked for.
+    /// </param>
+    public async Task SetPassagesAsync(IReadOnlyList<TextNode> nodes, Func<bool>? isStillWanted = null)
     {
-        if (nodes.Count == 0 || IsDisposed) return;
+        _passages = nodes;
+
+        if (IsDisposed) return;
 
         // Read on the UI thread, before anything is handed to a worker. Both
-        // can change underneath a long measurement - the reader can drag the
-        // splitter or change the reading font size while a work is opening -
-        // and heights measured against the old layout would be wrong rather
-        // than merely late.
-        var width = Math.Max(ClientSize.Width - 8 - GutterWidth, 50);
+        // can change underneath the work - the reader can drag the splitter or
+        // change the reading font while a work is opening - and rows cut
+        // against the old layout would be wrong rather than merely late.
+        var width = UsableWidth;
         var font = Font;
         var minGlyph = GetMinGlyphWidth();
         var maxGlyph = GetMaxGlyphWidth();
 
-        var texts = new List<string>(nodes.Count);
-        var seen = new HashSet<string>(StringComparer.Ordinal);
-        foreach (var node in nodes)
-        {
-            var text = DisplayTextFor(node);
+        List<ReaderRow> rows;
+        Dictionary<string, int> heights;
 
-            // Neither is worth a worker's time: an empty row has a fixed
-            // height, and a line short enough that it cannot wrap is settled
-            // by a multiply wherever it is asked.
-            if (text.Length == 0) continue;
-            if ((long)text.Length * maxGlyph <= width) continue;
-
-            if (seen.Add(text)) texts.Add(text);
-        }
-
-        if (texts.Count == 0) return;
-
-        Dictionary<string, int> measured;
         try
         {
-            measured = await Task.Run(() =>
-            {
-                var heights = new Dictionary<string, int>(texts.Count, StringComparer.Ordinal);
-                foreach (var text in texts)
-                {
-                    heights[text] = MeasureUncappedHeight(text, width, font, minGlyph, maxGlyph);
-                }
-
-                return heights;
-            }).ConfigureAwait(true);
+            (rows, heights) = await Task.Run(
+                () => BuildRows(nodes, width, font, minGlyph, maxGlyph)).ConfigureAwait(true);
         }
         catch (Exception)
         {
-            // Swallowed on purpose, and it is the one place in this file where
-            // that is the right thing to do. Every height this would have
-            // supplied is computed inline by OnMeasureItem when the row is
-            // added, so abandoning the whole prewarm costs the reader the
-            // seconds it was meant to save and nothing else - whereas letting
-            // it escape would take down the opening of the work itself, which
-            // is the thing that used to succeed.
-            return;
+            // One row per passage, exactly as the reader behaved before it
+            // could divide them, and measured inline by OnMeasureItem as it
+            // always was. A passage too tall for a row then shows as much of
+            // itself as fits, with the marker saying so.
+            //
+            // Swallowing is right here for the same reason it was when this
+            // only warmed a cache: the fallback is complete and correct, just
+            // slower and less generous, whereas letting the exception out
+            // would take down the opening of the work itself.
+            rows = nodes.Select(node => new ReaderRow(node, node.Text, 0, 1)).ToList();
+            heights = new Dictionary<string, int>(StringComparer.Ordinal);
         }
 
         if (IsDisposed) return;
 
-        // The layout these were measured against has to still be the layout
-        // the pane has. If the reader resized the window or changed the
-        // reading font while this ran, the heights describe a pane that no
-        // longer exists - so they are dropped, and the fill measures inline as
-        // it always did.
-        if (width != Math.Max(ClientSize.Width - 8 - GutterWidth, 50)) return;
-        if (!ReferenceEquals(font, Font)) return;
+        // If the layout moved while that ran, the rows describe a pane that no
+        // longer exists. Filling anyway would show text cut for the wrong
+        // width; the resize that moved it will queue its own re-split, so
+        // dropping these is both safe and temporary.
+        if (width != UsableWidth || !ReferenceEquals(font, Font)) return;
+        if (isStillWanted != null && !isStillWanted()) return;
 
         var cache = GetHeightCacheForCurrentWidth(width);
-        foreach (var pair in measured) cache[pair.Key] = pair.Value;
+        foreach (var pair in heights) cache[pair.Key] = pair.Value;
+
+        Fill(rows);
+        _lastMeasuredWidth = width;
     }
+
+    /// <summary>
+    /// Puts the rows on screen, keeping the pane from repainting until they are
+    /// all in - the fill raises a measurement for every row as it goes.
+    /// </summary>
+    private void Fill(List<ReaderRow> rows)
+    {
+        BeginUpdate();
+        try
+        {
+            Items.Clear();
+            Items.AddRange(rows.Cast<object>().ToArray());
+        }
+        finally
+        {
+            EndUpdate();
+        }
+    }
+
+    /// <summary>
+    /// Cuts every passage into rows that fit, and measures each row once.
+    ///
+    /// Runs on a worker thread, so it touches no control state: everything it
+    /// needs was read on the UI thread and passed in.
+    ///
+    /// The order of the work is the whole performance story. Asking GDI where
+    /// to cut costs about a millisecond a question and a prose edition needs
+    /// tens of thousands of them. So the cuts are guessed with
+    /// <see cref="ReaderTextMetrics"/>, which is arithmetic and free, aiming
+    /// deliberately short of the real ceiling; then each resulting row is
+    /// measured once for real - the measurement its height needed in any case -
+    /// and only a row that overshoots is cut again. That leaves roughly one
+    /// measurement per row instead of twenty-five per passage.
+    /// </summary>
+    private static (List<ReaderRow> Rows, Dictionary<string, int> Heights) BuildRows(
+        IReadOnlyList<TextNode> nodes, int width, Font font, int minGlyph, int maxGlyph)
+    {
+        var heights = new Dictionary<string, int>(StringComparer.Ordinal);
+        var rows = new List<ReaderRow>(nodes.Count);
+
+        int MeasuredHeight(string text)
+        {
+            if (heights.TryGetValue(text, out var known)) return known;
+
+            var height = MeasureUncappedHeight(text, width, font, minGlyph, maxGlyph);
+            heights[text] = height;
+            return height;
+        }
+
+        var characters = new HashSet<char>();
+        foreach (var node in nodes)
+        {
+            foreach (var c in node.Text) characters.Add(c);
+        }
+
+        var metrics = ReaderTextMetrics.Build(font, characters, text =>
+            TextRenderer.MeasureText(text, font, new Size(int.MaxValue, int.MaxValue),
+                TextFormatFlags.NoPadding).Width);
+
+        // Short of the ceiling by a line, because the estimate is allowed to be
+        // wrong by about that much and a row cut too long is a row that hides
+        // text. A row cut too short only wastes a little space, and the
+        // measurement below catches the rest either way.
+        var target = Math.Max(ReaderRowHeight.Max - metrics.LineHeight, metrics.LineHeight);
+
+        foreach (var node in nodes)
+        {
+            var text = node.Text;
+
+            // Cannot wrap at all, so cannot need cutting - the same arithmetic
+            // that lets OnMeasureItem answer without measuring.
+            if (text.Length == 0 || (long)text.Length * maxGlyph <= width)
+            {
+                rows.Add(new ReaderRow(node, text, 0, 1));
+                continue;
+            }
+
+            var segments = ReaderRowSplitter.Split(
+                text,
+                piece => metrics.EstimateHeight(piece, width),
+                target,
+                mayFitWhole: !ReaderRowHeight.CannotFit(text.Length, minGlyph, width, font.Height));
+
+            // Confirm with real layout, and cut again anything the estimate let
+            // through. The second cut uses real measurement, so it terminates
+            // against the truth rather than against another guess.
+            var confirmed = new List<string>(segments.Count);
+            foreach (var segment in segments)
+            {
+                if (MeasuredHeight(segment) <= ReaderRowHeight.Max) { confirmed.Add(segment); continue; }
+
+                confirmed.AddRange(ReaderRowSplitter.Split(
+                    segment, MeasuredHeight, ReaderRowHeight.Max, mayFitWhole: false));
+            }
+
+            for (var i = 0; i < confirmed.Count; i++)
+            {
+                rows.Add(new ReaderRow(node, confirmed[i], i, confirmed.Count));
+                MeasuredHeight(confirmed[i]);
+            }
+        }
+
+        return (rows, heights);
+    }
+
+    /// <summary>
+    /// The passages this pane is showing, kept so that a change of width or
+    /// font can cut them again. The rows cannot be re-cut from themselves:
+    /// where the cuts fall depends on the width, and yesterday's pieces are
+    /// not the right pieces for a wider pane.
+    /// </summary>
+    private IReadOnlyList<TextNode> _passages = Array.Empty<TextNode>();
+
+    /// <summary>
+    /// The width text actually gets, once the citation margin and the padding
+    /// either side are taken out. Named because measuring, cutting and drawing
+    /// must all agree on it, and three copies of the arithmetic did not.
+    /// </summary>
+    private int UsableWidth => Math.Max(ClientSize.Width - 8 - GutterWidth, 50);
 
     /// <summary>
     /// Whether this row holds more text than the control can show, which the
@@ -596,8 +847,8 @@ public class SyncListView : ListBox
             // those. Italic carries it where colour cannot: the muted colour
             // alone would be invisible against a selection highlight, and
             // unusable for anyone who cannot distinguish it.
-            var athetized = e.Index >= 0 && e.Index < Items.Count
-                            && Items[e.Index] is TextNode { IsAthetized: true };
+            var row = RowAt(e.Index);
+            var athetized = row?.Node.IsAthetized == true;
 
             var foreColor = selected
                 ? ReadingTheme.SelectionText
@@ -611,12 +862,63 @@ public class SyncListView : ListBox
             TextRenderer.DrawText(e.Graphics, text, font, rect, foreColor,
                 TextFormatFlags.WordBreak | TextFormatFlags.NoPadding);
 
+            // The marks go after the passage's last row, not into its text.
+            // They are added and removed while the pane is on screen, and a
+            // row's text was decided when the passage was divided - see
+            // GetItemText for why that separation exists at all.
+            if (row is { IsLast: true }) DrawPassageMarks(e, row, font, foreColor, gutter);
+
+            // Only where the text genuinely cannot be divided - a single run
+            // longer than a row, which GDI declines to break. Everything else
+            // that used to be marked is now simply continued on the next row.
             if (IsTruncated(e.Index)) DrawTruncationMarker(e, selected);
 
             if (gutter > 0) DrawMargin(e, gutter, selected);
         }
 
         e.DrawFocusRectangle();
+    }
+
+    /// <summary>
+    /// Draws the tag, bookmark and inquiry marks after the end of a passage.
+    ///
+    /// Drawn rather than appended to the text, which is what this used to do.
+    /// A passage's rows are cut once, at the width the pane had; a mark made
+    /// afterwards - and AddPassageMark exists precisely so that marking does
+    /// not repopulate the pane - would never reach text frozen at that moment.
+    /// Drawing it puts it back under the control of every repaint.
+    ///
+    /// Placed after the last line's text rather than at the row's right edge,
+    /// so it reads as following the passage rather than as sitting in a column
+    /// of its own.
+    /// </summary>
+    private void DrawPassageMarks(DrawItemEventArgs e, ReaderRow row, Font font, Color foreColor, int gutter)
+    {
+        var marks = MarksFor(row.Node);
+        if (marks == default) return;
+
+        var suffix = PassageMarkSymbols.Suffix(marks);
+        if (suffix.Length == 0) return;
+
+        var textWidth = Math.Max(e.Bounds.Width - 6 - gutter, 1);
+        var lastLine = TextRenderer.MeasureText(row.Text, font, new Size(textWidth, int.MaxValue),
+            TextFormatFlags.WordBreak | TextFormatFlags.NoPadding);
+
+        var suffixWidth = TextRenderer.MeasureText(suffix, font, new Size(int.MaxValue, int.MaxValue),
+            TextFormatFlags.NoPadding).Width;
+
+        // Along the bottom line of the row, right-aligned within what is left.
+        // Right-aligned rather than tucked against the text's own end, because
+        // where a wrapped line ends is not something this can know without
+        // laying the text out again for the sake of a two-character mark.
+        var rect = new Rectangle(
+            e.Bounds.X + 3 + gutter + Math.Max(textWidth - suffixWidth, 0),
+            e.Bounds.Y + 2 + Math.Max(lastLine.Height - font.Height, 0),
+            suffixWidth,
+            font.Height);
+
+        TextRenderer.DrawText(e.Graphics, suffix, font, rect, foreColor,
+            TextFormatFlags.NoPadding | TextFormatFlags.SingleLine | TextFormatFlags.Right);
     }
 
     /// <summary>
@@ -660,7 +962,14 @@ public class SyncListView : ListBox
     /// </summary>
     private void DrawMargin(DrawItemEventArgs e, int gutter, bool selected)
     {
-        if (e.Index < 0 || e.Index >= Items.Count || Items[e.Index] is not TextNode node) return;
+        if (RowAt(e.Index) is not { } row) return;
+
+        // Only against the row a passage begins on. A passage divided over four
+        // rows is one passage, and printing its reference beside each piece
+        // would tell the reader it was four.
+        if (!row.IsFirst) return;
+
+        var node = row.Node;
 
         // Checked before the walk below, not just inside MarkFor. A speech
         // attribution is never marked, and a pane showing only attributions -
@@ -728,27 +1037,35 @@ public class SyncListView : ListBox
         Invalidate();
     }
 
+    /// <summary>
+    /// The string a row shows and is measured by.
+    ///
+    /// The marks are NOT part of it, and that is a change from when a row was
+    /// a whole passage. They used to be appended here so they would be
+    /// measured with the text; but a row's text is now decided when the
+    /// passage is cut into rows, and marks are added while the pane is on
+    /// screen - AddPassageMark deliberately redraws without repopulating. Text
+    /// frozen at the moment of cutting cannot carry a mark added afterwards,
+    /// so the mark is drawn after the last row of the passage instead.
+    ///
+    /// Neither is written into the node: node.Text is what gets copied,
+    /// exported and searched, the same reasoning that keeps an athetized
+    /// line's brackets out of its string.
+    /// </summary>
     private string GetItemText(int index)
     {
         if (index < 0 || index >= Items.Count) return string.Empty;
-        if (Items[index] is not TextNode node) return Items[index]?.ToString() ?? string.Empty;
 
-        return DisplayTextFor(node);
+        return Items[index] switch
+        {
+            ReaderRow row => row.Text,
+            var other => other?.ToString() ?? string.Empty
+        };
     }
 
-    /// <summary>
-    /// The string a row actually shows, which is the one that has to be
-    /// measured.
-    ///
-    /// The marks are appended here rather than written into the node, because
-    /// node.Text is what gets copied, exported and searched - the same
-    /// reasoning that keeps an athetized line's brackets out of its string.
-    /// This is the display path and nothing else reads it.
-    /// </summary>
-    private string DisplayTextFor(TextNode node) =>
-        _marks.TryGetValue(node.CitationRef, out var marks)
-            ? node.Text + PassageMarkSymbols.Suffix(marks)
-            : node.Text;
+    /// <summary>The marks this passage carries, if any.</summary>
+    private PassageMarks MarksFor(TextNode node) =>
+        _marks.TryGetValue(node.CitationRef, out var marks) ? marks : default;
 
     private void OnMouseMoveForTooltip(object? sender, MouseEventArgs e)
     {
@@ -757,17 +1074,25 @@ public class SyncListView : ListBox
 
         _lastTooltipIndex = index;
 
-        if (index >= 0 && index < Items.Count && Items[index] is TextNode node)
+        if (RowAt(index) is { } row)
         {
-            // The citation is the point of this tooltip; the other two notes
-            // are appended because each has a visible effect - italics, an
-            // ellipsis - that shows something is different without saying
-            // what. The truncation note names Copy to Clipboard because that
-            // is where the whole passage can actually be had.
+            var node = row.Node;
+
+            // The citation is the point of this tooltip; the notes after it are
+            // there because each has a visible effect - italics, a continued
+            // passage, an ellipsis - that shows something is different without
+            // saying what.
             var citation = $"[{PassageCitation.Display(node.CitationRef, node.Milestone)}]";
 
             if (node.IsAthetized)
                 citation += " - bracketed by the editor as probably not authentic";
+
+            // Said on every row of a divided passage, because the reader can
+            // hover any of them and the answer is the same: this is one
+            // passage, shown over several rows because the list cannot make a
+            // row tall enough for it.
+            if (row.IsSplit)
+                citation += $" - continued over {row.SegmentCount} rows ({row.SegmentIndex + 1} of {row.SegmentCount})";
 
             if (IsTruncated(index))
                 citation += " - too long to show in full here; Copy to Clipboard takes all of it";
@@ -780,15 +1105,45 @@ public class SyncListView : ListBox
         }
     }
 
-    /// <summary>Scrolls so the given index is visible - ListBox has no built-in EnsureVisible.</summary>
+    /// <summary>
+    /// Scrolls so the given row is visible - ListBox has no built-in
+    /// EnsureVisible.
+    ///
+    /// How far down the pane a row is has to be worked out from the rows
+    /// themselves. ItemHeight, which this used to divide by, is meaningless
+    /// under OwnerDrawVariable: it returns the control's default backing value
+    /// and not the height of anything on screen, so the old arithmetic thought
+    /// far more rows were visible than were, and scrolled only when the target
+    /// was a long way past the bottom. Divided passages made that worse, since
+    /// every long passage became a row of the full 255 pixels.
+    /// </summary>
     public void EnsureVisible(int index)
     {
         if (index < 0 || index >= Items.Count) return;
+        if (index < TopIndex) { TopIndex = index; return; }
 
-        if (index < TopIndex || index > TopIndex + (ClientSize.Height / Math.Max(ItemHeight, 1)))
+        var available = ClientSize.Height;
+
+        for (var i = TopIndex; i <= index && i < Items.Count; i++)
         {
+            available -= RowHeight(i);
+            if (available >= 0) continue;
+
             TopIndex = index;
+            return;
         }
+    }
+
+    /// <summary>
+    /// The height a row is actually drawn at, which is what it was measured to
+    /// be, capped as the control caps it.
+    /// </summary>
+    private int RowHeight(int index)
+    {
+        var text = GetItemText(index);
+        if (text.Length == 0) return Font.Height + 4;
+
+        return ReaderRowHeight.Cap(UncappedHeightFor(text, UsableWidth));
     }
 
     /// <summary>Selects one item, clearing any other selection - SelectedItems.Clear() equivalent for a ListBox.</summary>
