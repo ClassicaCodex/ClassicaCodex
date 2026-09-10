@@ -26,7 +26,9 @@ describes, and the largest of them at full size:
 - typing in its filter refilled all 4,056 rows on every keystroke, undebounced;
 - and both of the boxes it shows a passage in were built without the border the
   theme was going to give them, which is the handle-recreation cost 3.6.17
-  describes — up to **570 ms** on a long passage, now none.
+  describes: **176 ms** per box for a 41,475-character passage and **1,643 ms**
+  for the longest in the corpus, now **2 ms** and **399 ms**. The window builds
+  two of them.
 
 Analyse Parallel Passages builds its passage boxes the same way and is fixed
 with it.
@@ -52,6 +54,26 @@ both were measured rather than assumed:
 
 Both are recorded here because "we checked and it was fine" is worth as much to
 the next person as a fix.
+
+## A correction to 3.6.17's figures
+
+3.6.17 said that switching the horizontal scrollbar on over a filled list of
+4,056 rows cost **1,320 ms**, and gave a scaling table of 207 ms at 500 rows,
+603 ms at 2,000 and 1,320 ms at 4,056. Those numbers were taken on a machine
+running a dozen other measurement processes at the same time, and thousands of
+text measurements contend badly. Re-measured on a quiet machine, nine
+interleaved runs: the same operation is **195 ms** (median 197, max 209), and
+the list built with the scrollbar already set is **44 ms** rather than 263 ms.
+
+The ratio 3.6.17 reported is close to right — about 4.4x rather than 5x — and
+the fix and its direction are unaffected. The absolute milliseconds were roughly
+six times too large. The figures for the text-box border in that release were
+re-checked at the same time and stand: 176 ms at 41,475 characters against a
+published 164, and 1,643 ms for the longest passage against a published 1,650.
+
+Every figure in *this* release was taken on the quiet machine, and the headline
+one was re-measured after the fact to confirm it: 308 ms against the 307 ms
+published above, median 309, max 336.
 
 ## Checks
 

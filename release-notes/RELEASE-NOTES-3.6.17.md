@@ -35,6 +35,17 @@ holding — and this window filled its list of works in its own startup handler,
 which runs *before* the theme is applied. So four thousand rows went in, and then
 the scrollbar was switched on over all of them at once. Measured: **1,320 ms**
 that way, against **263 ms** if the list is built with the scrollbar already on,
+
+> **Correction, made in 3.6.18.** The three figures in this paragraph and the
+> scaling table below it were measured while a dozen other measurement processes
+> were running on the same machine, and thousands of text measurements contend
+> badly. Re-measured quiet, nine interleaved runs: the switch costs **195 ms**
+> (median 197, max 209), not 1,320, and the preset list fills in **44 ms**, not
+> 263. The ratio is about 4.4x rather than 5x, so the fix and its direction are
+> unaffected, but the absolute milliseconds here are roughly six times too large.
+> The text-box border figures elsewhere in these notes were re-checked at the
+> same time and stand.
+
 where the measuring is spread across the insertions. It scales with the library:
 207 ms at 500 works, 603 ms at 2,000, 1,320 ms at 4,056.
 
