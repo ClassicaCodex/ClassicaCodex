@@ -425,13 +425,27 @@ public class LemmaRepository
         //
         // The work scope goes in the WHERE rather than being filtered after
         // the fact, because LIMIT applies before the caller ever sees a row.
-        // A corpus-wide search truncates at maxResults in author order, so
-        // filtering afterwards would leave a search scoped to one late-
-        // alphabet author returning nothing at all while reporting a full
-        // result set.
+        // A corpus-wide search truncates at maxResults, so filtering
+        // afterwards would leave a search scoped to one work returning
+        // nothing at all while reporting a full result set.
+        //
+        // Ordered after the LIMIT rather than in SQL. Sorting in the database
+        // means sorting everything the join produces before the LIMIT can
+        // discard it, and for a broad selection that is not a page of rows:
+        // "every Greek verb" matches 114,458 distinct forms, which fan out
+        // through WordIndex to six million joined rows, all of which SQLite
+        // put through a temp b-tree to hand back two thousand. Measured on a
+        // full library: 67,061 ms with the ORDER BY, 29 ms without it.
+        //
+        // For every search that does not reach maxResults - which is every
+        // scoped search in practice - the whole result set comes back and
+        // sorting it here gives byte-identical output to sorting it there.
+        // Only a search that truncates differs, and a truncated search was
+        // already returning an arbitrary slice: with the ORDER BY it was the
+        // alphabet's first two authors and nothing else in the corpus.
         cmd.CommandText = $@"
             SELECT w.WorkId, tn.TextNodeId, a.Name, w.Title, tn.CitationRef, tn.Text,
-                   m.Form, m.Headword, m.PartOfSpeech, tn.Milestone
+                   m.Form, m.Headword, m.PartOfSpeech, tn.Milestone, tn.SortOrder
             FROM (
                 SELECT DISTINCT l.NormalizedForm, l.Form, l.Headword, l.PartOfSpeech
                 FROM Lemmas l
@@ -445,7 +459,6 @@ public class LemmaRepository
             JOIN Works w ON e.WorkId = w.WorkId
             JOIN Authors a ON w.AuthorId = a.AuthorId
             {WorkScope.Clause(cmd, scope, "WHERE")}
-            ORDER BY a.Name, w.Title, tn.SortOrder
             LIMIT @MaxResults;";
 
         cmd.Parameters.AddWithValue("@Pattern9", globPattern9);
@@ -453,15 +466,27 @@ public class LemmaRepository
         cmd.Parameters.AddWithValue("@Language", language);
         cmd.Parameters.AddWithValue("@MaxResults", maxResults);
 
+        // SortOrder is read for the ordering below and then dropped: it is how
+        // a work sequences its own lines, which is what the third sort key
+        // needs, and it is of no use to the caller.
+        var ordered = new List<(int SortOrder, (int, long, string, string, string, string, string, string, string, string?) Row)>();
+
         await using var reader = await cmd.ExecuteReaderAsync(cancellationToken);
         while (await reader.ReadAsync(cancellationToken))
         {
-            results.Add((
-                reader.GetInt32(0), reader.GetInt64(1), reader.GetString(2), reader.GetString(3),
-                reader.GetString(4), reader.GetString(5), reader.GetString(6), reader.GetString(7),
-                reader.IsDBNull(8) ? string.Empty : reader.GetString(8),
-                reader.IsDBNull(9) ? null : reader.GetString(9)));
+            ordered.Add((
+                reader.GetInt32(10),
+                (reader.GetInt32(0), reader.GetInt64(1), reader.GetString(2), reader.GetString(3),
+                 reader.GetString(4), reader.GetString(5), reader.GetString(6), reader.GetString(7),
+                 reader.IsDBNull(8) ? string.Empty : reader.GetString(8),
+                 reader.IsDBNull(9) ? null : reader.GetString(9))));
         }
+
+        results.AddRange(ordered
+            .OrderBy(x => x.Row.Item3, StringComparer.Ordinal)
+            .ThenBy(x => x.Row.Item4, StringComparer.Ordinal)
+            .ThenBy(x => x.SortOrder)
+            .Select(x => x.Row));
 
         return results;
     }

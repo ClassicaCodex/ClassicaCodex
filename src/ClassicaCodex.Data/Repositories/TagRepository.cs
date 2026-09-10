@@ -213,28 +213,38 @@ public class TagRepository
         var results = new Dictionary<long, List<string>>();
         if (textNodeIds.Count == 0) return results;
 
+        var wanted = textNodeIds as HashSet<long> ?? new HashSet<long>(textNodeIds);
+
         await using var conn = await DbConnectionFactory.OpenConnectionAsync(cancellationToken);
 
-        // Inlined rather than parameterised because the list is a set of
-        // integers this code produced itself, never user text, and a
-        // parameter per id would run into SQLite's variable limit on a long
-        // result list.
-        var ids = string.Join(",", textNodeIds.Distinct());
-
-        var sql = $@"
-            SELECT tn.TextNodeId, t.Name
-            FROM TextNodes tn
-            JOIN PassageTags pt ON pt.EditionId = tn.EditionId AND pt.CitationRef = tn.CitationRef
-            JOIN Tags t ON t.TagId = pt.TagId
-            WHERE tn.TextNodeId IN ({ids})
-            ORDER BY t.Name;";
-
+        // Every tagged passage, narrowed here rather than in the WHERE.
+        //
+        // Filtering in SQL reads better and was much slower. With the ids
+        // inlined as WHERE tn.TextNodeId IN (...), SQLite chose Tags as the
+        // outer loop and did one random lookup into the 2.34-million-row
+        // TextNodes table per tag per id: clicking a well-attested place -
+        // 4,625 hits - cost 1,636 ms, and the cost multiplied by the number of
+        // rows in Tags, so it got worse with every tag the reader made. At
+        // fifty tags the same click would have taken tens of seconds.
+        //
+        // Driven from PassageTags instead, the whole answer is one pass over a
+        // table holding as many rows as the reader has tagged passages, each
+        // resolved through IX_TextNodes_Edition_Citation: about a millisecond
+        // for the complete set. The rows are the same rows - it is the same
+        // join with the filter moved - so the markers cannot change.
         await using var cmd = conn.CreateCommand();
-        cmd.CommandText = sql;
+        cmd.CommandText = @"
+            SELECT tn.TextNodeId, t.Name
+            FROM PassageTags pt
+            JOIN Tags t ON t.TagId = pt.TagId
+            JOIN TextNodes tn ON tn.EditionId = pt.EditionId AND tn.CitationRef = pt.CitationRef
+            ORDER BY t.Name;";
         await using var reader = await cmd.ExecuteReaderAsync(cancellationToken);
         while (await reader.ReadAsync(cancellationToken))
         {
             var nodeId = reader.GetInt64(0);
+            if (!wanted.Contains(nodeId)) continue;
+
             if (!results.TryGetValue(nodeId, out var names))
             {
                 names = new List<string>();

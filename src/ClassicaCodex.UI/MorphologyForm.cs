@@ -205,6 +205,14 @@ public class MorphologyForm : ScaledForm
         public override string ToString() => Meaning;
     }
 
+    /// <summary>
+    /// How many passages one search will show. Passed to the query rather than
+    /// left to its default so that the status line, which tells the reader
+    /// whether they are looking at all the matches or the first of them, is
+    /// reading the same number the query capped at.
+    /// </summary>
+    private const int MaxSearchResults = 2000;
+
     private string SelectedLanguageCode => _languageComboBox.SelectedIndex == 1 ? "lat" : "grc";
 
     private Dictionary<int, char> CurrentSelections()
@@ -329,8 +337,25 @@ public class MorphologyForm : ScaledForm
         try
         {
             var (pattern9, pattern10) = MorphologyDecoder.BuildGlobPatterns(selections);
-            _currentResults = await _lemmaRepo.SearchByMorphologyAsync(
-                pattern9, pattern10, SelectedLanguageCode, workIds: _scopeWorkIds.ToList());
+            var language = SelectedLanguageCode;
+            var scope = _scopeWorkIds.ToList();
+
+            // Off the UI thread, for the same reason the availability count
+            // above it is - and more so. Microsoft.Data.Sqlite's async methods
+            // run synchronously, so awaiting this on the UI thread blocked for
+            // the query's whole duration: the "Searching..." set two lines up
+            // never painted, and a broad selection meant Windows greying the
+            // window out and offering to close it.
+            var results = await Task.Run(() => _lemmaRepo.SearchByMorphologyAsync(
+                pattern9, pattern10, language, MaxSearchResults, workIds: scope));
+
+            // The form is shown with ShowDialog and disposed the moment that
+            // returns, so a reader who gives up and closes the window mid-
+            // search would otherwise have this continuation touch a disposed
+            // list.
+            if (IsDisposed || _resultsList.IsDisposed) return;
+
+            _currentResults = results;
 
             foreach (var r in _currentResults)
             {
@@ -350,6 +375,17 @@ public class MorphologyForm : ScaledForm
                 _resultsList.Items.Add("(nothing matched this combination)");
                 _statusLabel.Text = "No matches - try loosening a category back to \"(any)\".";
             }
+            else if (_currentResults.Count >= MaxSearchResults)
+            {
+                // Said plainly because it is not the whole answer. A broad
+                // selection matches more passages than any list should hold -
+                // "every Greek verb" matches over a hundred thousand distinct
+                // forms - and reporting the cap as though it were the count
+                // would invite reading conclusions off a slice.
+                _statusLabel.Text =
+                    $"First {_currentResults.Count:N0} passages found - there are more. " +
+                    "Narrow a category, or set a text scope, to see all of them. Double-click one to jump to it.";
+            }
             else
             {
                 _statusLabel.Text = $"{_currentResults.Count:N0} passage(s). Double-click one to jump to it.";
@@ -357,11 +393,11 @@ public class MorphologyForm : ScaledForm
         }
         catch (Exception ex)
         {
-            _statusLabel.Text = $"Search failed: {ex.Message}";
+            if (!IsDisposed) _statusLabel.Text = $"Search failed: {ex.Message}";
         }
         finally
         {
-            _searchButton.Enabled = true;
+            if (!IsDisposed && !_searchButton.IsDisposed) _searchButton.Enabled = true;
         }
     }
 

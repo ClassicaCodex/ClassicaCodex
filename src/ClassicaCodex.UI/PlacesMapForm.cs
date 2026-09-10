@@ -312,11 +312,26 @@ public class PlacesMapForm : ScaledForm
         // Arabian Gulf, Egyptian Thebes, lake Moeris, Hippo Regius, Colonia
         // Agrippina, Monte Cassino, Boeotian Thebes - answered a click with an
         // empty list, having answered it with real mentions before.
-        var hits = await Task.Run(() => _textNodeRepo.SearchPhraseAsync(placeName));
-        _currentPassages = hits.Rows;
+        // Both queries inside the one Task.Run. The tag lookup was left on the
+        // UI thread when the search was moved off it, and it was the more
+        // expensive of the two by a wide margin - so a pin click still stalled
+        // for a couple of seconds after the search itself had stopped being
+        // the reason.
+        var (hits, tagsByNode) = await Task.Run(async () =>
+        {
+            var found = await _textNodeRepo.SearchPhraseAsync(placeName);
+            var tags = await _tagRepo.GetTagNamesForNodesAsync(
+                found.Rows.Select(p => p.TextNodeId).ToList());
+            return (found, tags);
+        });
 
-        _tagsByNode = await _tagRepo.GetTagNamesForNodesAsync(
-            _currentPassages.Select(p => p.TextNodeId).ToList());
+        // The map is modal and disposed as soon as it closes, so a reader who
+        // clicks a pin and shuts the window before it answers would otherwise
+        // land here holding a disposed list.
+        if (IsDisposed) return;
+
+        _currentPassages = hits.Rows;
+        _tagsByNode = tagsByNode;
 
         RenderPassageList(hits.Truncated);
     }
