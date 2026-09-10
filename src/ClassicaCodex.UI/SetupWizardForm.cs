@@ -34,6 +34,11 @@ public class SetupWizardForm : ScaledForm
     public event Action? CorpusChanged;
 
     private readonly List<WizardRow> _rows = new();
+
+    // A field so it can be disabled while a fetch is running: changing the
+    // download folder mid-download would leave the running step writing to one
+    // folder and every later step reading another.
+    private Button _dataFolderButton = null!;
     private CancellationTokenSource? _cts;
 
     // Used only to answer "has this actually been loaded already" for the
@@ -90,7 +95,7 @@ public class SetupWizardForm : ScaledForm
             Height = 54,
             ForeColor = Color.DimGray,
             Text = "Each of these downloads a full open-data repository and ingests it in one step. These are real " +
-                   "downloads (the largest run several hundred MB) and can take a few minutes each - only run one " +
+                   "downloads (the largest run to several gigabytes) and can take a few minutes each - only run one " +
                    "at a time. See About for what's licensed how."
         };
         Controls.Add(explainer);
@@ -177,10 +182,34 @@ public class SetupWizardForm : ScaledForm
         Controls.Add(manualIngestButton);
         Controls.Add(manualLemmaButton);
         Controls.Add(manualHint);
+        // Beside the database button because they are the same kind of choice -
+        // where something large goes - and someone who came to Advanced Setup
+        // to put the library on another drive is usually there to move the
+        // downloads too.
+        _dataFolderButton = new Button { Text = "Download Folder...", Left = 12, Top = y + 130, Width = 170, Height = 30 };
+        _dataFolderButton.Click += (_, _) => ChooseDataFolder();
+
+        var dataFolderHint = new Label
+        {
+            Text = "Where downloaded texts, dictionaries and word-form data are kept - about nine gigabytes "
+                 + "for a full set. Sets the folders shown above; anything already downloaded stays where it is.",
+            Left = 192,
+            Top = y + 136,
+            Width = 680,
+            Height = 32,
+            ForeColor = Color.DimGray
+        };
+
+        // Its own icon rather than the Settings one the database button has -
+        // two identical glyphs one above the other read as one control repeated.
+        AppIcons.Apply(_dataFolderButton, "Downloading", 16);
+
         Controls.Add(databaseButton);
         Controls.Add(databaseHint);
+        Controls.Add(_dataFolderButton);
+        Controls.Add(dataFolderHint);
 
-        y += 140;
+        y += 178;
 
         // Word index and AI translation both open on their own now.
         //
@@ -570,5 +599,72 @@ public class SetupWizardForm : ScaledForm
         {
             row.ActionButton.Enabled = enabled;
         }
+
+        // Along with the rows, because changing the download folder closes this
+        // window - and closing it mid-fetch would take the progress display
+        // away from a download that carried on running.
+        _dataFolderButton.Enabled = enabled;
+    }
+
+    /// <summary>
+    /// Chooses where downloads go - the counterpart of Database Location, for
+    /// the far larger of the two things this program puts on a disk.
+    ///
+    /// Closes the window afterwards, which is not tidiness. Every row on this
+    /// form was built from a source whose destination was computed from the
+    /// folder as it was when the form opened, so a row clicked after the folder
+    /// changed would download to the old place. Reopening rebuilds them all
+    /// from the catalogue. The guided wizard rebuilds its steps in place
+    /// instead; this form cannot, because its rows are controls rather than a
+    /// list.
+    /// </summary>
+    private void ChooseDataFolder()
+    {
+        using var dialog = new FolderBrowserDialog
+        {
+            Description = "Choose where downloaded texts and dictionaries should be kept",
+            UseDescriptionForTitle = true,
+            SelectedPath = Directory.Exists(DataFolderSettings.Root)
+                ? DataFolderSettings.Root
+                : DataFolderSettings.DefaultRoot,
+            ShowNewFolderButton = true
+        };
+
+        if (dialog.ShowDialog(this) != DialogResult.OK) return;
+
+        if (!DataFolderSettings.TryPrepare(dialog.SelectedPath, out var chosen, out var error))
+        {
+            MessageBox.Show(this, $"That folder can't be used: {error}", "Download folder",
+                MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            return;
+        }
+
+        if (string.Equals(chosen, DataFolderSettings.Root, StringComparison.OrdinalIgnoreCase)) return;
+
+        DataFolderSettings.Root = chosen;
+
+        // As the guided wizard does. Closing this window does not reset a
+        // static cache, so a map opened earlier in this session would go on
+        // drawing the geometry it read from the old folder.
+        NaturalEarthCoastline.InvalidateCache();
+
+        var freeGb = DataFolderSettings.FreeGigabytesAt(chosen);
+        var room = freeGb == null
+            ? string.Empty
+            : freeGb < DataFolderSettings.ComfortableFreeGigabytes
+                ? $"\r\n\r\nThat drive has {freeGb:N1} GB free, and a full set needs about " +
+                  $"{DataFolderSettings.FullSetGigabytes:N0} GB."
+                : $"\r\n\r\nThat drive has {freeGb:N0} GB free.";
+
+        MessageBox.Show(this,
+            $"Downloads will go to:\r\n\r\n{chosen}\r\n\r\n" +
+            "Anything already downloaded stays where it is - nothing is moved or deleted, and your " +
+            "library is unaffected, since ingested texts live in the database rather than in these " +
+            "folders. The map is read from this folder each time it opens, so if you have already " +
+            "fetched it, run that step once more." + room + "\r\n\r\n" +
+            "This window will close so the steps pick up the new folder.",
+            "Download folder", MessageBoxButtons.OK, MessageBoxIcon.Information);
+
+        Close();
     }
 }

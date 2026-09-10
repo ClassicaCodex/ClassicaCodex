@@ -543,9 +543,13 @@ Downloaded source repositories default to:
 
    Documents\ClassicaCodexData\
 
-Those are just working copies of public data. Deleting them costs nothing but the time to fetch them again; your tags and bookmarks live in the database, not in those folders.
+and that folder can be chosen - the Download Folder step in Guided Setup, or the Download Folder button in Advanced Setup. A full set is about nine gigabytes, most of it the Greek and Latin lemma data, so it is worth putting somewhere with room rather than on the system drive.
 
-Preferences (theme, category shapes, database location) sit in small files beside the database.
+Choosing a different folder decides where future downloads go. It does not move anything you have already fetched: those files stay where they are, and you can copy them across by hand or simply download them again.
+
+Those are mostly working copies of public data. Deleting them costs nothing but the time to fetch them again; your tags and bookmarks live in the database, not in those folders. Two things in there are not re-fetchable, though: the Medieval Nordic manuscript files you saved by hand, and the work divisions you confirmed for them.
+
+Preferences (theme, category shapes, database and download locations) sit in small files beside the database.
 
 None of the texts, dictionaries, or linguistic data belong to this app - see About for the full attribution and licensing.
 """),

@@ -17,13 +17,21 @@ namespace ClassicaCodex.UI;
 public static class NaturalEarthCoastline
 {
     /// <summary>
-    /// The one canonical location the map reads from - deliberately fixed
-    /// (not user-configurable) so MapCanvas and the setup step can never
-    /// disagree about where the file lives.
+    /// The one canonical location the map reads from, so that MapCanvas and
+    /// the setup step can never disagree about where the file lives.
+    ///
+    /// This used to say "deliberately fixed (not user-configurable)", and the
+    /// fixedness was doing the work of keeping the two in agreement. It is now
+    /// derived from <see cref="DataFolderSettings.Root"/> instead, which keeps
+    /// the agreement for the same reason - there is still exactly one answer,
+    /// and both callers read it - while letting the eight-plus gigabytes of
+    /// downloads sit on a drive that has room for them.
+    ///
+    /// A property, not a constant, precisely so a folder chosen after this
+    /// type was first touched is still honoured.
     /// </summary>
     public static string CanonicalPath => Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
-        "ClassicaCodexData", "map", "ne_110m_land.geojson");
+        DataFolderSettings.Root, "map", "ne_110m_land.geojson");
 
     // Slightly wider than MapCanvas's own bounds, so shapes whose edges
     // cross the map border still draw right up to it instead of vanishing

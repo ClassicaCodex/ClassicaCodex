@@ -26,7 +26,10 @@ public class GuidedSetupForm : ScaledForm
     private readonly LemmaRepository _lemmaRepo = new();
     private readonly DefinitionRepository _definitionRepo = new();
     private readonly WordIndexRepository _wordIndexRepo = new();
-    private readonly List<SetupDataSource> _sources;
+    // Not readonly: every source's destination is computed from the download
+    // folder when the catalogue is built, so choosing a different folder means
+    // building it again - see RebuildSources.
+    private List<SetupDataSource> _sources;
 
     // Step 0 = welcome; DatabaseStepIndex = database location; then one
     // step per data source; then word index; then finish. Named rather
@@ -34,12 +37,18 @@ public class GuidedSetupForm : ScaledForm
     // every other offset by hand.
     private int _currentStep;
     private const int DatabaseStepIndex = 1;
-    private int FirstSourceStepIndex => DatabaseStepIndex + 1;
+
+    // Straight after the database and before anything is fetched, because it
+    // decides where everything fetched afterwards lands. Asking later would
+    // mean asking someone to move gigabytes they had already downloaded.
+    private const int DataFolderStepIndex = DatabaseStepIndex + 1;
+    private int FirstSourceStepIndex => DataFolderStepIndex + 1;
     private int WordIndexStepIndex => FirstSourceStepIndex + _sources.Count;
     private int FinishStepIndex => WordIndexStepIndex + 1;
     private int TotalSteps => FinishStepIndex + 1;
 
     private bool _databaseComplete;
+    private bool _dataFolderComplete;
     private readonly List<bool> _sourceComplete = new();
     private bool _wordIndexComplete;
     private long _indexedLines;
@@ -226,6 +235,25 @@ public class GuidedSetupForm : ScaledForm
         _browseButton = new Button { Text = "Browse...", Left = 478, Top = 128, Width = 138, Height = 28 };
         _browseButton.Click += (_, _) =>
         {
+            // Two steps share this button and they want different dialogs: one
+            // names a file to create, the other a folder to fill. The note that
+            // used to sit on the path box - that Browse opens a file dialog and
+            // that is the wrong dialog for choosing a download folder - was
+            // written when only the first existed.
+            if (_currentStep == DataFolderStepIndex)
+            {
+                using var folderDialog = new FolderBrowserDialog
+                {
+                    Description = "Choose where downloaded texts and dictionaries should be kept",
+                    UseDescriptionForTitle = true,
+                    SelectedPath = Directory.Exists(_pathBox.Text) ? _pathBox.Text : DataFolderSettings.DefaultRoot,
+                    ShowNewFolderButton = true
+                };
+
+                if (folderDialog.ShowDialog(this) == DialogResult.OK) _pathBox.Text = folderDialog.SelectedPath;
+                return;
+            }
+
             using var dialog = new SaveFileDialog
             {
                 Filter = "SQLite database (*.db)|*.db|All files (*.*)|*.*",
@@ -363,7 +391,7 @@ public class GuidedSetupForm : ScaledForm
 
         _nextButton = new Button { Left = 488, Top = 432, Width = 140, Height = 32 };
         AppIcons.Apply(_nextButton, "Forward", 16);
-        _nextButton.Click += (_, _) =>
+        _nextButton.Click += async (_, _) =>
         {
             if (_currentStep == DatabaseStepIndex && !_databaseComplete)
             {
@@ -371,6 +399,24 @@ public class GuidedSetupForm : ScaledForm
                     "Set up the database first - everything else in this wizard needs somewhere to write to.",
                     "Database Not Set Up Yet", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 return;
+            }
+
+            // A folder typed into the box, or picked with Browse, and then not
+            // confirmed with the button. Next is the obvious thing to press
+            // after choosing something, and dropping the choice silently would
+            // send the whole download to the folder they had just rejected.
+            if (_currentStep == DataFolderStepIndex
+                && !string.Equals(_pathBox.Text.Trim(), DataFolderSettings.Root, StringComparison.OrdinalIgnoreCase))
+            {
+                await ApplyDataFolderAsync();
+
+                // Left on this step when it would not take: the status line has
+                // already said why, and moving on would bury it.
+                if (!string.Equals(_pathBox.Text.Trim(), DataFolderSettings.Root, StringComparison.OrdinalIgnoreCase))
+                {
+                    RenderStep();
+                    return;
+                }
             }
 
             if (_currentStep == FinishStepIndex)
@@ -409,6 +455,17 @@ public class GuidedSetupForm : ScaledForm
     private async Task RefreshAllCompletionAsync()
     {
         _databaseComplete = DbConnectionFactory.IsConfigured;
+
+        // "Could downloads go there?", not "is it already there?". On a fresh
+        // install the default folder has never been created, and judging it by
+        // existence would greet every newcomer with a red cross beside a
+        // perfectly good default - on the step whose whole message is that the
+        // default is fine unless you are short of space.
+        //
+        // Checked without creating anything: someone who has not reached this
+        // step yet should not have folders made for them on the strength of
+        // opening the wizard.
+        _dataFolderComplete = DataFolderSettings.LooksUsable(DataFolderSettings.Root);
 
         _sourceComplete.Clear();
         if (!_databaseComplete)
@@ -456,6 +513,7 @@ public class GuidedSetupForm : ScaledForm
     {
         var isWelcome = _currentStep == 0;
         var isDatabase = _currentStep == DatabaseStepIndex;
+        var isDataFolder = _currentStep == DataFolderStepIndex;
         var isFinish = _currentStep == FinishStepIndex;
         var isContent = !isWelcome && !isFinish;
 
@@ -463,35 +521,42 @@ public class GuidedSetupForm : ScaledForm
         _finishPanel.Visible = isFinish;
         _contentPanel.Visible = isContent;
 
-        _pathBox.Visible = isDatabase;
-        _browseButton.Visible = isDatabase;
+        _pathBox.Visible = isDatabase || isDataFolder;
+        _browseButton.Visible = isDatabase || isDataFolder;
         // The description shares vertical space with the path box, which the
-        // Database step uses for a file to write and a source step uses to
-        // show the folder its files live in - read-only there, since the
-        // wizard's Browse opens a SaveFileDialog filtered to .db and that is
-        // the wrong dialog entirely for choosing a download folder.
+        // Database step uses for a file to write, the Download Folder step for
+        // a folder to fill, and a source step to show the folder its files
+        // live in - read-only on that last one, since the source folders are
+        // all decided by the Download Folder step rather than one at a time.
+        //
+        // This note used to end by saying Browse opens a file dialog filtered
+        // to .db and that this is the wrong dialog for choosing a download
+        // folder. It was right, and it is why Browse now looks at which step
+        // is showing before deciding which dialog to open.
         foreach (var link in _sourceLinks) link.Visible = false;
         _readinessLabel.Visible = false;
         _secondaryButton.Visible = false;
         _outputBox.Visible = false;
         _outputBox.Clear();
 
-        // The path box sits at 130 on the Database step and is hidden on every
-        // other, so the description gets that room back when it is not there.
-        // Anything longer than the room available scrolls rather than being cut.
-        _descriptionScroll.Height = isDatabase ? 70 : 96;
-        _pathBox.ReadOnly = !isDatabase;
-        _pathBox.Top = isDatabase ? 130 : 190;
-        _browseButton.Visible = isDatabase;
+        // The path box sits at 130 on the two steps that are ABOUT a path and
+        // is hidden on every other, so the description gets that room back when
+        // it is not there. Anything longer than the room available scrolls
+        // rather than being cut.
+        var isPathStep = isDatabase || isDataFolder;
+        _descriptionScroll.Height = isPathStep ? 70 : 96;
+        _pathBox.ReadOnly = !isPathStep;
+        _pathBox.Top = isPathStep ? 130 : 190;
+        _browseButton.Visible = isPathStep;
 
-        _actionButton.Top = isDatabase ? 172 : 218;
+        _actionButton.Top = isPathStep ? 172 : 218;
         _secondaryButton.Top = _actionButton.Top;
-        _progressBar.Top = isDatabase ? 214 : 258;
-        _statusLabel.Top = isDatabase ? 244 : 280;
-        _statusLabel.Width = isDatabase ? 616 : 430;
-        _elapsedLabel.Top = isDatabase ? 268 : 280;
-        _elapsedLabel.Left = isDatabase ? 0 : 440;
-        _elapsedLabel.Width = isDatabase ? 616 : 176;
+        _progressBar.Top = isPathStep ? 214 : 258;
+        _statusLabel.Top = isPathStep ? 244 : 280;
+        _statusLabel.Width = isPathStep ? 616 : 430;
+        _elapsedLabel.Top = isPathStep ? 268 : 280;
+        _elapsedLabel.Left = isPathStep ? 0 : 440;
+        _elapsedLabel.Width = isPathStep ? 616 : 176;
 
         _backButton.Enabled = !isWelcome;
         _nextButton.Text = isWelcome ? "Get Started" : isFinish ? "Start Reading" : "Next";
@@ -515,6 +580,28 @@ public class GuidedSetupForm : ScaledForm
             _statusLabel.Text = _databaseComplete
                 ? $"Ready: {DbConnectionFactory.DatabasePath}"
                 : "Not set up yet.";
+        }
+        else if (isDataFolder)
+        {
+            _titleLabel.Text = "Download Folder";
+            _descriptionLabel.Text =
+                "Everything downloaded in the steps after this one goes here: the texts themselves, the " +
+                "dictionaries, and the word-form data. All of it together comes to about nine gigabytes, " +
+                "most of that the Greek and Latin word-form data, so if your main drive is short of room " +
+                "this is the thing to put somewhere else. The folder below is fine if you have the space. " +
+                "These are working copies of public data - your own library, tags and bookmarks live in " +
+                "the database file from the last step, not here.";
+            _pathBox.Text = DataFolderSettings.Root;
+            _actionButton.Text = "Use This Folder";
+
+            // Three states, as the word-index step has: a folder that will work
+            // but is short of room is not an error, and it is not a green tick
+            // either. A tick beside the words "only 4 GB free" is the reading
+            // someone takes away, and it is the wrong one.
+            _statusIcon.Image = AppIcons.Get(DataFolderIconName(), 32);
+            _statusLabel.Text = _dataFolderComplete
+                ? DescribeDataFolder()
+                : "Pick a folder that exists, or one that can be created.";
         }
         else
         {
@@ -638,6 +725,12 @@ public class GuidedSetupForm : ScaledForm
             return;
         }
 
+        if (_currentStep == DataFolderStepIndex)
+        {
+            await ApplyDataFolderAsync();
+            return;
+        }
+
         var stepInSources = _currentStep - FirstSourceStepIndex;
         if (stepInSources >= 0 && stepInSources < _sources.Count)
         {
@@ -647,6 +740,186 @@ public class GuidedSetupForm : ScaledForm
         {
             await RunWordIndexAsync();
         }
+    }
+
+    /// <summary>
+    /// Rebuilds the step list against the current download folder.
+    ///
+    /// The catalogue reads the folder once, as it builds, and hands each source
+    /// a finished destination path - so the sources made when this window
+    /// opened are still aimed at wherever the folder was then. The count and
+    /// order are fixed by the catalogue, so the completion flags beside them
+    /// stay valid; only the paths move.
+    /// </summary>
+    private void RebuildSources() =>
+        _sources = SetupDataSourceCatalog.Build(_authorRepo, _lemmaRepo, _definitionRepo, _artifactRepo, _editionRepo);
+
+    /// <summary>
+    /// Takes the folder in the box, having satisfied itself that downloads can
+    /// actually be written there.
+    ///
+    /// Creating it is part of accepting it: the folder someone types or picks
+    /// with New Folder may not exist yet, and finding that out at the start of
+    /// an hour-long download is finding out too late. So it is created and
+    /// written to here, while there is still a person looking at the screen to
+    /// tell.
+    /// </summary>
+    private async Task ApplyDataFolderAsync()
+    {
+        if (!DataFolderSettings.TryPrepare(_pathBox.Text, out var chosen, out var error))
+        {
+            _statusLabel.Text = error!.StartsWith("Enter ", StringComparison.Ordinal)
+                ? error
+                : $"Can't use that folder: {error}";
+            _statusIcon.Image = AppIcons.Get("Error", 32);
+            return;
+        }
+
+        var moved = !string.Equals(chosen, DataFolderSettings.Root, StringComparison.OrdinalIgnoreCase);
+        DataFolderSettings.Root = chosen;
+        _pathBox.Text = chosen;
+
+        // Rebuilt because every source's destination is derived from the folder
+        // - see SetupDataSourceCatalog.DataRoot - so the steps after this one
+        // are pointing at the old place until they are made again.
+        RebuildSources();
+
+        // The map holds its geometry in a static cache keyed to nothing, so a
+        // map opened before the folder moved would go on drawing what it read
+        // from the old one. Cheap to drop; it reloads on next use.
+        NaturalEarthCoastline.InvalidateCache();
+
+        if (moved)
+        {
+            // Navigation off for the same reason every other awaiting path in
+            // this form turns it off: this is fourteen indexed counts, quick
+            // but not instant, and the button that started them stays under
+            // the pointer throughout.
+            SetNavEnabled(false);
+            try { await RefreshSourceCompletionAsync(); }
+            finally { SetNavEnabled(true); }
+        }
+
+        _dataFolderComplete = true;
+        _statusIcon.Image = AppIcons.Get(DataFolderIconName(), 32);
+        _statusLabel.Text = DescribeDataFolder();
+
+        if (moved) WarnAboutAlreadyDownloadedData();
+    }
+
+    /// <summary>
+    /// Re-asks every source whether it is done, after the folder beneath them
+    /// changed.
+    ///
+    /// Deliberately not RefreshAllCompletionAsync, which also counts the word
+    /// index - two aggregates over seventy million rows, half a minute on a
+    /// full library, and nothing the download folder can possibly have
+    /// affected. These fifteen are indexed counts and a File.Exists.
+    ///
+    /// It matters for exactly one of them today: fourteen decide completeness
+    /// from the database, which a folder cannot change, but the map decides it
+    /// from a file in this folder. Written to ask all of them anyway, so that
+    /// a future source which reads from disk is not quietly left stale.
+    /// </summary>
+    private async Task RefreshSourceCompletionAsync()
+    {
+        if (!_databaseComplete) return;
+
+        for (var i = 0; i < _sources.Count && i < _sourceComplete.Count; i++)
+        {
+            _sourceComplete[i] = await _sources[i].CheckComplete();
+        }
+    }
+
+    /// <summary>
+    /// The chosen folder and what is free on its drive, which is the number
+    /// that decides whether the next hour is going to work.
+    /// </summary>
+    /// <summary>
+    /// Which of the three marks the Download Folder step shows: usable and
+    /// roomy, usable but tight, or not usable at all.
+    /// </summary>
+    private string DataFolderIconName()
+    {
+        if (!_dataFolderComplete) return "Error";
+
+        var freeGb = DataFolderSettings.FreeGigabytesAt(DataFolderSettings.Root);
+
+        // Unknown free space is not a warning. A network path cannot answer,
+        // and refusing to tick a folder for being unmeasurable would flag the
+        // one kind of location most likely to have room.
+        return freeGb != null && freeGb < DataFolderSettings.ComfortableFreeGigabytes
+            ? "Warning"
+            : "Complete";
+    }
+
+    private static string DescribeDataFolder()
+    {
+        var root = DataFolderSettings.Root;
+        var freeGb = DataFolderSettings.FreeGigabytesAt(root);
+
+        if (freeGb == null) return $"Ready: {root}{TemporaryDriveNote(root)}";
+
+        return freeGb < DataFolderSettings.ComfortableFreeGigabytes
+            ? $"{root} - only {freeGb:N1} GB free, and a full set needs about " +
+              $"{DataFolderSettings.FullSetGigabytes:N0} GB. You can still go on and skip the larger steps."
+            : $"Ready: {root} ({freeGb:N0} GB free){TemporaryDriveNote(root)}";
+    }
+
+    /// <summary>
+    /// Names the temporary drive as well, when it is a different one.
+    ///
+    /// The big collections arrive as a git clone into the system temporary
+    /// folder and are copied out from there, so the download needs room on two
+    /// drives, not one. Choosing a roomy folder on D: and being told "500 GB
+    /// free" is exactly the reassurance that precedes running out of space on
+    /// C: an hour later - and the person most likely to move the folder is the
+    /// person whose C: is already full.
+    ///
+    /// Said rather than solved: moving the clone into the chosen folder would
+    /// change the download path for everyone, including everyone who has no
+    /// problem, which is not a change to make two days before an announcement.
+    /// </summary>
+    private static string TemporaryDriveNote(string root)
+    {
+        var tempRoot = Path.GetPathRoot(Path.GetTempPath());
+        var chosenRoot = Path.GetPathRoot(root);
+
+        if (string.IsNullOrEmpty(tempRoot) || string.IsNullOrEmpty(chosenRoot)) return string.Empty;
+        if (string.Equals(tempRoot, chosenRoot, StringComparison.OrdinalIgnoreCase)) return string.Empty;
+
+        var tempFree = DataFolderSettings.FreeGigabytesAt(tempRoot);
+        if (tempFree == null) return string.Empty;
+
+        return tempFree < DataFolderSettings.ComfortableFreeGigabytes
+            ? $" - note the largest downloads also unpack through {tempRoot.TrimEnd('\\')} first, which has {tempFree:N1} GB free."
+            : string.Empty;
+    }
+
+    /// <summary>
+    /// Said once, when the folder changes with data already downloaded
+    /// elsewhere - because what happens next is not obvious and is mostly
+    /// reassuring.
+    /// </summary>
+    private void WarnAboutAlreadyDownloadedData()
+    {
+        if (!Directory.Exists(DataFolderSettings.DefaultRoot) && !_sourceComplete.Any(c => c)) return;
+
+        MessageBox.Show(this,
+            "Anything you have already downloaded stays where it is - nothing is moved or deleted, and " +
+            "your library is unaffected, because the texts you have ingested are in the database rather " +
+            "than in these folders.\r\n\r\n" +
+            "What changes is where the steps after this one look, so any step you have not run yet will " +
+            "download into the new folder.\r\n\r\n" +
+            "A few steps read from this folder rather than only downloading into it, and those will need " +
+            "running again or pointing at the old folder. The map is one: it is read every time the map " +
+            "opens rather than being ingested, and it is under a megabyte. Adding Stephanus and Bekker " +
+            "numbers is another - it reads the texts back out of this folder rather than fetching " +
+            "anything, so it will find nothing in an empty one. And if you imported Medieval Nordic " +
+            "manuscripts, their files and the work divisions you confirmed are in the old folder too; " +
+            "those are your own decisions rather than a download, and worth copying across by hand " +
+            "rather than redoing.",
+            "Downloads already on disk", MessageBoxButtons.OK, MessageBoxIcon.Information);
     }
 
     private async Task RunCurrentStepSecondaryAsync()
