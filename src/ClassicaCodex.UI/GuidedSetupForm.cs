@@ -93,6 +93,20 @@ public class GuidedSetupForm : ScaledForm
 
         Load += async (_, _) =>
         {
+            // Rendered before the counts, not after. Only the tick marks
+            // depend on them; the step's layout does not, and asking the
+            // library whether its word index is up to date means counting
+            // distinct rows in a 70-million-row table - twenty-four seconds
+            // on a full library, warm. Rendering afterwards left the wizard
+            // on screen for all of that with every panel visible at once,
+            // stacked, which is what a first-time reader saw when they
+            // clicked Setup: something indistinguishable from a broken
+            // window.
+            //
+            // Rendering twice costs a few milliseconds and the flags are
+            // false-by-default, so the first pass shows the right step with
+            // no ticks and the second fills them in.
+            RenderStep();
             await RefreshAllCompletionAsync();
             RenderStep();
         };
@@ -108,7 +122,7 @@ public class GuidedSetupForm : ScaledForm
 
     private void BuildWelcomePanel()
     {
-        _welcomePanel = new Panel { Left = 12, Top = 50, Width = 616, Height = 370 };
+        _welcomePanel = new Panel { Left = 12, Top = 50, Width = 616, Height = 370, Visible = false };
 
         var title = new Label
         {
@@ -159,7 +173,7 @@ public class GuidedSetupForm : ScaledForm
 
     private void BuildContentPanel()
     {
-        _contentPanel = new Panel { Left = 12, Top = 50, Width = 616, Height = 370 };
+        _contentPanel = new Panel { Left = 12, Top = 50, Width = 616, Height = 370, Visible = false };
 
         _statusIcon = new PictureBox { Left = 0, Top = 4, Width = 32, Height = 32, SizeMode = PictureBoxSizeMode.Zoom };
         _titleLabel = new Label
@@ -309,7 +323,7 @@ public class GuidedSetupForm : ScaledForm
 
     private void BuildFinishPanel()
     {
-        _finishPanel = new Panel { Left = 12, Top = 50, Width = 616, Height = 370 };
+        _finishPanel = new Panel { Left = 12, Top = 50, Width = 616, Height = 370, Visible = false };
 
         var title = new Label
         {

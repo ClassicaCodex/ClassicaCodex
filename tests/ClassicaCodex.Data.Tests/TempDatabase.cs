@@ -340,6 +340,28 @@ public sealed class TempDatabase : IDisposable
             $"SELECT TextNodeId FROM TextNodes WHERE EditionId = {editionId} " +
             $"AND CitationRef = '{citationRef}' ORDER BY TextNodeId LIMIT 1;");
 
+    /// <summary>
+    /// Every passage carrying a citation reference, for the cases where an
+    /// edition repeats one - which this corpus does, and which the singular
+    /// version above hides behind its LIMIT 1.
+    /// </summary>
+    public async Task<List<long>> TextNodeIdsAsync(int editionId, string citationRef)
+    {
+        var ids = new List<long>();
+
+        await using var conn = await DbConnectionFactory.OpenConnectionAsync();
+        await using var cmd = conn.CreateCommand();
+        cmd.CommandText =
+            "SELECT TextNodeId FROM TextNodes WHERE EditionId = @e AND CitationRef = @c ORDER BY TextNodeId;";
+        cmd.Parameters.AddWithValue("@e", editionId);
+        cmd.Parameters.AddWithValue("@c", citationRef);
+
+        await using var reader = await cmd.ExecuteReaderAsync();
+        while (await reader.ReadAsync()) ids.Add(reader.GetInt64(0));
+
+        return ids;
+    }
+
     public void Dispose()
     {
         SqliteConnection.ClearAllPools();

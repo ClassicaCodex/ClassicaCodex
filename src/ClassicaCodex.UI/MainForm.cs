@@ -134,6 +134,14 @@ public partial class MainForm : ScaledForm
     // full corpus is a couple of thousand authors and one query for all
     // their works, which is not something to repeat per character typed.
     private readonly TextBox _treeFilterBox;
+
+    /// <summary>
+    /// Collapses a burst of typing in the filter box into one tree rebuild.
+    /// Long enough to swallow a whole word typed at speed, short enough that
+    /// stopping feels like the tree was already waiting.
+    /// </summary>
+    private readonly System.Windows.Forms.Timer _treeFilterDebounce =
+        new() { Interval = 180 };
     private readonly PictureBox _treeFilterIcon;
     private readonly ContextMenuStrip _collectionsMenu = new();
 
@@ -376,15 +384,29 @@ public partial class MainForm : ScaledForm
             Height = 24,
             Text = "\u2605"
         };
-        _favoritesOnlyCheck.CheckedChanged += (_, _) => PopulateLibraryTree();
+        _favoritesOnlyCheck.CheckedChanged += (_, _) => QueueLibraryTreeRebuild();
         _toolbarTips.SetToolTip(_favoritesOnlyCheck, "Show favourites only");
         _favoritesOnlyCheck.AccessibleName = "Show favourites only";
 
-        // Rebuilt straight from the cached lists on each keystroke rather
-        // than debounced - there is no query behind it, so the work is a
-        // string comparison per author and a tree rebuild, which a full
-        // corpus absorbs without a pause.
-        _treeFilterBox.TextChanged += (_, _) => PopulateLibraryTree();
+        // Debounced. There is no query behind the filter - the work is a string
+        // comparison per author and a tree rebuild - and the note that stood
+        // here said a full corpus absorbs that without a pause. It does not, at
+        // this size: clearing and rebuilding 748 authors and 4,021 works costs
+        // 149-231 ms, most of it spent destroying the nodes of the previous
+        // pass rather than drawing the new ones, so typing "aristotle" queued
+        // nine rebuilds and the box ran visibly behind the typing.
+        //
+        // One rebuild once the typing settles is the same tree, a fifth of a
+        // second later. The favourites checkbox goes through the same timer:
+        // it rebuilds identically, and a reader toggling it while typing
+        // should not get two.
+        _treeFilterBox.TextChanged += (_, _) => QueueLibraryTreeRebuild();
+
+        _treeFilterDebounce.Tick += (_, _) =>
+        {
+            _treeFilterDebounce.Stop();
+            PopulateLibraryTree();
+        };
 
         _libraryTree = new TreeView
         {
@@ -609,7 +631,12 @@ public partial class MainForm : ScaledForm
         // workbench listens to the same event - the size has to reach a
         // window this one did not open.
         ReadingFontSettings.Changed += ApplyReadingFontSize;
-        FormClosed += (_, _) => ReadingFontSettings.Changed -= ApplyReadingFontSize;
+        FormClosed += (_, _) =>
+        {
+            ReadingFontSettings.Changed -= ApplyReadingFontSize;
+            _treeFilterDebounce.Stop();
+            _treeFilterDebounce.Dispose();
+        };
 
         _panesLinked = PaneSyncSettings.Enabled;
 
@@ -1020,6 +1047,29 @@ public partial class MainForm : ScaledForm
         _toolbarTips.SetToolTip(_treeFilterIcon, chosen == 0
             ? $"Showing all {total} collections - click to choose"
             : $"Showing {chosen} of {total} collections - click to change");
+    }
+
+    /// <summary>
+    /// Asks for a tree rebuild soon rather than now, restarting the wait each
+    /// time it is called so that a burst of keystrokes costs one rebuild.
+    /// </summary>
+    private void QueueLibraryTreeRebuild()
+    {
+        _treeFilterDebounce.Stop();
+        _treeFilterDebounce.Start();
+    }
+
+    /// <summary>
+    /// Rebuilds the tree now if one was queued, for the callers that change a
+    /// filter and then need to read the tree back in the same breath rather
+    /// than a fifth of a second later.
+    /// </summary>
+    private void FlushPendingLibraryTreeRebuild()
+    {
+        if (!_treeFilterDebounce.Enabled) return;
+
+        _treeFilterDebounce.Stop();
+        PopulateLibraryTree();
     }
 
     /// <summary>
@@ -2520,10 +2570,22 @@ public partial class MainForm : ScaledForm
     /// </summary>
     private readonly Dictionary<SyncListView, List<string>> _paneKinds = new();
 
+    /// <summary>
+    /// Which fill of each pane is the current one. A fill awaits several times
+    /// before it puts anything on screen, so a reader clicking through works
+    /// faster than they open can have two running at once on the same pane;
+    /// the later one wins and the earlier one stops where it notices.
+    /// </summary>
+    private readonly Dictionary<SyncListView, int> _paneFillGeneration = new();
+
     private async Task PopulateReaderAsync(SyncListView pane, Edition? edition, string emptyMessage)
     {
         _paneSource[pane] = (edition, emptyMessage);
         _paneKinds[pane] = new List<string>();
+
+        _paneFillGeneration.TryGetValue(pane, out var previous);
+        var generation = previous + 1;
+        _paneFillGeneration[pane] = generation;
 
         pane.BeginUpdate();
         try
@@ -2544,10 +2606,12 @@ public partial class MainForm : ScaledForm
 
             // Before the items, not after: the marks are part of what each row
             // is measured against.
-            pane.SetPassageMarks(
-                await _passageMarkRepo.GetForEditionAsync(edition.EditionId, edition.CtsUrn));
+            var marks = await _passageMarkRepo.GetForEditionAsync(edition.EditionId, edition.CtsUrn);
+            if (_paneFillGeneration[pane] != generation) return;
+            pane.SetPassageMarks(marks);
 
             var nodes = await _textNodeRepo.GetByEditionAsync(edition.EditionId);
+            if (_paneFillGeneration[pane] != generation) return;
 
             // An edition row exists but produced no lines - the file was
             // catalogued during ingest but its text didn't parse into
@@ -2597,6 +2661,22 @@ public partial class MainForm : ScaledForm
                     Environment.NewLine + Environment.NewLine, prefaceNodes.Select(n => n.Text));
                 SetPrefaceMatch(pane, (prefaceNodes[0].CitationRef, combinedText));
             }
+
+            // Measured before they are added, off the UI thread, because
+            // adding them is what forces the measurement - see
+            // SyncListView.PrewarmHeightsAsync. The window stays alive and
+            // repainting for the seconds this takes on a long prose work,
+            // where before it went grey and Windows offered to close it.
+            //
+            // After the marks are set, since a mark is part of the string
+            // being measured, and after the kind filter, so nothing is
+            // measured that will not be shown.
+            await pane.PrewarmHeightsAsync(bodyNodes);
+
+            // The reader can click another work while this one is being
+            // measured. Without this check both fills would run on to their
+            // AddRange and interleave two works into one pane.
+            if (_paneFillGeneration[pane] != generation) return;
 
             // One bulk insert rather than a call per line. The node itself
             // is the item (not wrapped in a Tag property), so right-click
@@ -2929,16 +3009,25 @@ public partial class MainForm : ScaledForm
         var known = _worksByAuthor.Values.Any(works => works.Any(w => w.WorkId == workId));
         if (!known) return null;
 
+        // Each filter is dropped and then the rebuild is forced through before
+        // looking again. Dropping a filter only queues a rebuild - see
+        // QueueLibraryTreeRebuild - and this method's whole purpose is to look
+        // at the tree immediately afterwards, so without the flush every jump
+        // that had to clear a filter would find nothing, having discarded the
+        // reader's filter to arrive nowhere. Silent, and worse than the
+        // stutter the queue was added to fix.
         if (_favoritesOnlyCheck.Checked)
         {
-            _favoritesOnlyCheck.Checked = false;   // rebuilds the tree
+            _favoritesOnlyCheck.Checked = false;   // queues a rebuild
+            FlushPendingLibraryTreeRebuild();
             node = FindWorkNode(workId);
             if (node != null) return node;
         }
 
         if (_treeFilterBox.Text.Length > 0)
         {
-            _treeFilterBox.Text = string.Empty;    // rebuilds the tree
+            _treeFilterBox.Text = string.Empty;    // queues a rebuild
+            FlushPendingLibraryTreeRebuild();
             node = FindWorkNode(workId);
         }
 
