@@ -66,5 +66,5 @@ handles forced into existence as opening the window really does.
 The download is not code-signed, so if you would rather check it than trust it:
 
 ```
-SHA-256  (recorded below once the release is built)
+SHA-256  4AA2D450804E9A6BFD5462F3C9C751E2C59BAF57AAC6771F0D6DCE335DEF72A5
 ```
