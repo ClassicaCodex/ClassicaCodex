@@ -71,7 +71,12 @@ public class TimelineForm : ScaledForm
             Top = 44,
             Width = 300,
             Height = 702,
-            Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Right
+            Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Right,
+
+            // Filled before the theme reaches it - see
+            // ReadingTheme.ListHorizontalScrollbar. One author's works, so at
+            // most 223 rows here; small, and the same defect.
+            HorizontalScrollbar = ReadingTheme.ListHorizontalScrollbar
         };
         _workList.DoubleClick += async (_, _) => await OpenSelectedWorkAsync();
 

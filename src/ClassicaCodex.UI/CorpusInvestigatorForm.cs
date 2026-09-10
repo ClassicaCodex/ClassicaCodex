@@ -21,8 +21,20 @@ public sealed class CorpusInvestigatorForm : ScaledForm
     private readonly EditionRepository _editions = new();
     private readonly TextNodeRepository _nodes = new();
     private readonly ResearchRepository _research = new();
-    private readonly CheckedListBox _works = new() { CheckOnClick = true, IntegralHeight = false };
+    // The scrollbar is set here, not left to the theme: this list is filled
+    // from the form's own Load handler, which runs first, and switching a
+    // horizontal scrollbar on over an already-full list makes the control
+    // measure every row at once. See ReadingTheme.ListHorizontalScrollbar.
+    private readonly CheckedListBox _works = new()
+    {
+        CheckOnClick = true,
+        IntegralHeight = false,
+        HorizontalScrollbar = ReadingTheme.ListHorizontalScrollbar
+    };
     private readonly TextBox _filter = new();
+
+    /// <summary>Collapses a burst of typing in the work filter into one refill.</summary>
+    private readonly System.Windows.Forms.Timer _filterDebounce = new() { Interval = 180 };
     private readonly TextBox _focus = new() { Multiline = true, ScrollBars = ScrollBars.Vertical };
     private readonly DataGridView _grid = new();
     private readonly Label _status = new();
@@ -75,7 +87,15 @@ public sealed class CorpusInvestigatorForm : ScaledForm
         Controls.Add(split); Controls.Add(seedPanel); Controls.Add(bottom);
 
         _focus.Text = BuildInitialFocus();
-        _filter.TextChanged += (_, _) => RefreshWorks();
+        // Debounced, like the other pickers of this size: a refill is four
+        // thousand rows, and a word typed at speed was one per letter. Nothing
+        // reads the list back synchronously after setting the filter, so this
+        // needs no flush - but the checks a reader has already made do have to
+        // survive, which SyncVisibleSelections at the top of RefreshWorks
+        // handles whenever the refill actually runs.
+        _filterDebounce.Tick += (_, _) => { _filterDebounce.Stop(); RefreshWorks(); };
+        _filter.TextChanged += (_, _) => { _filterDebounce.Stop(); _filterDebounce.Start(); };
+        FormClosed += (_, _) => { _filterDebounce.Stop(); _filterDebounce.Dispose(); };
         Load += async (_, _) => await LoadAsync();
         Shown += (_, _) =>
         {
@@ -116,9 +136,32 @@ public sealed class CorpusInvestigatorForm : ScaledForm
     private void RefreshWorks()
     {
         SyncVisibleSelections();
-        var filter = _filter.Text.Trim(); _works.Items.Clear();
-        foreach (var work in _allWorks.Where(w => filter.Length == 0 || w.Label.Contains(filter, StringComparison.OrdinalIgnoreCase)))
-            _works.Items.Add(work, _selectedEditionIds.Contains(work.Edition.EditionId));
+        var filter = _filter.Text.Trim();
+        var visible = _allWorks
+            .Where(w => filter.Length == 0 || w.Label.Contains(filter, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+
+        // Handed over in one call rather than a row at a time. The picker holds
+        // one row per original edition - 4,056 on a full library - and adding
+        // them individually made the control redo its scroll extent on every
+        // insertion. The checks go on afterwards because AddRange cannot carry
+        // them; there is no ItemCheck handler on this list, so setting them in
+        // a loop costs nothing but the loop.
+        _works.BeginUpdate();
+        try
+        {
+            _works.Items.Clear();
+            _works.Items.AddRange(visible.ToArray());
+
+            for (var i = 0; i < visible.Count; i++)
+            {
+                if (_selectedEditionIds.Contains(visible[i].Edition.EditionId)) _works.SetItemChecked(i, true);
+            }
+        }
+        finally
+        {
+            _works.EndUpdate();
+        }
     }
 
     private void SyncVisibleSelections()
@@ -224,7 +267,10 @@ public sealed class CorpusInvestigatorForm : ScaledForm
     }
 
     private static Label Label(string text) => new() { Text = text, AutoSize = true };
-    private static TextBox PassageBox(string text) => new() { Dock = DockStyle.Fill, Multiline = true, ReadOnly = true, ScrollBars = ScrollBars.Vertical, Text = text };
+    // BorderStyle before Text, and before the theme gets to it: changing a text
+    // box's border recreates its handle and re-inserts everything it holds, so
+    // a long passage pays for it. See ReadingTheme.TextBoxBorder.
+    private static TextBox PassageBox(string text) => new() { Dock = DockStyle.Fill, Multiline = true, ReadOnly = true, ScrollBars = ScrollBars.Vertical, BorderStyle = ReadingTheme.TextBoxBorder, Text = text };
 
     private sealed class WorkOption
     {

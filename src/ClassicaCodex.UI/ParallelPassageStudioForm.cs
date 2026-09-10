@@ -176,7 +176,10 @@ public sealed class ParallelPassageStudioForm : ScaledForm
         NavigationTarget = target; DialogResult = DialogResult.OK; Close();
     }
 
-    private static TextBox PassageBox(string text) => new() { Dock = DockStyle.Fill, Multiline = true, ReadOnly = true, ScrollBars = ScrollBars.Both, Text = text, Font = new Font("Segoe UI", 12) };
+    // BorderStyle before Text, and before the theme gets to it: changing a text
+    // box's border recreates its handle and re-inserts everything it holds, so
+    // a long passage pays for it. See ReadingTheme.TextBoxBorder.
+    private static TextBox PassageBox(string text) => new() { Dock = DockStyle.Fill, Multiline = true, ReadOnly = true, ScrollBars = ScrollBars.Both, BorderStyle = ReadingTheme.TextBoxBorder, Text = text, Font = new Font("Segoe UI", 12) };
     private static Button Button(string text, int width) => new() { Text = text, Width = width, Height = 28 };
     private static Label LabelAt(string text, int x, int y, int width) => new() { Text = text, Left = x, Top = y, Width = width, AutoSize = false, Height = 22 };
     private static string Language(string? code) => string.IsNullOrWhiteSpace(code) ? "language not recorded" : TranslationLanguageNames.DisplayName(code);
