@@ -41,7 +41,13 @@ public class CompareForm : ScaledForm
             Width = 280,
             Height = 600,
             Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left,
-            CheckOnClick = true
+            CheckOnClick = true,
+
+            // Filled in this form's own Load handler, which runs before the
+            // theme's - see ReadingTheme.ListHorizontalScrollbar. A
+            // CheckedListBox is a ListBox, so it is themed by the same branch
+            // and carries the same cost.
+            HorizontalScrollbar = ReadingTheme.ListHorizontalScrollbar
         };
 
         var compareButton = new Button

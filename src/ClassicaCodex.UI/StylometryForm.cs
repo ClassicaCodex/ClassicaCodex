@@ -104,7 +104,13 @@ public class StylometryForm : ScaledForm
             Top = 32,
             Width = LeftWidth,
             Height = 430,
-            Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left
+            Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left,
+
+            // Set here because this list is filled in the form's own Load
+            // handler, which runs before the theme's - see
+            // ReadingTheme.ListHorizontalScrollbar for what switching a
+            // horizontal scrollbar on over an already-full list costs.
+            HorizontalScrollbar = ReadingTheme.ListHorizontalScrollbar
         };
 
         // --- Group 1: how text is counted ------------------------------------

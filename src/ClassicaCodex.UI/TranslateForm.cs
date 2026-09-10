@@ -122,6 +122,11 @@ public class TranslateForm : ScaledForm
             Multiline = true,
             ReadOnly = true,
             ScrollBars = ScrollBars.Vertical,
+
+            // Before the text - see ReadingTheme.TextBoxBorder. Letting the
+            // theme set this afterwards recreates the handle and re-inserts
+            // the passage, which on a long one is seconds.
+            BorderStyle = ReadingTheme.TextBoxBorder,
             Text = node.Text
         };
 
