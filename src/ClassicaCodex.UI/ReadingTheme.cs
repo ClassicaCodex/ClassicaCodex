@@ -50,6 +50,43 @@ public static class ReadingTheme
     /// minimum by a margin nobody would see but a checker would; this is
     /// 4.66:1 and indistinguishable to the eye.
     /// </summary>
+    /// <summary>
+    /// The border every text box in the application gets, in either mode.
+    ///
+    /// Named rather than written inline because of what it costs to change
+    /// one. WinForms recreates a text box's window handle when its BorderStyle
+    /// changes, and recreating the handle re-inserts everything the box is
+    /// holding - so a box already carrying a passage pays for the theme's
+    /// assignment in proportion to that passage's length. Measured on a real
+    /// one: 3 ms for a 3,265-character paragraph, 164 ms at 41,475 characters,
+    /// 1,650 ms for the 468,865-character passage this corpus's longest is.
+    ///
+    /// The assignment is free when the value already matches - WinForms
+    /// short-circuits that - so any box built to hold text should be created
+    /// with this border rather than left to be corrected later. A guard on the
+    /// assignment here would not help: the first apply is the one where the
+    /// value genuinely differs.
+    /// </summary>
+    public const BorderStyle TextBoxBorder = BorderStyle.FixedSingle;
+
+    /// <summary>
+    /// Whether every list in the application shows a horizontal scrollbar. See
+    /// the note in the ListBox branch of ApplyToControl for why it is on.
+    ///
+    /// Named here for the same reason the border above is. Turning it on makes
+    /// ListBox measure every item it holds, so switching it on a list that is
+    /// already full costs in proportion to the rows: measured on a picker of
+    /// 4,056 works, 207 ms at 500 rows, 603 ms at 2,000 and 1,320 ms at all
+    /// 4,056. Filling the same list with the property already set costs 263 ms,
+    /// because the measuring is then spread over the insertions.
+    ///
+    /// A list that is populated before the theme reaches it - one filled in its
+    /// own form's Load handler, which runs before the handler AttachTo adds -
+    /// should therefore be built with this set, so that the theme's assignment
+    /// is the no-op WinForms makes of an unchanged value.
+    /// </summary>
+    public const bool ListHorizontalScrollbar = true;
+
     public static Color MutedText => IsDark ? Color.FromArgb(150, 148, 142) : Color.FromArgb(102, 102, 102);
 
     /// <summary>
@@ -619,7 +656,7 @@ public static class ReadingTheme
                 // rows through ListResultHelpers.RowText - see the note there
                 // for what GDI+ actually refuses, which is not what the last
                 // investigation of this concluded.
-                listBox.HorizontalScrollbar = true;
+                listBox.HorizontalScrollbar = ListHorizontalScrollbar;
 
                 ApplyNativeScrollbarTheme(listBox);
                 break;
@@ -630,7 +667,7 @@ public static class ReadingTheme
             case TextBoxBase textBox:
                 textBox.BackColor = Surface;
                 textBox.ForeColor = Text;
-                textBox.BorderStyle = BorderStyle.FixedSingle;
+                textBox.BorderStyle = TextBoxBorder;
                 ApplyNativeScrollbarTheme(textBox);
                 break;
 

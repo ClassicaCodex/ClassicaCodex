@@ -54,6 +54,12 @@ public class CrossLanguageEchoForm : ScaledForm
 
     private readonly TextBox _sourceBox;
     private readonly TextBox _workFilterBox;
+
+    /// <summary>
+    /// Collapses a burst of typing in the work filter into one refill of the
+    /// picker. Same interval as the library filter's, for the same reason.
+    /// </summary>
+    private readonly System.Windows.Forms.Timer _workFilterDebounce = new() { Interval = 180 };
     private readonly ListBox _workListBox;
     private readonly Button _findButton;
     private readonly Label _statusLabel;
@@ -109,6 +115,13 @@ public class CrossLanguageEchoForm : ScaledForm
             Multiline = true,
             ReadOnly = true,
             ScrollBars = ScrollBars.Vertical,
+
+            // Set here, before the text, because the theme would otherwise set
+            // it afterwards and recreating this box's handle with a long
+            // passage already in it is what made this window slow to open -
+            // see ReadingTheme.TextBoxBorder. Right-clicking one of the long
+            // prose paragraphs cost two seconds of it.
+            BorderStyle = ReadingTheme.TextBoxBorder,
             Text = sourceNode.Text
         };
 
@@ -142,7 +155,26 @@ public class CrossLanguageEchoForm : ScaledForm
             Width = 758,
             Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right
         };
-        _workFilterBox.TextChanged += (_, _) => RefreshWorkList();
+        // Debounced, for the reason the library filter is: this refills the
+        // list from scratch, and the list is one row per original edition -
+        // 4,056 of them on a full library, about 59 ms a refill once the theme
+        // has put a horizontal scrollbar on it, since that makes the control
+        // measure every row as it is added. A word typed at speed was a refill
+        // per letter.
+        //
+        // Nothing here reads the list back synchronously after setting the
+        // filter, so unlike the library tree this needs no flush - the filter
+        // box is only ever typed into.
+        _workFilterDebounce.Tick += (_, _) =>
+        {
+            _workFilterDebounce.Stop();
+            RefreshWorkList();
+        };
+        _workFilterBox.TextChanged += (_, _) =>
+        {
+            _workFilterDebounce.Stop();
+            _workFilterDebounce.Start();
+        };
 
         _workListBox = new ListBox
         {
@@ -151,7 +183,18 @@ public class CrossLanguageEchoForm : ScaledForm
             Width = 780,
             Height = 130,
             Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right,
-            IntegralHeight = false
+            IntegralHeight = false,
+
+            // Set here rather than left to the theme, and this is the single
+            // biggest reason this window used to be slow to open. This list is
+            // filled in the form's own Load handler, which runs before the one
+            // ReadingTheme.AttachTo adds - so the theme was switching the
+            // horizontal scrollbar on afterwards, over a list already holding
+            // one row per original edition. That makes ListBox measure all
+            // 4,056 of them at once: 1,320 ms. Built with it already set, the
+            // measuring happens as the rows go in and the whole fill is
+            // 263 ms. See ReadingTheme.ListHorizontalScrollbar.
+            HorizontalScrollbar = ReadingTheme.ListHorizontalScrollbar
         };
         _workListBox.SelectedIndexChanged += (_, _) => RefreshFindButtonState();
 
@@ -243,6 +286,11 @@ public class CrossLanguageEchoForm : ScaledForm
 
         RefreshFindButtonState();
         Load += async (_, _) => await LoadWorkListAsync();
+        FormClosed += (_, _) =>
+        {
+            _workFilterDebounce.Stop();
+            _workFilterDebounce.Dispose();
+        };
         ReadingTheme.AttachTo(this);
     }
 
@@ -256,7 +304,7 @@ public class CrossLanguageEchoForm : ScaledForm
     {
         var filter = _workFilterBox.Text.Trim();
 
-        _workListBox.Items.Clear();
+        var wanted = new List<object>();
         foreach (var edition in _allEditions)
         {
             // The source work's own original edition is excluded from the
@@ -267,8 +315,23 @@ public class CrossLanguageEchoForm : ScaledForm
             var label = $"{edition.AuthorName} \u2014 {edition.WorkTitle} ({edition.Language?.ToUpperInvariant() ?? "?"})";
             if (filter.Length == 0 || label.Contains(filter, StringComparison.OrdinalIgnoreCase))
             {
-                _workListBox.Items.Add(new WorkOption(edition, label));
+                wanted.Add(new WorkOption(edition, label));
             }
+        }
+
+        // Chosen first, then handed over in one call between BeginUpdate and
+        // EndUpdate. Adding a row at a time made the control re-evaluate its
+        // scroll extent on each of four thousand insertions, and the rows are
+        // measured to work that extent out.
+        _workListBox.BeginUpdate();
+        try
+        {
+            _workListBox.Items.Clear();
+            _workListBox.Items.AddRange(wanted.ToArray());
+        }
+        finally
+        {
+            _workListBox.EndUpdate();
         }
 
         RefreshFindButtonState();

@@ -48,7 +48,11 @@ public class CompareTranslationsForm : ScaledForm
             Top = 32,
             Width = 260,
             Height = 300,
-            Anchor = AnchorStyles.Top | AnchorStyles.Left
+            Anchor = AnchorStyles.Top | AnchorStyles.Left,
+
+            // Filled in this form's own Load handler, which runs before the
+            // theme's - see ReadingTheme.ListHorizontalScrollbar.
+            HorizontalScrollbar = ReadingTheme.ListHorizontalScrollbar
         };
         _workList.SelectedIndexChanged += async (_, _) => await LoadTranslationsAsync();
 
