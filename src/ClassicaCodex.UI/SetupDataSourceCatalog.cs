@@ -39,8 +39,13 @@ namespace ClassicaCodex.UI;
 /// </summary>
 public static class SetupDataSourceCatalog
 {
-    private static string DataRoot => Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "ClassicaCodexData");
+    /// <summary>
+    /// Where the downloads go, which the reader chooses - see
+    /// <see cref="DataFolderSettings"/>. Read afresh on every Build rather
+    /// than captured once, so a folder chosen in the wizard applies to the
+    /// steps that come after it in the same sitting.
+    /// </summary>
+    private static string DataRoot => DataFolderSettings.Root;
 
     /// <summary>
     /// The stored identity of each collection that carries readable text.
@@ -785,10 +790,16 @@ public static class SetupDataSourceCatalog
                 {
                     // No database ingest - "installing" here means making
                     // sure the file sits at the one canonical path the map
-                    // reads from (which only differs from the download
-                    // location if Advanced Setup pointed at a custom
-                    // folder), then dropping any cached "file wasn't
+                    // reads from, then dropping any cached "file wasn't
                     // there" so an already-open session picks it up.
+                    //
+                    // Both paths now come from DataFolderSettings.Root, so
+                    // they agree except in one narrow case: the download
+                    // folder changing between the moment this step was built
+                    // and the moment it ran. The copy stays as the guard
+                    // against that. This note used to say the two differ when
+                    // Advanced Setup points somewhere custom, which stopped
+                    // being how either of them is decided.
                     var downloaded = Path.Combine(root, "ne_110m_land.geojson");
                     var canonical = NaturalEarthCoastline.CanonicalPath;
                     if (!string.Equals(Path.GetFullPath(downloaded), Path.GetFullPath(canonical),

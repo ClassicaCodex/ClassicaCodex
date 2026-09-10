@@ -189,9 +189,12 @@ when it is out of date.
 
 Budget **two to three hours** with everything selected, most of it unattended.
 You also need room: about 9 GB of downloads plus a library that reaches roughly
-3 GB, and the downloads are unpacked twice — once into your temporary folder,
-once into `Documents\ClassicaCodexData` — so the largest step wants about 7 GB
-free on the drive holding `%TEMP%` at the same time.
+3 GB. Both locations are yours to choose — the second and third steps of Guided
+Setup ask where the library file and the downloads should go, so neither has to
+sit on your system drive. The downloads are unpacked twice, though, once into
+your temporary folder and once into the folder you chose, so the largest step
+wants about 7 GB free on the drive holding `%TEMP%` at the same time — and that
+one is not currently movable.
 
 <img width="625" alt="The Guided Setup wizard, one data source per step with a plain-language description of what it is and how long it takes" src="https://github.com/user-attachments/assets/8f6f405a-eebc-44db-a801-0ef0bcfe0a29" />
 
@@ -296,7 +299,7 @@ suspecting.
 
 ## Status
 
-Version 3.6.18.
+Version 3.6.19.
 
 Version 1 was a reader. Version 2 made it a searchable, taggable,
 cross-referenced library and added the translation workbench. Version 3 adds the
