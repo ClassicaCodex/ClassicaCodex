@@ -400,7 +400,13 @@ public class SyncListView : ListBox
         base.OnResize(e);
 
         if (_isRemeasuring) return;
-        if (Items.Count == 0) return;
+
+        // Passages, not rows. An empty pane used to mean there was nothing to
+        // do; it can now also mean a fill was dropped and needs redoing, and
+        // returning here left the reader permanently blank - see the note in
+        // SetPassagesAsync. What decides whether there is work is whether this
+        // pane has been given any passages.
+        if (_passages.Count == 0) return;
         if (UsableWidth == _lastMeasuredWidth) return;
 
         // Deliberately NOT remeasuring inline. Dragging a window edge or a
@@ -670,18 +676,34 @@ public class SyncListView : ListBox
 
         if (IsDisposed) return;
 
-        // If the layout moved while that ran, the rows describe a pane that no
-        // longer exists. Filling anyway would show text cut for the wrong
-        // width; the resize that moved it will queue its own re-split, so
-        // dropping these is both safe and temporary.
-        if (width != UsableWidth || !ReferenceEquals(font, Font)) return;
+        // Only a request that has been superseded is abandoned. A second work
+        // clicked while this one was being cut really does mean these rows are
+        // not wanted.
         if (isStillWanted != null && !isStillWanted()) return;
 
         var cache = GetHeightCacheForCurrentWidth(width);
         foreach (var pair in heights) cache[pair.Key] = pair.Value;
 
         Fill(rows);
-        _lastMeasuredWidth = width;
+
+        // Whether the layout is still the one these were cut for decides what
+        // happens NEXT, not whether they go on screen at all.
+        //
+        // This used to return here instead, on the reasoning that rows cut for
+        // the wrong width should not be shown and that the resize which moved
+        // it would queue its own re-cut. Both halves were wrong, and together
+        // they emptied the reader. A window still settling its layout changes
+        // width while a work is being cut - which is every launch - so the
+        // fill was dropped; and OnResize declines to queue anything for a pane
+        // with no rows in it, so nothing ever came back. The pane stayed empty
+        // until another work was opened, and the reader was told its passage
+        // was not on screen, which was true and utterly unhelpful.
+        //
+        // Text cut for a slightly different width is off by a line here and
+        // there for a moment. An empty reader is a broken program. So the rows
+        // go up either way, and a layout that has moved queues the correction.
+        if (width == UsableWidth && ReferenceEquals(font, Font)) _lastMeasuredWidth = width;
+        else QueueRelayout();
     }
 
     /// <summary>

@@ -917,6 +917,13 @@ public partial class MainForm : ScaledForm
     /// before any of this existed, which is a perfectly good outcome and not
     /// worth a message about.
     /// </summary>
+    /// <summary>
+    /// Whether the reader has opened something themselves since launch. The
+    /// restore gives way to it: a choice made now beats a choice made last
+    /// time.
+    /// </summary>
+    private bool _readerHasNavigated;
+
     private async Task RestoreReadingPositionAsync()
     {
         if (!ReadingPosition.ReopenOnLaunch) return;
@@ -930,6 +937,11 @@ public partial class MainForm : ScaledForm
                 saved.Value.WorkCtsUrn, saved.Value.CitationRef);
 
             if (target == null) return;
+
+            // Checked after the lookup as well as before the jump, because the
+            // lookup is where the time goes and is exactly when a reader who
+            // did not want to resume clicks something else.
+            if (_readerHasNavigated) return;
 
             await NavigateToPassageAsync(target.Value.WorkId, target.Value.TextNodeId);
         }
@@ -2411,6 +2423,13 @@ public partial class MainForm : ScaledForm
         if (_suppressTreeSelectionLoad) return;
 
         if (e.Node?.Tag is not Work work) return;
+
+        // Noted before the work is opened, so that the reopen-where-you-left-off
+        // restore can tell it has been overtaken. Opening a work takes a moment
+        // - the passages have to be divided into rows first - and a reader who
+        // gets bored of the last one and picks another should not have the
+        // restore land on top of them a second later.
+        _readerHasNavigated = true;
 
         _openWork = work;
         await LoadEditionSelectorsAsync(work.WorkId);

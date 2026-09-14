@@ -188,6 +188,52 @@ public class ReaderPaneRowTests
     });
 
     /// <summary>
+    /// The one that matters most, and the one that was missing.
+    ///
+    /// Reported from an actual launch: both panes empty, and a dialog saying
+    /// the passage was not on screen - which was true, because nothing was.
+    /// A window still settling its layout changes width while a work is being
+    /// cut, and the fill was being discarded for being a moment out of date;
+    /// the pane was then empty, and the resize handler declined to queue
+    /// anything for an empty pane, so nothing ever brought it back.
+    ///
+    /// Given passages, a pane must end up showing them. Whatever happened to
+    /// the layout in between.
+    /// </summary>
+    [Fact]
+    public void APaneGivenPassagesIsNeverLeftEmpty() => StaHarness.Run(async host =>
+    {
+        var pane = Pane(host);
+
+        var passages = Enumerable.Range(1, 40)
+            .Select(i => Node(i, $"1.{i}", i % 7 == 0 ? LongProse(400) : $"line {i}"))
+            .ToArray();
+
+        // Moved mid-flight, as a window settling its layout does.
+        var fill = pane.SetPassagesAsync(passages);
+        pane.Width = 300;
+        await fill;
+
+        Assert.NotEmpty(pane.Items);
+        Assert.Equal(1, pane.NodeAt(0)!.TextNodeId);
+    });
+
+    /// <summary>
+    /// And the same for the font, which moves the cuts just as the width does.
+    /// </summary>
+    [Fact]
+    public void APaneWhoseFontChangesMidFillIsStillFilled() => StaHarness.Run(async host =>
+    {
+        var pane = Pane(host);
+
+        var fill = pane.SetPassagesAsync(new[] { Node(1, "1.1", LongProse(400)) });
+        pane.Font = new Font("Palatino Linotype", 15f);
+        await fill;
+
+        Assert.NotEmpty(pane.Items);
+    });
+
+    /// <summary>
     /// Cutting depends on the width, so a narrower pane needs more rows for
     /// the same passage - and still all of it.
     /// </summary>
