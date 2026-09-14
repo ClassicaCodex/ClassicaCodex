@@ -782,6 +782,10 @@ public class SyncListView : ListBox
         List<ReaderRow> rows;
         Dictionary<string, int> heights;
 
+        // Set only by the catch below, and acted on only once this fill is
+        // known to be the wanted one.
+        var measureInline = false;
+
         try
         {
             var key = editionId is { } id
@@ -836,23 +840,17 @@ public class SyncListView : ListBox
             // truncation marker, because a row under 255px does not count as
             // truncated. Clipping again, by a second route.
             //
-            // Measured here instead, against the width the fill was cut for,
-            // so the heights are right on the first pass. It costs nothing:
-            // these are the same measurements OnMeasureItem was going to make,
-            // on the same thread, a moment later and at the wrong width.
+            // Measured against the width the fill was cut for instead, so the
+            // heights are right on the first pass. It costs nothing: these are
+            // the same measurements OnMeasureItem was going to make, on the
+            // same thread, a moment later and at the wrong width.
+            //
+            // Not measured HERE, though - see below. Measuring before the pane
+            // has decided it still wants these rows spends the UI thread on a
+            // whole work that is about to be thrown away.
             heights = new Dictionary<string, int>(StringComparer.Ordinal);
-            rows = new List<ReaderRow>(nodes.Count);
-
-            foreach (var node in nodes)
-            {
-                if (!heights.TryGetValue(node.Text, out var height))
-                {
-                    height = MeasureUncappedHeight(node.Text, width, font, minGlyph, maxGlyph);
-                    heights[node.Text] = height;
-                }
-
-                rows.Add(new ReaderRow(node, node.Text, 0, 1, ReaderRowHeight.Cap(height)));
-            }
+            rows = nodes.Select(node => new ReaderRow(node, node.Text, 0, 1)).ToList();
+            measureInline = true;
         }
 
         if (IsDisposed) return;
@@ -870,6 +868,26 @@ public class SyncListView : ListBox
 
         var cache = GetHeightCacheForCurrentWidth(width);
         foreach (var pair in heights) cache[pair.Key] = pair.Value;
+
+        // The fallback's measuring, done here rather than in the catch, now
+        // that the rows are known to be wanted. A whole work measured on the
+        // UI thread and then discarded at the check above is the one cost this
+        // path cannot justify - it is the path that runs when something has
+        // already gone wrong.
+        //
+        // Through UncappedHeightFor rather than the static measurer, so it
+        // answers from - and fills - the pane's own height cache for this
+        // width, which is the same cache OnMeasureItem reads. Calling the
+        // static one directly measured every row afresh and left the cache
+        // empty, so the next repaint at this width paid for all of it again.
+        if (measureInline)
+        {
+            for (var i = 0; i < rows.Count; i++)
+            {
+                var text = rows[i].Text;
+                rows[i] = new ReaderRow(rows[i].Node, text, 0, 1, ReaderRowHeight.Cap(UncappedHeightFor(text, width)));
+            }
+        }
 
         Fill(rows);
 

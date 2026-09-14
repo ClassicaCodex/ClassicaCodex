@@ -227,22 +227,60 @@ public class ReaderPaneLifecycleTests
     /// to see.
     /// </summary>
     [Fact]
-    public void ASinglePassageInAShortPaneStopsRebuildingItself() => StaHarness.Run(async host =>
+    public void ASinglePassageIsCutForTheWidthThePaneActuallyHas() => StaHarness.Run(async host =>
     {
-        var pane = Pane(host, width: 380, height: 40);
+        // A list box scrolls BETWEEN items and never within one, so a single
+        // row taller than the pane shows its top and no scrollbar however
+        // short the pane is. Predicting one there is simply wrong, and the
+        // pane now BELIEVES its own prediction - that is the trade the width
+        // change made - so being wrong here means settling, permanently, on a
+        // width the pane does not have. Every line then wraps a word early.
+        //
+        // Note what this does NOT assert. An earlier version watched for the
+        // pane rebuilding itself, because the unguarded case used to re-cut
+        // every 150ms for ever. It does not any more: accepting the prediction
+        // at the end of a fill also ends the loop, so the pane now settles
+        // wrongly instead of spinning. A stability assertion passes either way
+        // and proves nothing - it did, with the guard deleted.
+        //
+        // Shorter than one line of the reading font, which is what it takes to
+        // reach the prediction at all with a single passage.
+        var pane = Pane(host, width: 380, height: 22);
 
-        await pane.SetPassagesAsync(new[] { Node(1, "1.1", LongProse(12)) });
+        var usable = pane.ClientSize.Width - 8;                       // no citation margin here
+        var narrow = usable - SystemInformation.VerticalScrollBarWidth;
+
+        int HeightOf(string s, int width) => TextRenderer.MeasureText(s, pane.Font,
+            new Size(width, int.MaxValue), TextFormatFlags.WordBreak | TextFormatFlags.NoPadding).Height + 6;
+
+        // The text has to be one that wraps DIFFERENTLY at the two widths, or
+        // the row cannot show which width it was cut for and the test proves
+        // nothing whatever the code does. Found rather than guessed, because
+        // where that boundary falls depends on the font, the reading size and
+        // the pane.
+        //
+        // Words of varying length, which is the part that took two goes. A
+        // scrollbar is narrower than one word of this corpus, so text of
+        // uniform words wraps at the same places either side of it - sixty
+        // lengths of identical ten-letter words all measured the same at both
+        // widths. Varying the lengths puts a line ending somewhere inside that
+        // seventeen-pixel band.
+        static string Mixed(int words) => string.Join(" ",
+            Enumerable.Range(0, words).Select(i => new string((char)('a' + i % 23), 2 + (i * 7) % 11)));
+
+        var text = Enumerable.Range(4, 160)
+            .Select(Mixed)
+            .FirstOrDefault(s => HeightOf(s, usable) != HeightOf(s, narrow));
+
+        Assert.True(text != null,
+            $"no sampled text wraps differently at {usable}px and {narrow}px, so nothing here can "
+            + "show which width the row was cut for, and this test would prove nothing");
+
+        await pane.SetPassagesAsync(new[] { Node(1, "1.1", text!) });
+        await Task.Delay(1200);
 
         Assert.Single(pane.Items);
-        Assert.True(pane.GetItemHeight(0) > pane.ClientSize.Height,
-            "the row has to be taller than the pane for this to be the case under test");
-
-        await Task.Delay(1200);
-        var settled = pane.RowAt(0);
-
-        await Task.Delay(1200);
-
-        Assert.Same(settled, pane.RowAt(0));
+        Assert.Equal(HeightOf(text!, usable), pane.GetItemHeight(0));
     }, timeoutSeconds: 120);
 
     /// <summary>

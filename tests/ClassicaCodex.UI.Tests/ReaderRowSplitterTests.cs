@@ -266,6 +266,48 @@ public class ReaderRowSplitterTests
     }
 
     /// <summary>
+    /// The search never asks about a piece that ends at or before where it
+    /// starts.
+    ///
+    /// This one asserts on what the splitter ASKS rather than on what it
+    /// returns, which looks eccentric and is the only thing that works. The
+    /// bisection searches over cut positions, and its floor has to be the
+    /// first cut past the piece being measured; a floor of zero reached back
+    /// behind the piece and asked for a negative length, which threw. The
+    /// obvious mutation of the repaired line - a floor one too low - is
+    /// OUTPUT-EQUIVALENT: that index lands exactly ON the start, so the length
+    /// is zero rather than negative, the empty string measures as fitting
+    /// nothing, and the rows come back byte-identical. Verified over 60,000
+    /// generated cases: not one differing row.
+    ///
+    /// So no assertion about rows can see it, and the boundary is left
+    /// unguarded by everything else in this file. What IS visible is the
+    /// question: correct code never measures the empty string, and a floor one
+    /// too low measures it on the first passage of this shape.
+    ///
+    /// It pins the other side too. Before the repair this same input threw,
+    /// so one assertion covers both the defect and its near miss.
+    /// </summary>
+    [Fact]
+    public void TheSearchNeverAsksAboutAPieceEndingAtOrBeforeItsStart()
+    {
+        var measure = ByLength(40);
+
+        foreach (var text in new[]
+        {
+            "AB CD " + new string('Q', 1170) + " EF",   // an unbreakable run mid-passage
+            "aa bb " + new string('Q', 2000),           // and one running to the end
+        })
+        {
+            var asked = new List<string>();
+
+            ReaderRowSplitter.Split(text, s => { asked.Add(s); return measure(s); }, maxHeight: 4);
+
+            Assert.DoesNotContain("", asked);
+        }
+    }
+
+    /// <summary>
     /// The common case must stay cheap: most passages fit, and asking about one
     /// that fits should cost exactly one measurement, since the reader does this
     /// for every row of a work that can run to thirty thousand of them.

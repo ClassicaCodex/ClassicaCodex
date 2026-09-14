@@ -293,19 +293,48 @@ internal static class ReaderLayoutCache
                 // names a different filename now - so nothing else would ever
                 // notice it, while it went on counting against the budget.
                 if (WrittenByThisVersion(file)) live.Add(file);
-                else file.Delete();
+                else TryDelete(file);
             }
 
             if (live.Count <= MaxEntries) return;
 
             foreach (var file in live.OrderBy(f => f.LastWriteTimeUtc).Take(live.Count - MaxEntries))
             {
-                file.Delete();
+                TryDelete(file);
             }
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or DirectoryNotFoundException)
         {
             // Nothing here is worth interrupting a reader over.
+        }
+    }
+
+    /// <summary>
+    /// Removes one file, and does not let one it cannot remove end the sweep.
+    ///
+    /// A file can be undeletable for reasons that have nothing to do with the
+    /// cache - open to a scanner for a moment, read-only after a restore from
+    /// backup - and the budget has to go on being enforced around it. Left
+    /// unguarded, one such file threw out of the loop into the handler below,
+    /// so the oldest entries were never trimmed and the folder grew without
+    /// limit for as long as that file stayed put. Measured: forty-five entries
+    /// plus three undeletable ones went to forty-nine, then fifty, gaining one
+    /// per save for ever, where the cap is forty.
+    ///
+    /// The trim loop takes the same guard. Its version of this predates the
+    /// version sweep and had the same effect for the same reason.
+    /// </summary>
+    private static void TryDelete(FileInfo file)
+    {
+        try
+        {
+            file.Delete();
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            // Skipped, and not counted as live either: a file this version can
+            // neither read nor remove is worth neither a budget slot nor a
+            // word to the reader.
         }
     }
 
