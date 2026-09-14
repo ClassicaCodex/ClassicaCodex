@@ -35,9 +35,18 @@ namespace ClassicaCodex.Data.Tests;
 ///
 /// So every list that shows passages puts its rows through
 /// ListResultHelpers.RowText, and this fails if a new one forgets. The reader
-/// panes are exempt and must stay that way - SyncListView keeps
-/// HorizontalScrollbar off, so the scroll-extent measurement that crashes is
-/// never asked for there.
+/// panes are exempt and must stay that way, being the one list that cannot
+/// shorten what it shows.
+///
+/// What keeps them exempt is one line in ReadingTheme, and it is worth being
+/// exact about which: the switch there has "case SyncListView" ahead of "case
+/// ListBox", so the reader never receives the HorizontalScrollbar = true that
+/// every other list gets, and the scroll-extent measurement that crashes is
+/// never asked for. SyncListView itself never sets the property either way -
+/// so deleting or reordering that one case would hand the reader the
+/// scrollbar without a line of SyncListView changing. That is what the second
+/// test below guards; it used to guard the absence of a line that was never
+/// there.
 ///
 /// That exemption used to be described as what let the reader show a
 /// 77,659-character passage whole. It never did: a list row cannot exceed 255
@@ -90,16 +99,32 @@ public class PassageRowLengthTests
     }
 
     /// <summary>
-    /// The reader must keep its exemption. If SyncListView ever gains a
-    /// horizontal scrollbar it starts being measured, and it is the one list
-    /// that genuinely cannot truncate what it shows.
+    /// The reader must keep its exemption. If it ever gains a horizontal
+    /// scrollbar it starts being measured, and it is the one list that
+    /// genuinely cannot truncate what it shows.
+    ///
+    /// Guarded where the exemption actually lives - ReadingTheme's switch,
+    /// where SyncListView must be matched before ListBox - rather than in
+    /// SyncListView, which never mentions the property at all.
     /// </summary>
     [Fact]
     public void TheReaderIsNeverMeasured()
     {
-        var source = File.ReadAllText(Path.Combine(UiSourceDirectory(), "SyncListView.cs"));
+        var theme = File.ReadAllText(Path.Combine(UiSourceDirectory(), "ReadingTheme.cs"));
 
-        Assert.DoesNotContain("HorizontalScrollbar = true", source, StringComparison.Ordinal);
+        var reader = theme.IndexOf("case SyncListView", StringComparison.Ordinal);
+        var anyList = theme.IndexOf("case ListBox", StringComparison.Ordinal);
+
+        Assert.True(reader >= 0, "ReadingTheme no longer has a case for SyncListView, so the reader panes "
+            + "now fall through to the ListBox case and are given a horizontal scrollbar. See this test's summary.");
+
+        Assert.True(anyList < 0 || reader < anyList,
+            "ReadingTheme matches ListBox before SyncListView, so the reader panes are now given "
+            + "HorizontalScrollbar = true and every row they are handed gets measured by GDI+. "
+            + "See this test's summary for what that does to a long passage.");
+
+        Assert.DoesNotContain("HorizontalScrollbar = true",
+            File.ReadAllText(Path.Combine(UiSourceDirectory(), "SyncListView.cs")), StringComparison.Ordinal);
     }
 
     /// <summary>

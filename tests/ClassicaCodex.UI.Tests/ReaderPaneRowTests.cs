@@ -188,6 +188,61 @@ public class ReaderPaneRowTests
     });
 
     /// <summary>
+    /// A pane with nothing in it must not move a pane that is being read.
+    ///
+    /// The two questions the sync is built out of - which passage is here, and
+    /// where is that passage - both used to answer with an index rather than
+    /// admitting they could not answer. "No passage at this row" came back as
+    /// passage zero, and "this pane has no such passage" came back as the last
+    /// row in it. Both are valid indices, so both callers acted on them.
+    ///
+    /// What that cost a reader: most works have no translation, so the right
+    /// pane ordinarily holds "(no translation ingested)", and Windows sends
+    /// the wheel to whatever the pointer is over. One notch over the right
+    /// half of the window, or one click on it, and the work being read jumped
+    /// back to its first line. The reverse case - a shorter counterpart, which
+    /// is 667 of the 896 works here - pinned the other pane to its last row
+    /// instead, and printed that passage's reference under it.
+    ///
+    /// Not a 3.7.0 regression: 3.6.19 copied TopIndex directly and did the
+    /// same thing from the same two gestures. It survived the rewrite.
+    /// </summary>
+    [Fact]
+    public void APaneShowingAMessageDoesNotMoveThePaneBeingRead() => StaHarness.Run(async host =>
+    {
+        var reading = Pane(host);
+        var placeholder = Pane(host, width: 300);
+
+        await reading.SetPassagesAsync(
+            Enumerable.Range(1, 300).Select(i => Node(i, $"1.{i}", $"line {i}")).ToList());
+
+        placeholder.ShowMessage("(no translation ingested)");
+
+        Assert.Equal(1, placeholder.Items.Count);
+        Assert.Equal(-1, placeholder.PassageOrdinalAt(0));
+        Assert.Equal(-1, placeholder.RowOfPassageOrdinal(0));
+    });
+
+    /// <summary>
+    /// And a pane that simply does not go that far must decline rather than
+    /// offer its last row. The Iliad is 15,687 passages against 425 in its
+    /// translation, so this is reached by scrolling, not by contriving.
+    /// </summary>
+    [Fact]
+    public void AnOrdinalPastTheEndOfAShorterPaneIsRefusedRatherThanClamped() => StaHarness.Run(async host =>
+    {
+        var pane = Pane(host);
+
+        await pane.SetPassagesAsync(
+            Enumerable.Range(1, 20).Select(i => Node(i, $"1.{i}", $"line {i}")).ToList());
+
+        Assert.Equal(19, pane.RowOfPassageOrdinal(19));
+        Assert.Equal(-1, pane.RowOfPassageOrdinal(20));
+        Assert.Equal(-1, pane.RowOfPassageOrdinal(5000));
+        Assert.Equal(-1, pane.RowOfPassageOrdinal(-1));
+    });
+
+    /// <summary>
     /// The one that matters most, and the one that was missing.
     ///
     /// Reported from an actual launch: both panes empty, and a dialog saying

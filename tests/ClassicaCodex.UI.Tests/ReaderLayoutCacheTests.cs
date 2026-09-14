@@ -42,7 +42,7 @@ public class ReaderLayoutCacheTests : IDisposable
         GC.SuppressFinalize(this);
     }
 
-    private static readonly ReaderLayoutCache.Key Key = new(42, 737, "Palatino Linotype", 13f);
+    private static readonly ReaderLayoutCache.Key Key = new(42, 737, "Palatino Linotype", 13f, 22);
 
     private static TextNode Node(long id, string text) => new()
     {
@@ -102,6 +102,45 @@ public class ReaderLayoutCacheTests : IDisposable
         Assert.Null(ReaderLayoutCache.TryLoad(Key, new[] { after }));
     }
 
+    /// <summary>
+    /// The case the length check cannot see, and the one that matters most.
+    ///
+    /// A passage can be replaced by the same number of different characters -
+    /// a re-ingest refresh and a saved translation both rewrite Text in place
+    /// and keep the TextNodeId on purpose - and the pieces would still account
+    /// for it exactly. The cuts would then fall mid-sentence and, worse, each
+    /// row would be given a height measured for text it no longer holds, so a
+    /// line would be drawn outside its row and clipped away with no marker.
+    /// </summary>
+    [Fact]
+    public void AnEntryForTextOfTheSameLengthButDifferentCharactersIsRefused()
+    {
+        var before = Node(1, new string('a', 30));
+        Save(RowsFor(before, 10, 10, 10));
+
+        var after = Node(1, new string('a', 29) + 'b');
+
+        Assert.Null(ReaderLayoutCache.TryLoad(Key, new[] { after }));
+    }
+
+    /// <summary>
+    /// Every number in the file is in pixels and the font size in the key is
+    /// in points, so the display scaling stands between them. An entry written
+    /// at 100% must not be accepted at 125%, where the same point size is a
+    /// taller line.
+    /// </summary>
+    [Fact]
+    public void AnEntryMeasuredAtAnotherDisplayScalingIsNotUsed()
+    {
+        var node = Node(1, new string('a', 30));
+        Save(RowsFor(node, 10, 10, 10));
+
+        var scaled = new ReaderLayoutCache.Key(
+            Key.EditionId, Key.Width, Key.FontFamily, Key.FontSize, Key.LineHeight + 5);
+
+        Assert.Null(ReaderLayoutCache.TryLoad(scaled, new[] { node }));
+    }
+
     [Fact]
     public void AnEntryForADifferentSetOfPassagesIsRefused()
     {
@@ -134,7 +173,7 @@ public class ReaderLayoutCacheTests : IDisposable
         var node = Node(1, new string('a', 30));
         Save(RowsFor(node, 10, 10, 10));
 
-        Assert.Null(ReaderLayoutCache.TryLoad(new ReaderLayoutCache.Key(42, width, family, size), new[] { node }));
+        Assert.Null(ReaderLayoutCache.TryLoad(new ReaderLayoutCache.Key(42, width, family, size, 22), new[] { node }));
     }
 
     [Fact]

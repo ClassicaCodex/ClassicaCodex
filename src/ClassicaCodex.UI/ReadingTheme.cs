@@ -536,6 +536,14 @@ public static class ReadingTheme
                 fingerprint.ForeColor = Text;
                 break;
 
+            // Ahead of the ListBox case on purpose, and load-bearing: this is
+            // what keeps HorizontalScrollbar off the reader panes. Every other
+            // list gets it below, and getting it makes WinForms measure each
+            // item as it is added to work out the scroll extent - which on a
+            // very long, awkwardly encoded passage is the GDI+ failure that
+            // ListResultHelpers.RowText exists to avoid. The reader is the one
+            // list that cannot shorten what it shows, so it must never be
+            // measured that way. See PassageRowLengthTests.
             case SyncListView syncList:
                 syncList.BackColor = Surface;
                 syncList.ForeColor = Text;
