@@ -464,7 +464,7 @@ public class SyncListView : ListBox
         {
             var anchor = CurrentAnchor();
 
-            await SetPassagesAsync(_passages).ConfigureAwait(true);
+            await SetPassagesAsync(_passages, editionId: _editionId).ConfigureAwait(true);
 
             if (!IsDisposed) RestoreAnchor(anchor);
         }
@@ -636,9 +636,18 @@ public class SyncListView : ListBox
     /// this the slower of the two fills would win by finishing last, and the
     /// pane would settle on the work that was not asked for.
     /// </param>
-    public async Task SetPassagesAsync(IReadOnlyList<TextNode> nodes, Func<bool>? isStillWanted = null)
+    /// <param name="editionId">
+    /// Which edition these passages are, so that a work slow enough to be worth
+    /// it can have its layout remembered between launches - see
+    /// <see cref="ReaderLayoutCache"/>. Null means work it out every time,
+    /// which is what every caller did before the cache existed and what the
+    /// cache falls back to.
+    /// </param>
+    public async Task SetPassagesAsync(
+        IReadOnlyList<TextNode> nodes, Func<bool>? isStillWanted = null, int? editionId = null)
     {
         _passages = nodes;
+        _editionId = editionId;
 
         if (IsDisposed) return;
 
@@ -656,8 +665,38 @@ public class SyncListView : ListBox
 
         try
         {
-            (rows, heights) = await Task.Run(
-                () => BuildRows(nodes, width, font, minGlyph, maxGlyph)).ConfigureAwait(true);
+            var key = editionId is { } id
+                ? new ReaderLayoutCache.Key(id, width, font.FontFamily.Name, font.Size)
+                : (ReaderLayoutCache.Key?)null;
+
+            (rows, heights) = await Task.Run(() =>
+            {
+                // Read back rather than worked out, where a previous run found
+                // this slow enough to write down. The rows are still sliced out
+                // of the passages as they stand now, and the entry is rejected
+                // unless every passage's pieces account for it exactly - so a
+                // text that has changed since costs a miss, never a wrong row.
+                if (key is { } hit && ReaderLayoutCache.TryLoad(hit, nodes) is { } cached) return cached;
+
+                var clock = System.Diagnostics.Stopwatch.StartNew();
+                var built = BuildRows(nodes, width, font, minGlyph, maxGlyph);
+                clock.Stop();
+
+                // Kept only if it actually took long enough to be worth
+                // keeping. Guessing which works are large from their length
+                // would be wrong - fifteen thousand lines of verse cost less
+                // than three thousand paragraphs of prose - so the work is
+                // timed and answers for itself.
+                if (key is { } miss)
+                {
+                    ReaderLayoutCache.Save(
+                        miss, built.Rows,
+                        text => built.Heights.TryGetValue(text, out var h) ? h : 0,
+                        (int)clock.ElapsedMilliseconds);
+                }
+
+                return built;
+            }).ConfigureAwait(true);
         }
         catch (Exception)
         {
@@ -718,6 +757,7 @@ public class SyncListView : ListBox
     public void ClearPassages()
     {
         _passages = Array.Empty<TextNode>();
+        _editionId = null;
 
         BeginUpdate();
         try
@@ -865,6 +905,13 @@ public class SyncListView : ListBox
     /// not the right pieces for a wider pane.
     /// </summary>
     private IReadOnlyList<TextNode> _passages = Array.Empty<TextNode>();
+
+    /// <summary>
+    /// Which edition the passages belong to, kept so that a re-cut after a
+    /// resize can consult and refresh the same remembered layout the first
+    /// fill did.
+    /// </summary>
+    private int? _editionId;
 
     /// <summary>
     /// The width text actually gets, once the citation margin and the padding

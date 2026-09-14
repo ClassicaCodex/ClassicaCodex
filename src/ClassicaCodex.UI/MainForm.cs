@@ -2721,7 +2721,10 @@ public partial class MainForm : ScaledForm
             // After the kind filter, so nothing is cut up that will not be
             // shown. The marks no longer need to be set first: they are drawn
             // after a passage's last row rather than folded into its text.
-            await pane.SetPassagesAsync(bodyNodes, () => _paneFillGeneration[pane] == generation);
+            await pane.SetPassagesAsync(
+                bodyNodes,
+                () => _paneFillGeneration[pane] == generation,
+                edition.EditionId);
 
             if (_paneFillGeneration[pane] != generation) return;
         }
