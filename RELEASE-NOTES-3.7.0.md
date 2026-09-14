@@ -115,5 +115,5 @@ speed above, and it can be given back properly; say so if you want it.
 The download is not code-signed, so if you would rather check it than trust it:
 
 ```
-SHA-256  (recorded below once the release is built)
+SHA-256  F3E401018E447A611389DE33DCDD68FA592921B4426AA090D5C08BFEAFCE6C69
 ```
