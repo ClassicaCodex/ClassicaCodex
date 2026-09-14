@@ -917,6 +917,13 @@ public partial class MainForm : ScaledForm
     /// before any of this existed, which is a perfectly good outcome and not
     /// worth a message about.
     /// </summary>
+    /// <summary>
+    /// Whether the reader has opened something themselves since launch. The
+    /// restore gives way to it: a choice made now beats a choice made last
+    /// time.
+    /// </summary>
+    private bool _readerHasNavigated;
+
     private async Task RestoreReadingPositionAsync()
     {
         if (!ReadingPosition.ReopenOnLaunch) return;
@@ -930,6 +937,11 @@ public partial class MainForm : ScaledForm
                 saved.Value.WorkCtsUrn, saved.Value.CitationRef);
 
             if (target == null) return;
+
+            // Checked after the lookup as well as before the jump, because the
+            // lookup is where the time goes and is exactly when a reader who
+            // did not want to resume clicks something else.
+            if (_readerHasNavigated) return;
 
             await NavigateToPassageAsync(target.Value.WorkId, target.Value.TextNodeId);
         }
@@ -1387,7 +1399,7 @@ public partial class MainForm : ScaledForm
     private static string ReferenceFor(SyncListView pane)
     {
         if (pane.SelectedIndex < 0 || pane.SelectedIndex >= pane.Items.Count) return string.Empty;
-        if (pane.Items[pane.SelectedIndex] is not TextNode node) return string.Empty;
+        if (pane.NodeAt(pane.SelectedIndex) is not { } node) return string.Empty;
 
         var reference = PassageCitation.Display(node.CitationRef, node.Milestone);
         if (reference.Length == 0) return string.Empty;
@@ -1550,9 +1562,9 @@ public partial class MainForm : ScaledForm
     /// original pane always: a translation carries its own notes, and Smyth's on
     /// Agamemnon are not Dindorf's.
     /// </summary>
-    private void ShowApparatusForSelectedLine(ListBox list)
+    private void ShowApparatusForSelectedLine(SyncListView list)
     {
-        if (list.SelectedIndex < 0 || list.Items[list.SelectedIndex] is not TextNode node)
+        if (list.NodeAt(list.SelectedIndex) is not { } node)
         {
             MessageBox.Show(this, "Select a line first.", "No line selected",
                 MessageBoxButtons.OK, MessageBoxIcon.Information);
@@ -1643,7 +1655,13 @@ public partial class MainForm : ScaledForm
         showAll.Click += async (_, _) =>
         {
             NodeKindVisibility.ShowAll();
-            await RefreshPassageMarksAsync();
+
+            // The panes, not the marks. Bringing hidden kinds back changes
+            // which passages the panes hold, which means refilling them - the
+            // per-kind toggles above have always done that, and this one
+            // refreshed the marks instead, so "Show everything" put nothing
+            // back until something else happened to repopulate.
+            await RefreshReaderPanesAsync();
         };
         showItem.DropDownItems.Add(showAll);
 
@@ -1706,11 +1724,18 @@ public partial class MainForm : ScaledForm
         _syncingScroll = true;
         try
         {
-            var index = source.TopIndex;
-            if (index >= 0 && index < target.Items.Count)
-            {
-                target.TopIndex = index;
-            }
+            // By passage, not by row. Row number stopped being a shared
+            // language between the panes when a passage too tall for one row
+            // became several: the two editions divide their text differently,
+            // so they divide their rows differently in turn, and the panes
+            // would drift apart by a row at every long paragraph.
+            //
+            // Passage number is what row number used to be standing in for.
+            // Where both editions have the same passages - which is what this
+            // has always assumed - this now does exactly what it did before,
+            // and is simply immune to how either side had to be cut up.
+            var ordinal = source.PassageOrdinalAt(source.TopIndex);
+            target.TopIndex = target.RowOfPassageOrdinal(ordinal);
         }
         finally
         {
@@ -1741,10 +1766,16 @@ public partial class MainForm : ScaledForm
         RememberReadingPosition(source, index);
 
         if (!_panesLinked) return;
-        if (index >= target.Items.Count) return;
 
-        target.SelectOnly(index);
-        target.EnsureVisible(index);
+        // Mirrored by passage, for the reason SyncScroll is - and landing on
+        // the counterpart's first row, since selecting the middle of a divided
+        // passage would highlight half a paragraph.
+        var ordinal = source.PassageOrdinalAt(index);
+        var mirrored = target.RowOfPassageOrdinal(ordinal);
+        if (mirrored < 0 || mirrored >= target.Items.Count) return;
+
+        target.SelectOnly(mirrored);
+        target.EnsureVisible(mirrored);
     }
 
     /// <summary>
@@ -1759,14 +1790,14 @@ public partial class MainForm : ScaledForm
     {
         if (_openWork == null) return;
         if (index < 0 || index >= pane.Items.Count) return;
-        if (pane.Items[index] is not TextNode node) return;
+        if (pane.NodeAt(index) is not { } node) return;
 
         ReadingPosition.Save(_openWork.CtsUrn, node.CitationRef);
     }
 
     private async Task TagSelectedLineAsync(SyncListView list)
     {
-        if (list.SelectedIndex < 0 || list.Items[list.SelectedIndex] is not TextNode node)
+        if (list.NodeAt(list.SelectedIndex) is not { } node)
         {
             MessageBox.Show(this, "Select a line first.", "Nothing selected",
                 MessageBoxButtons.OK, MessageBoxIcon.Information);
@@ -1787,7 +1818,7 @@ public partial class MainForm : ScaledForm
 
     private async Task BookmarkSelectedLineAsync(SyncListView list)
     {
-        if (list.SelectedIndex < 0 || list.Items[list.SelectedIndex] is not TextNode node)
+        if (list.NodeAt(list.SelectedIndex) is not { } node)
         {
             MessageBox.Show(this, "Select a line first.", "Nothing selected",
                 MessageBoxButtons.OK, MessageBoxIcon.Information);
@@ -1807,7 +1838,7 @@ public partial class MainForm : ScaledForm
 
     private async Task StartInquiryForSelectedLineAsync(SyncListView list)
     {
-        if (list.SelectedIndex < 0 || list.Items[list.SelectedIndex] is not TextNode node)
+        if (list.NodeAt(list.SelectedIndex) is not { } node)
         {
             MessageBox.Show(this, "Select a passage first.", "Nothing selected",
                 MessageBoxButtons.OK, MessageBoxIcon.Information);
@@ -1926,6 +1957,15 @@ public partial class MainForm : ScaledForm
     /// Replaces the Font rather than mutating it - a Font is immutable, and
     /// SyncListView recomputes its row heights in OnFontChanged, which only
     /// fires on assignment.
+    /// </summary>
+    /// <summary>
+    /// Applies a new reading size to both panes.
+    ///
+    /// Assigning the font is what does the work: the pane hears about it and
+    /// cuts its passages again, because bigger text needs more rows for the
+    /// same passage and the rows it currently has were cut for the old size.
+    /// Repainting alone would leave the text divided in the wrong places -
+    /// which is worse than the wrong row heights it used to leave.
     /// </summary>
     private void ApplyReadingFontSize()
     {
@@ -2124,7 +2164,7 @@ public partial class MainForm : ScaledForm
     /// </summary>
     private void FindEchoesForSelectedLine(SyncListView list)
     {
-        if (list.SelectedIndex < 0 || list.Items[list.SelectedIndex] is not TextNode node)
+        if (list.NodeAt(list.SelectedIndex) is not { } node)
         {
             MessageBox.Show(this, "Select a line first.", "Nothing selected",
                 MessageBoxButtons.OK, MessageBoxIcon.Information);
@@ -2169,7 +2209,7 @@ public partial class MainForm : ScaledForm
 
     private async Task ShowCrossLanguageEchoForSelectedLineAsync(SyncListView list)
     {
-        if (list.SelectedIndex < 0 || list.Items[list.SelectedIndex] is not TextNode node)
+        if (list.NodeAt(list.SelectedIndex) is not { } node)
         {
             MessageBox.Show(this, "Select a line first.", "Nothing selected",
                 MessageBoxButtons.OK, MessageBoxIcon.Information);
@@ -2194,7 +2234,7 @@ public partial class MainForm : ScaledForm
 
     private void ShowReceptionHistoryForSelectedLine(SyncListView list)
     {
-        if (list.SelectedIndex < 0 || list.Items[list.SelectedIndex] is not TextNode node)
+        if (list.NodeAt(list.SelectedIndex) is not { } node)
         {
             MessageBox.Show(this, "Select a line first.", "Nothing selected",
                 MessageBoxButtons.OK, MessageBoxIcon.Information);
@@ -2220,7 +2260,7 @@ public partial class MainForm : ScaledForm
     /// </summary>
     private async Task ShowTranslateForSelectedLineAsync(SyncListView list)
     {
-        if (list.SelectedIndex < 0 || list.Items[list.SelectedIndex] is not TextNode node)
+        if (list.NodeAt(list.SelectedIndex) is not { } node)
         {
             MessageBox.Show(this, "Select a line first.", "Nothing selected",
                 MessageBoxButtons.OK, MessageBoxIcon.Information);
@@ -2275,7 +2315,7 @@ public partial class MainForm : ScaledForm
     /// </summary>
     private void CopySelectedLineToClipboard(SyncListView list)
     {
-        if (list.SelectedIndex < 0 || list.Items[list.SelectedIndex] is not TextNode node)
+        if (list.NodeAt(list.SelectedIndex) is not { } node)
         {
             MessageBox.Show(this, "Select a line first.", "Nothing selected",
                 MessageBoxButtons.OK, MessageBoxIcon.Information);
@@ -2300,7 +2340,7 @@ public partial class MainForm : ScaledForm
 
     private void ShowWordStudyForSelectedLine(SyncListView list)
     {
-        if (list.SelectedIndex < 0 || list.Items[list.SelectedIndex] is not TextNode node)
+        if (list.NodeAt(list.SelectedIndex) is not { } node)
         {
             MessageBox.Show(this, "Select a line first.", "Nothing selected",
                 MessageBoxButtons.OK, MessageBoxIcon.Information);
@@ -2327,7 +2367,7 @@ public partial class MainForm : ScaledForm
 
     private async Task ExportSelectedLineAsync(SyncListView list, string fontName)
     {
-        if (list.SelectedIndex < 0 || list.Items[list.SelectedIndex] is not TextNode node)
+        if (list.NodeAt(list.SelectedIndex) is not { } node)
         {
             MessageBox.Show(this, "Select a line first.", "Nothing selected",
                 MessageBoxButtons.OK, MessageBoxIcon.Information);
@@ -2383,6 +2423,13 @@ public partial class MainForm : ScaledForm
         if (_suppressTreeSelectionLoad) return;
 
         if (e.Node?.Tag is not Work work) return;
+
+        // Noted before the work is opened, so that the reopen-where-you-left-off
+        // restore can tell it has been overtaken. Opening a work takes a moment
+        // - the passages have to be divided into rows first - and a reader who
+        // gets bored of the last one and picks another should not have the
+        // restore land on top of them a second later.
+        _readerHasNavigated = true;
 
         _openWork = work;
         await LoadEditionSelectorsAsync(work.WorkId);
@@ -2590,7 +2637,7 @@ public partial class MainForm : ScaledForm
         pane.BeginUpdate();
         try
         {
-            pane.Items.Clear();
+            pane.ClearPassages();
 
             // Reset up front so switching to an edition with none (or
             // clearing the pane entirely) doesn't leave a stale preface
@@ -2600,7 +2647,7 @@ public partial class MainForm : ScaledForm
 
             if (edition == null)
             {
-                pane.Items.Add(emptyMessage);
+                pane.ShowMessage(emptyMessage);
                 return;
             }
 
@@ -2619,7 +2666,7 @@ public partial class MainForm : ScaledForm
             // display bug rather than an ingestion one.
             if (nodes.Count == 0)
             {
-                pane.Items.Add("(this edition was catalogued but contains no text - its source file may have failed to parse during ingest)");
+                pane.ShowMessage("(this edition was catalogued but contains no text - its source file may have failed to parse during ingest)");
                 return;
             }
 
@@ -2649,7 +2696,7 @@ public partial class MainForm : ScaledForm
             // reachable, because the text itself can be hidden.
             if (visibleNodes.Count == 0)
             {
-                pane.Items.Add("(everything in this edition is hidden - right-click and use Show to bring it back)");
+                pane.ShowMessage("(everything in this edition is hidden - right-click and use Show to bring it back)");
                 return;
             }
 
@@ -2662,27 +2709,24 @@ public partial class MainForm : ScaledForm
                 SetPrefaceMatch(pane, (prefaceNodes[0].CitationRef, combinedText));
             }
 
-            // Measured before they are added, off the UI thread, because
-            // adding them is what forces the measurement - see
-            // SyncListView.PrewarmHeightsAsync. The window stays alive and
-            // repainting for the seconds this takes on a long prose work,
-            // where before it went grey and Windows offered to close it.
+            // Divided into rows and measured off the UI thread, then filled -
+            // see SyncListView.SetPassagesAsync. Both halves have to happen
+            // before anything reaches the control, because adding a row is
+            // what forces its measurement, and a passage too tall for a row
+            // has to have been cut before there is a row to add.
             //
-            // After the marks are set, since a mark is part of the string
-            // being measured, and after the kind filter, so nothing is
-            // measured that will not be shown.
-            await pane.PrewarmHeightsAsync(bodyNodes);
+            // The window stays alive and repainting throughout, where before
+            // it went grey and Windows offered to close it.
+            //
+            // After the kind filter, so nothing is cut up that will not be
+            // shown. The marks no longer need to be set first: they are drawn
+            // after a passage's last row rather than folded into its text.
+            await pane.SetPassagesAsync(
+                bodyNodes,
+                () => _paneFillGeneration[pane] == generation,
+                edition.EditionId);
 
-            // The reader can click another work while this one is being
-            // measured. Without this check both fills would run on to their
-            // AddRange and interleave two works into one pane.
             if (_paneFillGeneration[pane] != generation) return;
-
-            // One bulk insert rather than a call per line. The node itself
-            // is the item (not wrapped in a Tag property), so right-click
-            // "Tag this line" and similar features read it straight back
-            // out of pane.Items.
-            pane.Items.AddRange(bodyNodes.Cast<object>().ToArray());
         }
         finally
         {
@@ -2870,7 +2914,7 @@ public partial class MainForm : ScaledForm
         {
             if (pane.SelectedIndex >= 0
                 && pane.SelectedIndex < pane.Items.Count
-                && pane.Items[pane.SelectedIndex] is TextNode node)
+                && pane.NodeAt(pane.SelectedIndex) is { } node)
             {
                 return (work.WorkId, node.TextNodeId);
             }
@@ -3191,13 +3235,27 @@ public partial class MainForm : ScaledForm
             await BuildCoverageNotesAsync(translations, workId),
             _currentWorkAttribution.Status);
 
-        // PopulateEditionCombo only triggers a pane load when it actually
-        // has something to select - handle the "this work has none of this
-        // kind" case explicitly so the pane still shows the right empty message.
+        // A work with no text of any kind is a different thing from a work
+        // with no translation, and saying the same about both misleads. The
+        // second is ordinary - most works have no translation, and nothing is
+        // wrong. The first means the catalogue named a work whose text is not
+        // in the downloaded data at all, which is upstream and permanent: two
+        // works in this corpus are like that, Augustus's Res Gestae and
+        // Cicero's De Legibus, whose folders hold a catalogue entry and no
+        // text file. Telling a reader that nothing was "ingested" invites them
+        // to go looking for an ingest that failed, and there was never
+        // anything to ingest.
+        var nothingAtAll = _originalEditionCombo.Items.Count == 0 && _translationEditionCombo.Items.Count == 0;
+
         if (_originalEditionCombo.Items.Count == 0)
-            await PopulateReaderAsync(_originalPane, null, "(no original-language edition ingested)");
+            await PopulateReaderAsync(_originalPane, null, nothingAtAll
+                ? "(this work is named in the catalogue, but no text for it came with the downloaded data - nothing here failed to load)"
+                : "(no original-language edition ingested)");
+
         if (_translationEditionCombo.Items.Count == 0)
-            await PopulateReaderAsync(_translationPane, null, "(no translation ingested)");
+            await PopulateReaderAsync(_translationPane, null, nothingAtAll
+                ? "(nothing to show - see the other pane)"
+                : "(no translation ingested)");
     }
 
     private TreeNode? FindWorkNode(int workId)
@@ -3212,17 +3270,22 @@ public partial class MainForm : ScaledForm
         return null;
     }
 
+    /// <summary>
+    /// Puts the reader on a passage, wherever a jump came from - a search
+    /// result, a tag, a bookmark, an echo, the map.
+    ///
+    /// Lands on the passage's first row. A passage too tall for one row is
+    /// several, and arriving in the middle of one would show the reader the
+    /// second half of a paragraph and call it the destination.
+    /// </summary>
     private static bool SelectItemByTextNodeId(SyncListView pane, long textNodeId)
     {
-        for (var i = 0; i < pane.Items.Count; i++)
-        {
-            if (pane.Items[i] is not TextNode node || node.TextNodeId != textNodeId) continue;
+        var row = pane.RowOfNode(textNodeId);
+        if (row < 0) return false;
 
-            pane.SelectOnly(i);
-            pane.EnsureVisible(i);
-            return true;
-        }
-        return false;
+        pane.SelectOnly(row);
+        pane.EnsureVisible(row);
+        return true;
     }
 
 }
