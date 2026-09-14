@@ -20,13 +20,34 @@ namespace ClassicaCodex.UI;
 /// </summary>
 internal sealed class ReaderRow
 {
-    internal ReaderRow(TextNode node, string text, int segmentIndex, int segmentCount)
+    internal ReaderRow(TextNode node, string text, int segmentIndex, int segmentCount, int height = 0)
     {
         Node = node;
         Text = text;
         SegmentIndex = segmentIndex;
         SegmentCount = segmentCount;
+        Height = height;
     }
+
+    /// <summary>
+    /// How tall this row was measured to be, or zero when it has not been
+    /// measured yet.
+    ///
+    /// Carried on the row rather than looked up by its text, which is what the
+    /// reader used to do and what made filling a long work slow. Two things
+    /// were wrong with the lookup. It hashed and compared the row's whole text
+    /// on every row, which for paragraphs is not free; and worse, it was kept
+    /// per pane width, while the width is read afresh when the control asks -
+    /// so the moment the vertical scrollbar appeared during a fill and took
+    /// seventeen pixels off the client area, every remaining row looked in a
+    /// bucket that did not exist and was measured again from scratch. A work
+    /// whose layout had just been read back from disk was re-measured in full
+    /// anyway.
+    ///
+    /// A row knows its own height. There is nothing to look up and nothing to
+    /// disagree with.
+    /// </summary>
+    internal int Height { get; }
 
     /// <summary>The passage this row shows, whole or in part.</summary>
     internal TextNode Node { get; }
@@ -60,5 +81,29 @@ internal sealed class ReaderRow
     /// <summary>Whether the passage was divided at all.</summary>
     internal bool IsSplit => SegmentCount > 1;
 
-    public override string ToString() => Text;
+    /// <summary>
+    /// How much of a row's text the list control is given to keep.
+    ///
+    /// It keeps a copy of whatever a row's ToString says, and it charges more
+    /// than linearly for the length: measured on a bare owner-draw list of
+    /// 8,000 rows, 10 characters a row costs 42 ms per thousand, 300 costs
+    /// 112, 600 costs 349 and 1,200 costs 1,300 - while the same rows showing
+    /// nothing at all cost 34. Rows of divided prose run to several hundred
+    /// characters, so handing over the whole of every one was most of the time
+    /// it took to open a long work.
+    ///
+    /// Nothing the reader sees comes from that copy. The panes are
+    /// owner-drawn: every row is painted from <see cref="Text"/>. What the
+    /// copy is for is the control's own type-ahead, which matches from the
+    /// beginning of a row and so is unaffected by a limit this far in.
+    /// </summary>
+    private const int ShownToTheControl = 120;
+
+    /// <summary>
+    /// What the list control keeps, which is not what the reader is shown -
+    /// see <see cref="ShownToTheControl"/>. Use <see cref="Text"/> for the
+    /// row's actual text.
+    /// </summary>
+    public override string ToString() =>
+        Text.Length <= ShownToTheControl ? Text : Text[..ShownToTheControl];
 }

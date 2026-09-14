@@ -85,7 +85,7 @@ public class ReaderPaneRowTests
 
         await pane.SetPassagesAsync(new[] { Node(1, "1.1", text) });
 
-        var rebuilt = string.Concat(Enumerable.Range(0, pane.Items.Count).Select(i => pane.Items[i]!.ToString()));
+        var rebuilt = string.Concat(Enumerable.Range(0, pane.Items.Count).Select(i => pane.RowAt(i)!.Text));
         Assert.Equal(text, rebuilt);
     });
 
@@ -299,7 +299,7 @@ public class ReaderPaneRowTests
         Assert.True(narrow.Items.Count > wide.Items.Count,
             $"narrow {narrow.Items.Count} rows vs wide {wide.Items.Count}");
 
-        Assert.Equal(text, string.Concat(Enumerable.Range(0, narrow.Items.Count).Select(i => narrow.Items[i]!.ToString())));
+        Assert.Equal(text, string.Concat(Enumerable.Range(0, narrow.Items.Count).Select(i => narrow.RowAt(i)!.Text)));
     });
 
     /// <summary>
@@ -315,7 +315,7 @@ public class ReaderPaneRowTests
         await pane.SetPassagesAsync(new[] { Node(1, "1.1", text) });
 
         Assert.True(pane.Items.Count >= 1);
-        Assert.Equal(text, string.Concat(Enumerable.Range(0, pane.Items.Count).Select(i => pane.Items[i]!.ToString())));
+        Assert.Equal(text, string.Concat(Enumerable.Range(0, pane.Items.Count).Select(i => pane.RowAt(i)!.Text)));
     });
 
     [Fact]
@@ -352,7 +352,7 @@ public class ReaderPaneRowTests
                 .ToList();
 
             Assert.NotEmpty(rows);
-            Assert.Equal(node.Text, string.Concat(rows.Select(i => pane.Items[i]!.ToString())));
+            Assert.Equal(node.Text, string.Concat(rows.Select(i => pane.RowAt(i)!.Text)));
         }
     });
 }

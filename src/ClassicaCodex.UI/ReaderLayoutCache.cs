@@ -118,7 +118,7 @@ internal static class ReaderLayoutCache
                     if (length <= 0 || start + length > node.Text.Length) return null;
 
                     var text = node.Text.Substring(start, length);
-                    rows.Add(new ReaderRow(node, text, i, segmentCount));
+                    rows.Add(new ReaderRow(node, text, i, segmentCount, height));
                     heights[text] = height;
                     start += length;
                 }

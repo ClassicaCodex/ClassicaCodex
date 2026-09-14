@@ -240,8 +240,24 @@ public class SyncListView : ListBox
     /// The row at this index, or null where the row is one of the pane's
     /// placeholder messages rather than a passage.
     /// </summary>
-    internal ReaderRow? RowAt(int index) =>
-        index >= 0 && index < Items.Count ? Items[index] as ReaderRow : null;
+    /// <summary>
+    /// The rows this pane is showing, held alongside the control's own items.
+    ///
+    /// Not redundant. The control raises its measurement for a row while that
+    /// row is being inserted, and at that moment it is not yet retrievable by
+    /// index from Items - so a row asked about through the control answers
+    /// null exactly when its height is wanted, and the height it already knows
+    /// gets measured all over again. Kept here, it can be answered from.
+    /// </summary>
+    private IReadOnlyList<ReaderRow> _rows = Array.Empty<ReaderRow>();
+
+    internal ReaderRow? RowAt(int index)
+    {
+        if (index < 0) return null;
+        if (index < _rows.Count) return _rows[index];
+
+        return index < Items.Count ? Items[index] as ReaderRow : null;
+    }
 
     /// <summary>
     /// The passage at this index, whichever of its rows the index names.
@@ -512,6 +528,17 @@ public class SyncListView : ListBox
 
     private void OnMeasureItem(object? sender, MeasureItemEventArgs e)
     {
+        // The row already knows, in every ordinary case: it was measured when
+        // the work was divided, or read back from a remembered layout. This is
+        // raised once per row as a work is filled - tens of thousands of times
+        // for a long one - so what it does here is the difference between a
+        // fill that costs a moment and one that costs seconds.
+        if (RowAt(e.Index) is { Height: > 0 } known)
+        {
+            e.ItemHeight = ReaderRowHeight.Cap(known.Height);
+            return;
+        }
+
         var text = GetItemText(e.Index);
         if (text.Length == 0)
         {
@@ -758,6 +785,7 @@ public class SyncListView : ListBox
     {
         _passages = Array.Empty<TextNode>();
         _editionId = null;
+        _rows = Array.Empty<ReaderRow>();
 
         BeginUpdate();
         try
@@ -800,6 +828,11 @@ public class SyncListView : ListBox
     /// </summary>
     private void Fill(List<ReaderRow> rows)
     {
+        // Before the insert, not after: the control asks each row's height as
+        // it goes in, and that is precisely when it cannot yet be looked up
+        // through Items.
+        _rows = rows;
+
         BeginUpdate();
         try
         {
@@ -863,10 +896,12 @@ public class SyncListView : ListBox
             var text = node.Text;
 
             // Cannot wrap at all, so cannot need cutting - the same arithmetic
-            // that lets OnMeasureItem answer without measuring.
+            // that lets OnMeasureItem answer without measuring. The height
+            // follows from the same fact: exactly one line.
             if (text.Length == 0 || (long)text.Length * maxGlyph <= width)
             {
-                rows.Add(new ReaderRow(node, text, 0, 1));
+                rows.Add(new ReaderRow(node, text, 0, 1,
+                    text.Length == 0 ? font.Height + 4 : font.Height + 6));
                 continue;
             }
 
@@ -890,8 +925,7 @@ public class SyncListView : ListBox
 
             for (var i = 0; i < confirmed.Count; i++)
             {
-                rows.Add(new ReaderRow(node, confirmed[i], i, confirmed.Count));
-                MeasuredHeight(confirmed[i]);
+                rows.Add(new ReaderRow(node, confirmed[i], i, confirmed.Count, MeasuredHeight(confirmed[i])));
             }
         }
 
