@@ -707,6 +707,54 @@ public class SyncListView : ListBox
     }
 
     /// <summary>
+    /// Empties the pane and forgets the work it was showing.
+    ///
+    /// Both halves matter. Clearing the rows alone leaves the passages behind,
+    /// and the pane knows how to rebuild its rows from those - so the next
+    /// resize would put the old work straight back. That is not hypothetical:
+    /// opening a work with no translation cleared the right-hand pane, and the
+    /// previous work's translation reappeared in it moments later.
+    /// </summary>
+    public void ClearPassages()
+    {
+        _passages = Array.Empty<TextNode>();
+
+        BeginUpdate();
+        try
+        {
+            Items.Clear();
+        }
+        finally
+        {
+            EndUpdate();
+        }
+    }
+
+    /// <summary>
+    /// Shows one line of explanation instead of a text - no edition ingested,
+    /// nothing in the one there is, everything in it hidden.
+    ///
+    /// A message is not a passage, so the pane forgets what it was showing
+    /// rather than keeping it to rebuild later.
+    /// </summary>
+    public void ShowMessage(string message)
+    {
+        ClearPassages();
+
+        BeginUpdate();
+        try
+        {
+            Items.Add(message);
+        }
+        finally
+        {
+            EndUpdate();
+        }
+
+        _lastMeasuredWidth = UsableWidth;
+    }
+
+    /// <summary>
     /// Puts the rows on screen, keeping the pane from repainting until they are
     /// all in - the fill raises a measurement for every row as it goes.
     /// </summary>

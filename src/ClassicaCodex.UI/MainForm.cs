@@ -2637,7 +2637,7 @@ public partial class MainForm : ScaledForm
         pane.BeginUpdate();
         try
         {
-            pane.Items.Clear();
+            pane.ClearPassages();
 
             // Reset up front so switching to an edition with none (or
             // clearing the pane entirely) doesn't leave a stale preface
@@ -2647,7 +2647,7 @@ public partial class MainForm : ScaledForm
 
             if (edition == null)
             {
-                pane.Items.Add(emptyMessage);
+                pane.ShowMessage(emptyMessage);
                 return;
             }
 
@@ -2666,7 +2666,7 @@ public partial class MainForm : ScaledForm
             // display bug rather than an ingestion one.
             if (nodes.Count == 0)
             {
-                pane.Items.Add("(this edition was catalogued but contains no text - its source file may have failed to parse during ingest)");
+                pane.ShowMessage("(this edition was catalogued but contains no text - its source file may have failed to parse during ingest)");
                 return;
             }
 
@@ -2696,7 +2696,7 @@ public partial class MainForm : ScaledForm
             // reachable, because the text itself can be hidden.
             if (visibleNodes.Count == 0)
             {
-                pane.Items.Add("(everything in this edition is hidden - right-click and use Show to bring it back)");
+                pane.ShowMessage("(everything in this edition is hidden - right-click and use Show to bring it back)");
                 return;
             }
 

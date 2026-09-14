@@ -219,6 +219,54 @@ public class ReaderPaneRowTests
     });
 
     /// <summary>
+    /// Reported from use: opening a work with no translation left the previous
+    /// work's translation sitting in the right-hand pane.
+    ///
+    /// Clearing the rows is not enough, because the pane knows how to rebuild
+    /// its rows from the passages it was given - so anything that prompted a
+    /// re-cut put the old work straight back. A cleared pane has to forget the
+    /// work as well as the rows.
+    /// </summary>
+    [Fact]
+    public void AClearedPaneDoesNotBringTheOldWorkBack() => StaHarness.Run(async host =>
+    {
+        var pane = Pane(host);
+
+        await pane.SetPassagesAsync(new[] { Node(1, "1.1", LongProse(400)) });
+        Assert.NotEmpty(pane.Items);
+
+        pane.ClearPassages();
+
+        // Whatever would have prompted a re-cut: a splitter drag, a window
+        // resize, the citation margin being switched on.
+        pane.Width = 300;
+        await Task.Delay(400);
+
+        Assert.Empty(pane.Items);
+    });
+
+    /// <summary>
+    /// The same for the pane that is showing an explanation rather than a
+    /// text - "(no translation ingested)" must not turn back into the last
+    /// translation.
+    /// </summary>
+    [Fact]
+    public void APaneShowingAMessageKeepsShowingIt() => StaHarness.Run(async host =>
+    {
+        var pane = Pane(host);
+
+        await pane.SetPassagesAsync(new[] { Node(1, "1.1", LongProse(400)) });
+        pane.ShowMessage("(no translation ingested)");
+
+        pane.Width = 300;
+        await Task.Delay(400);
+
+        Assert.Single(pane.Items);
+        Assert.Equal("(no translation ingested)", pane.Items[0]!.ToString());
+        Assert.Null(pane.NodeAt(0));
+    });
+
+    /// <summary>
     /// And the same for the font, which moves the cuts just as the width does.
     /// </summary>
     [Fact]
