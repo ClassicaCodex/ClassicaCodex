@@ -114,7 +114,31 @@ internal static class ReaderRowSplitter
         // final piece.
         if (firstFailing == cuts.Count && measure(text[start..]) <= maxHeight) return text.Length - start;
 
-        var low = lastFitting + 1;
+        // Floored at firstCut, not at zero. The caller has already advanced
+        // firstCut past every cut at or before start, so an index below it
+        // names a cut behind the piece being measured and gives a NEGATIVE
+        // length - which throws out of Substring below.
+        //
+        // Reachable two ways, both when nothing fits: the first allowed cut
+        // already overflows the row, or there is no cut after start at all.
+        // Either leaves lastFitting at -1, and low was then 0 while high was
+        // firstCut - 1, so the search walked backwards into the previous
+        // piece. Both are the shape "an unbreakable run too tall for a row",
+        // which the caller already handles - see the RunLength branch in
+        // Split, written and commented for exactly this - and the throw was
+        // what stopped that branch ever being reached.
+        //
+        // What it cost: SetPassagesAsync catches everything and falls back to
+        // one row per passage FOR THE WHOLE WORK, so a single passage of this
+        // shape silently turned splitting off for the edition containing it
+        // and put the 255px clipping back. One edition in this library reaches
+        // it - Optatianus Porfyrius, whose grid poems are a 1,170-character
+        // unbroken run - and at a narrow pane five of its passages do.
+        //
+        // Clamping changes nothing when lastFitting >= 0, since lastFitting is
+        // never below firstCut; when it is -1 the range is empty either way
+        // round and best stays 0, which is the answer Split wants.
+        var low = Math.Max(lastFitting + 1, firstCut);
         var high = firstFailing - 1;
         var best = lastFitting >= 0 ? cuts[lastFitting] - start : 0;
 

@@ -199,4 +199,88 @@ public class ReaderPaneLifecycleTests
         Assert.True(pane.GetItemHeight(0) >= needed,
             $"the message is given {pane.GetItemHeight(0)}px and needs {needed}px, so it is cut off");
     }, timeoutSeconds: 120);
+
+    /// <summary>
+    /// A pane must settle, and one case did not.
+    ///
+    /// Deciding to cut for the width the pane will have once its scrollbar is
+    /// out only works while that prediction can be checked afterwards. A list
+    /// box scrolls BETWEEN items and never within one, so a single row taller
+    /// than the pane shows its top and no scrollbar however short the pane is
+    /// - the prediction is then wrong for ever, and the three pieces form a
+    /// cycle with no exit: the fill records no settled width, queues a re-cut,
+    /// and the re-cut predicts the same thing again.
+    ///
+    /// What a reader saw: open a one-passage edition with the window dragged
+    /// short, and the pane clears and rebuilds its single row about six times
+    /// a second until the work is closed or the window made taller.
+    ///
+    /// Tested by identity rather than by content - the rows are the same text
+    /// either way, so only whether they are the same OBJECTS says whether the
+    /// pane rebuilt them - and sampled twice, a second apart, because one
+    /// corrective pass is legitimate and expected. What must not happen is
+    /// that it never stops.
+    ///
+    /// The passage has to stay a single ROW, not merely a single passage: a
+    /// passage divided across several rows can scroll like any other list of
+    /// several items, and then there is a real scrollbar and nothing unusual
+    /// to see.
+    /// </summary>
+    [Fact]
+    public void ASinglePassageInAShortPaneStopsRebuildingItself() => StaHarness.Run(async host =>
+    {
+        var pane = Pane(host, width: 380, height: 40);
+
+        await pane.SetPassagesAsync(new[] { Node(1, "1.1", LongProse(12)) });
+
+        Assert.Single(pane.Items);
+        Assert.True(pane.GetItemHeight(0) > pane.ClientSize.Height,
+            "the row has to be taller than the pane for this to be the case under test");
+
+        await Task.Delay(1200);
+        var settled = pane.RowAt(0);
+
+        await Task.Delay(1200);
+
+        Assert.Same(settled, pane.RowAt(0));
+    }, timeoutSeconds: 120);
+
+    /// <summary>
+    /// Filled the way the app fills it, which is not the way every other test
+    /// here fills it.
+    ///
+    /// MainForm.PopulateReaderAsync holds BeginUpdate across the whole fill -
+    /// the database read, the cut, and the width comparison at the end - and a
+    /// list box with its redraw suspended does not recalculate its scrollbar.
+    /// So the width the pane reads back at the end of a fill is still the
+    /// width it had while empty, and only changes when EndUpdate runs.
+    ///
+    /// That difference silently inverted a result. The change that cuts for
+    /// the post-scrollbar width removed the second cut on a bare pane and not
+    /// in the app, and the test covering it passed, because the test filled
+    /// the pane bare. A green test for a fix that did not fire. This is the
+    /// same trap as the unshown control that measures nothing: the harness has
+    /// to do what the product does, or it measures something else.
+    /// </summary>
+    [Fact]
+    public void AWorkFilledTheWayTheAppFillsItIsLaidOutOnlyOnce() => StaHarness.Run(async host =>
+    {
+        var pane = Pane(host);
+
+        pane.BeginUpdate();
+        try
+        {
+            pane.ClearPassages();
+            await pane.SetPassagesAsync(LongWork(400));
+        }
+        finally
+        {
+            pane.EndUpdate();
+        }
+
+        var settled = pane.RowAt(0);
+        await Task.Delay(1200);
+
+        Assert.Same(settled, pane.RowAt(0));
+    }, timeoutSeconds: 120);
 }

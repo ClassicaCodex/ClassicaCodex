@@ -495,6 +495,31 @@ public class SyncListView : ListBox
         if (_isRemeasuring) return;
         if (UsableWidth == _lastMeasuredWidth) return;
 
+        // Never while a caller's fill is still cutting. The generation counter
+        // cannot tell a genuinely newer request from a re-cut OF the request
+        // already in flight, and a re-cut starting here takes the next number
+        // and supersedes the fill it was derived from - so the caller's await
+        // returns with the pane empty while its own isStillWanted is still
+        // true. OpenWorkAsync promises its callers that the panes are
+        // populated when it completes, and they select a line on the strength
+        // of it; the jump then finds nothing and the reader is told their
+        // passage is not on screen, which is the wrong explanation.
+        //
+        // Waiting costs nothing, because the fill's own tail re-checks the
+        // width and queues this again - and by then there are rows for
+        // CurrentAnchor to take a bearing from, where here there are none, so
+        // waiting also keeps the reader's place instead of dropping them at
+        // the top of the work.
+        //
+        // Re-armed rather than dropped: a fill that abandons at the generation
+        // or isStillWanted check returns without queueing anything, and
+        // _lastMeasuredWidth would then stay stale for ever.
+        if (_fillsInFlight > 0)
+        {
+            QueueRelayout();
+            return;
+        }
+
         // A pane showing a placeholder has no passages to cut again, but it
         // does have a row whose height was settled at a width the pane no
         // longer has. Re-adding the item is the whole of the work.
@@ -508,10 +533,17 @@ public class SyncListView : ListBox
         try
         {
             var anchor = CurrentAnchor();
+            var generation = _fillGeneration;
 
             await SetPassagesAsync(_passages, editionId: _editionId).ConfigureAwait(true);
 
-            if (!IsDisposed) RestoreAnchor(anchor);
+            // Only if these are still our rows. An abandoned re-cut leaves the
+            // pane holding someone else's work, or a message, or nothing, and
+            // putting a bearing taken from the old work back on top of it
+            // selects a row that means something different now - the one case
+            // RowOfNode answering -1 does not cover is the one where the
+            // anchor's node genuinely is in the pane, in a different place.
+            if (!IsDisposed && _fillGeneration == generation + 1) RestoreAnchor(anchor);
         }
         finally
         {
@@ -702,10 +734,39 @@ public class SyncListView : ListBox
     public async Task SetPassagesAsync(
         IReadOnlyList<TextNode> nodes, Func<bool>? isStillWanted = null, int? editionId = null)
     {
+        _fillsInFlight++;
+
+        try
+        {
+            await FillPassagesAsync(nodes, isStillWanted, editionId).ConfigureAwait(true);
+        }
+        finally
+        {
+            _fillsInFlight--;
+        }
+    }
+
+    /// <summary>
+    /// How many fills are between their first await and their last.
+    ///
+    /// Counted rather than a flag, because two of them really can overlap - a
+    /// second work clicked while the first is still being cut - and the first
+    /// to finish must not report the pane idle while the second is still
+    /// running. Read by <see cref="RelayoutAsync"/>, which must not start a
+    /// re-cut on top of a fill it would then supersede.
+    ///
+    /// UI thread only, like everything else here, so a plain int is enough.
+    /// </summary>
+    private int _fillsInFlight;
+
+    private async Task FillPassagesAsync(
+        IReadOnlyList<TextNode> nodes, Func<bool>? isStillWanted, int? editionId)
+    {
         var generation = ++_fillGeneration;
 
         _passages = nodes;
         _editionId = editionId;
+        _message = null;
 
         if (IsDisposed) return;
 
@@ -759,16 +820,39 @@ public class SyncListView : ListBox
         catch (Exception)
         {
             // One row per passage, exactly as the reader behaved before it
-            // could divide them, and measured inline by OnMeasureItem as it
-            // always was. A passage too tall for a row then shows as much of
-            // itself as fits, with the marker saying so.
+            // could divide them. A passage too tall for a row then shows as
+            // much of itself as fits, with the marker saying so.
             //
             // Swallowing is right here for the same reason it was when this
             // only warmed a cache: the fallback is complete and correct, just
             // slower and less generous, whereas letting the exception out
-            // would take down the opening of the work itself.
-            rows = nodes.Select(node => new ReaderRow(node, node.Text, 0, 1)).ToList();
+            // would take down the opening of the work itself. What it must not
+            // be is SILENTLY WRONG, and it was: the rows used to go up with no
+            // height at all, for OnMeasureItem to measure one at a time as it
+            // inserted them - which means measuring them against whatever
+            // ClientSize.Width happened to be at that instant. The scrollbar
+            // appears partway through that insert, so every row added before
+            // it was measured 17px too wide and drawn a line short, with no
+            // truncation marker, because a row under 255px does not count as
+            // truncated. Clipping again, by a second route.
+            //
+            // Measured here instead, against the width the fill was cut for,
+            // so the heights are right on the first pass. It costs nothing:
+            // these are the same measurements OnMeasureItem was going to make,
+            // on the same thread, a moment later and at the wrong width.
             heights = new Dictionary<string, int>(StringComparer.Ordinal);
+            rows = new List<ReaderRow>(nodes.Count);
+
+            foreach (var node in nodes)
+            {
+                if (!heights.TryGetValue(node.Text, out var height))
+                {
+                    height = MeasureUncappedHeight(node.Text, width, font, minGlyph, maxGlyph);
+                    heights[node.Text] = height;
+                }
+
+                rows.Add(new ReaderRow(node, node.Text, 0, 1, ReaderRowHeight.Cap(height)));
+            }
         }
 
         if (IsDisposed) return;
@@ -805,7 +889,30 @@ public class SyncListView : ListBox
         // Text cut for a slightly different width is off by a line here and
         // there for a moment. An empty reader is a broken program. So the rows
         // go up either way, and a layout that has moved queues the correction.
-        if (width == UsableWidth && ReferenceEquals(font, Font)) _lastMeasuredWidth = width;
+        // Asked against BOTH readings of the width, because the pane may not
+        // have caught up with itself yet. MainForm fills a pane inside
+        // BeginUpdate/EndUpdate, and a list box with its redraw suspended does
+        // not recalculate its scrollbar - so UsableWidth here is still the
+        // width the pane had while empty, and will drop by the scrollbar's
+        // width the moment EndUpdate runs.
+        //
+        // Comparing against UsableWidth alone therefore disagreed with a
+        // correct prediction and queued a re-cut of the whole work anyway,
+        // which is the second cut WidthOnceFilled exists to remove. It removed
+        // it on a bare pane and not in the app - and the test covering it
+        // passed, because the test filled the pane without the BeginUpdate the
+        // app wraps around it. A green test for a fix that did not fire.
+        //
+        // Accepting the prediction as well is what makes a correct prediction
+        // count, and it is only safe because the prediction is one-sided: see
+        // WidthOnceFilled, where every case it cannot be certain about falls
+        // through to UsableWidth and the old behaviour. Where it IS wrong,
+        // both sides now agree on the wrong width and nothing corrects it -
+        // which is why the one case it was provably wrong about had to be
+        // closed first.
+        var settled = width == UsableWidth || width == WidthOnceFilled(nodes.Count);
+
+        if (settled && ReferenceEquals(font, Font)) _lastMeasuredWidth = width;
         else QueueRelayout();
     }
 
@@ -1112,7 +1219,22 @@ public class SyncListView : ListBox
         var scrollBar = SystemInformation.VerticalScrollBarWidth;
         if (Width - ClientSize.Width >= scrollBar) return width;
 
-        var shortestPossibleRow = Font.Height + 6;
+        // A list box scrolls BETWEEN items, never within one. A single row
+        // taller than the pane shows its top and no scrollbar however short
+        // the pane is - so here the prediction would be wrong for ever, and
+        // nothing corrects it: the fill records no width, queues a re-cut, and
+        // the re-cut predicts the same thing again. A reader who opened a
+        // one-passage edition with the window dragged short got a pane
+        // rebuilding its single row six times a second until they closed it.
+        if (passageCount < 2) return width;
+
+        // Font.Height + 4 rather than + 6, which is what a row of the shortest
+        // kind actually measures - OnMeasureItem hands an empty item that, and
+        // an empty passage is a real thing in this corpus. Two pixels a row
+        // only matters within two pixels of the boundary, but the prediction
+        // is only allowed to be wrong in one direction and this is the
+        // direction it must not be wrong in.
+        var shortestPossibleRow = Font.Height + 4;
         if ((long)passageCount * shortestPossibleRow <= ClientSize.Height) return width;
 
         return Math.Max(width - scrollBar, 50);

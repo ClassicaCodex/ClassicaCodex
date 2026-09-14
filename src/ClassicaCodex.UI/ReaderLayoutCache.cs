@@ -21,11 +21,29 @@ namespace ClassicaCodex.UI;
 ///
 /// A STALE ENTRY CANNOT SHOW THE WRONG TEXT. The file holds lengths, not text.
 /// Rows are always sliced out of the passages as they are in the database now,
-/// and an entry is only used if every passage's pieces add up to exactly the
-/// length that passage currently has. Anything else - a re-ingest, an edited
-/// translation, a truncated file - fails that check and is thrown away, and the
-/// work is divided again from scratch. The worst a bad entry can do is waste
-/// the time it was meant to save.
+/// so no entry can put a character on screen that the database does not have.
+///
+/// AND IT CANNOT SHOW THE RIGHT TEXT WRONGLY, which took a second pass to get
+/// to. The lengths adding up was once the whole check, and it is not enough,
+/// because the file also holds HEIGHTS. A passage replaced by the same number
+/// of DIFFERENT characters accounts for its length exactly - a re-ingest
+/// refresh and a saved translation both rewrite the text in place and keep the
+/// id on purpose - and every row would then be handed a height measured for
+/// text it no longer holds. A line drawn outside its row and clipped away,
+/// with no truncation marker, because a row under 255px does not count as
+/// truncated: the exact defect that showing passages whole was meant to end,
+/// reappearing through the thing meant to make it fast.
+///
+/// So an entry must match on three counts, not one: the same passages in the
+/// same order, each with the same LENGTH, and each with the same TEXT, by a
+/// fingerprint stored beside it. The layout the heights were measured against
+/// is the key's job - edition, pane width, font family, point size, and the
+/// font's actual line height in pixels, because everything in the file is in
+/// pixels and the display scaling stands between the two.
+///
+/// Any mismatch is a miss: the entry is thrown away and the work divided again
+/// from scratch. The worst a bad entry can do is waste the time it was meant
+/// to save.
 /// </summary>
 internal static class ReaderLayoutCache
 {
@@ -54,9 +72,13 @@ internal static class ReaderLayoutCache
     /// </summary>
     internal const int MaxEntries = 40;
 
-    // 2 added a hash of each passage's text. Entries written by an earlier
-    // version are refused rather than upgraded, which costs one slow open of
-    // each cached work and then they are rewritten.
+    // 2 added a hash of each passage's text, and put the font's line height in
+    // the key. An entry written by an earlier version is never read - the key
+    // changed shape, so its file is not even the file a v2 key names - and the
+    // check below is the backstop rather than the mechanism. What DOES reach
+    // those files is Evict, which sweeps any it finds: they cannot be read by
+    // this version or any later one, and left alone they would sit in the
+    // folder occupying the budget until aged out one at a time.
     private const int Version = 2;
 
     /// <summary>
@@ -253,15 +275,30 @@ internal static class ReaderLayoutCache
         }
     }
 
-    /// <summary>Keeps the folder from growing without limit, oldest first.</summary>
+    /// <summary>
+    /// Keeps the folder from growing without limit: anything this version can
+    /// no longer read first, then the oldest of what is left.
+    /// </summary>
     private static void Evict()
     {
         try
         {
             var files = new DirectoryInfo(Directory).GetFiles("*.layout");
-            if (files.Length <= MaxEntries) return;
+            var live = new List<FileInfo>(files.Length);
 
-            foreach (var file in files.OrderBy(f => f.LastWriteTimeUtc).Take(files.Length - MaxEntries))
+            foreach (var file in files)
+            {
+                // Dead weight, and invisible dead weight: an entry from an
+                // older format is never opened by a load, because the key
+                // names a different filename now - so nothing else would ever
+                // notice it, while it went on counting against the budget.
+                if (WrittenByThisVersion(file)) live.Add(file);
+                else file.Delete();
+            }
+
+            if (live.Count <= MaxEntries) return;
+
+            foreach (var file in live.OrderBy(f => f.LastWriteTimeUtc).Take(live.Count - MaxEntries))
             {
                 file.Delete();
             }
@@ -269,6 +306,30 @@ internal static class ReaderLayoutCache
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or DirectoryNotFoundException)
         {
             // Nothing here is worth interrupting a reader over.
+        }
+    }
+
+    /// <summary>
+    /// Whether a file in the folder is one this version could read, by its
+    /// first four bytes.
+    ///
+    /// Anything unreadable answers false and is swept: a file that cannot be
+    /// opened, cannot be understood, or is too short to have a version in it
+    /// is of no use to anyone either way.
+    /// </summary>
+    private static bool WrittenByThisVersion(FileInfo file)
+    {
+        try
+        {
+            using var stream = file.OpenRead();
+            using var reader = new BinaryReader(stream);
+
+            return reader.ReadInt32() == Version;
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException
+                                      or EndOfStreamException or ObjectDisposedException)
+        {
+            return false;
         }
     }
 }

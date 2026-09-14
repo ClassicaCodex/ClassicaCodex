@@ -277,6 +277,32 @@ public class ReaderLayoutCacheTests : IDisposable
     }
 
     /// <summary>
+    /// Entries from an older format are swept rather than left to age out.
+    ///
+    /// They are invisible dead weight: the key names a different filename now,
+    /// so no load ever opens one and nothing would report them - while they go
+    /// on counting against the forty entries the folder is allowed. A reader
+    /// who has used this before the format changed has a folder half full of
+    /// them.
+    /// </summary>
+    [Fact]
+    public void EntriesFromAnOlderFormatAreSweptOnTheNextSave()
+    {
+        var stale = Path.Combine(_scratch, "e99-w737-PalatinoLinotype-13.layout");
+        File.WriteAllBytes(stale, BitConverter.GetBytes(1));            // version 1
+
+        var rubbish = Path.Combine(_scratch, "e98-w737-Georgia-13.layout");
+        File.WriteAllText(rubbish, "not a layout at all");
+
+        var node = Node(1, new string('a', 30));
+        Save(RowsFor(node, 10, 10, 10));
+
+        Assert.False(File.Exists(stale), "a version 1 entry survived, and nothing can ever read it");
+        Assert.False(File.Exists(rubbish), "an unreadable file survived");
+        Assert.NotNull(ReaderLayoutCache.TryLoad(Key, new[] { node }));
+    }
+
+    /// <summary>
     /// A missing folder - first run, or someone clearing their settings - is a
     /// miss, and the next save makes it again.
     /// </summary>

@@ -123,7 +123,20 @@ public class PassageRowLengthTests
             + "HorizontalScrollbar = true and every row they are handed gets measured by GDI+. "
             + "See this test's summary for what that does to a long passage.");
 
-        Assert.DoesNotContain("HorizontalScrollbar = true",
+        // Being reached first is only half of it. The case has to also not do
+        // the thing, or ordering it correctly buys nothing - so read what sits
+        // between the case label and its break. Starting at the label rather
+        // than above it keeps the explanatory comment, which names the
+        // property in order to explain it, out of the scan.
+        var readerCase = theme[reader..theme.IndexOf("break;", reader, StringComparison.Ordinal)];
+
+        Assert.DoesNotContain("HorizontalScrollbar", readerCase, StringComparison.Ordinal);
+
+        // Matched however it is spelled. Every site in this codebase but one
+        // assigns the ListHorizontalScrollbar constant rather than the
+        // literal, so looking for "= true" would miss the idiom the code
+        // actually uses.
+        Assert.DoesNotContain("HorizontalScrollbar =",
             File.ReadAllText(Path.Combine(UiSourceDirectory(), "SyncListView.cs")), StringComparison.Ordinal);
     }
 

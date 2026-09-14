@@ -218,7 +218,7 @@ public class ReaderPaneRowTests
 
         placeholder.ShowMessage("(no translation ingested)");
 
-        Assert.Equal(1, placeholder.Items.Count);
+        Assert.Single(placeholder.Items);
         Assert.Equal(-1, placeholder.PassageOrdinalAt(0));
         Assert.Equal(-1, placeholder.RowOfPassageOrdinal(0));
     });

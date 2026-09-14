@@ -1585,13 +1585,6 @@ public partial class MainForm : ScaledForm
     }
 
     /// <summary>
-    /// Mirrors scroll position between the two panes by line index. Works
-    /// well for verse texts where a translation keeps the same line count as
-    /// the original; for prose works where line counts diverge it'll drift,
-    /// but that's an inherent limit of index-based sync, not a bug to chase -
-    /// which is why the link can be switched off from the toolbar.
-    /// </summary>
-    /// <summary>
     /// Fills the "Show" submenu with one checkable entry per kind of node this
     /// pane's edition contains.
     ///

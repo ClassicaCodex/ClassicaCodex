@@ -43,14 +43,6 @@ public static class ReadingTheme
     public static Color Text => IsDark ? Color.FromArgb(232, 228, 218) : Color.Black;
 
     /// <summary>
-    /// Secondary text - hints, counts, the quiet half of a status line.
-    ///
-    /// The light value is three steps darker than the DimGray it used to be.
-    /// DimGray on the parchment background is 4.46:1, which misses the 4.5:1
-    /// minimum by a margin nobody would see but a checker would; this is
-    /// 4.66:1 and indistinguishable to the eye.
-    /// </summary>
-    /// <summary>
     /// The border every text box in the application gets, in either mode.
     ///
     /// Named rather than written inline because of what it costs to change
@@ -87,6 +79,14 @@ public static class ReadingTheme
     /// </summary>
     public const bool ListHorizontalScrollbar = true;
 
+    /// <summary>
+    /// Secondary text - hints, counts, the quiet half of a status line.
+    ///
+    /// The light value is three steps darker than the DimGray it used to be.
+    /// DimGray on the parchment background is 4.46:1, which misses the 4.5:1
+    /// minimum by a margin nobody would see but a checker would; this is
+    /// 4.66:1 and indistinguishable to the eye.
+    /// </summary>
     public static Color MutedText => IsDark ? Color.FromArgb(150, 148, 142) : Color.FromArgb(102, 102, 102);
 
     /// <summary>

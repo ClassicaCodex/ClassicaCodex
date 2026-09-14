@@ -192,6 +192,80 @@ public class ReaderRowSplitterTests
     }
 
     /// <summary>
+    /// Height by character count rather than by word, so that a single
+    /// unbroken run really is too tall.
+    ///
+    /// <see cref="Wrapping"/> cannot express that - it never breaks a word, so
+    /// it calls a run of any length one line - and the real measurer does:
+    /// ReaderRowHeight.CannotFit answers "taller than a row" from the narrowest
+    /// glyph in the font, without laying anything out. That answer is what
+    /// reaches the case below, so a test that cannot produce it cannot reach
+    /// the case either.
+    /// </summary>
+    private static ReaderRowSplitter.MeasureHeight ByLength(int charsPerLine) => text =>
+        Math.Max(1, (text.Length + charsPerLine - 1) / charsPerLine);
+
+    /// <summary>
+    /// Nothing fits, and the answer is the run rather than an exception.
+    ///
+    /// The bisection searches over cut positions, and the caller has already
+    /// advanced past every cut at or before the piece being measured. When the
+    /// very first candidate overflows, the floor of that search used to fall
+    /// back to zero - behind the piece - and the length went negative, which
+    /// threw out of Substring.
+    ///
+    /// Which did not surface as a crash. SetPassagesAsync catches everything
+    /// and falls back to one row per passage for the WHOLE WORK, so a single
+    /// passage of this shape silently turned splitting off for the edition
+    /// containing it and put the 255px clipping back, with nothing said. One
+    /// edition in the real library reaches it: Optatianus Porfyrius, whose
+    /// grid poems are an unbroken run of 1,170 characters.
+    /// </summary>
+    [Fact]
+    public void AnUnbreakableRunTooTallForARowIsReturnedRatherThanThrown()
+    {
+        var text = "AB CD " + new string('Q', 1170) + " EF";
+
+        var segments = ReaderRowSplitter.Split(text, ByLength(40), maxHeight: 4);
+
+        Assert.Equal(text, string.Concat(segments));
+        Assert.Contains(segments, s => s.Contains(new string('Q', 1170), StringComparison.Ordinal));
+    }
+
+    /// <summary>
+    /// The same fault reached the other way, which the first report missed: an
+    /// unbreakable run at the END of the passage leaves no cut after the piece
+    /// at all, so the forward search never runs and the bisection walked the
+    /// whole list backwards instead.
+    /// </summary>
+    [Fact]
+    public void AnUnbreakableRunAtTheEndOfAPassageIsAlsoReturnedRatherThanThrown()
+    {
+        var text = "aa bb " + new string('Q', 2000);
+
+        var segments = ReaderRowSplitter.Split(text, ByLength(40), maxHeight: 4);
+
+        Assert.Equal(text, string.Concat(segments));
+        Assert.DoesNotContain(segments, string.IsNullOrEmpty);
+    }
+
+    /// <summary>
+    /// And a passage carrying its own hard breaks, which is the shape that
+    /// first showed the fault: the breaks make a piece too tall without any
+    /// single word being long.
+    /// </summary>
+    [Fact]
+    public void APassageWhoseOwnLineBreaksOverflowARowStillReassembles()
+    {
+        var text = "alpha beta" + new string('\n', 14) + "gamma" + new string('\n', 14) + "delta epsilon zeta";
+
+        var segments = ReaderRowSplitter.Split(text, Wrapping(40), maxHeight: 10);
+
+        Assert.Equal(text, string.Concat(segments));
+        Assert.DoesNotContain(segments, string.IsNullOrEmpty);
+    }
+
+    /// <summary>
     /// The common case must stay cheap: most passages fit, and asking about one
     /// that fits should cost exactly one measurement, since the reader does this
     /// for every row of a work that can run to thirty thousand of them.
