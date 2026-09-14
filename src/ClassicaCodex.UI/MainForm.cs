@@ -3235,13 +3235,27 @@ public partial class MainForm : ScaledForm
             await BuildCoverageNotesAsync(translations, workId),
             _currentWorkAttribution.Status);
 
-        // PopulateEditionCombo only triggers a pane load when it actually
-        // has something to select - handle the "this work has none of this
-        // kind" case explicitly so the pane still shows the right empty message.
+        // A work with no text of any kind is a different thing from a work
+        // with no translation, and saying the same about both misleads. The
+        // second is ordinary - most works have no translation, and nothing is
+        // wrong. The first means the catalogue named a work whose text is not
+        // in the downloaded data at all, which is upstream and permanent: two
+        // works in this corpus are like that, Augustus's Res Gestae and
+        // Cicero's De Legibus, whose folders hold a catalogue entry and no
+        // text file. Telling a reader that nothing was "ingested" invites them
+        // to go looking for an ingest that failed, and there was never
+        // anything to ingest.
+        var nothingAtAll = _originalEditionCombo.Items.Count == 0 && _translationEditionCombo.Items.Count == 0;
+
         if (_originalEditionCombo.Items.Count == 0)
-            await PopulateReaderAsync(_originalPane, null, "(no original-language edition ingested)");
+            await PopulateReaderAsync(_originalPane, null, nothingAtAll
+                ? "(this work is named in the catalogue, but no text for it came with the downloaded data - nothing here failed to load)"
+                : "(no original-language edition ingested)");
+
         if (_translationEditionCombo.Items.Count == 0)
-            await PopulateReaderAsync(_translationPane, null, "(no translation ingested)");
+            await PopulateReaderAsync(_translationPane, null, nothingAtAll
+                ? "(nothing to show - see the other pane)"
+                : "(no translation ingested)");
     }
 
     private TreeNode? FindWorkNode(int workId)
