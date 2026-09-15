@@ -119,3 +119,9 @@ none that a reader could see. Where a fix could not be pinned by a test, that is
 said so in the test rather than left implied.
 
 1,284 tests, zero warnings.
+
+The download is not code-signed, so if you would rather check it than trust it:
+
+```
+SHA-256  05FB2831321623CBACED25CF960F9DA311651524FDC70D924AA84998F5FA0E73
+```
