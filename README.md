@@ -3,10 +3,16 @@
 A desktop reader and research tool for the [Perseus Digital Library](http://www.perseus.tufts.edu/) — the Greek and Latin classics (plus optional Post-Classical Greek and the Renaissance authors who reworked the classics in English), their translations, dictionaries, and the linguistic data that makes searching them work properly. Also, Menota documents can be manually added. This is new and still a bit experimental.
 
 Everything is fetched once and kept in a database on your own machine, so after
-setup it runs entirely offline — no tab, no network, no waiting on a server. The
-classical core is 159 authors and 1,221 works; with every optional collection
-installed it comes to 748 authors, 4,021 works and around 2.3 million lines,
-with 423,000 dictionary entries and a million inflected forms alongside them.
+setup the reading, the searching and the research all happen locally — no tab,
+no waiting on a server. Two things still reach out, and only when you go looking
+for them: the Places Map fetches an object's photographs live from Perseus when
+you click a place that has any, because the catalogue is downloaded but the
+images never are; and the optional AI features send what you select to Anthropic
+or Google, and your search terms to Crossref. Leave both alone and the app opens
+no connection at all. The classical core is 159 authors and 1,221 works; with
+every optional collection installed it comes to 748 authors, 4,021 works and
+around 2.3 million lines, with 423,000 dictionary entries and a million
+inflected forms alongside them.
 
 Built as a personal project, for reading and researching the classics more closely than a browser tab really allows.
 
@@ -148,7 +154,7 @@ stays out of reach until you've written something.
 - **Compare** two passages, or two translations of the same work, side by side
 - **Translate it yourself** — a workbench for working through a text one passage at a time, with the passage before and after shown for context, every word clickable for its dictionary headword, grammatical parse and LSJ or Lewis & Short entry, and an alphabet reference for a script you don't read yet. Your translation becomes an edition like any other. AI help is available per word or per passage, but always appears beside your work rather than in it, and the published translation stays out of reach until you've written something
 - **AI-assisted translation** — translate a single passage on demand, or an entire work at once, using Claude or Gemini. Off by default and opt-in per use — nothing is sent anywhere unless you ask for it, and the app works completely offline without it
-- **Read Aloud** — text-to-speech for Greek, Latin, or English, using whatever voices are already installed on Windows; fully offline, no network involved
+- **Read Aloud** — hands a passage to whatever speech voice Windows already has. There is no ancient Greek or Latin voice to be had, so this is an approximation and says so: Greek is transliterated into Latin letters first, because a stock voice reads polytonic script by naming each character one at a time, and Latin goes through as it stands and comes back with an English accent. Useful for hearing the shape of a line, not for pronunciation. Fully offline — nothing leaves the machine
 - **Export** passages to plain text, Word, or PDF, citations intact — and every translation carries the edition it came from, so a published rendering, your own, and an AI's are never confused once the text has left the app
 - **Latin Church Fathers (CSEL)** — the critical editions of Augustine, Ambrose, Jerome, Cyprian and their contemporaries, from the volumes old enough to be out of copyright
 - **Patrologia Latina** — Migne's collection of Latin Christian writing, Tertullian to the twelfth century, and much the largest thing the app can install. A 19th-century reprint rather than a critical edition, and the setup step says so: where a work appears in both, CSEL is the text a scholar cites and this is the wider net. Both sit side by side, the same work gaining a second edition rather than being overwritten
@@ -191,10 +197,12 @@ Budget **two to three hours** with everything selected, most of it unattended.
 You also need room: about 9 GB of downloads plus a library that reaches roughly
 3 GB. Both locations are yours to choose — the first two numbered steps of Guided
 Setup ask where the library file and the downloads should go, so neither has to
-sit on your system drive. The downloads are unpacked twice, though, once into
-your temporary folder and once into the folder you chose, so the largest step
-wants about 7 GB free on the drive holding `%TEMP%` at the same time — and that
-one is not currently movable.
+sit on your system drive. The largest downloads arrive as a git clone into your
+temporary folder and are then written out file by file into the folder you
+chose, so the biggest step needs room in two places at once: about 3.6 GB in the
+folder you picked, and on the drive holding `%TEMP%` the compressed clone it is
+extracted from. Leave the downloads where they default to and that is the same
+drive twice. `%TEMP%` itself is not currently movable.
 
 <img width="625" alt="The Guided Setup wizard, one data source per step with a plain-language description of what it is and how long it takes" src="https://github.com/user-attachments/assets/8f6f405a-eebc-44db-a801-0ef0bcfe0a29" />
 
@@ -210,7 +218,7 @@ The Medieval Nordic manuscripts are the one source the wizard can't fetch for yo
 
 ## Data sources & licensing
 
-Classica Codex doesn't own or bundle any of the texts, dictionaries, or linguistic data it reads — none of it ships in this repository. All of it is fetched by the setup wizard from the following open projects, each under its own license:
+Classica Codex doesn't own or bundle any of the texts, dictionaries, or linguistic data it reads — none of it ships in this repository. All of it is fetched by the setup wizard from the following open projects — except the Medieval Nordic manuscripts, which Menota publishes one file at a time and which you download yourself — each under its own license:
 
 | Source | Provides | License |
 |---|---|---|
@@ -222,7 +230,7 @@ Classica Codex doesn't own or bundle any of the texts, dictionaries, or linguist
 | [perseus-aa/json](https://github.com/perseus-aa/json) | Art & Archaeology catalog data (vases, coins, sites…) for the Places Map and Myth Network | Perseus terms; catalog only — images are always loaded live from Perseus, never downloaded |
 | [Princeton WordNet](https://wordnet.princeton.edu) | English word-form → headword mapping and definitions, for search and Word Study on translations | WordNet License (permissive, free for any use) |
 | [PerseusDL/canonical-engLit](https://github.com/PerseusDL/canonical-engLit) | Renaissance & Early Modern English texts — Shakespeare, Holinshed, Hakluyt, Sidney, James I — optional. Perseus splits this collection into freely redistributable texts and ones that aren't, and only the first are imported; see [What Marlowe isn't here](#what-marlowe-isnt-here) | CC BY-SA 4.0 |
-| [OpenGreekAndLatin/First1KGreek](https://github.com/OpenGreekAndLatin/First1KGreek) | Post-Classical Greek texts extending the corpus into late antiquity, optional | CC BY-SA 4.0 |
+| [OpenGreekAndLatin/First1KGreek](https://github.com/OpenGreekAndLatin/First1KGreek) | Post-Classical Greek texts extending the corpus into late antiquity, optional | CC BY-SA 4.0, declared per file; two of the Gospel of Mark files carry other terms — a Sahidic Coptic text marked academic use only, and an INTF Greek text under CC BY-SA 3.0 |
 | [OpenGreekAndLatin/csel-dev](https://github.com/OpenGreekAndLatin/csel-dev) | Corpus Scriptorum Ecclesiasticorum Latinorum — critical editions of the Latin Church Fathers, optional | CC BY-SA 4.0, declared per file in the TEI headers rather than at the repository root |
 | [OpenGreekAndLatin/patrologia_latina-dev](https://github.com/OpenGreekAndLatin/patrologia_latina-dev) | Migne's Patrologia Latina — Latin Christian writing to the twelfth century, optional. A reprint rather than a critical edition; most of it is still under provisional reference numbers the publishing project intends to replace | CC BY-SA 4.0, declared per file |
 | [PerseusDL/canonical-pdlpsci](https://github.com/PerseusDL/canonical-pdlpsci) | Jean Bodin's *Six Books of the Commonwealth* in French, Latin and English, optional | CC BY-SA 4.0 |
@@ -230,7 +238,7 @@ Classica Codex doesn't own or bundle any of the texts, dictionaries, or linguist
 
 The Greek lemma data is the one entry above marked **noncommercial** — it can't be sold, and because it's woven into the search and Word Study features, that restriction carries over to the whole project as distributed. Which is fine: Classica Codex is a free personal tool, and it's going to stay that way regardless. (WordNet's license, despite doing a similar job for English, doesn't carry the same restriction — it's permissive and doesn't add a second constraint on top of the Greek lemma data's.)
 
-The AI-assisted translation feature is a separate case from all of the above: it isn't a bundled dataset at all, just an optional connection to a third-party API (Anthropic's Claude or Google's Gemini) that you provide your own key for. Nothing about it is required to use the app, and nothing is sent anywhere unless you explicitly ask for a translation.
+The AI features are a separate case from all of the above: not a bundled dataset, just an optional connection to a third-party API (Anthropic's Claude or Google's Gemini) that you supply your own key for. Translation is the obvious one, but the research side uses it too — proposing projects, challenging a hypothesis, drafting a synthesis, glossing a word, reading a passage against its parallels. All of it is off until you enter a key, every send is a button you press, and unless you turn the confirmation off each one tells you what is about to leave. Project discovery also queries Crossref (api.crossref.org) for publication metadata, sending only the search terms shown in the editable box. None of it is required to use the app.
 
 ### What Marlowe isn't here
 
@@ -317,8 +325,10 @@ cultura*, Apicius, Sidonius, Augustine's letters, the whole Appendix Vergiliana,
 Petronius' fragments, Livy's *Periochae* and four of the six Livy editions
 Perseus carries. The Greek corpus catalogues everything, which is why this took
 a while to notice. A folder without a catalogue is now rebuilt from the files in
-it, and the Latin corpus ingests 687 of 687. **If you have a Latin library,
-re-run that setup step.**
+it, and the Latin corpus ingests 684 of its 687 edition files. The three it
+still refuses are malformed XML in the Perseus source — one undeclared entity
+and two stray end tags — and setup names them now instead of letting them
+vanish. **If you have a Latin library, re-run that setup step.**
 
 A second route to the same hole, found separately: each setup step decided
 whether it had already run by asking whether the library held any author in its

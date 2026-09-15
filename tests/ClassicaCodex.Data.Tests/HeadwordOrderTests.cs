@@ -158,4 +158,90 @@ public class HeadwordOrderTests
 
         Assert.Equal(2, heads.Count);
     }
+
+    /// <summary>
+    /// The headword spelled exactly like the word clicked leads, even when
+    /// another headword begins the same way and is therefore just as good a
+    /// prefix match.
+    ///
+    /// Isolating this rule takes some care, and the first attempt at this
+    /// test did not: alphabetical order already puts a word ahead of a longer
+    /// word starting the same way, and so does the shared-opening rule, so
+    /// with only those two seeded the test passed with this rule deleted.
+    ///
+    /// What it takes is the dictionary promotion pushing the exact spelling
+    /// down - the one force above shared-opening. Only "amor" has an entry
+    /// here, so promotion leads with it; both share the whole of "amo", so
+    /// shared-opening ties; both are lower case, so capitalisation ties. The
+    /// exact spelling is the only thing left that can bring "amo" back.
+    /// </summary>
+    [Fact]
+    public async Task TheHeadwordSpelledLikeTheWordLeadsEvenOverOneTheDictionaryAnswersFor()
+    {
+        using var db = await TempDatabase.CreateAsync();
+        await db.ExecuteAsync(@"
+            INSERT INTO Lemmas (Language, Form, NormalizedForm, Headword, PartOfSpeech)
+            VALUES ('lat', 'amo', 'amo', 'amor', 'n'),
+                   ('lat', 'amo', 'amo', 'amo',  'v');
+
+            INSERT INTO Definitions (Language, Headword, NormalizedHeadword, Entry, Source)
+            VALUES ('lat', 'amor', 'amor', 'love, affection', 'Lewis & Short');");
+
+        var heads = await new LemmaRepository().GetHeadwordsForFormAsync("amo", "lat");
+
+        Assert.Equal("amo", heads[0].Headword);
+    }
+
+    /// <summary>
+    /// A lower-case word does not lead with a capitalised headword.
+    ///
+    /// This is what put "Es" - a magistrate who superintended religious
+    /// exhibitions - above sum1 for esse, "Bellius" above bellum for bello,
+    /// and the place-name Πόλις above πόλις for πόλιν. A capital sorts before
+    /// a lower-case letter, and whatever leads is what the reader is shown.
+    ///
+    /// Seeded so only the capitalisation rule can decide: neither headword is
+    /// spelled like the form, and neither shares its opening character with
+    /// it, so the exact and shared-opening rules both abstain.
+    /// </summary>
+    [Fact]
+    public async Task ALowerCaseWordDoesNotLeadWithACapitalisedHeadword()
+    {
+        using var db = await TempDatabase.CreateAsync();
+        await db.ExecuteAsync(@"
+            INSERT INTO Lemmas (Language, Form, NormalizedForm, Headword, PartOfSpeech)
+            VALUES ('lat', 'esse', 'esse', 'Es',   'n'),
+                   ('lat', 'esse', 'esse', 'sum1', 'v');");
+
+        var heads = await new LemmaRepository().GetHeadwordsForFormAsync("esse", "lat");
+
+        Assert.Equal("sum1", heads[0].Headword);
+    }
+
+    /// <summary>
+    /// Where neither headword is capitalised and neither is spelled like the
+    /// form, the one that begins the same way leads.
+    ///
+    /// ἔχει is the case this exists for: its candidates are ἔχω and χέω, and
+    /// ordered by headword the pouring one came first, so the commonest verb
+    /// in Greek reported itself as "χέω, diffuse completely". Measured
+    /// against the real library, this rule moved that one form and left the
+    /// other thirty-two sampled forms exactly as they were.
+    ///
+    /// The other two rules are silent here by construction, which is what
+    /// makes this test about this rule.
+    /// </summary>
+    [Fact]
+    public async Task TheHeadwordThatBeginsLikeTheWordLeadsWhenNothingElseDecides()
+    {
+        using var db = await TempDatabase.CreateAsync();
+        await db.ExecuteAsync(@"
+            INSERT INTO Lemmas (Language, Form, NormalizedForm, Headword, PartOfSpeech)
+            VALUES ('grc', 'ἔχει', 'εχει', 'χέω', 'v'),
+                   ('grc', 'ἔχει', 'εχει', 'ἔχω', 'v');");
+
+        var heads = await new LemmaRepository().GetHeadwordsForFormAsync("ἔχει", "grc");
+
+        Assert.Equal("ἔχω", heads[0].Headword);
+    }
 }
