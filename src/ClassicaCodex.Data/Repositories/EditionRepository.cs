@@ -393,7 +393,41 @@ public class EditionRepository
         cmd.Parameters.AddWithValue("@Prefix", $"{EscapeForLike(folder)}%");
         cmd.CommandTimeout = 120;
 
-        return await cmd.ExecuteNonQueryAsync(cancellationToken);
+        var stamped = await cmd.ExecuteNonQueryAsync(cancellationToken);
+
+        // Reached only when the ingest before it returned without throwing or
+        // being cancelled, which is what makes this a record of FINISHING
+        // rather than of having written something.
+        await using var completion = conn.CreateCommand();
+        completion.CommandText =
+            @"INSERT INTO CollectionCompletions (Collection, CompletedUtc)
+              VALUES (@Collection, strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))
+              ON CONFLICT (Collection) DO UPDATE SET CompletedUtc = excluded.CompletedUtc;";
+        completion.Parameters.AddWithValue("@Collection", collection);
+        await completion.ExecuteNonQueryAsync(cancellationToken);
+
+        return stamped;
+    }
+
+    /// <summary>
+    /// Whether a collection's setup step ran all the way through.
+    ///
+    /// The wizard used to ask whether the collection had any editions at all,
+    /// which one edition out of thousands satisfies - so an ingest cancelled
+    /// part way came back reporting "Already loaded." for ever, and the
+    /// reader was left with a fraction of a corpus and nothing to say so. A
+    /// row here is written only at the end of an ingest that finished.
+    /// </summary>
+    public async Task<bool> IsCollectionCompleteAsync(
+        string collection, CancellationToken cancellationToken = default)
+    {
+        await using var conn = await DbConnectionFactory.OpenConnectionAsync(cancellationToken);
+        await using var cmd = conn.CreateCommand();
+
+        cmd.CommandText = "SELECT 1 FROM CollectionCompletions WHERE Collection = @Collection LIMIT 1;";
+        cmd.Parameters.AddWithValue("@Collection", collection);
+
+        return await cmd.ExecuteScalarAsync(cancellationToken) != null;
     }
 
     /// <summary>

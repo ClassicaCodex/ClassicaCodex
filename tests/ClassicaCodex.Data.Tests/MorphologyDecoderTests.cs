@@ -149,4 +149,108 @@ public class MorphologyDecoderTests
         Assert.All(nine, c => Assert.Equal('?', c));
         Assert.All(ten, c => Assert.Equal('?', c));
     }
+
+    // ---- The Latin feature string ----
+    //
+    // Carried on every token of the Latin corpus and read by nothing until
+    // now, so every Latin word in the library came out as a bare "verb" or
+    // "common noun". These are real tags from the files on disk.
+
+    [Fact]
+    public void LatinFeatures_ReadANounsGenderCaseAndNumber()
+    {
+        var parse = MorphologyDecoder.Decode("NOMcom|Case=Gen|Numb=Sing");
+
+        Assert.True(parse.IsDecoded);
+        Assert.Equal("common noun", parse.PartOfSpeech);
+        Assert.Contains("genitive", parse.Description);
+        Assert.Contains("singular", parse.Description);
+    }
+
+    /// <summary>
+    /// A finite verb reads tense-voice-mood then person and number, which is
+    /// how a grammar states it and not the order the attributes arrive in.
+    /// </summary>
+    [Fact]
+    public void LatinFeatures_ReadAFiniteVerbInGrammarOrder()
+    {
+        var parse = MorphologyDecoder.Decode("VER|Mood=Ind|Tense=Pres|Voice=Act|Pers=3|Numb=Sing");
+
+        Assert.True(parse.IsDecoded);
+        Assert.Equal("verb", parse.PartOfSpeech);
+        Assert.Equal("verb: present active indicative 3rd person singular", parse.Description);
+    }
+
+    /// <summary>
+    /// The textbook Latin ambiguity, and the one the README promises is shown
+    /// rather than guessed at. Both of nostra's readings are in its own
+    /// source file; before this they decoded to the same word, "pronoun",
+    /// twice over, so the panel showed three identical lines.
+    /// </summary>
+    [Fact]
+    public void LatinFeatures_TellNostrasTwoReadingsApart()
+    {
+        var ablative = MorphologyDecoder.Decode("ADJqua|Case=Abl|Numb=Sing|Gend=Fem");
+        var neuterPlural = MorphologyDecoder.Decode("ADJqua|Case=Nom|Numb=Plur|Gend=Neut");
+
+        Assert.NotEqual(ablative.Description, neuterPlural.Description);
+        Assert.Contains("ablative", ablative.Description);
+        Assert.Contains("feminine", ablative.Description);
+        Assert.Contains("neuter", neuterPlural.Description);
+        Assert.Contains("plural", neuterPlural.Description);
+    }
+
+    /// <summary>
+    /// Positive degree is the unmarked case; saying it adds nothing, exactly
+    /// as the positional decoder leaves it unsaid.
+    /// </summary>
+    [Fact]
+    public void LatinFeatures_LeavePositiveDegreeUnsaid()
+    {
+        var parse = MorphologyDecoder.Decode("ADJqua|Case=Nom|Numb=Sing|Gend=Masc|Deg=Pos");
+
+        Assert.DoesNotContain("positive", parse.Description);
+        Assert.Contains("superlative", MorphologyDecoder.Decode("ADJqua|Case=Nom|Deg=Sup").Description);
+    }
+
+    /// <summary>
+    /// A category with no features still decodes - that is what the corpus
+    /// gives for indeclinables, and what every Latin word gave before.
+    /// </summary>
+    [Fact]
+    public void LatinFeatures_StillDecodeACategoryOnItsOwn()
+    {
+        var parse = MorphologyDecoder.Decode("CON");
+
+        Assert.True(parse.IsDecoded);
+        Assert.Equal("conjunction", parse.PartOfSpeech);
+    }
+
+    /// <summary>
+    /// An unrecognised feature is shown rather than dropped. This corpus is
+    /// not exhaustively documented, and a value passed through raw is worth
+    /// more than one silently lost.
+    /// </summary>
+    [Fact]
+    public void LatinFeatures_PassThroughAValueTheyDoNotKnow()
+    {
+        var parse = MorphologyDecoder.Decode("NOMcom|Case=Abessive|Numb=Sing");
+
+        Assert.True(parse.IsDecoded);
+        Assert.Contains("abessive", parse.Description);
+    }
+
+    /// <summary>
+    /// The Greek tags must be untouched by any of this - they are positional,
+    /// carry no '=', and were already right.
+    /// </summary>
+    [Fact]
+    public void LatinFeatures_DoNotDisturbTheGreekTags()
+    {
+        var greek = MorphologyDecoder.Decode("n--s---mn-");
+
+        Assert.True(greek.IsDecoded);
+        Assert.Contains("nominative", greek.Description);
+        Assert.Contains("singular", greek.Description);
+    }
 }

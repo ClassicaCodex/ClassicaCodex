@@ -267,6 +267,10 @@ public static class MorphologyDecoder
             };
         }
 
+        // The Latin corpus's own feature string, which it carries on every
+        // token and which nothing here used to read - see DecodeLatinFeatures.
+        if (tag.Contains('=', StringComparison.Ordinal)) return DecodeLatinFeatures(tag);
+
         if (tag.Length == AgdtTagLength) return DecodePositional(tag, posFieldWidth: 1);
         if (tag.Length == ExtendedTagLength) return DecodePositional(tag, posFieldWidth: 2);
 
@@ -289,6 +293,147 @@ public static class MorphologyDecoder
 
         return new Parse { RawTag = tag, IsDecoded = false };
     }
+
+    /// <summary>
+    /// Reads the Latin corpus's feature string - "NOMcom|Case=Gen|Numb=Sing",
+    /// or "VER|Mood=Ind|Tense=Pres|Voice=Act|Pers=3|Numb=Sing".
+    ///
+    /// This is the parse the Latin data has carried all along and that
+    /// nothing read. Every token in it has an msd attribute beside the coarse
+    /// pos one - 16,463 of them in a single book of the Vulgate - and the
+    /// ingester took whichever attribute it found first, which was always
+    /// pos. So every Latin word in the library came out as a bare "verb" or
+    /// "common noun", no Latin search could ever match a case or a tense, and
+    /// the promise that an ambiguous form shows all its candidates was true
+    /// of Greek only: nostra, whose own source file records both
+    /// Case=Abl|Numb=Sing|Gend=Fem and Case=Nom|Numb=Plur|Gend=Neut, showed
+    /// three lines that each said "pronoun" and nothing else.
+    ///
+    /// Assembled in the order a grammar states it, as the positional decoder
+    /// does, rather than in the order the attributes happen to appear.
+    /// Unrecognised keys and values are passed through rather than dropped -
+    /// this corpus is not exhaustively documented, and a feature shown raw is
+    /// better than one silently lost.
+    /// </summary>
+    private static Parse DecodeLatinFeatures(string tag)
+    {
+        var pieces = tag.Split('|', StringSplitOptions.RemoveEmptyEntries);
+
+        string? category = null;
+        var features = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var piece in pieces)
+        {
+            var split = piece.IndexOf('=');
+            if (split < 0)
+            {
+                // The coarse category, carried in front of the features.
+                foreach (var (prefix, meaning) in LatinPosPrefixes.OrderByDescending(p => p.Key.Length))
+                {
+                    if (piece.StartsWith(prefix, StringComparison.OrdinalIgnoreCase)) { category ??= meaning; break; }
+                }
+                continue;
+            }
+
+            features[piece[..split].Trim()] = piece[(split + 1)..].Trim();
+        }
+
+        string? Feature(string key, Dictionary<string, string> table)
+        {
+            if (!features.TryGetValue(key, out var raw)) return null;
+            return table.TryGetValue(raw, out var meaning) ? meaning : raw.ToLowerInvariant();
+        }
+
+        var parts = new List<string>();
+
+        // A finite verb reads tense-voice-mood then person and number; a noun
+        // or adjective reads gender-case-number. Same order the AGDT decoder
+        // uses, for the same reason.
+        var mood = Feature("Mood", LatinMoods);
+        var tense = Feature("Tense", LatinTenses);
+        var voice = Feature("Voice", LatinVoices);
+        var person = Feature("Pers", LatinPersons);
+        var gender = Feature("Gend", LatinGenders);
+        var @case = Feature("Case", LatinCases);
+        var number = Feature("Numb", LatinNumbers);
+        var degree = Feature("Deg", LatinDegrees);
+
+        if (mood != null || tense != null || voice != null)
+        {
+            if (tense != null) parts.Add(tense);
+            if (voice != null) parts.Add(voice);
+            if (mood != null) parts.Add(mood);
+            if (person != null && number != null) parts.Add($"{person} person {number}");
+            else if (number != null) parts.Add(number);
+        }
+        else
+        {
+            if (gender != null) parts.Add(gender);
+            if (@case != null) parts.Add(@case);
+            if (number != null) parts.Add(number);
+            // Positive degree is the unmarked case and saying so adds nothing,
+            // exactly as the positional decoder leaves it unsaid.
+            if (degree != null && !degree.Equals("positive", StringComparison.Ordinal)) parts.Add(degree);
+        }
+
+        var described = string.Join(" ", parts);
+
+        var description = category != null && described.Length > 0
+            ? $"{category}: {described}"
+            : category ?? described;
+
+        return new Parse
+        {
+            RawTag = tag,
+            IsDecoded = description.Length > 0,
+            Description = description,
+            PartOfSpeech = category ?? described
+        };
+    }
+
+    private static readonly Dictionary<string, string> LatinCases = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ["Nom"] = "nominative", ["Gen"] = "genitive", ["Dat"] = "dative",
+        ["Acc"] = "accusative", ["Abl"] = "ablative", ["Voc"] = "vocative", ["Loc"] = "locative"
+    };
+
+    private static readonly Dictionary<string, string> LatinNumbers = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ["Sing"] = "singular", ["Plur"] = "plural"
+    };
+
+    private static readonly Dictionary<string, string> LatinGenders = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ["Masc"] = "masculine", ["Fem"] = "feminine", ["Neut"] = "neuter"
+    };
+
+    private static readonly Dictionary<string, string> LatinMoods = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ["Ind"] = "indicative", ["Sub"] = "subjunctive", ["Imp"] = "imperative",
+        ["Inf"] = "infinitive", ["Par"] = "participle", ["Ger"] = "gerund",
+        ["Sup"] = "supine", ["Gdv"] = "gerundive"
+    };
+
+    private static readonly Dictionary<string, string> LatinTenses = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ["Pres"] = "present", ["Impf"] = "imperfect", ["Fut"] = "future",
+        ["Perf"] = "perfect", ["Plup"] = "pluperfect", ["FutP"] = "future perfect"
+    };
+
+    private static readonly Dictionary<string, string> LatinVoices = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ["Act"] = "active", ["Pass"] = "passive", ["Dep"] = "deponent"
+    };
+
+    private static readonly Dictionary<string, string> LatinPersons = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ["1"] = "1st", ["2"] = "2nd", ["3"] = "3rd"
+    };
+
+    private static readonly Dictionary<string, string> LatinDegrees = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ["Pos"] = "positive", ["Comp"] = "comparative", ["Sup"] = "superlative"
+    };
 
     /// <summary>
     /// Reads the positional tag and assembles the pieces in the order a

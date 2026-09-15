@@ -187,7 +187,87 @@ public class LemmaRepository
         }
 
         await PutAnswerableHeadwordsFirstAsync(conn, results, effectiveLanguage, cancellationToken);
+        PutTheWordAsWrittenFirst(results, form);
         return results;
+    }
+
+    /// <summary>
+    /// Puts the headword that is spelled like the word the reader clicked
+    /// ahead of one that only matches once the accents are taken off.
+    ///
+    /// The lookup is deliberately accent-blind, because that is what makes it
+    /// find anything at all; the ordering was accent-blind too, and that is a
+    /// different matter. Rows came back ordered by headword, which is binary
+    /// order, so a capital sorts before a lower-case letter and a rare
+    /// homograph can sit above the word actually on the page. Whatever led
+    /// the list was then selected for the reader and its dictionary entry
+    /// shown, so the wrong lead was not a nuisance - it was the answer.
+    ///
+    /// What that looked like: right-click the second word of the Iliad and
+    /// the app said θεά was θέα, "seeing, looking at", because θ-έ sorts
+    /// above θ-ε. esse led with "Es", a magistrate who superintended
+    /// religious exhibitions; bello with "Bellius"; regem with "Rex"; πόλιν
+    /// with the place called Πόλις. Nine of thirty sampled forms led with
+    /// something the reader had not clicked on.
+    ///
+    /// Two rules, applied weakest first so that the strongest ends up on top:
+    /// a headword that is not capitalised when the word is not capitalised
+    /// beats one that is, which settles the proper nouns and the
+    /// sentence-initial artefacts; and an exact match beats everything,
+    /// which settles θεά. Both are stable, so everything already decided -
+    /// the dictionary-answerable promotion above, and alphabetical order
+    /// under that - survives wherever these two have nothing to say.
+    /// </summary>
+    private static void PutTheWordAsWrittenFirst(
+        List<(string Headword, string? PartOfSpeech)> results, string form)
+    {
+        if (results.Count < 2) return;
+
+        var asWritten = form.Trim();
+        if (asWritten.Length == 0) return;
+
+        var wordIsLowercase = !char.IsUpper(asWritten[0]);
+
+        var ordered = results
+            .OrderByDescending(r => SharedOpening(r.Headword, asWritten))
+            .ToList();
+
+        ordered = ordered
+            .OrderByDescending(r => wordIsLowercase
+                                    && r.Headword.Length > 0
+                                    && !char.IsUpper(r.Headword[0]))
+            .ToList();
+
+        ordered = ordered
+            .OrderByDescending(r => string.Equals(r.Headword, asWritten, StringComparison.Ordinal))
+            .ToList();
+
+        results.Clear();
+        results.AddRange(ordered);
+    }
+
+    /// <summary>
+    /// How many characters a headword and the clicked word begin with in
+    /// common - the weakest of the three orderings, and the one that settles
+    /// a pair where neither is capitalised and neither is an exact match.
+    ///
+    /// ἔχει is the case it exists for. Its two candidates are ἔχω and χέω,
+    /// both lower case, neither spelled like the form; ordered by headword
+    /// the pouring one came first, so the commonest verb in Greek reported
+    /// itself as "χέω, diffuse completely". They share ἔχ and nothing
+    /// respectively, which decides it.
+    ///
+    /// Deliberately crude. It compares characters as written, so an accent
+    /// difference ends the run - which is wanted, since a headword keeping
+    /// the accents of the form is the better match. It never overrides a
+    /// capitalisation or an exact-spelling decision, and where two
+    /// candidates share an opening of the same length it changes nothing.
+    /// </summary>
+    private static int SharedOpening(string headword, string form)
+    {
+        var shared = 0;
+        while (shared < headword.Length && shared < form.Length && headword[shared] == form[shared]) shared++;
+        return shared;
     }
 
     /// <summary>

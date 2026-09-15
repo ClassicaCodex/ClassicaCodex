@@ -138,6 +138,8 @@ public static class SetupDataSourceCatalog
                 // wizard skipped a corpus that had never been fetched. See
                 // AuthorRepository.CountByNamespaceAsync.
                 CheckComplete = async () =>
+                    await editionRepo.IsCollectionCompleteAsync(CollectionKeys.PerseusGreek),
+                CheckHasSomeContent = async () =>
                     await editionRepo.CountByCollectionAsync(CollectionKeys.PerseusGreek) > 0
             },
 
@@ -167,6 +169,8 @@ public static class SetupDataSourceCatalog
                 // and Virgil never arrived - with nothing looking wrong
                 // afterwards, because the library was full of Latin.
                 CheckComplete = async () =>
+                    await editionRepo.IsCollectionCompleteAsync(CollectionKeys.PerseusLatin),
+                CheckHasSomeContent = async () =>
                     await editionRepo.CountByCollectionAsync(CollectionKeys.PerseusLatin) > 0
             },
 
@@ -265,6 +269,8 @@ public static class SetupDataSourceCatalog
                 // which is the right direction for a step whose whole failure
                 // mode was silently skipping.
                 CheckComplete = async () =>
+                    await editionRepo.IsCollectionCompleteAsync(CollectionKeys.First1KGreek),
+                CheckHasSomeContent = async () =>
                     await editionRepo.CountByCollectionAsync(CollectionKeys.First1KGreek) > 0
             },
 
@@ -318,6 +324,8 @@ public static class SetupDataSourceCatalog
                 // "loaded" from "this step has not run". Editions record the file they
                 // were built from, and this corpus downloads to a folder of its own.
                 CheckComplete = async () =>
+                    await editionRepo.IsCollectionCompleteAsync(CollectionKeys.Csel),
+                CheckHasSomeContent = async () =>
                     await editionRepo.CountByCollectionAsync(CollectionKeys.Csel) > 0
             },
 
@@ -385,6 +393,8 @@ public static class SetupDataSourceCatalog
                 },
 
                 CheckComplete = async () =>
+                    await editionRepo.IsCollectionCompleteAsync(CollectionKeys.PatrologiaLatina),
+                CheckHasSomeContent = async () =>
                     await editionRepo.CountByCollectionAsync(CollectionKeys.PatrologiaLatina) > 0
             },
 
@@ -392,14 +402,14 @@ public static class SetupDataSourceCatalog
             {
                 Title = "English Literature (Renaissance)",
                 RepoUrl = "https://github.com/PerseusDL/canonical-engLit",
-                DisplayNote = "(Shakespeare, Holinshed, Hakluyt - needs English Lemma Data above)",
+                DisplayNote = "(Shakespeare, Holinshed, Hakluyt - needs English Lemma Data, a later step)",
                 DefaultDestination = Path.Combine(dataRoot, "english-texts"),
                 PlainLanguageDescription =
                     "Perseus's Renaissance and early modern collection - Shakespeare, Holinshed, Hakluyt, " +
                     "Sidney, James I. Useful mainly for reception: how later writers reworked classical " +
                     "material. Half of Perseus's copy is still in copyright and is not imported, which " +
                     "means no Marlowe - see About. These are 16th and 17th century English, while the " +
-                    "English dictionary above is modern, so archaic forms like \"hath\" and \"doth\" won't " +
+                    "English dictionary (WordNet, a later step) is modern, so archaic forms like \"hath\" and \"doth\" won't " +
                     "find a headword. About a minute, and under a hundred megabytes.",
                 RunIngest = async (root, progress, ct) =>
                 {
@@ -440,6 +450,8 @@ public static class SetupDataSourceCatalog
                         IngestOutcome.From(preCts.FailedFiles, preCts.SupersededByCatalogue));
                 },
                 CheckComplete = async () =>
+                    await editionRepo.IsCollectionCompleteAsync(CollectionKeys.Renaissance),
+                CheckHasSomeContent = async () =>
                     await editionRepo.CountByCollectionAsync(CollectionKeys.Renaissance) > 0
             },
 
@@ -475,6 +487,8 @@ public static class SetupDataSourceCatalog
                 },
 
                 CheckComplete = async () =>
+                    await editionRepo.IsCollectionCompleteAsync(CollectionKeys.PoliticalTheory),
+                CheckHasSomeContent = async () =>
                     await editionRepo.CountByCollectionAsync(CollectionKeys.PoliticalTheory) > 0
             },
 
@@ -553,9 +567,11 @@ public static class SetupDataSourceCatalog
 
                 PlainLanguageDescription =
                     "Medieval texts in Old Norse, Old Norwegian and Old Swedish - sagas, the Eddic poems, " +
-                    "and the Norwegian law manuscripts - from the Medieval Nordic Text Archive. You can download all 91 xml files using the Download all XML Files button on Menota's site. It will only take a minute to download but you will need to click through all 91 XML files to confirm if you want to merge or not.  \n\n" +
+                    "and the Norwegian law manuscripts - from the Medieval Nordic Text Archive. Menota's " +
+                    "site has a Download all XML Files button that fetches all 91 in about a minute; on " +
+                    "import you are then asked, one manuscript at a time, whether each should be merged.\r\n\r\n" +
                     "Menota publishes one file per manuscript, with no single archive to fetch, so these " +
-                    "are downloaded by hand. Save the XML files into the folder below, then import them.\n\n" +
+                    "are downloaded by hand. Save the XML files into the folder below, then import them.\r\n\r\n" +
                     "Save menota-entities.txt into that same folder as well. These manuscripts use medieval " +
                     "letters and abbreviation marks that they refer to by name, and that file is what turns " +
                     "the names into characters - without it they read as \u25AF. Right-click the second link " +
@@ -651,6 +667,8 @@ public static class SetupDataSourceCatalog
                 },
 
                 CheckComplete = async () =>
+                    await editionRepo.IsCollectionCompleteAsync(CollectionKeys.Menota),
+                CheckHasSomeContent = async () =>
                     await editionRepo.CountByCollectionAsync(CollectionKeys.Menota) > 0
             },
 

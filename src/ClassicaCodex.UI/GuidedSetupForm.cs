@@ -50,6 +50,14 @@ public class GuidedSetupForm : ScaledForm
     private bool _databaseComplete;
     private bool _dataFolderComplete;
     private readonly List<bool> _sourceComplete = new();
+
+    /// <summary>
+    /// Whether each step has content without having finished - the state an
+    /// interrupted ingest leaves. Kept beside <see cref="_sourceComplete"/>
+    /// and refreshed with it, because asking is a database round trip and
+    /// RenderStep is not the place to make one.
+    /// </summary>
+    private readonly List<bool> _sourcePartial = new();
     private bool _wordIndexComplete;
     private long _indexedLines;
     private long _totalLines;
@@ -149,9 +157,10 @@ public class GuidedSetupForm : ScaledForm
                    "go there, and it's what the rest of this wizard writes into. After that, a few open " +
                    "data sources need to be downloaded: the ancient texts themselves, dictionaries to look " +
                    "words up in, and some word-form data that makes search smarter. Altogether it's " +
-                   "usually about 9 gigabytes, and the better part of an hour on a decent connection - " +
-                   "mostly unattended. You only need to do this once, and you can skip any step and " +
-                   "come back to it later.\r\n\r\n" +
+                   "usually about 9 gigabytes, and two to three hours on a decent connection with " +
+                   "everything selected - mostly unattended, and the Greek word-form data is about an " +
+                   "hour of that on its own. You only need to do this once, and you can skip any step " +
+                   "and come back to it later.\r\n\r\n" +
                    "Each step below does one thing, with a plain explanation of what it's for and why " +
                    "it's worth waiting for.",
             Left = 0,
@@ -468,16 +477,20 @@ public class GuidedSetupForm : ScaledForm
         _dataFolderComplete = DataFolderSettings.LooksUsable(DataFolderSettings.Root);
 
         _sourceComplete.Clear();
+        _sourcePartial.Clear();
         if (!_databaseComplete)
         {
-            foreach (var _ in _sources) _sourceComplete.Add(false);
+            foreach (var _ in _sources) { _sourceComplete.Add(false); _sourcePartial.Add(false); }
             _wordIndexComplete = false;
             return;
         }
 
         foreach (var source in _sources)
         {
-            _sourceComplete.Add(await source.CheckComplete());
+            var complete = await source.CheckComplete();
+            _sourceComplete.Add(complete);
+            _sourcePartial.Add(
+                !complete && source.CheckHasSomeContent != null && await source.CheckHasSomeContent());
         }
 
         // "Is every line indexed?", not "does the index have any rows?".
@@ -682,7 +695,18 @@ public class GuidedSetupForm : ScaledForm
                     _outputBox.Visible = true;
                 }
 
-                _statusLabel.Text = complete ? "Already loaded." : "Not loaded yet.";
+                // Three states, not two. A step that has content but never
+                // finished is the one worth naming: it is what a cancelled
+                // download or a closed lid leaves behind, and calling it "Not
+                // loaded yet" would be as misleading in its own direction as
+                // the "Already loaded." it used to get.
+                var partial = stepInSources < _sourcePartial.Count && _sourcePartial[stepInSources];
+
+                _statusLabel.Text = complete
+                    ? "Already loaded."
+                    : partial
+                        ? "Partly loaded - the last run didn't finish. Run it again to complete it."
+                        : "Not loaded yet.";
             }
             else
             {
@@ -827,7 +851,16 @@ public class GuidedSetupForm : ScaledForm
 
         for (var i = 0; i < _sources.Count && i < _sourceComplete.Count; i++)
         {
-            _sourceComplete[i] = await _sources[i].CheckComplete();
+            var complete = await _sources[i].CheckComplete();
+            _sourceComplete[i] = complete;
+
+            if (i < _sourcePartial.Count)
+            {
+                _sourcePartial[i] =
+                    !complete
+                    && _sources[i].CheckHasSomeContent != null
+                    && await _sources[i].CheckHasSomeContent!();
+            }
         }
     }
 
@@ -986,6 +1019,7 @@ public class GuidedSetupForm : ScaledForm
         catch (Exception ex)
         {
             _statusLabel.Text = "Something went wrong - see message.";
+            CrashReporter.LogHandled(ex, "setup step: the database");
             MessageBox.Show(this, DescribeError(ex, "the database"), "Setup Step Failed",
                 MessageBoxButtons.OK, MessageBoxIcon.Error);
         }
@@ -1067,6 +1101,7 @@ public class GuidedSetupForm : ScaledForm
         catch (Exception ex)
         {
             _statusLabel.Text = "Something went wrong - see message.";
+            CrashReporter.LogHandled(ex, $"setup step: {source.Title}");
             MessageBox.Show(this, DescribeError(ex, source.Title), "Setup Step Failed",
                 MessageBoxButtons.OK, MessageBoxIcon.Error);
         }
@@ -1129,6 +1164,7 @@ public class GuidedSetupForm : ScaledForm
         catch (Exception ex)
         {
             _statusLabel.Text = "Something went wrong - see message.";
+            CrashReporter.LogHandled(ex, "setup step: the word index");
             MessageBox.Show(this, DescribeError(ex, "the word index"), "Build Failed",
                 MessageBoxButtons.OK, MessageBoxIcon.Error);
         }
@@ -1178,6 +1214,26 @@ public class GuidedSetupForm : ScaledForm
             IOException =>
                 $"Ran into a problem saving {stepTitle} to disk - check you have enough free space, " +
                 "then try again.",
+
+            // SQLite's disk-full is a SqliteException, not an IOException, so
+            // the arm above never caught it and the longest, most expensive
+            // step in the wizard answered a full disk with "something
+            // unexpected went wrong - trying again sometimes clears it". It
+            // does not: the reader fills the disk again and concludes the app
+            // is broken, when the one action that would fix it is the one the
+            // message never named.
+            Microsoft.Data.Sqlite.SqliteException { SqliteErrorCode: 13 } =>
+                $"Ran out of disk space while saving {stepTitle}. Free some space on the drive holding " +
+                "your library, then run this step again - it will pick up where it left off.",
+
+            // 5 is SQLITE_BUSY and 6 SQLITE_LOCKED. Two copies of the app open
+            // at once is an ordinary thing to do while a ninety-minute ingest
+            // runs, and the raw message ("database is locked") reads as
+            // corruption rather than as a queue.
+            Microsoft.Data.Sqlite.SqliteException { SqliteErrorCode: 5 or 6 } =>
+                "Another copy of Classica Codex is using the library right now - most likely one that is "
+                + "still downloading or importing. Wait for it to finish, or close the other window, then "
+                + "try this step again.",
 
             _ =>
                 $"Something unexpected went wrong installing {stepTitle}. Trying again sometimes clears " +

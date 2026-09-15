@@ -474,6 +474,27 @@ public class WordStudyForm : ScaledForm
         var deduplicated = new List<(string Headword, string? PartOfSpeech)>();
         var seenDisplayText = new HashSet<string>(StringComparer.Ordinal);
 
+        // Rows the corpus could not analyse are dropped, as long as something
+        // analysed survives.
+        //
+        // The Greek data marks an unanalysed accent variant with the tag
+        // u--------, and in the AGDT tagset u is punctuation - correctly, for
+        // that tagset, and uselessly here, because these rows are words. So
+        // the commonest words in the language opened a panel that repeated
+        // the word back with the label "punctuation", over and over: ten of
+        // ἦν's seventeen rows, thirteen of οὐ's twenty-seven, eight of μή's
+        // ten. A reader clicking ἦν to find out what it is was told, nine
+        // times, that it is punctuation.
+        //
+        // None of them carry information a word lookup can use. They are held
+        // back only when every row is one, since an empty list would say less
+        // than a wrong label.
+        var analysed = _currentHeadwords
+            .Where(h => MorphologyDecoder.Decode(h.PartOfSpeech).PartOfSpeech != "punctuation")
+            .ToList();
+
+        if (analysed.Count > 0) _currentHeadwords = analysed;
+
         foreach (var (headword, pos) in _currentHeadwords)
         {
             // The stored tag is positional and unreadable on its own

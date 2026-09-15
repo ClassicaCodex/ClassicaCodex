@@ -8,6 +8,7 @@ Each file below carries the download link and SHA-256 that were correct when it
 was written. Those refer to that version, not to the current one; a checksum
 printed in an old file will not match a download made today.
 
+- [3.7.1](RELEASE-NOTES-3.7.1.md)
 - [3.7.0](RELEASE-NOTES-3.7.0.md)
 - [3.6.19](RELEASE-NOTES-3.6.19.md)
 - [3.6.18](RELEASE-NOTES-3.6.18.md)

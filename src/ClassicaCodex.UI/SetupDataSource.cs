@@ -160,4 +160,17 @@ public class SetupDataSource
     public Func<string, IProgress<string>, CancellationToken, Task<IngestOutcome>> RunIngest = null!;
 
     public Func<Task<bool>> CheckComplete = null!;
+
+    /// <summary>
+    /// Whether this step put anything in the library, as distinct from
+    /// whether it finished - which is what <see cref="CheckComplete"/> asks.
+    ///
+    /// The two answers differ exactly when an ingest was interrupted, and
+    /// that is the case worth naming: a step with content but no completion
+    /// is what a cancelled download or a closed laptop lid leaves behind, and
+    /// calling it "Not loaded yet" would mislead in its own direction as much
+    /// as the "Already loaded." it used to be given. Null where the
+    /// distinction does not apply.
+    /// </summary>
+    public Func<Task<bool>>? CheckHasSomeContent;
 }

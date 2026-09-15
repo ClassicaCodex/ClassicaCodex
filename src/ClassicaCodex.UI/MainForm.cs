@@ -771,7 +771,7 @@ public partial class MainForm : ScaledForm
 
         // The four on the right were already icon-only, but had no labels at
         // all - not even a tooltip - so a new icon there was a guess.
-        _toolbarTips.SetToolTip(setupWizardButton, "Setup");
+        _toolbarTips.SetToolTip(setupWizardButton, "Setup Wizard");
         _toolbarTips.SetToolTip(_themeButton, "Light / dark mode");
         _toolbarTips.SetToolTip(_gettingStartedButton, "Getting started");
         _toolbarTips.SetToolTip(_fontSizeButton, "Text size");
@@ -1207,7 +1207,7 @@ public partial class MainForm : ScaledForm
                 // which is as much as this panel shows before it clips and
                 // grows a scrollbar.
                 _libraryTree.Nodes.Add(new TreeNode(
-                    "No texts yet - run Setup Wizard to add some"));
+                    "No texts yet - the gear icon at the top right opens Setup Wizard"));
             }
         }
     }
