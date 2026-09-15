@@ -21,11 +21,29 @@ namespace ClassicaCodex.UI;
 ///
 /// A STALE ENTRY CANNOT SHOW THE WRONG TEXT. The file holds lengths, not text.
 /// Rows are always sliced out of the passages as they are in the database now,
-/// and an entry is only used if every passage's pieces add up to exactly the
-/// length that passage currently has. Anything else - a re-ingest, an edited
-/// translation, a truncated file - fails that check and is thrown away, and the
-/// work is divided again from scratch. The worst a bad entry can do is waste
-/// the time it was meant to save.
+/// so no entry can put a character on screen that the database does not have.
+///
+/// AND IT CANNOT SHOW THE RIGHT TEXT WRONGLY, which took a second pass to get
+/// to. The lengths adding up was once the whole check, and it is not enough,
+/// because the file also holds HEIGHTS. A passage replaced by the same number
+/// of DIFFERENT characters accounts for its length exactly - a re-ingest
+/// refresh and a saved translation both rewrite the text in place and keep the
+/// id on purpose - and every row would then be handed a height measured for
+/// text it no longer holds. A line drawn outside its row and clipped away,
+/// with no truncation marker, because a row under 255px does not count as
+/// truncated: the exact defect that showing passages whole was meant to end,
+/// reappearing through the thing meant to make it fast.
+///
+/// So an entry must match on three counts, not one: the same passages in the
+/// same order, each with the same LENGTH, and each with the same TEXT, by a
+/// fingerprint stored beside it. The layout the heights were measured against
+/// is the key's job - edition, pane width, font family, point size, and the
+/// font's actual line height in pixels, because everything in the file is in
+/// pixels and the display scaling stands between the two.
+///
+/// Any mismatch is a miss: the entry is thrown away and the work divided again
+/// from scratch. The worst a bad entry can do is waste the time it was meant
+/// to save.
 /// </summary>
 internal static class ReaderLayoutCache
 {
@@ -54,21 +72,69 @@ internal static class ReaderLayoutCache
     /// </summary>
     internal const int MaxEntries = 40;
 
-    private const int Version = 1;
+    // 2 added a hash of each passage's text, and put the font's line height in
+    // the key. An entry written by an earlier version is never read - the key
+    // changed shape, so its file is not even the file a v2 key names - and the
+    // check below is the backstop rather than the mechanism. What DOES reach
+    // those files is Evict, which sweeps any it finds: they cannot be read by
+    // this version or any later one, and left alone they would sit in the
+    // folder occupying the budget until aged out one at a time.
+    private const int Version = 2;
 
     /// <summary>
     /// Everything an entry has to match to be usable. A change to any of it
     /// means the cuts would fall somewhere else.
     /// </summary>
-    internal readonly record struct Key(int EditionId, int Width, string FontFamily, float FontSize)
+    /// <param name="LineHeight">
+    /// What one line of the font actually measures, in pixels.
+    ///
+    /// Present because <paramref name="FontSize"/> is in points and every
+    /// number in the file is in pixels, so the two are related by the display
+    /// scaling and the key could not see it. The same 12pt Palatino is 22px a
+    /// line at 100% and 27px at 125%, and a reader who changes their scaling -
+    /// or drags the window to a second monitor with a different one - would
+    /// have last session's entry accepted for this session's pixels wherever
+    /// the pane's usable width happened to coincide. Every row would then be
+    /// given a height measured for smaller text.
+    /// </param>
+    internal readonly record struct Key(
+        int EditionId, int Width, string FontFamily, float FontSize, int LineHeight)
     {
         internal string FileName =>
-            $"e{EditionId}-w{Width}-{Sanitise(FontFamily)}-{FontSize:0.##}.layout";
+            $"e{EditionId}-w{Width}-{Sanitise(FontFamily)}-{FontSize:0.##}-h{LineHeight}.layout";
 
         private static string Sanitise(string family)
         {
             var clean = family.Where(char.IsLetterOrDigit).ToArray();
             return clean.Length > 0 ? new string(clean) : "font";
+        }
+    }
+
+    /// <summary>
+    /// A stable fingerprint of a passage's text.
+    ///
+    /// Stable is the whole point: <see cref="string.GetHashCode()"/> is seeded
+    /// per process in .NET, so it cannot say anything about a file written by
+    /// a previous run. FNV-1a over the UTF-16 units is a few lines, needs no
+    /// package, and costs a few milliseconds across a whole work - against the
+    /// ten to twenty seconds the entry exists to avoid.
+    ///
+    /// It is not defending against anyone; it is defending against a passage
+    /// that was re-ingested or re-saved between two runs and happens to have
+    /// the same length as before.
+    /// </summary>
+    private static long Fingerprint(string text)
+    {
+        unchecked
+        {
+            var hash = 14695981039346656037UL;
+
+            foreach (var c in text)
+            {
+                hash = (hash ^ c) * 1099511628211UL;
+            }
+
+            return (long)hash;
         }
     }
 
@@ -102,6 +168,19 @@ internal static class ReaderLayoutCache
                 // In order, and matched on identity: an entry whose passages
                 // are not these passages, in this order, is not this work.
                 if (reader.ReadInt64() != node.TextNodeId) return null;
+
+                // And matched on content, not merely on length. The lengths
+                // adding up is what stops a stale entry from slicing text that
+                // is not there; it is not enough to stop one from giving a row
+                // a height measured for text that has since been replaced by
+                // the same number of different characters. That happens: a
+                // re-ingest refresh and a saved translation both update Text in
+                // place and deliberately keep the TextNodeId. The height would
+                // be handed to the control unchallenged and the surplus line
+                // clipped away with no marker, since a row under 255px does not
+                // count as truncated - which is the exact defect that showing
+                // passages whole was meant to end.
+                if (reader.ReadInt64() != Fingerprint(node.Text)) return null;
 
                 var segmentCount = reader.ReadInt32();
                 if (segmentCount <= 0) return null;
@@ -172,6 +251,7 @@ internal static class ReaderLayoutCache
                 foreach (var first in passages)
                 {
                     writer.Write(first.Node.TextNodeId);
+                    writer.Write(Fingerprint(first.Node.Text));
                     writer.Write(first.SegmentCount);
 
                     for (var i = 0; i < first.SegmentCount; i++)
@@ -195,22 +275,90 @@ internal static class ReaderLayoutCache
         }
     }
 
-    /// <summary>Keeps the folder from growing without limit, oldest first.</summary>
+    /// <summary>
+    /// Keeps the folder from growing without limit: anything this version can
+    /// no longer read first, then the oldest of what is left.
+    /// </summary>
     private static void Evict()
     {
         try
         {
             var files = new DirectoryInfo(Directory).GetFiles("*.layout");
-            if (files.Length <= MaxEntries) return;
+            var live = new List<FileInfo>(files.Length);
 
-            foreach (var file in files.OrderBy(f => f.LastWriteTimeUtc).Take(files.Length - MaxEntries))
+            foreach (var file in files)
             {
-                file.Delete();
+                // Dead weight, and invisible dead weight: an entry from an
+                // older format is never opened by a load, because the key
+                // names a different filename now - so nothing else would ever
+                // notice it, while it went on counting against the budget.
+                if (WrittenByThisVersion(file)) live.Add(file);
+                else TryDelete(file);
+            }
+
+            if (live.Count <= MaxEntries) return;
+
+            foreach (var file in live.OrderBy(f => f.LastWriteTimeUtc).Take(live.Count - MaxEntries))
+            {
+                TryDelete(file);
             }
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or DirectoryNotFoundException)
         {
             // Nothing here is worth interrupting a reader over.
+        }
+    }
+
+    /// <summary>
+    /// Removes one file, and does not let one it cannot remove end the sweep.
+    ///
+    /// A file can be undeletable for reasons that have nothing to do with the
+    /// cache - open to a scanner for a moment, read-only after a restore from
+    /// backup - and the budget has to go on being enforced around it. Left
+    /// unguarded, one such file threw out of the loop into the handler below,
+    /// so the oldest entries were never trimmed and the folder grew without
+    /// limit for as long as that file stayed put. Measured: forty-five entries
+    /// plus three undeletable ones went to forty-nine, then fifty, gaining one
+    /// per save for ever, where the cap is forty.
+    ///
+    /// The trim loop takes the same guard. Its version of this predates the
+    /// version sweep and had the same effect for the same reason.
+    /// </summary>
+    private static void TryDelete(FileInfo file)
+    {
+        try
+        {
+            file.Delete();
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            // Skipped, and not counted as live either: a file this version can
+            // neither read nor remove is worth neither a budget slot nor a
+            // word to the reader.
+        }
+    }
+
+    /// <summary>
+    /// Whether a file in the folder is one this version could read, by its
+    /// first four bytes.
+    ///
+    /// Anything unreadable answers false and is swept: a file that cannot be
+    /// opened, cannot be understood, or is too short to have a version in it
+    /// is of no use to anyone either way.
+    /// </summary>
+    private static bool WrittenByThisVersion(FileInfo file)
+    {
+        try
+        {
+            using var stream = file.OpenRead();
+            using var reader = new BinaryReader(stream);
+
+            return reader.ReadInt32() == Version;
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException
+                                      or EndOfStreamException or ObjectDisposedException)
+        {
+            return false;
         }
     }
 }

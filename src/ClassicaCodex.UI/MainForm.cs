@@ -908,6 +908,13 @@ public partial class MainForm : ScaledForm
     }
 
     /// <summary>
+    /// Whether the reader has opened something themselves since launch. The
+    /// restore gives way to it: a choice made now beats a choice made last
+    /// time.
+    /// </summary>
+    private bool _readerHasNavigated;
+
+    /// <summary>
     /// Reopens whatever was last being read.
     ///
     /// Everything here is best-effort by design. The remembered work may
@@ -917,13 +924,6 @@ public partial class MainForm : ScaledForm
     /// before any of this existed, which is a perfectly good outcome and not
     /// worth a message about.
     /// </summary>
-    /// <summary>
-    /// Whether the reader has opened something themselves since launch. The
-    /// restore gives way to it: a choice made now beats a choice made last
-    /// time.
-    /// </summary>
-    private bool _readerHasNavigated;
-
     private async Task RestoreReadingPositionAsync()
     {
         if (!ReadingPosition.ReopenOnLaunch) return;
@@ -1585,13 +1585,6 @@ public partial class MainForm : ScaledForm
     }
 
     /// <summary>
-    /// Mirrors scroll position between the two panes by line index. Works
-    /// well for verse texts where a translation keeps the same line count as
-    /// the original; for prose works where line counts diverge it'll drift,
-    /// but that's an inherent limit of index-based sync, not a bug to chase -
-    /// which is why the link can be switched off from the toolbar.
-    /// </summary>
-    /// <summary>
     /// Fills the "Show" submenu with one checkable entry per kind of node this
     /// pane's edition contains.
     ///
@@ -1734,8 +1727,20 @@ public partial class MainForm : ScaledForm
             // Where both editions have the same passages - which is what this
             // has always assumed - this now does exactly what it did before,
             // and is simply immune to how either side had to be cut up.
+            //
+            // Both answers can be "there is no such passage here" - a pane
+            // showing "(no translation ingested)" has an item but no passages,
+            // and a shorter edition may simply not go this far. Neither is a
+            // reason to move the other pane, and moving it was the bug: the
+            // pane with nothing in it reported passage zero and sent the pane
+            // being read back to the top of the work.
             var ordinal = source.PassageOrdinalAt(source.TopIndex);
-            target.TopIndex = target.RowOfPassageOrdinal(ordinal);
+            if (ordinal < 0) return;
+
+            var mirrored = target.RowOfPassageOrdinal(ordinal);
+            if (mirrored < 0) return;
+
+            target.TopIndex = mirrored;
         }
         finally
         {
@@ -1952,13 +1957,6 @@ public partial class MainForm : ScaledForm
     }
 
     /// <summary>
-    /// Redraws both reader panes at the current configured sizes.
-    ///
-    /// Replaces the Font rather than mutating it - a Font is immutable, and
-    /// SyncListView recomputes its row heights in OnFontChanged, which only
-    /// fires on assignment.
-    /// </summary>
-    /// <summary>
     /// Applies a new reading size to both panes.
     ///
     /// Assigning the font is what does the work: the pane hears about it and
@@ -1966,6 +1964,10 @@ public partial class MainForm : ScaledForm
     /// same passage and the rows it currently has were cut for the old size.
     /// Repainting alone would leave the text divided in the wrong places -
     /// which is worse than the wrong row heights it used to leave.
+    ///
+    /// Which is why the Font is replaced rather than mutated. A Font is
+    /// immutable in any case, and OnFontChanged - the pane's only notice that
+    /// any of this has happened - fires on assignment and nothing else.
     /// </summary>
     private void ApplyReadingFontSize()
     {
@@ -2651,8 +2653,11 @@ public partial class MainForm : ScaledForm
                 return;
             }
 
-            // Before the items, not after: the marks are part of what each row
-            // is measured against.
+            // Before the items, so that the first paint already has them. The
+            // marks used to be appended to the row's text and so had to be in
+            // place before it was measured; they are painted over the row now
+            // - see SyncListView.GetItemText - which makes this ordering a
+            // matter of not repainting rather than of measuring correctly.
             var marks = await _passageMarkRepo.GetForEditionAsync(edition.EditionId, edition.CtsUrn);
             if (_paneFillGeneration[pane] != generation) return;
             pane.SetPassageMarks(marks);

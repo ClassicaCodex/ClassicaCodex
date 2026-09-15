@@ -237,10 +237,6 @@ public class SyncListView : ListBox
     }
 
     /// <summary>
-    /// The row at this index, or null where the row is one of the pane's
-    /// placeholder messages rather than a passage.
-    /// </summary>
-    /// <summary>
     /// The rows this pane is showing, held alongside the control's own items.
     ///
     /// Not redundant. The control raises its measurement for a row while that
@@ -251,6 +247,10 @@ public class SyncListView : ListBox
     /// </summary>
     private IReadOnlyList<ReaderRow> _rows = Array.Empty<ReaderRow>();
 
+    /// <summary>
+    /// The row at this index, or null where the row is one of the pane's
+    /// placeholder messages rather than a passage.
+    /// </summary>
     internal ReaderRow? RowAt(int index)
     {
         if (index < 0) return null;
@@ -291,6 +291,16 @@ public class SyncListView : ListBox
     /// once a passage can be several rows, because the two editions divide
     /// their text differently and split differently in consequence.
     /// </summary>
+    /// <remarks>
+    /// -1 when there is no passage at or above <paramref name="index"/>, which
+    /// is what a pane showing a placeholder message always answers - a message
+    /// is an item but it is not a passage. This used to be clamped to 0, and
+    /// the clamp read as "this pane is at its first passage": scrolling or
+    /// clicking the pane that says "(no translation ingested)" dragged the
+    /// pane being read back to the top of the work. Most works have no
+    /// translation, so that was the ordinary configuration, and the pane it
+    /// happened from looks inert.
+    /// </remarks>
     public int PassageOrdinalAt(int index)
     {
         var ordinal = -1;
@@ -300,12 +310,23 @@ public class SyncListView : ListBox
             if (Items[i] is ReaderRow { IsFirst: true }) ordinal++;
         }
 
-        return Math.Max(ordinal, 0);
+        return ordinal;
     }
 
     /// <summary>The first row of the nth passage in this pane.</summary>
+    /// <remarks>
+    /// -1 when this pane has no such passage - the counterpart is shorter, or
+    /// holds a message, or is empty. The fallback used to be the last item,
+    /// which is the last SEGMENT of the last passage rather than a first row,
+    /// so mirroring a click into a shorter pane highlighted a sliver from the
+    /// middle of its final paragraph while the reference label underneath
+    /// named the passage correctly. Answering -1 lets both callers leave the
+    /// other pane alone, which is the honest response to "it isn't there".
+    /// </remarks>
     public int RowOfPassageOrdinal(int ordinal)
     {
+        if (ordinal < 0) return -1;
+
         var seen = -1;
 
         for (var i = 0; i < Items.Count; i++)
@@ -314,7 +335,7 @@ public class SyncListView : ListBox
             if (++seen == ordinal) return i;
         }
 
-        return Math.Max(Items.Count - 1, 0);
+        return -1;
     }
 
     /// <summary>
@@ -422,7 +443,7 @@ public class SyncListView : ListBox
         // returning here left the reader permanently blank - see the note in
         // SetPassagesAsync. What decides whether there is work is whether this
         // pane has been given any passages.
-        if (_passages.Count == 0) return;
+        if (_passages.Count == 0 && _message == null) return;
         if (UsableWidth == _lastMeasuredWidth) return;
 
         // Deliberately NOT remeasuring inline. Dragging a window edge or a
@@ -472,17 +493,57 @@ public class SyncListView : ListBox
     private async Task RelayoutAsync()
     {
         if (_isRemeasuring) return;
-        if (_passages.Count == 0) return;
         if (UsableWidth == _lastMeasuredWidth) return;
+
+        // Never while a caller's fill is still cutting. The generation counter
+        // cannot tell a genuinely newer request from a re-cut OF the request
+        // already in flight, and a re-cut starting here takes the next number
+        // and supersedes the fill it was derived from - so the caller's await
+        // returns with the pane empty while its own isStillWanted is still
+        // true. OpenWorkAsync promises its callers that the panes are
+        // populated when it completes, and they select a line on the strength
+        // of it; the jump then finds nothing and the reader is told their
+        // passage is not on screen, which is the wrong explanation.
+        //
+        // Waiting costs nothing, because the fill's own tail re-checks the
+        // width and queues this again - and by then there are rows for
+        // CurrentAnchor to take a bearing from, where here there are none, so
+        // waiting also keeps the reader's place instead of dropping them at
+        // the top of the work.
+        //
+        // Re-armed rather than dropped: a fill that abandons at the generation
+        // or isStillWanted check returns without queueing anything, and
+        // _lastMeasuredWidth would then stay stale for ever.
+        if (_fillsInFlight > 0)
+        {
+            QueueRelayout();
+            return;
+        }
+
+        // A pane showing a placeholder has no passages to cut again, but it
+        // does have a row whose height was settled at a width the pane no
+        // longer has. Re-adding the item is the whole of the work.
+        if (_passages.Count == 0)
+        {
+            RemeasureMessage();
+            return;
+        }
 
         _isRemeasuring = true;
         try
         {
             var anchor = CurrentAnchor();
+            var generation = _fillGeneration;
 
             await SetPassagesAsync(_passages, editionId: _editionId).ConfigureAwait(true);
 
-            if (!IsDisposed) RestoreAnchor(anchor);
+            // Only if these are still our rows. An abandoned re-cut leaves the
+            // pane holding someone else's work, or a message, or nothing, and
+            // putting a bearing taken from the old work back on top of it
+            // selects a row that means something different now - the one case
+            // RowOfNode answering -1 does not cover is the one where the
+            // anchor's node genuinely is in the pane, in a different place.
+            if (!IsDisposed && _fillGeneration == generation + 1) RestoreAnchor(anchor);
         }
         finally
         {
@@ -673,8 +734,39 @@ public class SyncListView : ListBox
     public async Task SetPassagesAsync(
         IReadOnlyList<TextNode> nodes, Func<bool>? isStillWanted = null, int? editionId = null)
     {
+        _fillsInFlight++;
+
+        try
+        {
+            await FillPassagesAsync(nodes, isStillWanted, editionId).ConfigureAwait(true);
+        }
+        finally
+        {
+            _fillsInFlight--;
+        }
+    }
+
+    /// <summary>
+    /// How many fills are between their first await and their last.
+    ///
+    /// Counted rather than a flag, because two of them really can overlap - a
+    /// second work clicked while the first is still being cut - and the first
+    /// to finish must not report the pane idle while the second is still
+    /// running. Read by <see cref="RelayoutAsync"/>, which must not start a
+    /// re-cut on top of a fill it would then supersede.
+    ///
+    /// UI thread only, like everything else here, so a plain int is enough.
+    /// </summary>
+    private int _fillsInFlight;
+
+    private async Task FillPassagesAsync(
+        IReadOnlyList<TextNode> nodes, Func<bool>? isStillWanted, int? editionId)
+    {
+        var generation = ++_fillGeneration;
+
         _passages = nodes;
         _editionId = editionId;
+        _message = null;
 
         if (IsDisposed) return;
 
@@ -682,7 +774,7 @@ public class SyncListView : ListBox
         // can change underneath the work - the reader can drag the splitter or
         // change the reading font while a work is opening - and rows cut
         // against the old layout would be wrong rather than merely late.
-        var width = UsableWidth;
+        var width = WidthOnceFilled(nodes.Count);
         var font = Font;
         var minGlyph = GetMinGlyphWidth();
         var maxGlyph = GetMaxGlyphWidth();
@@ -690,10 +782,14 @@ public class SyncListView : ListBox
         List<ReaderRow> rows;
         Dictionary<string, int> heights;
 
+        // Set only by the catch below, and acted on only once this fill is
+        // known to be the wanted one.
+        var measureInline = false;
+
         try
         {
             var key = editionId is { } id
-                ? new ReaderLayoutCache.Key(id, width, font.FontFamily.Name, font.Size)
+                ? new ReaderLayoutCache.Key(id, width, font.FontFamily.Name, font.Size, font.Height)
                 : (ReaderLayoutCache.Key?)null;
 
             (rows, heights) = await Task.Run(() =>
@@ -728,16 +824,33 @@ public class SyncListView : ListBox
         catch (Exception)
         {
             // One row per passage, exactly as the reader behaved before it
-            // could divide them, and measured inline by OnMeasureItem as it
-            // always was. A passage too tall for a row then shows as much of
-            // itself as fits, with the marker saying so.
+            // could divide them. A passage too tall for a row then shows as
+            // much of itself as fits, with the marker saying so.
             //
             // Swallowing is right here for the same reason it was when this
             // only warmed a cache: the fallback is complete and correct, just
             // slower and less generous, whereas letting the exception out
-            // would take down the opening of the work itself.
-            rows = nodes.Select(node => new ReaderRow(node, node.Text, 0, 1)).ToList();
+            // would take down the opening of the work itself. What it must not
+            // be is SILENTLY WRONG, and it was: the rows used to go up with no
+            // height at all, for OnMeasureItem to measure one at a time as it
+            // inserted them - which means measuring them against whatever
+            // ClientSize.Width happened to be at that instant. The scrollbar
+            // appears partway through that insert, so every row added before
+            // it was measured 17px too wide and drawn a line short, with no
+            // truncation marker, because a row under 255px does not count as
+            // truncated. Clipping again, by a second route.
+            //
+            // Measured against the width the fill was cut for instead, so the
+            // heights are right on the first pass. It costs nothing: these are
+            // the same measurements OnMeasureItem was going to make, on the
+            // same thread, a moment later and at the wrong width.
+            //
+            // Not measured HERE, though - see below. Measuring before the pane
+            // has decided it still wants these rows spends the UI thread on a
+            // whole work that is about to be thrown away.
             heights = new Dictionary<string, int>(StringComparer.Ordinal);
+            rows = nodes.Select(node => new ReaderRow(node, node.Text, 0, 1)).ToList();
+            measureInline = true;
         }
 
         if (IsDisposed) return;
@@ -745,10 +858,36 @@ public class SyncListView : ListBox
         // Only a request that has been superseded is abandoned. A second work
         // clicked while this one was being cut really does mean these rows are
         // not wanted.
+        //
+        // Asked two ways, because they know different things. The caller knows
+        // the reader has clicked elsewhere; the pane knows it has since been
+        // cleared, been given a message, or been handed another work by a path
+        // that had no caller to ask - see _fillGeneration.
+        if (generation != _fillGeneration) return;
         if (isStillWanted != null && !isStillWanted()) return;
 
         var cache = GetHeightCacheForCurrentWidth(width);
         foreach (var pair in heights) cache[pair.Key] = pair.Value;
+
+        // The fallback's measuring, done here rather than in the catch, now
+        // that the rows are known to be wanted. A whole work measured on the
+        // UI thread and then discarded at the check above is the one cost this
+        // path cannot justify - it is the path that runs when something has
+        // already gone wrong.
+        //
+        // Through UncappedHeightFor rather than the static measurer, so it
+        // answers from - and fills - the pane's own height cache for this
+        // width, which is the same cache OnMeasureItem reads. Calling the
+        // static one directly measured every row afresh and left the cache
+        // empty, so the next repaint at this width paid for all of it again.
+        if (measureInline)
+        {
+            for (var i = 0; i < rows.Count; i++)
+            {
+                var text = rows[i].Text;
+                rows[i] = new ReaderRow(rows[i].Node, text, 0, 1, ReaderRowHeight.Cap(UncappedHeightFor(text, width)));
+            }
+        }
 
         Fill(rows);
 
@@ -768,7 +907,30 @@ public class SyncListView : ListBox
         // Text cut for a slightly different width is off by a line here and
         // there for a moment. An empty reader is a broken program. So the rows
         // go up either way, and a layout that has moved queues the correction.
-        if (width == UsableWidth && ReferenceEquals(font, Font)) _lastMeasuredWidth = width;
+        // Asked against BOTH readings of the width, because the pane may not
+        // have caught up with itself yet. MainForm fills a pane inside
+        // BeginUpdate/EndUpdate, and a list box with its redraw suspended does
+        // not recalculate its scrollbar - so UsableWidth here is still the
+        // width the pane had while empty, and will drop by the scrollbar's
+        // width the moment EndUpdate runs.
+        //
+        // Comparing against UsableWidth alone therefore disagreed with a
+        // correct prediction and queued a re-cut of the whole work anyway,
+        // which is the second cut WidthOnceFilled exists to remove. It removed
+        // it on a bare pane and not in the app - and the test covering it
+        // passed, because the test filled the pane without the BeginUpdate the
+        // app wraps around it. A green test for a fix that did not fire.
+        //
+        // Accepting the prediction as well is what makes a correct prediction
+        // count, and it is only safe because the prediction is one-sided: see
+        // WidthOnceFilled, where every case it cannot be certain about falls
+        // through to UsableWidth and the old behaviour. Where it IS wrong,
+        // both sides now agree on the wrong width and nothing corrects it -
+        // which is why the one case it was provably wrong about had to be
+        // closed first.
+        var settled = width == UsableWidth || width == WidthOnceFilled(nodes.Count);
+
+        if (settled && ReferenceEquals(font, Font)) _lastMeasuredWidth = width;
         else QueueRelayout();
     }
 
@@ -783,6 +945,12 @@ public class SyncListView : ListBox
     /// </summary>
     public void ClearPassages()
     {
+        // Takes the next number so that a fill still being cut - including one
+        // this pane started itself - cannot land afterwards and put the work
+        // back. See _fillGeneration.
+        _fillGeneration++;
+
+        _message = null;
         _passages = Array.Empty<TextNode>();
         _editionId = null;
         _rows = Array.Empty<ReaderRow>();
@@ -808,10 +976,54 @@ public class SyncListView : ListBox
     public void ShowMessage(string message)
     {
         ClearPassages();
+        _message = message;
 
         BeginUpdate();
         try
         {
+            Items.Add(message);
+        }
+        finally
+        {
+            EndUpdate();
+        }
+
+        _lastMeasuredWidth = UsableWidth;
+    }
+
+    /// <summary>
+    /// The placeholder this pane is showing, if it is showing one.
+    ///
+    /// Kept for the same reason <see cref="_passages"/> is: a row's height is
+    /// settled once, at the width it was first shown at, and something has to
+    /// remember what to measure again when that width changes. Nothing did,
+    /// because a message is not a passage and every re-measuring path asks
+    /// about passages - so narrowing the pane left the message at its old
+    /// height and clipped the rest of it away.
+    ///
+    /// Which mattered more than it sounds. These placeholders are the app's
+    /// only account of why a pane is empty, and the half that gets clipped is
+    /// the half that says what to do about it: "(everything in this edition is
+    /// hidden - right-click and use Show to bring it back)" became "(everything
+    /// in this edition is hidden -", turning a recoverable state into what
+    /// looks like a display fault.
+    /// </summary>
+    private string? _message;
+
+    /// <summary>
+    /// Measures the placeholder again for the width the pane now has.
+    ///
+    /// Clearing and re-adding is what forces it: row height is asked for once,
+    /// when an item is inserted, so the item has to be inserted again.
+    /// </summary>
+    private void RemeasureMessage()
+    {
+        if (_message is not { } message) return;
+
+        BeginUpdate();
+        try
+        {
+            Items.Clear();
             Items.Add(message);
         }
         finally
@@ -948,11 +1160,103 @@ public class SyncListView : ListBox
     private int? _editionId;
 
     /// <summary>
+    /// Which request to fill this pane is the current one.
+    ///
+    /// Cutting a work takes seconds, so at any moment there can be more than
+    /// one fill in flight and only the newest of them is wanted. Callers used
+    /// to arbitrate that themselves, by handing in an isStillWanted - but the
+    /// pane also starts fills of its own, from <see cref="RelayoutAsync"/>,
+    /// and those had no caller to ask. An ungated re-cut cannot be superseded
+    /// by anything: not by a newer work, not by <see cref="ClearPassages"/>,
+    /// not by <see cref="ShowMessage"/>. It simply lands, seconds later, on
+    /// whatever the pane has become.
+    ///
+    /// That was not a corner: filling any work long enough to need a scrollbar
+    /// used to queue one of these after every single open, so opening a long
+    /// work armed the race and clicking a second work inside the next few
+    /// seconds put the first one back. The pane was then stuck - the work on
+    /// screen was not the work in <see cref="_passages"/>, so every path that
+    /// could have corrected it declined - and NodeAt answered with the old
+    /// work while the edition combo named the new one, which is the wrong text
+    /// under Copy, Tag, Bookmark, Translate and Export.
+    ///
+    /// So the pane arbitrates instead of trusting the caller. Anything that
+    /// replaces what is on screen takes the next number, and a fill that comes
+    /// back holding a number that is no longer current abandons its rows. The
+    /// caller's isStillWanted is kept as well, because it knows things this
+    /// cannot - that the reader clicked a different work in the tree, say -
+    /// but it is no longer the only thing standing between two fills.
+    /// </summary>
+    private int _fillGeneration;
+
+    /// <summary>
     /// The width text actually gets, once the citation margin and the padding
     /// either side are taken out. Named because measuring, cutting and drawing
     /// must all agree on it, and three copies of the arithmetic did not.
     /// </summary>
     private int UsableWidth => Math.Max(ClientSize.Width - 8 - GutterWidth, 50);
+
+    /// <summary>
+    /// The width text will have once <paramref name="passageCount"/> passages
+    /// are in the pane - which is not the width it has while the pane is still
+    /// empty, because filling it is what brings the vertical scrollbar out,
+    /// and the scrollbar takes its width off the client area.
+    ///
+    /// This exists because cutting at the empty width meant cutting every long
+    /// work twice. The fill reads the width, hands the passages to a worker,
+    /// and compares the width again afterwards to decide whether the cuts are
+    /// still good; the scrollbar appearing mid-fill made those two readings
+    /// differ by <see cref="SystemInformation.VerticalScrollBarWidth"/> on
+    /// essentially every work long enough to scroll, so essentially every work
+    /// queued a complete re-cut of itself 150ms after opening. Measured at 600
+    /// passages: 493/458/500ms to cut, then 366/394/417ms to cut again, with
+    /// the client width going 376 -> 359 across the fill. Opening a work cost
+    /// about 1.8x what it needed to, on the commonest action in the app, in
+    /// both panes, and the rows visibly rebuilt themselves a moment after
+    /// settling.
+    ///
+    /// The prediction is deliberately one-sided. A row is at least one line
+    /// tall, so <paramref name="passageCount"/> rows are at least that many
+    /// lines, and when even that floor overflows the pane the scrollbar is
+    /// certain rather than likely - splitting only ever adds rows, never
+    /// removes them. Where the floor does not overflow this says nothing and
+    /// the old behaviour stands: the width is compared after the fill as
+    /// before, and a scrollbar that turns up anyway queues the re-cut it
+    /// always did. So this can cost a short work the second pass it used to
+    /// pay; it cannot cut a long one against a width it will not have.
+    /// </summary>
+    private int WidthOnceFilled(int passageCount)
+    {
+        var width = UsableWidth;
+
+        // Already out - the client area has had it taken off, and taking it
+        // off twice would cut for a width narrower than the pane ever has.
+        // Borders are a pixel or two; a scrollbar is seventeen. Nothing else
+        // is between them, and the horizontal scrollbar this control must
+        // never have is what would otherwise make the height below move.
+        var scrollBar = SystemInformation.VerticalScrollBarWidth;
+        if (Width - ClientSize.Width >= scrollBar) return width;
+
+        // A list box scrolls BETWEEN items, never within one. A single row
+        // taller than the pane shows its top and no scrollbar however short
+        // the pane is - so here the prediction would be wrong for ever, and
+        // nothing corrects it: the fill records no width, queues a re-cut, and
+        // the re-cut predicts the same thing again. A reader who opened a
+        // one-passage edition with the window dragged short got a pane
+        // rebuilding its single row six times a second until they closed it.
+        if (passageCount < 2) return width;
+
+        // Font.Height + 4 rather than + 6, which is what a row of the shortest
+        // kind actually measures - OnMeasureItem hands an empty item that, and
+        // an empty passage is a real thing in this corpus. Two pixels a row
+        // only matters within two pixels of the boundary, but the prediction
+        // is only allowed to be wrong in one direction and this is the
+        // direction it must not be wrong in.
+        var shortestPossibleRow = Font.Height + 4;
+        if ((long)passageCount * shortestPossibleRow <= ClientSize.Height) return width;
+
+        return Math.Max(width - scrollBar, 50);
+    }
 
     /// <summary>
     /// Whether this row holds more text than the control can show, which the
@@ -1165,10 +1469,12 @@ public class SyncListView : ListBox
     private Dictionary<string, PassageMarks> _marks = new(StringComparer.Ordinal);
 
     /// <summary>
-    /// Replaces the marks shown at the end of each line. Call before filling
-    /// the pane: the marks are part of the text that gets measured, so setting
-    /// them afterwards would leave every row sized for a line it no longer
-    /// draws.
+    /// Replaces the marks shown at the end of each passage. Worth calling
+    /// before the pane is filled, so that the first paint already has them -
+    /// though no longer for the reason it once was. The marks used to be
+    /// appended to the row's text and measured with it, which made setting
+    /// them late a sizing error; they are painted over the row now, so setting
+    /// them late costs a repaint. See <see cref="GetItemText"/>.
     /// </summary>
     public void SetPassageMarks(Dictionary<string, PassageMarks> marks) => _marks = marks;
 
@@ -1177,10 +1483,12 @@ public class SyncListView : ListBox
     /// the whole pane - which on a long work would cost a visible pause and
     /// throw away the reader's place in it.
     ///
-    /// Redraws rather than remeasures. Row height is fixed once measured, so a
-    /// line already close to wrapping can have its new mark clipped until the
-    /// work is reopened. That is the cheap failure of the two: the alternative
-    /// is rebuilding every row's height to show one character.
+    /// Redraws rather than remeasures, which is now free of the cost it used
+    /// to carry. While the mark was part of the measured text, a line already
+    /// close to wrapping had its new mark clipped until the work was reopened.
+    /// The mark is painted over the row instead, so it always appears - see
+    /// <see cref="DrawPassageMarks"/> for what it can land on when the last
+    /// line runs nearly the full width.
     /// </summary>
     public void AddPassageMark(string citationRef, PassageMarks mark)
     {
