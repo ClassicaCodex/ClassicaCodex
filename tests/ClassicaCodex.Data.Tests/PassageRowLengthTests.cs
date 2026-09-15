@@ -58,12 +58,25 @@ namespace ClassicaCodex.Data.Tests;
 public class PassageRowLengthTests
 {
     /// <summary>
-    /// Matches an Items.Add whose interpolated row ends in a bare .Text -
-    /// "{r.Text}", "{p.Text}", "{node.Text}" - which is a whole passage going
-    /// into a row unbounded.
+    /// Matches a whole passage reaching an Items.Add by any route - inside
+    /// interpolation braces, concatenated on, or passed bare.
+    ///
+    /// It used to require the interpolation braces, and that blinded it to
+    /// the shape the two most dangerous call sites actually use. Auto-Tag and
+    /// Search both build their row by concatenation:
+    ///
+    ///     Items.Add($"{r.AuthorName}, {r.WorkTitle}: "
+    ///               + ListResultHelpers.RowTextAround(r.Text, start, length));
+    ///
+    /// so neither was ever examined. Auto-Tag is where the crash this test
+    /// exists for actually happened, in use, on 2026-09-05: a GDI+ failure
+    /// out of ListBox.ObjectCollection.Add, which ends the process from
+    /// inside an async continuation with no dialog at all. The cap that
+    /// stopped it was one deleted call away from going, with this test
+    /// staying green the whole time.
     /// </summary>
     private static readonly Regex RawPassageRow =
-        new(@"Items\.Add\((\s|@?\$"")[^;]*\{\s*[A-Za-z_][A-Za-z0-9_\.\[\]]*\.Text\s*\}",
+        new(@"Items\.Add(Range)?\([^;]*?[A-Za-z_][A-Za-z0-9_\.\[\]]*\.Text\b",
             RegexOptions.Compiled | RegexOptions.Singleline);
 
     /// <summary>Items.Add(x.Text) with no interpolation at all - the same thing.</summary>
