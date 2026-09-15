@@ -46,8 +46,14 @@ the full Lewis & Short or LSJ entry, every attested form of the word, and every
 other place it occurs in the library.
 
 Where a form is genuinely ambiguous it says so and shows all the candidates,
-rather than picking one and being quietly wrong. For Latin verse it also scans
-the line and marks the syllables the metre settles.
+rather than picking one and being quietly wrong — `nostra` is ablative feminine
+singular and nominative neuter plural, and you get both. For Latin verse it also
+scans the line and marks the syllables the metre settles.
+
+**If you set up a Latin library before 3.7.2, re-run the Latin Lemma Data step**
+(about six minutes). Until 3.7.2 the full Latin parse was read out of the source
+files and then discarded, so Latin words showed only a part of speech — no case,
+number, tense or mood — and a Latin morphology search could not match one.
 
 <img width="900" alt="Word Study on Aeneid 6.851: the word regere selected, rego offered first with its Lewis and Short entry already showing, 101 attested forms, and occurrences across the corpus" src="docs/images/word-study.png" />
 

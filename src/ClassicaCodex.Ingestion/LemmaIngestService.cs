@@ -50,6 +50,12 @@ public class LemmaIngestService
     private static readonly string[] LemmaAttributeNames = { "lemma", "headword", "hw" };
     private static readonly string[] PosAttributeNames = { "p", "pos", "postag", "tag", "msd" };
 
+    // Split out from PosAttributeNames, which took whichever it found first
+    // and so always took the coarse category and never the features. Read as
+    // a pair now - see ReadLatinTag.
+    private static readonly string[] CategoryAttributeNames = { "pos", "postag", "p", "tag" };
+    private static readonly string[] FeatureAttributeNames = { "msd" };
+
     /// <summary>
     /// Strips both kinds of marker that wrap a raw token, neither of which
     /// belongs in a stored word form.
@@ -178,8 +184,15 @@ public class LemmaIngestService
                 // point of lemmatizing since nothing groups into a paradigm.
                 if (cleanHeadword.All(char.IsDigit)) continue;
 
+                // Long enough for a full Latin feature string, which is what
+                // a real analysis looks like: "VER|Mood=Ind|Tense=Pres|
+                // Voice=Act|Pers=3|Numb=Sing" is sixty characters, and the
+                // old ceiling of 32 would have discarded every one of them
+                // even once they were being read. The cap exists to reject
+                // a field that is plainly not a tag at all, so it wants to be
+                // generous rather than tight.
                 var cleanPos = pos;
-                if (cleanPos != null && cleanPos.Length > 32) cleanPos = null;
+                if (cleanPos != null && cleanPos.Length > 120) cleanPos = null;
 
                 yield return new Lemma
                 {
@@ -236,8 +249,37 @@ public class LemmaIngestService
         var attrHeadword = ReadValue(token, LemmaAttributeNames, preferNonNumeric: true);
         if (!string.IsNullOrWhiteSpace(attrHeadword))
         {
-            yield return (attrHeadword, ReadValue(token, PosAttributeNames));
+            yield return (attrHeadword, ReadLatinTag(token));
         }
+    }
+
+    /// <summary>
+    /// The Latin token's full analysis: its coarse category and the feature
+    /// string that goes with it, joined as "NOMcom|Case=Gen|Numb=Sing".
+    ///
+    /// Both have always been on every token - pos for the category, msd for
+    /// case, number, gender, mood, tense, voice, person and degree - and
+    /// until now only the first was kept, because ReadValue takes whichever
+    /// candidate name it finds first and pos came earlier in the list. So the
+    /// whole Latin parse was read out of the file and thrown away on the way
+    /// past: every Latin word in the library was a bare "verb" or "common
+    /// noun", a Latin morphology search could never match a case or a tense,
+    /// and an ambiguous form could not say what it was ambiguous between.
+    ///
+    /// Joined rather than replaced, because neither half answers alone: msd
+    /// says Case=Gen|Numb=Sing without saying whether that is a noun or an
+    /// adjective, and pos says NOMcom without saying which case. See
+    /// MorphologyDecoder.DecodeLatinFeatures, which reads the pair.
+    /// </summary>
+    private static string? ReadLatinTag(XElement token)
+    {
+        var category = ReadValue(token, CategoryAttributeNames);
+        var features = ReadValue(token, FeatureAttributeNames);
+
+        if (string.IsNullOrWhiteSpace(features)) return category;
+        if (string.IsNullOrWhiteSpace(category)) return features;
+
+        return $"{category.Trim()}|{features.Trim()}";
     }
 
     /// <summary>

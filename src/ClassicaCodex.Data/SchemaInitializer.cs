@@ -76,7 +76,7 @@ public static class SchemaInitializer
     /// 7 to 13 until version 3 was cut, at which point they all failed at
     /// once and said nothing about what had actually broken.
     /// </summary>
-    public const int TargetSchemaVersion = 38;
+    public const int TargetSchemaVersion = 39;
 
     public static async Task EnsureSchemaAsync(CancellationToken cancellationToken = default)
     {
@@ -1374,6 +1374,33 @@ public static class SchemaInitializer
         //
         // The column arrives empty and fills on the next ingest of a text that
         // has the markers. Nothing else needs it, and no other work changes.
+        // Whether a setup step FINISHED, which is not the same question as
+        // whether it put anything in the library - and the wizard was asking
+        // the second while answering the first. A step reported "Already
+        // loaded." as soon as one edition carried its collection name, so an
+        // ingest cancelled twenty minutes into ninety, or killed by a closed
+        // lid, came back the next day green and done. The reader then had a
+        // fifth of a corpus and no way to tell, until they searched for a
+        // passage they knew was in Perseus and it was not there.
+        //
+        // Back-filled from what is already here, deliberately. An existing
+        // library is a library someone has been using; reporting all of its
+        // steps as unfinished on first launch of this version would be a
+        // worse lie than the one being fixed, and would send them to re-run
+        // a ninety-minute download they do not need.
+        [39] = new[]
+        {
+            @"CREATE TABLE IF NOT EXISTS CollectionCompletions (
+                  Collection   TEXT PRIMARY KEY,
+                  CompletedUtc TEXT NOT NULL
+              );",
+
+            @"INSERT OR IGNORE INTO CollectionCompletions (Collection, CompletedUtc)
+                  SELECT DISTINCT Collection, strftime('%Y-%m-%dT%H:%M:%SZ', 'now')
+                  FROM Editions
+                  WHERE Collection IS NOT NULL AND TRIM(Collection) <> '';"
+        },
+
         [38] = new[]
         {
             "ALTER TABLE TextNodes ADD COLUMN Milestone TEXT NULL;"
@@ -2185,6 +2212,16 @@ public static class SchemaInitializer
         );",
 
         @"CREATE INDEX IF NOT EXISTS IX_Bookmarks_Passage ON Bookmarks (EditionId, CitationRef);",
+
+        // Which setup steps ran all the way through. Written only when an
+        // ingest returns without throwing or being cancelled, so a step that
+        // was interrupted leaves no row and the wizard says so rather than
+        // reporting itself done on the strength of whatever it managed to
+        // write first. See migration 39 for what this replaced.
+        @"CREATE TABLE IF NOT EXISTS CollectionCompletions (
+            Collection   TEXT PRIMARY KEY,
+            CompletedUtc TEXT NOT NULL
+        );",
 
         // Favourite works - a shortlist of the texts you actually return to,
         // out of a corpus of several thousand. Keyed on the work's CTS URN

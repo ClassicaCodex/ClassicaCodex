@@ -82,7 +82,16 @@ internal static class CrashReporter
             message.AppendLine();
         }
 
-        message.Append("Details were written to:").AppendLine().Append(LogPath);
+        message.Append("Details were written to:").AppendLine().Append(LogPath).AppendLine().AppendLine();
+
+        // Where to send it. The path alone is not much use to someone who has
+        // never typed %LocalAppData% into an address bar, and the app names
+        // its issue tracker nowhere else - About and Help both point only at
+        // the releases page, so a reader who hit a real bug had the evidence
+        // and nowhere to take it.
+        message.Append(
+            "If this keeps happening, please report it with that file attached at "
+            + "https://github.com/ClassicaCodex/ClassicaCodex/issues");
 
         try
         {
@@ -109,6 +118,27 @@ internal static class CrashReporter
         var inner = ex;
         while (inner.InnerException != null) inner = inner.InnerException;
         return inner.Message;
+    }
+
+    /// <summary>
+    /// Records a failure that was caught and shown to the reader, so that it
+    /// leaves a trace behind the dialog.
+    ///
+    /// The three handlers above only ever see what nothing else caught, and
+    /// almost everything a stranger actually meets IS caught - a download
+    /// that died, an unpack that ran out of disk, an ingest that hit a locked
+    /// database, an AI call that was refused. Each of those ended at a
+    /// message box and nothing else, so errors.log stayed empty through
+    /// exactly the failures worth diagnosing. Asked for the log after a bug
+    /// report, a reader would send a file with nothing in it, and the report
+    /// reduced to a paraphrase of a dialog.
+    ///
+    /// The caller still owns what the reader sees. This only writes the file.
+    /// </summary>
+    internal static void LogHandled(Exception? ex, string context)
+    {
+        if (ex == null) return;
+        WriteLog(ex, string.IsNullOrWhiteSpace(context) ? "handled" : $"handled - {context}");
     }
 
     private static void WriteLog(Exception ex, string kind)

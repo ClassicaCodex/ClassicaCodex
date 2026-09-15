@@ -138,6 +138,8 @@ public static class SetupDataSourceCatalog
                 // wizard skipped a corpus that had never been fetched. See
                 // AuthorRepository.CountByNamespaceAsync.
                 CheckComplete = async () =>
+                    await editionRepo.IsCollectionCompleteAsync(CollectionKeys.PerseusGreek),
+                CheckHasSomeContent = async () =>
                     await editionRepo.CountByCollectionAsync(CollectionKeys.PerseusGreek) > 0
             },
 
@@ -167,6 +169,8 @@ public static class SetupDataSourceCatalog
                 // and Virgil never arrived - with nothing looking wrong
                 // afterwards, because the library was full of Latin.
                 CheckComplete = async () =>
+                    await editionRepo.IsCollectionCompleteAsync(CollectionKeys.PerseusLatin),
+                CheckHasSomeContent = async () =>
                     await editionRepo.CountByCollectionAsync(CollectionKeys.PerseusLatin) > 0
             },
 
@@ -265,6 +269,8 @@ public static class SetupDataSourceCatalog
                 // which is the right direction for a step whose whole failure
                 // mode was silently skipping.
                 CheckComplete = async () =>
+                    await editionRepo.IsCollectionCompleteAsync(CollectionKeys.First1KGreek),
+                CheckHasSomeContent = async () =>
                     await editionRepo.CountByCollectionAsync(CollectionKeys.First1KGreek) > 0
             },
 
@@ -318,6 +324,8 @@ public static class SetupDataSourceCatalog
                 // "loaded" from "this step has not run". Editions record the file they
                 // were built from, and this corpus downloads to a folder of its own.
                 CheckComplete = async () =>
+                    await editionRepo.IsCollectionCompleteAsync(CollectionKeys.Csel),
+                CheckHasSomeContent = async () =>
                     await editionRepo.CountByCollectionAsync(CollectionKeys.Csel) > 0
             },
 
@@ -385,6 +393,8 @@ public static class SetupDataSourceCatalog
                 },
 
                 CheckComplete = async () =>
+                    await editionRepo.IsCollectionCompleteAsync(CollectionKeys.PatrologiaLatina),
+                CheckHasSomeContent = async () =>
                     await editionRepo.CountByCollectionAsync(CollectionKeys.PatrologiaLatina) > 0
             },
 
@@ -440,6 +450,8 @@ public static class SetupDataSourceCatalog
                         IngestOutcome.From(preCts.FailedFiles, preCts.SupersededByCatalogue));
                 },
                 CheckComplete = async () =>
+                    await editionRepo.IsCollectionCompleteAsync(CollectionKeys.Renaissance),
+                CheckHasSomeContent = async () =>
                     await editionRepo.CountByCollectionAsync(CollectionKeys.Renaissance) > 0
             },
 
@@ -475,6 +487,8 @@ public static class SetupDataSourceCatalog
                 },
 
                 CheckComplete = async () =>
+                    await editionRepo.IsCollectionCompleteAsync(CollectionKeys.PoliticalTheory),
+                CheckHasSomeContent = async () =>
                     await editionRepo.CountByCollectionAsync(CollectionKeys.PoliticalTheory) > 0
             },
 
@@ -653,6 +667,8 @@ public static class SetupDataSourceCatalog
                 },
 
                 CheckComplete = async () =>
+                    await editionRepo.IsCollectionCompleteAsync(CollectionKeys.Menota),
+                CheckHasSomeContent = async () =>
                     await editionRepo.CountByCollectionAsync(CollectionKeys.Menota) > 0
             },
 

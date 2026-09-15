@@ -579,6 +579,7 @@ public class TranslateForm : ScaledForm
         }
         catch (Exception ex)
         {
+            CrashReporter.LogHandled(ex, $"AI translation via {providerName}");
             _aiStatusLabel.ForeColor = ReadingTheme.WarningText;
             _aiStatusLabel.Text = $"Couldn't translate with {providerName}: {ex.Message}";
         }

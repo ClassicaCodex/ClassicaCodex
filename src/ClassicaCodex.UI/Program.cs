@@ -68,6 +68,38 @@ internal static class Program
     {
         try
         {
+            // A remembered library that is simply not there right now is not
+            // a first run, and must not be treated as one.
+            //
+            // TryConfigureFromPreferred answers false for a missing file
+            // without throwing, so the catch below - the one that would have
+            // named the path - never ran, and the reader was dropped into the
+            // welcome screen of the setup wizard instead. The commonest way
+            // to get there is keeping the library on an external drive and
+            // unplugging it. Nothing on screen said the app was looking at
+            // E:\ and could not see it; it offered to set up a library, and
+            // finishing that writes the new path over the remembered one, at
+            // which point plugging the drive back in no longer helps.
+            var remembered = DbConnectionFactory.PreferredDatabasePath;
+            var isDefault = string.Equals(
+                remembered, DbConnectionFactory.DefaultDatabasePath, StringComparison.OrdinalIgnoreCase);
+
+            if (!isDefault && !File.Exists(remembered))
+            {
+                var choice = MessageBox.Show(
+                    $"Your library is at:\r\n\r\n{remembered}\r\n\r\n"
+                    + "which isn't available right now - most often a drive that isn't plugged in.\r\n\r\n"
+                    + "Plug it in and choose Retry.\r\n\r\n"
+                    + "Choosing Cancel opens setup, where you can point at a different library or make "
+                    + "a new one. Your existing library is not touched either way, but setting up a new "
+                    + "one here means this app will look for that one in future.",
+                    "Classica Codex - library not found",
+                    MessageBoxButtons.RetryCancel, MessageBoxIcon.Warning);
+
+                if (choice == DialogResult.Retry) return TryOpenExistingDatabase();
+                return false;
+            }
+
             if (!DbConnectionFactory.TryConfigureFromPreferred()) return false;
 
             // Cheap on an existing database - every statement is guarded
