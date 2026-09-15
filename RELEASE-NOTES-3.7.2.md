@@ -137,3 +137,9 @@ Every fix here is pinned by a test that was checked against the change it guards
 — applied backwards, to confirm the test fails without it.
 
 1,302 tests, zero warnings.
+
+The download is not code-signed, so if you would rather check it than trust it:
+
+```
+SHA-256  F4A61EB299737971E26437A5D543F0B7D8F62854BED8FE9B82DC7F28D011C0B0
+```
