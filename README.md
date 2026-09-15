@@ -173,9 +173,9 @@ stays out of reach until you've written something.
 
 Download the ZIP from [Releases](https://github.com/ClassicaCodex/ClassicaCodex/releases/latest), extract all of it, and run `ClassicaCodex.UI.exe`. Nothing to install, and no developer tools needed.
 
-Windows will almost certainly stop you the first time with a blue "Windows protected your PC" box. That's SmartScreen, and it appears because the app isn't code-signed — a certificate costs a few hundred dollars a year, which isn't something a free personal project carries. Click **More info**, then **Run anyway**. Windows remembers, and won't ask again.
+Windows will almost certainly stop you the first time with a blue "Windows protected your PC" box. That's SmartScreen, and it appears because the app isn't code-signed. Signing it wouldn't help: since 2024 even an EV certificate no longer buys an automatic SmartScreen pass, so a new release from a small project gets warned about either way until enough people have downloaded it. Click **More info**, then **Run anyway**. Windows remembers, and won't ask again.
 
-Extract the whole archive before running it, not just the `.exe`. Running it from inside the ZIP, or copying the executable out on its own, leaves its libraries behind and it won't start.
+Extract the whole archive before running it, not just the `.exe`. The executable carries its own libraries, so run from inside the ZIP — or copied out on its own — it does start, but the icons live in the `Icons` folder beside it, so every toolbar button comes up blank. It says so on startup if that folder isn't there.
 
 On first launch you go straight into **Guided Setup** — one step at a time,
 plain language, no file paths or repository URLs on screen. **Advanced Setup**,
@@ -189,7 +189,7 @@ when it is out of date.
 
 Budget **two to three hours** with everything selected, most of it unattended.
 You also need room: about 9 GB of downloads plus a library that reaches roughly
-3 GB. Both locations are yours to choose — the second and third steps of Guided
+3 GB. Both locations are yours to choose — the first two numbered steps of Guided
 Setup ask where the library file and the downloads should go, so neither has to
 sit on your system drive. The downloads are unpacked twice, though, once into
 your temporary folder and once into the folder you chose, so the largest step

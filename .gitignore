@@ -151,3 +151,5 @@ appsettings.Development.json
 ################################################################################
 
 .idea/
+# Agent worktrees created by review tooling; never part of the project.
+.claude/worktrees/

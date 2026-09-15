@@ -15,6 +15,31 @@ internal static class Program
         // listening. See CrashReporter.
         CrashReporter.Install();
 
+        // The icons ship in a folder beside the executable, and AppIcons hands
+        // back null for every one of them when that folder is not there - so
+        // the toolbar comes up as nineteen blank squares with nothing to say
+        // why. Every button's text is cleared once its icon is applied, and
+        // the buttons are flat, so there is not even an outline to hover.
+        //
+        // Reachable by the commonest mistake there is: running the executable
+        // from inside Explorer's view of the ZIP, or dragging just the
+        // executable out. The build is a single-file bundle that carries every
+        // library it needs, so it starts perfectly well - it simply starts
+        // looking broken, and the reader has nothing to search for. Said here,
+        // once, and then the app carries on, because nothing else needs the
+        // folder.
+        var iconsFolder = Path.Combine(AppContext.BaseDirectory, "Icons");
+        if (!Directory.Exists(iconsFolder))
+        {
+            MessageBox.Show(
+                "The Icons folder that ships beside ClassicaCodex.UI.exe is missing, so the toolbar "
+                + "buttons will be blank.\r\n\r\n"
+                + "This usually means the download was not fully extracted. Extract the whole ZIP to a "
+                + "folder and run ClassicaCodex.UI.exe from there.\r\n\r\n"
+                + $"Looked for:\r\n{iconsFolder}",
+                "Classica Codex", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+        }
+
         // Only ask where the database should live when there isn't one to
         // open - a first run, or the file having been moved or deleted.
         // Otherwise go straight in; the location is still changeable any

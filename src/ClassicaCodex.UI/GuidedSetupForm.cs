@@ -149,9 +149,10 @@ public class GuidedSetupForm : ScaledForm
                    "go there, and it's what the rest of this wizard writes into. After that, a few open " +
                    "data sources need to be downloaded: the ancient texts themselves, dictionaries to look " +
                    "words up in, and some word-form data that makes search smarter. Altogether it's " +
-                   "usually about 9 gigabytes, and the better part of an hour on a decent connection - " +
-                   "mostly unattended. You only need to do this once, and you can skip any step and " +
-                   "come back to it later.\r\n\r\n" +
+                   "usually about 9 gigabytes, and two to three hours on a decent connection with " +
+                   "everything selected - mostly unattended, and the Greek word-form data is about an " +
+                   "hour of that on its own. You only need to do this once, and you can skip any step " +
+                   "and come back to it later.\r\n\r\n" +
                    "Each step below does one thing, with a plain explanation of what it's for and why " +
                    "it's worth waiting for.",
             Left = 0,
