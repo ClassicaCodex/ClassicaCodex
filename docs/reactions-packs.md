@@ -75,9 +75,17 @@ installed another.
 
 ## Citing a passage
 
-`passageRef` is a citation in the work under discussion, written the way a
+`passageRef` is a citation **in the work under discussion**, written the way a
 classicist writes it: `1.1` for the *Iliad*, `225` for a play, `1.22.1` for
 Thucydides. It is resolved against whatever edition the reader actually has.
+
+> **The trap.** `passageRef` is *always* resolved in the debated work, whatever
+> the turn is talking about. In the Herodotus debate, a turn quoting
+> Thucydides 1.21.1 was given `"passageRef": "1.21.1"` — which resolved
+> perfectly well, to **Herodotus** 1.21.1, and opened the wrong passage with
+> no sign that anything was wrong. Nothing can catch this for you: both
+> references are valid and both resolve. To point at a different work, use
+> `sourceWork`, which names its own.
 
 Three things are handled for you, and you do not need to write around any of
 them:

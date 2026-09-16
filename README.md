@@ -150,10 +150,13 @@ outside their own lifetime, and no real person may be given a view without a
 citation — so the constraint is enforced rather than remembered.
 
 It is a way into the argument, not evidence, and it is deliberately kept apart
-from the stylometry and attribution tools. Seven debates ship: the *Clouds*
-twice, the *Medea*, the *Iliad*, the *Aeneid*, the *Metamorphoses* and
-Thucydides. You can add your own as JSON in a `Reactions` folder beside the
-program — see [docs/reactions-packs.md](docs/reactions-packs.md).
+from the stylometry and attribution tools. Nine debates ship: the *Clouds*
+twice (the evening it came third, and what the play did to Socrates over the
+following eight centuries), the *Medea*, *Oedipus Tyrannus*, the *Iliad*, the
+*Aeneid*, the *Metamorphoses*, Thucydides, and Herodotus — who gets to defend
+himself, out of his own text. You can add your own as JSON in a `Reactions`
+folder beside the program — see
+[docs/reactions-packs.md](docs/reactions-packs.md).
 
 **Dark mode**, with a parchment light theme and separate artwork for each.
 

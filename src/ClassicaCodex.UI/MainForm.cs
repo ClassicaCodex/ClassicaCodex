@@ -1251,7 +1251,26 @@ public partial class MainForm : ScaledForm
     private void ShowReactionsForSelectedWork()
     {
         if (_libraryTree.SelectedNode?.Tag is not Work work) return;
+        ShowReactions(work);
+    }
 
+    /// <summary>The same, for the work currently open in the reader.</summary>
+    private void ShowReactionsForOpenWork()
+    {
+        if (_openWork is { } work) ShowReactions(work);
+    }
+
+    /// <summary>
+    /// Whether the open work has anything to show, asked on every right-click
+    /// in the reader - so it does no more than the in-memory lookup.
+    /// </summary>
+    private bool OpenWorkHasDebate() =>
+        _openWork is { } work
+        && ReactionLibrary.HasDebateFor(
+            FindWorkNode(work.WorkId)?.Parent?.Text ?? string.Empty, work.Title);
+
+    private void ShowReactions(Work work)
+    {
         var authorName = FindWorkNode(work.WorkId)?.Parent?.Text ?? string.Empty;
         var debates = ReactionLibrary.DebatesFor(authorName, work.Title);
         if (debates.Count == 0) return;
@@ -1492,6 +1511,17 @@ public partial class MainForm : ScaledForm
         var receptionItem = menu.Items.Add("Reception History...");
         receptionItem.Image = AppIcons.Get("ReceptionTracker", 16);
         receptionItem.Click += (_, _) => ShowReceptionHistoryForSelectedLine(list);
+        // The second way in, and the one most readers will actually find. The
+        // library tree has this too, but nobody right-clicks a tree they have
+        // finished using - they right-click the text they are reading. Hidden
+        // unless the open work has a debate, which is the same rule the tree
+        // menu applies.
+        var reactionsLineItem = menu.Items.Add("Fictional Ancient Reactions...");
+        reactionsLineItem.Image = AppIcons.Get("ReceptionTracker", 16);
+        reactionsLineItem.Click += (_, _) => ShowReactionsForOpenWork();
+        _themedMenuItemIcons.Add((reactionsLineItem, "ReceptionTracker"));
+        menu.Opening += (_, _) => reactionsLineItem.Visible = OpenWorkHasDebate();
+
         var translateItem = menu.Items.Add("Translate...");
         translateItem.Image = AppIcons.Get("Translate", 16);
         translateItem.Click += async (_, _) => await ShowTranslateForSelectedLineAsync(list);
