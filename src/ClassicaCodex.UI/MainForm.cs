@@ -1,5 +1,6 @@
 using ClassicaCodex.Core;
 using ClassicaCodex.Core.Models;
+using ClassicaCodex.Core.Reactions;
 using ClassicaCodex.Data.Repositories;
 
 namespace ClassicaCodex.UI;
@@ -446,6 +447,15 @@ public partial class MainForm : ScaledForm
         vocabularyItem.Click += async (_, _) => await ShowVocabularyForSelectedWorkAsync();
         _themedMenuItemIcons.Add((vocabularyItem, "CoreVocabulary"));
 
+        // Hidden rather than greyed when this work has no debate, which is
+        // most works: an item that is permanently disabled for nine hundred
+        // works out of nine hundred and six reads as broken rather than as
+        // "not for this one". The Opening handler below decides.
+        var reactionsItem = libraryTreeMenu.Items.Add("Fictional Ancient Reactions...");
+        reactionsItem.Image = AppIcons.Get("ReceptionTracker", 16);
+        reactionsItem.Click += (_, _) => ShowReactionsForSelectedWork();
+        _themedMenuItemIcons.Add((reactionsItem, "ReceptionTracker"));
+
         var attributionItem = libraryTreeMenu.Items.Add("Attribution...");
         attributionItem.Image = AppIcons.Get("Show", 16);
         attributionItem.Click += async (_, _) => await EditAttributionForSelectedWorkAsync();
@@ -479,6 +489,13 @@ public partial class MainForm : ScaledForm
             favoriteItem.Text = _favoriteUrns.Contains(work.CtsUrn)
                 ? "Remove from Favourites"
                 : "Add to Favourites";
+
+            // Only for the handful of works something has been written about.
+            // The author's name comes from the tree rather than from a query,
+            // because it is already on screen one node up and this runs on
+            // every right-click.
+            reactionsItem.Visible = ReactionLibrary.HasDebateFor(
+                FindWorkNode(work.WorkId)?.Parent?.Text ?? string.Empty, work.Title);
 
             // Says the current answer, so the common case - checking what the
             // library thinks - does not need the dialog opened at all.
@@ -1222,6 +1239,39 @@ public partial class MainForm : ScaledForm
     /// they are the same text in different editions, and the vocabulary of
     /// one is the vocabulary of the others bar textual variants.
     /// </summary>
+    /// <summary>
+    /// Opens the staged argument about the selected work.
+    ///
+    /// Synchronous, unlike its neighbours, because nothing has to be fetched
+    /// first: the debates are in the executable and the window resolves its
+    /// own passage links once it is up. The menu item is only visible when
+    /// there is something to show, so the empty case is a guard rather than a
+    /// message.
+    /// </summary>
+    private void ShowReactionsForSelectedWork()
+    {
+        if (_libraryTree.SelectedNode?.Tag is not Work work) return;
+
+        var authorName = FindWorkNode(work.WorkId)?.Parent?.Text ?? string.Empty;
+        var debates = ReactionLibrary.DebatesFor(authorName, work.Title);
+        if (debates.Count == 0) return;
+
+        try
+        {
+            using var form = new ReactionsForm(work, authorName, debates)
+            {
+                OnNavigate = NavigateToPassageAsync
+            };
+            form.ShowDialog(this);
+        }
+        catch (Exception ex)
+        {
+            CrashReporter.LogHandled(ex, "opening Fictional Ancient Reactions");
+            MessageBox.Show(this, $"Couldn't open the reactions window: {ex.Message}",
+                "Fictional Ancient Reactions", MessageBoxButtons.OK, MessageBoxIcon.Error);
+        }
+    }
+
     private async Task ShowVocabularyForSelectedWorkAsync()
     {
         if (_libraryTree.SelectedNode?.Tag is not Work work) return;

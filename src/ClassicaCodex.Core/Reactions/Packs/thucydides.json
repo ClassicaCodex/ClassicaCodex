@@ -1,0 +1,134 @@
+{
+  "critics": [
+    {
+      "id": "theodoros-piraeus",
+      "name": "Theodoros",
+      "kind": "Composite",
+      "era": "Classical Athens",
+      "floruitStart": -432,
+      "floruitEnd": -396,
+      "place": "the Piraeus",
+      "role": "rower, and one of the few who came back from Sicily",
+      "sketch": "Pulled an oar for eleven years and was in the harbour at Syracuse when the fleet was destroyed. He walked out of the stone quarries two years later because a Syracusan family bought him for the theatre songs he could still recite. He has opinions about accounts of things he was present at.",
+      "tastes": "Being described by somebody who was there. Suspicious of speeches, having stood through a great many of them in the assembly.",
+      "avatar": "skin:tan;hair:dark;beard:full;hat:cap;cloth:#4a6a7b;accent:#b5793f"
+    },
+    {
+      "id": "cicero",
+      "name": "Cicero",
+      "kind": "Historical",
+      "era": "Late Roman Republic",
+      "floruitStart": -80,
+      "floruitEnd": -43,
+      "place": "Rome",
+      "role": "advocate, consul, and the most influential prose stylist in Latin",
+      "sketch": "Spent his life persuading juries and then wrote the books on how it is done. His remarks on Thucydides come from a quarrel about style with younger Romans who claimed the Greek as their model. Paraphrased from the Orator.",
+      "tastes": "A sentence that lands, and an audience that follows it the first time. Regards obscurity in a public speaker as a professional failure, whatever it is in a historian.",
+      "avatar": "skin:light;hair:grey;beard:none;hat:laurel;cloth:#8c3b3b;accent:#e2cf9e"
+    },
+    {
+      "id": "dionysius-halicarnassus",
+      "name": "Dionysius of Halicarnassus",
+      "kind": "Historical",
+      "era": "Augustan Rome",
+      "floruitStart": -30,
+      "floruitEnd": 8,
+      "place": "Halicarnassus, then Rome",
+      "role": "critic and historian, a Greek explaining Greek prose to Romans",
+      "sketch": "Came to Rome after Actium, learned Latin, taught rhetoric, and wrote the most detailed surviving ancient criticism of a prose writer - a whole essay on Thucydides, mostly complaining. Paraphrased here from it.",
+      "tastes": "Clarity, and the words people actually use. Believes a style nobody can imitate safely is a bad model however great the man was.",
+      "avatar": "skin:olive;hair:dark;beard:short;hat:none;cloth:#40708a;accent:#d6c184"
+    },
+    {
+      "id": "hermias-teacher",
+      "name": "Hermias",
+      "kind": "Composite",
+      "era": "Roman Empire",
+      "floruitStart": 8,
+      "floruitEnd": 62,
+      "place": "Rome",
+      "role": "Greek, teaches composition to Roman boys",
+      "sketch": "Sold into a household as a boy, freed for his handwriting, and now paid to make senators' sons write Greek prose. He sets the same passage of Thucydides every year and has watched thirty cohorts of boys fail at it in the same place.",
+      "tastes": "Watching what a text does to people who have to copy it out by hand. Has no theory and a great deal of evidence.",
+      "avatar": "skin:olive;hair:dark;beard:none;hat:none;cloth:#55705a;accent:#c9a45c"
+    }
+  ],
+
+  "debate": {
+    "id": "thucydides",
+    "work": { "authorKey": "thucydides", "titleKeys": ["history", "peloponnesian", "historiae"] },
+    "title": "A possession for all time, and an unusable model",
+    "kind": "AcrossTheCenturies",
+    "compositionYear": -399,
+    "settingPlace": "Athens, Rome",
+    "settingNote": "Thucydides said he had written a possession for all time rather than a prize essay for the moment, and antiquity broadly agreed - and then spent four centuries arguing about whether anyone should write like that. The two Romans here are real and paraphrased from surviving texts; Dionysius wrote an entire essay on this and most of it is complaint. The rower and the schoolmaster are invented, and stand in for the two groups who met this book most directly and left nothing about it: the men it describes, and the boys made to copy it out."
+  },
+
+  "turns": [
+    {
+      "seq": 1,
+      "criticId": "theodoros-piraeus",
+      "year": -398,
+      "text": "I was in that harbour. He was not, and he got it right - the last day, the men on the beach shouting at their own ships, the sound of it. He calls it the greatest action of the war and the most calamitous for the defeated, and then he stops. No lament. Whoever else writes this down will put in a lament.",
+      "passageRef": "7.87.5"
+    },
+    {
+      "seq": 2,
+      "criticId": "theodoros-piraeus",
+      "year": -398,
+      "text": "The speeches, though. He tells you himself at the start: it was hard to remember the exact words, so he has each man say what was called for by the occasion, keeping as close as he could to the general sense of what was actually said. I have stood in that assembly. What was called for and what was said are two different things, and he has quietly put himself between them.",
+      "passageRef": "1.22.1"
+    },
+    {
+      "seq": 3,
+      "criticId": "theodoros-piraeus",
+      "year": -397,
+      "text": "And he is not neutral, whatever he says. In word it was a democracy, in fact it was rule by the first man - that is his verdict on Pericles, and it is a compliment. We voted for Sicily in our thousands, in the assembly, and I was one of them. He thinks we were the problem. He may be right. He is not disinterested.",
+      "passageRef": "2.65.9"
+    },
+    {
+      "seq": 4,
+      "criticId": "cicero",
+      "year": -46,
+      "text": "And now certain people announce that they are Thucydideans - a new and unheard-of class of the ignorant. Look what they have taken. Nobody imitates the weight of his words or of his thoughts. They pick up some broken, chopped-off fragments of him and think that is the manner.",
+      "sourceCitation": "Cicero, Orator 30-32",
+      "sourceWork": { "authorKey": "cicero", "titleKeys": ["orator"], "citationRef": "32" }
+    },
+    {
+      "seq": 5,
+      "criticId": "cicero",
+      "year": -46,
+      "text": "Let me be exact, because I admire the man. Those famous speeches of his contain so many dark and hidden thoughts that they can scarcely be understood, and in a speech actually delivered to a public assembly that is the one unforgivable fault. He is a great historian. He is no use at all as a model for a man who has to be understood the first time.",
+      "sourceCitation": "Cicero, Orator 30",
+      "sourceWork": { "authorKey": "cicero", "titleKeys": ["orator"], "citationRef": "30" }
+    },
+    {
+      "seq": 6,
+      "criticId": "dionysius-halicarnassus",
+      "year": -20,
+      "text": "Begin with the arrangement, which nobody defends and everybody excuses. Earlier writers divided by place or by a chronology a reader could hold. He chose to go by summers and winters, and the result is the opposite of what he intended: the war is cut into small pieces, a thing begun in one season is finished four books later, and the reader loses the thread while admiring the accuracy.",
+      "sourceCitation": "Dionysius of Halicarnassus, On Thucydides 9"
+    },
+    {
+      "seq": 7,
+      "criticId": "dionysius-halicarnassus",
+      "year": -20,
+      "text": "Then the style, and I have counted the faults. He is obscure, because he compresses many meanings into the fewest possible words. He uses poetic and obsolete words where ordinary ones exist. And the composition is harsh - it roughens the ear on purpose. I am not saying he is a lesser man than Herodotus. I am saying that what he does cannot be taught, and that everyone who has tried to learn it has come away with the obscurity and none of the power.",
+      "sourceCitation": "Dionysius of Halicarnassus, On Thucydides 24"
+    },
+    {
+      "seq": 8,
+      "criticId": "hermias-teacher",
+      "year": 30,
+      "text": "Thirty years of setting him to boys, and the evidence is very consistent. They can all copy the Funeral Oration. It is the one piece of Greek prose a Roman boy will learn without being made to - the finest city, the men who gave their bodies for it, the whole earth as their tomb. They take it home. They recite it at dinner.",
+      "passageRef": "2.35.1"
+    },
+    {
+      "seq": 9,
+      "criticId": "hermias-teacher",
+      "year": 30,
+      "text": "And then there is the passage I do not set and every one of them finds anyway. The island that asks for mercy and is told that the strong do what they can and the weak suffer what they must, and is then killed to the last man of military age. No lament there either. Dionysius is right that nobody can write like this. I would add that this is the reason.",
+      "passageRef": "5.89.1"
+    }
+  ]
+}

@@ -1,0 +1,171 @@
+{
+  "critics": [
+    {
+      "id": "pherekles-rhapsode",
+      "name": "Pherekles",
+      "kind": "Composite",
+      "era": "Archaic Greece",
+      "floruitStart": -545,
+      "floruitEnd": -498,
+      "place": "Chios, and wherever there is a festival",
+      "role": "rhapsode",
+      "sketch": "Has recited Homer for a living since he was nineteen, in a saffron robe, holding a staff, in about forty cities. He does not read the poem. He knows it, the way a man knows a road he has walked ten thousand times.",
+      "tastes": "A crowd that goes quiet at the right line. Believes the poem is older and truer than anything said about it, and has never once been paid to think otherwise.",
+      "avatar": "skin:tan;hair:grey;beard:full;hat:fillet;cloth:#b8862f;accent:#7a2f2f"
+    },
+    {
+      "id": "xenophanes",
+      "name": "Xenophanes",
+      "kind": "Historical",
+      "era": "Archaic Greece",
+      "floruitStart": -540,
+      "floruitEnd": -478,
+      "place": "Colophon, then Sicily and southern Italy",
+      "role": "poet and the first critic of Greek religion",
+      "sketch": "Left Colophon at about twenty-five and spent sixty-seven years wandering, by his own count. He wrote verse against verse: his attack on Homer's gods is itself in hexameters. Paraphrased here from the fragments; the reference under each turn is where to check it.",
+      "tastes": "One god, unlike mortals in body or in thought. Cannot bear a divinity who behaves worse than the people worshipping it.",
+      "avatar": "skin:light;hair:white;beard:full;hat:none;cloth:#4f6d8a;accent:#cfd6e0"
+    },
+    {
+      "id": "heraclitus",
+      "name": "Heraclitus",
+      "kind": "Historical",
+      "era": "Archaic Greece",
+      "floruitStart": -504,
+      "floruitEnd": -478,
+      "place": "Ephesus",
+      "role": "philosopher",
+      "sketch": "Gave up the hereditary kingship of Ephesus to his brother and wrote one book, deliberately hard. Antiquity called him the Obscure and the Weeping Philosopher. Paraphrased here from what Diogenes Laertius preserves of him.",
+      "tastes": "The hidden fitting-together, which is stronger than the obvious one. Contemptuous of learning many things, which he says does not teach sense.",
+      "avatar": "skin:olive;hair:dark;beard:full;hat:none;cloth:#5a3f5c;accent:#c9a227"
+    },
+    {
+      "id": "plato",
+      "name": "Plato",
+      "kind": "Historical",
+      "era": "Classical Athens",
+      "floruitStart": -399,
+      "floruitEnd": -347,
+      "place": "Athens",
+      "role": "philosopher",
+      "sketch": "Around twenty-eight at the trial and present in the court, by his own account. Everything he is given to say here is paraphrase of what he wrote; the reference under each turn is where to check it.",
+      "tastes": "The examined life, geometry, and an argument that survives being taken apart. Distrusts poetry precisely because he can feel it working on him.",
+      "avatar": "skin:light;hair:grey;beard:full;hat:none;cloth:#6d6fa0;accent:#e0d6b4"
+    },
+    {
+      "id": "zoilus",
+      "name": "Zoilus",
+      "kind": "Historical",
+      "era": "Classical Greece",
+      "floruitStart": -370,
+      "floruitEnd": -320,
+      "place": "Amphipolis",
+      "role": "critic, nicknamed the Scourge of Homer",
+      "sketch": "Wrote against Homer, against Plato, and against others, and is now remembered for nothing else: his own books are lost and his name survives as a word for a carping critic. What is known of him comes from people who disliked him.",
+      "tastes": "The inconsistency, the impossible detail, the line that cannot mean what everyone says it means. Nothing is too small to object to.",
+      "avatar": "skin:tan;hair:dark;beard:short;hat:none;cloth:#6b5b45;accent:#9c3b32"
+    },
+    {
+      "id": "longinus",
+      "name": "Longinus",
+      "kind": "Historical",
+      "era": "Roman Empire",
+      "floruitStart": 20,
+      "floruitEnd": 80,
+      "place": "unknown",
+      "role": "the anonymous author of On the Sublime",
+      "sketch": "Nobody knows who wrote On the Sublime. The manuscript offers Dionysius or Longinus, the treatise is almost certainly first century, and the Longinus usually meant lived in the third - so the name here is a convention, not an identification. The views are the treatise's own.",
+      "tastes": "Greatness that takes risks. Would rather have Homer with his faults than a careful poet with none.",
+      "avatar": "skin:light;hair:dark;beard:short;hat:none;cloth:#3f6b5f;accent:#e3c98a"
+    }
+  ],
+
+  "debate": {
+    "id": "iliad",
+    "work": { "authorKey": "homer", "titleKeys": ["iliad", "ilias"] },
+    "title": "Six hundred years of complaining about Homer",
+    "kind": "AcrossTheCenturies",
+    "compositionYear": -750,
+    "settingPlace": "the Greek world",
+    "settingNote": "Homer was the Greek school book, the Greek scripture and the Greek argument, and criticising him began almost as early as reciting him. These six are set in the order they spoke, from a poet who thought the gods of the Iliad were a scandal to an anonymous Roman-era critic who thought its faults were the price of its size. Five of the six are real and are paraphrased from surviving texts; the reference under each turn is where to check it. The rhapsode is invented, and is there because the people who spent their lives on this poem left nothing in writing."
+  },
+
+  "turns": [
+    {
+      "seq": 1,
+      "criticId": "pherekles-rhapsode",
+      "year": -530,
+      "text": "Forty years I have recited this, and I will tell you the moment the crowd stops breathing. Not the fighting. It is an old man kissing the hands of the man who killed his son, and the two of them weeping in the same tent, and then eating together because even grief has to stop for supper. Say what you like about the gods. That is what the poem knows.",
+      "passageRef": "24.628"
+    },
+    {
+      "seq": 2,
+      "criticId": "xenophanes",
+      "year": -530,
+      "text": "Homer and Hesiod have attributed to the gods everything that is shame and reproach among men: stealing, adultery, and deceiving one another. I do not say the poem is badly made. I say that every boy in Greece learns what a god is from it, and what he learns is that a god is a powerful adulterer who cheats.",
+      "sourceCitation": "Xenophanes fr. B11 DK, quoted by Sextus Empiricus, Against the Mathematicians 9.193",
+      "sourceWork": { "authorKey": "sextus", "titleKeys": ["adversus", "mathematicos"], "citationRef": "9.193" }
+    },
+    {
+      "seq": 3,
+      "criticId": "pherekles-rhapsode",
+      "year": -530,
+      "text": "You have picked the divine assembly and left out the men. Fine. Take the whole first book then: the quarrel, the plague, the girl handed back, and at the end of it the gods laughing themselves sick at a lame blacksmith pouring the wine. He is not asking you to admire them. He put them next to Achilles on purpose. The gods can afford to laugh. That is the joke, and it is a bitter one.",
+      "passageRef": "1.599"
+    },
+    {
+      "seq": 4,
+      "criticId": "heraclitus",
+      "year": -500,
+      "text": "Homer deserves to be thrown out of the contests and given a beating, and Archilochus with him. Knowing many things does not teach sense: it did not teach Hesiod, and it did not teach Pythagoras.",
+      "sourceCitation": "Heraclitus fr. B42 DK, reported by Diogenes Laertius 9.1",
+      "sourceWork": { "authorKey": "diogenes", "titleKeys": ["vitae", "philosophorum"], "citationRef": "9.1" }
+    },
+    {
+      "seq": 5,
+      "criticId": "pherekles-rhapsode",
+      "year": -500,
+      "text": "Thrown out of the contests. By whom, exactly? I have recited at those contests in front of eight thousand people who could correct me if I dropped a word, because they know it too. You may find that a poor argument. It is the only one that has ever mattered."
+    },
+    {
+      "seq": 6,
+      "criticId": "plato",
+      "year": -375,
+      "text": "Then let us be precise about the harm. A child cannot tell an allegory from a story. So the first lie told about the greatest things, and told badly, is the one the young hear first and keep. Gods at war with gods, gods in disguise, gods bought off - none of it is to be recited in the city we are founding, whether it is true underneath or not.",
+      "sourceCitation": "Plato, Republic 2.377d-378e",
+      "sourceWork": { "authorKey": "plato", "titleKeys": ["republic"], "citationRef": "2.378" }
+    },
+    {
+      "seq": 7,
+      "criticId": "plato",
+      "year": -375,
+      "text": "And I will say the harder thing, since a certain love and reverence for Homer has held me back from saying it since I was a boy. He is the finest of the poets and the first of the tragedians, and that is precisely the danger. The better the imitation, the more thoroughly it waters what ought to be dried up in us. We shall admit hymns to the gods and praise of good men, and nothing else.",
+      "sourceCitation": "Plato, Republic 10.595b-c, 10.606e-607a",
+      "sourceWork": { "authorKey": "plato", "titleKeys": ["republic"], "citationRef": "10.607" }
+    },
+    {
+      "seq": 8,
+      "criticId": "zoilus",
+      "year": -340,
+      "text": "All of you argue about whether he is good for us. None of you will do the work. I go through him line by line and write down what does not hold, and I have done the same to Plato, which is why I am spoken of the way I am. They call me the Scourge of Homer and mean it as an insult. Somebody in Greece has to read the man with his eyes open.",
+      "sourceCitation": "Aelian, Varia Historia 11.10, on Zoilus of Amphipolis, who wrote against Homer and was called Homeromastix",
+      "sourceWork": { "authorKey": "aelian", "titleKeys": ["varia"], "citationRef": "11.10" }
+    },
+    {
+      "seq": 9,
+      "criticId": "longinus",
+      "year": 50,
+      "text": "Homer in the Iliad is a man at the height of his powers, and the whole thing is dramatic and contested. The Odyssey is mostly narrative, which is the mark of old age - the sunset of Homer, where the greatness remains without the intensity. A great nature in decline turns to storytelling. I say this in admiration, not against him.",
+      "sourceCitation": "Longinus, On the Sublime 9.13",
+      "sourceWork": { "authorKey": "longinus", "titleKeys": ["sublime"], "citationRef": "9.13" }
+    },
+    {
+      "seq": 10,
+      "criticId": "longinus",
+      "year": 50,
+      "text": "As for the fault-finders: I have collected a good many of Homer's slips myself and I do not enjoy them. But they are lapses of inattention in a great nature, not deliberate errors - and the question is whether you would rather be Homer with his faults or faultless and small. In life, mediocrity is safe. In writing it is nothing at all.",
+      "sourceCitation": "Longinus, On the Sublime 33.4",
+      "sourceWork": { "authorKey": "longinus", "titleKeys": ["sublime"], "citationRef": "33.4" }
+    }
+  ]
+}

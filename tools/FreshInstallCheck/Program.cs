@@ -351,6 +351,51 @@ internal static class Program
 
         Photograph("welcome", () => new GuidedSetupForm());
         Photograph("main-window", () => new MainForm());
+        PhotographReactions();
+    }
+
+    /// <summary>
+    /// The reactions window against a library with nothing in it.
+    ///
+    /// It takes constructor arguments, so the sweep above - which opens
+    /// everything with a parameterless constructor - cannot reach it, and the
+    /// case it cannot reach is the one worth checking. Every passage link in
+    /// every debate resolves to nothing here, which is exactly what a reader
+    /// sees between installing this and finishing the download, and the window
+    /// has to say so rather than offer a chip that does nothing.
+    /// </summary>
+    private static void PhotographReactions()
+    {
+        // A named pack, not whichever sorts first: the Work below has to be
+        // the work the debate is actually about, or the picture in the report
+        // shows the Aeneid under a window titled Clouds and reads as a bug.
+        var pack = ClassicaCodex.Core.Reactions.ReactionLibrary.Packs
+                       .FirstOrDefault(p => p.Debate.Id == "clouds-423")
+                   ?? ClassicaCodex.Core.Reactions.ReactionLibrary.Packs.FirstOrDefault();
+
+        if (pack == null)
+        {
+            W("  FAILED reactions: no debates are shipped at all");
+            return;
+        }
+
+        W($"  debates shipped: {ClassicaCodex.Core.Reactions.ReactionLibrary.Packs.Count}, "
+          + $"packs rejected: {ClassicaCodex.Core.Reactions.ReactionLibrary.Problems.Count}");
+
+        foreach (var problem in ClassicaCodex.Core.Reactions.ReactionLibrary.Problems)
+        {
+            W("  REJECTED " + problem);
+        }
+
+        var work = new ClassicaCodex.Core.Models.Work
+        {
+            WorkId = 1,
+            Title = "Clouds",
+            CtsUrn = "urn:cts:greekLit:tlg0019.tlg003"
+        };
+
+        Photograph("reactions-empty-library",
+            () => new ReactionsForm(work, "Aristophanes", new[] { pack.Debate }));
     }
 
     private static void Photograph(string name, Func<Form> create)
