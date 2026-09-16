@@ -102,4 +102,29 @@ public static class WordNormalizer
 
         return normalized;
     }
+
+    /// <summary>
+    /// The distinct indexable words in one line, exactly as the word index
+    /// stores them.
+    ///
+    /// <b>This lives here so there is one of it.</b> It was private to
+    /// WordIndexService, which is in the ingestion project, and the two places
+    /// that need to REMOVE a line's index entries are repositories, which the
+    /// ingestion project depends on rather than the other way round. Having
+    /// them delete by line id instead cost a skip-scan of the whole index -
+    /// see EditionRepository - and having them keep a second copy of this
+    /// would be worse: a tokenizer that drifts from the one that did the
+    /// inserting silently orphans rows instead of deleting them, and nothing
+    /// would say so.
+    ///
+    /// The 200-character cap and the Distinct are both load-bearing: the cap
+    /// is what keeps a run-on OCR artefact out of the index, and the pair
+    /// (word, line) is the index's primary key, so a repeated word in one line
+    /// is one row and must be offered for deletion once.
+    /// </summary>
+    public static IEnumerable<string> TokenizeLine(string text) =>
+        text.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries)
+            .Select(Normalize)
+            .Where(w => w.Length > 0 && w.Length <= 200)
+            .Distinct(StringComparer.Ordinal);
 }

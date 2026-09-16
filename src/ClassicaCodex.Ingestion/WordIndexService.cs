@@ -248,9 +248,11 @@ public class WordIndexService
     /// entry, since the index answers "which lines contain this word", not
     /// "how many times".
     /// </summary>
+    /// <summary>
+    /// Moved to Core, and called from here so that the code which INSERTS
+    /// index rows and the code which DELETES them tokenize identically. See
+    /// WordNormalizer.TokenizeLine for why that matters.
+    /// </summary>
     private static IEnumerable<string> TokenizeLine(string text) =>
-        text.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries)
-            .Select(WordNormalizer.Normalize)
-            .Where(w => w.Length > 0 && w.Length <= 200)
-            .Distinct(StringComparer.Ordinal);
+        WordNormalizer.TokenizeLine(text);
 }

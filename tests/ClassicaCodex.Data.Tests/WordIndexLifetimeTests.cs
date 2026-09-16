@@ -31,11 +31,40 @@ namespace ClassicaCodex.Data.Tests;
 [Collection("Database")]
 public class WordIndexLifetimeTests
 {
+    /// <summary>
+    /// Indexes an edition the way the application does: each line contributes
+    /// the words that are in it.
+    ///
+    /// <b>This used to insert the word 'arma' against every line of the
+    /// edition</b>, including "Troiae qui primus", which does not contain it.
+    /// That was harmless while the cleanup deleted by line id - it removed
+    /// whatever was there regardless - and it stopped being harmless when the
+    /// cleanup started naming the rows it deletes, because a row the text
+    /// cannot produce is a row the cleanup cannot name.
+    ///
+    /// The seed was changed rather than the cleanup, because the seed was the
+    /// thing that did not describe the application: WordIndexService tokenizes
+    /// each line and inserts that line's own words. What these tests are for -
+    /// that clearing and deleting an edition take its index entries with them,
+    /// that a re-ingest leaves nothing stranded, and that one edition's
+    /// cleanup does not touch another's - is unchanged and still checked.
+    ///
+    /// The case this no longer covers is recorded on its own, deliberately, in
+    /// WordIndexCleanupTests.ARowTheTextCannotProduceIsLeftBehind.
+    /// </summary>
     private static async Task IndexAsync(TempDatabase db, int editionId)
     {
-        await db.ExecuteAsync($@"
-            INSERT INTO WordIndex (NormalizedWord, TextNodeId)
-            SELECT 'arma', TextNodeId FROM TextNodes WHERE EditionId = {editionId};");
+        var lines = await new TextNodeRepository().GetByEditionAsync(editionId);
+
+        foreach (var line in lines)
+        {
+            foreach (var word in ClassicaCodex.Core.WordNormalizer.TokenizeLine(line.Text))
+            {
+                await db.ExecuteAsync(
+                    "INSERT OR IGNORE INTO WordIndex (NormalizedWord, TextNodeId) "
+                    + $"VALUES ('{word.Replace("'", "''")}', {line.TextNodeId});");
+            }
+        }
     }
 
     private static Task<long> IndexCountAsync(TempDatabase db) =>
@@ -53,7 +82,7 @@ public class WordIndexLifetimeTests
         var editionId = await db.SeedEditionAsync();
         await db.InsertLinesAsync(editionId, ("1.1", "arma uirumque cano"), ("1.2", "Troiae qui primus"));
         await IndexAsync(db, editionId);
-        Assert.Equal(2, await IndexCountAsync(db));
+        Assert.Equal(6, await IndexCountAsync(db));
 
         await new EditionRepository().ClearTextNodesAsync(editionId);
 
@@ -79,7 +108,7 @@ public class WordIndexLifetimeTests
             await IndexAsync(db, editionId);
         }
 
-        Assert.Equal(2, await IndexCountAsync(db));
+        Assert.Equal(6, await IndexCountAsync(db));
         Assert.Equal(0, await StrandedCountAsync(db));
     }
 
@@ -113,11 +142,11 @@ public class WordIndexLifetimeTests
         await db.InsertLinesAsync(drop, ("1.1", "arma uirumque cano"));
         await IndexAsync(db, keep);
         await IndexAsync(db, drop);
-        Assert.Equal(2, await IndexCountAsync(db));
+        Assert.Equal(6, await IndexCountAsync(db));
 
         await new EditionRepository().ClearTextNodesAsync(drop);
 
-        Assert.Equal(1, await IndexCountAsync(db));
+        Assert.Equal(3, await IndexCountAsync(db));
         Assert.Equal(0, await StrandedCountAsync(db));
     }
 }
