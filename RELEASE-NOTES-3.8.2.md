@@ -57,3 +57,9 @@ behind without saying so. A test now checks that what the builder writes is
 exactly what the cleaner offers to remove.
 
 1,391 tests, zero warnings.
+
+The download is not code-signed, so if you would rather check it than trust it:
+
+```
+SHA-256  D9708DDB35B42A53AD3E7A653F46C3FFD1A29096F7401C7BBC00BBF4AD459EEA
+```
