@@ -68,3 +68,9 @@ A sweep of every other window found no other coordinate assigned outside a
 constructor, so this was the one place it could happen.
 
 1,385 tests, zero warnings.
+
+The download is not code-signed, so if you would rather check it than trust it:
+
+```
+SHA-256  608D8634EAA2F32489AE9B32F435559B4334C89AA780E2A8C6CD91BF94DE9260
+```
