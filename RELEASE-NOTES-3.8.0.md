@@ -131,3 +131,9 @@ that no two speakers in one debate look alike or share a colour.
 Each of those was checked by putting the bug back and confirming the test
 fails — which is not a formality: the first version of the scroll test passed
 against the bug it was written for.
+
+The download is not code-signed, so if you would rather check it than trust it:
+
+```
+SHA-256  61B7CFE13510DB69BAAD1AD4A3D0E363BB9314371430737BD75FA02F12EAF2E0
+```
