@@ -1,0 +1,134 @@
+{
+  "critics": [
+    {
+      "id": "demeas-acharnae",
+      "name": "Demeas",
+      "kind": "Composite",
+      "era": "Classical Athens",
+      "floruitStart": -458,
+      "floruitEnd": -412,
+      "place": "Acharnae",
+      "role": "charcoal-burner and smallholder",
+      "sketch": "A farmer from the deme worst hit by the Spartan raids, in the city for the festival because his vines are gone and there is nothing to watch at home. He served at Delium the year before and does not talk about it.",
+      "tastes": "Plain speaking, the old songs, and anything that gets a laugh at the expense of men who have never held a mattock. Distrusts cleverness that has a fee attached to it.",
+      "avatar": "skin:tan;hair:grey;beard:full;hat:none;cloth:#7b5230;accent:#3f2a16"
+    },
+    {
+      "id": "theron-pupil",
+      "name": "Theron son of Kleitos",
+      "kind": "Composite",
+      "era": "Classical Athens",
+      "floruitStart": -432,
+      "floruitEnd": -398,
+      "place": "Athens",
+      "role": "young man whose father paid for a course",
+      "sketch": "Twenty-two, and the proud owner of one term with Prodicus, from which he retains a firm grasp of the difference between being pleased and being gratified. He is the only person in the room who has met a sophist.",
+      "tastes": "Exactness, new arguments, and being told apart from other people. Loathes being lumped in with everyone who ever asked a question.",
+      "avatar": "skin:light;hair:dark;beard:none;hat:fillet;cloth:#4d6fa8;accent:#d8c27a"
+    },
+    {
+      "id": "kallias-chorodidaskalos",
+      "name": "Kallias",
+      "kind": "Composite",
+      "era": "Classical Athens",
+      "floruitStart": -465,
+      "floruitEnd": -418,
+      "place": "Athens",
+      "role": "retired chorus-trainer",
+      "sketch": "Thirty years of drilling twenty-four men to turn at the same moment, most of them for poets now dead. He watches the chorus and can tell you who has been rehearsed and who has been shouted at.",
+      "tastes": "Entrances, drill, and a parabasis that earns its interruption. Contemptuous of a play that wins on jokes and of a poet who thinks the chorus is a rest.",
+      "avatar": "skin:tan;hair:white;beard:short;hat:none;cloth:#6b6f76;accent:#b8923f"
+    },
+    {
+      "id": "philyra-garland-seller",
+      "name": "Philyra",
+      "kind": "Composite",
+      "era": "Classical Athens",
+      "floruitStart": -445,
+      "floruitEnd": -414,
+      "place": "Athens",
+      "role": "sells myrtle and garlands by the Leokoreion",
+      "sketch": "Her stall stands where the jury panels wait to be called, so she has heard every opinion in Athens twice before noon and has formed few of her own. She knows exactly who is disliked in this city and for what.",
+      "tastes": "Knowing the real reason. Unmoved by philosophy in either direction, and extremely interested in who owes money to whom.",
+      "avatar": "skin:olive;hair:dark;beard:none;hat:veil;cloth:#9c5a6e;accent:#4e7f52"
+    }
+  ],
+
+  "debate": {
+    "id": "clouds-423",
+    "work": { "authorKey": "aristophanes", "titleKeys": ["clouds", "nubes"] },
+    "title": "Third place, and what it was for",
+    "kind": "Scene",
+    "compositionYear": -423,
+    "settingYear": -423,
+    "settingPlace": "Athens",
+    "settingNote": "A wine-shop near the Street of the Tripods, the evening after the City Dionysia. Aristophanes' Clouds has come third of three: Cratinus took the prize with his Wine-Flask and Ameipsias was placed above it. One thing worth knowing before you listen in. The Clouds anyone can read today is not the play these four watched. Aristophanes revised it afterwards and the revision is what survives, parabasis and all, which is why its chorus can complain about a defeat that had not yet happened. Nobody here has seen those lines."
+  },
+
+  "turns": [
+    {
+      "seq": 1,
+      "criticId": "demeas-acharnae",
+      "text": "Third is too kind, and I say that as a man who laughed. But he is right about the talkers in the agora, and he is right in the way that costs money. They teach for a fee, and what they teach is how to argue your way out of paying it.",
+      "passageRef": "98"
+    },
+    {
+      "seq": 2,
+      "criticId": "theron-pupil",
+      "text": "He has taken every thinker in Athens, boiled them into one man, and hung that man's name on the pot. The measuring of the flea's jump, the star-gazing, the fees: those belong to four different people and one of them is dead. The Socrates who actually walks about this city takes nothing from anybody, which is the single thing everyone knows about him."
+    },
+    {
+      "seq": 3,
+      "criticId": "kallias-chorodidaskalos",
+      "text": "You are both watching the words. Watch the chorus. Twenty-four men come on as clouds, in that mist, and for a hundred lines you genuinely do not know whether they are goddesses or weather. That is a hard entrance and they held it. The play is better made than it is placed.",
+      "passageRef": "275"
+    },
+    {
+      "seq": 4,
+      "criticId": "philyra-garland-seller",
+      "text": "The jurors wait at my stall. I will tell you what they will remember by the Panathenaea: a man in a basket saying he walks on air and looks down on the sun. Not the argument. The basket.",
+      "passageRef": "225"
+    },
+    {
+      "seq": 5,
+      "criticId": "demeas-acharnae",
+      "text": "And the whirl. My neighbour's boy came back from six months in the city and explained to me that the rain is not Zeus, it is a vortex, and Zeus has been driven out. To my face, in my own yard, in a drought year. Whatever the poet meant, that is the thing he is pointing at.",
+      "passageRef": "828"
+    },
+    {
+      "seq": 6,
+      "criticId": "theron-pupil",
+      "text": "Then laugh at the whirl and not at the man. A comedy is allowed to say anything and that is exactly why it is dangerous: it can put a charge into the city's mouth that no court would let a prosecutor bring. Nobody has to prove it. Everybody has heard it.",
+      "passageRef": "423"
+    },
+    {
+      "seq": 7,
+      "criticId": "philyra-garland-seller",
+      "text": "He stood in the line at Delium and did not run, which is more than several men who were loud tonight can say. Ask them about that tomorrow and watch the subject change.",
+      "sourceCitation": "Plato, Symposium 220e-221b; Laches 181b",
+      "sourceWork": { "authorKey": "plato", "titleKeys": ["symposium"], "citationRef": "220" }
+    },
+    {
+      "seq": 8,
+      "criticId": "kallias-chorodidaskalos",
+      "text": "The judges took Cratinus, and Cratinus is old and was written off two festivals ago and has just made a comedy out of being written off. There is your lesson, and it is not about philosophy. This city forgives a poet for insulting a wise man. It does not forgive him for being too clever for the benches."
+    },
+    {
+      "seq": 9,
+      "criticId": "demeas-acharnae",
+      "text": "What I could not laugh at was the end. The boy learns the argument his father paid for, and then he uses it on his father, and he proves that the beating is owed. Every man in that theatre with a son in the city went quiet. That is not a joke about a philosopher.",
+      "passageRef": "1421"
+    },
+    {
+      "seq": 10,
+      "criticId": "theron-pupil",
+      "text": "And the old man's answer is a torch. He cannot out-argue the boy so he burns the house down, and the audience cheered. You are all very pleased with yourselves for seeing where the clever road ends. I would only observe that the play does not show us the road. It shows us a fire.",
+      "passageRef": "1506"
+    },
+    {
+      "seq": 11,
+      "criticId": "philyra-garland-seller",
+      "text": "Come back in twenty years and tell me what this evening was. Plays are forgotten by the next festival. What sticks to a man is the picture, and now there is a picture."
+    }
+  ]
+}

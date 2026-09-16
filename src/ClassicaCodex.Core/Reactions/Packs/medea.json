@@ -1,0 +1,145 @@
+{
+  "critics": [
+    {
+      "id": "aristodemos-choregos",
+      "name": "Aristodemos",
+      "kind": "Composite",
+      "era": "Classical Athens",
+      "floruitStart": -462,
+      "floruitEnd": -424,
+      "place": "Athens",
+      "role": "paid for a chorus twice",
+      "sketch": "Rich enough to have been assigned a chorus in two different years, and still telling people about the second one. He knows to the drachma what a production costs and cannot watch one without pricing it.",
+      "tastes": "A spectacle that shows where the money went. Believes a prize is a verdict and that verdicts are usually right.",
+      "avatar": "skin:light;hair:dark;beard:full;hat:fillet;cloth:#7a4f8c;accent:#e2c569"
+    },
+    {
+      "id": "glyke-of-melite",
+      "name": "Glyke",
+      "kind": "Composite",
+      "era": "Classical Athens",
+      "floruitStart": -458,
+      "floruitEnd": -419,
+      "place": "the deme Melite, Athens",
+      "role": "married at fourteen, widowed at thirty",
+      "sketch": "Runs her dead husband's household and her son's inheritance without legally being able to own either. Whether women sat in the theatre at all is a thing scholars still argue about; she has certainly heard every line of this play, repeated in the street for a month.",
+      "tastes": "Being described accurately. Has no patience for a chorus of women who sympathise and then do nothing.",
+      "avatar": "skin:olive;hair:dark;beard:none;hat:veil;cloth:#3f6f74;accent:#cfa14e"
+    },
+    {
+      "id": "euphron-of-corinth",
+      "name": "Euphron",
+      "kind": "Composite",
+      "era": "Classical Greece",
+      "floruitStart": -452,
+      "floruitEnd": -420,
+      "place": "Corinth, resident in Athens",
+      "role": "metic, trades in Corinthian bronze",
+      "sketch": "Corinthian by birth, Athenian by twenty years of paying the metic tax. The play is set in his city and blames his city's most famous crime on a foreign woman, and he has heard a very different version of it since childhood.",
+      "tastes": "Hearing Corinth described by somebody who has been there. Deeply suspicious of Athenian accounts of anywhere else.",
+      "avatar": "skin:tan;hair:dark;beard:short;hat:none;cloth:#9a6b3f;accent:#5f8a72"
+    },
+    {
+      "id": "aristotle",
+      "name": "Aristotle",
+      "kind": "Historical",
+      "era": "Classical Greece",
+      "floruitStart": -347,
+      "floruitEnd": -322,
+      "place": "Athens",
+      "role": "philosopher, and the first person to write a theory of plot",
+      "sketch": "Came to Athens at seventeen, stayed twenty years with Plato, and ended up disagreeing with him about poetry more usefully than anyone since. Everything he is given to say here is paraphrase of what he wrote; the reference under each turn is where to check it.",
+      "tastes": "A plot whose end follows from its middle. Impatient with anything solved from outside the story.",
+      "avatar": "skin:light;hair:grey;beard:short;hat:none;cloth:#57708c;accent:#d9cba4"
+    },
+    {
+      "id": "kallistratos-lyceum",
+      "name": "Kallistratos",
+      "kind": "Composite",
+      "era": "Classical Greece",
+      "floruitStart": -342,
+      "floruitEnd": -305,
+      "place": "Athens",
+      "role": "student in the Lyceum",
+      "sketch": "Takes notes at the lectures and argues with them afterwards, mostly to his friends. He has the advantage over his teacher of having grown up on Euripides rather than having lived through him.",
+      "tastes": "Catching a great man in an inconsistency. Genuinely loves the plays he is being taught to dissect.",
+      "avatar": "skin:olive;hair:dark;beard:none;hat:none;cloth:#6d8a5a;accent:#d9b35c"
+    }
+  ],
+
+  "debate": {
+    "id": "medea",
+    "work": { "authorKey": "euripides", "titleKeys": ["medea"] },
+    "title": "The machine, and the woman in it",
+    "kind": "AcrossTheCenturies",
+    "compositionYear": -431,
+    "settingPlace": "Athens",
+    "settingNote": "Euripides took third of three with this play at the Dionysia of 431, a few weeks before the war began. Euphorion, son of Aeschylus, won; Sophocles was second. Three Athenians react in the spring of 431, and then, ninety-six years later, the first person ever to write a theory of how plots should work says what is wrong with the ending - and one of his own students disagrees. The two ancient Athenians of 431 are invented. Aristotle is not, and is paraphrased from the Poetics."
+  },
+
+  "turns": [
+    {
+      "seq": 1,
+      "criticId": "aristodemos-choregos",
+      "year": -431,
+      "text": "Third. With a dragon chariot on the roof, which I can tell you was not cheap, and a woman who kills her own children in front of you, and he still came third. The judges are not fools. They knew what he had done to them.",
+      "passageRef": "1317"
+    },
+    {
+      "seq": 2,
+      "criticId": "glyke-of-melite",
+      "year": -431,
+      "text": "Nobody in my street is talking about the chariot. They are repeating the speech. Of all things that breathe and have intelligence, we women are the most wretched creatures - and then she counts it out like a household account. The dowry you pay for a master. The husband you cannot leave without disgrace. A man who is bored goes out. Nobody had said it on a stage before, and he put it in the mouth of a barbarian sorceress so that it could be said at all.",
+      "passageRef": "230"
+    },
+    {
+      "seq": 3,
+      "criticId": "euphron-of-corinth",
+      "year": -431,
+      "text": "And I will tell you what nobody in this theatre noticed. In Corinth the children were not killed by their mother. They were killed by Corinthians, at the temple, and my city has been paying for it in rites ever since. Now an Athenian has put it on a foreigner in front of the whole city at the festival. There is a story in my trade that he was paid to do it. I do not believe it. I notice that it is the sort of story people invent when the change is convenient for somebody.",
+      "sourceCitation": "Scholion on Euripides, Medea 264, reporting Parmeniscus: the Corinthians are said to have paid Euripides five talents"
+    },
+    {
+      "seq": 4,
+      "criticId": "aristodemos-choregos",
+      "year": -431,
+      "text": "Say what you like about the money, the ending is a cheat. She has murdered two children and she leaves through the air, untouched, with the bodies. Jason is on the ground shouting at a machine. Where is the justice in that? A tragedy is supposed to close its own account."
+    },
+    {
+      "seq": 5,
+      "criticId": "glyke-of-melite",
+      "year": -431,
+      "text": "You have the strongest scene in the play backwards. She is not a monster on a roof. She is a woman in a courtyard with a sword who says: I know what I am about to do is evil, and my rage is stronger than my deliberations. He wrote her the argument against herself and then had her lose it. That is the part the men in my street do not repeat.",
+      "passageRef": "1078"
+    },
+    {
+      "seq": 6,
+      "criticId": "aristotle",
+      "year": -335,
+      "text": "The resolution of a plot must arise from the plot itself, and not from a machine, as it does in the Medea. What the god is for is what lies outside the action - things before it that nobody could know, or things after it that need to be foretold. Not the knot the poet has tied and cannot untie.",
+      "sourceCitation": "Aristotle, Poetics 1454a37-b2",
+      "sourceWork": { "authorKey": "aristotle", "titleKeys": ["poetics"], "citationRef": "15.10b" }
+    },
+    {
+      "seq": 7,
+      "criticId": "kallistratos-lyceum",
+      "year": -335,
+      "text": "With respect, sir, look at what she says when she appears. Such a chariot my father's father Helios gives me. She is the granddaughter of the Sun and the play has said so from the first scene. It is not a machine lowered to solve a problem. It is the one piece of the family she has left, arriving to collect her. Whether that is a good ending is a question. Whether it comes from outside the story is not.",
+      "passageRef": "1321"
+    },
+    {
+      "seq": 8,
+      "criticId": "aristotle",
+      "year": -335,
+      "text": "Take the objection and keep the judgement. Euripides does not manage the other parts well, but on the stage and in the competitions plays of this kind show themselves the most tragic, and he is the most tragic of the poets. I have never said the man was small. I have said where the joint is weak.",
+      "sourceCitation": "Aristotle, Poetics 1453a28-30",
+      "sourceWork": { "authorKey": "aristotle", "titleKeys": ["poetics"], "citationRef": "13.10" }
+    },
+    {
+      "seq": 9,
+      "criticId": "kallistratos-lyceum",
+      "year": -335,
+      "text": "Ninety-six years and a third prize, and we are still arguing about the last four minutes of it. Nobody is arguing about the two plays that beat it. I would call that the verdict."
+    }
+  ]
+}

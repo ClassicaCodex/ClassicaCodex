@@ -24,4 +24,12 @@
     <ProjectReference Include="..\..\src\ClassicaCodex.UI\ClassicaCodex.UI.csproj" />
   </ItemGroup>
 
+
+  <ItemGroup>
+    <!-- Only so EmptyLibraryFixture can point the tests at a throwaway
+         database before any window is constructed. See its summary: without
+         it a layout test reads the developer real library and appends to
+         their error log. -->
+    <ProjectReference Include="..\..\src\ClassicaCodex.Data\ClassicaCodex.Data.csproj" />
+  </ItemGroup>
 </Project>

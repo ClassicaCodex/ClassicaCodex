@@ -29,6 +29,23 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <!-- The Fictional Ancient Reactions content. Embedded rather than copied
+         beside the executable, so a debate cannot go missing from a download
+         the way the Icons folder can, and rather than seeded into SQLite, for
+         the reasons ReactionLibrary gives at length: this is content that
+         ships with the program, not material the reader owns.
+
+         ReactionLibrary finds these by looking for ".Reactions.Packs." in the
+         manifest name, which is the logical name this Include produces
+         (ClassicaCodex.Core.Reactions.Packs.clouds-423.json). A pack added to
+         the folder is picked up with no further wiring - and if one is ever
+         moved out of this folder, it simply stops being found, which the
+         shipped-content test turns into a failed build rather than a feature
+         that quietly has less in it. -->
+    <EmbeddedResource Include="Reactions\Packs\*.json" />
+  </ItemGroup>
+
+  <ItemGroup>
     <!-- Reconcile() is the fix for Create Translation silently saving an
          empty edition. It's an internal detail of how a model's reply is
          matched back to real passages, not public API - but it's exactly the

@@ -1,0 +1,136 @@
+{
+  "critics": [
+    {
+      "id": "nikias-of-phlya",
+      "name": "Nikias",
+      "kind": "Composite",
+      "era": "Classical Athens",
+      "floruitStart": -462,
+      "floruitEnd": -419,
+      "place": "the deme Phlya",
+      "role": "has had a seat at the Dionysia for thirty years",
+      "sketch": "Goes to everything, remembers what won, and keeps a running argument with himself about whether the judges are ever right. He has buried two of his household this year and is not in a mood to be improved by a tragedy.",
+      "tastes": "A plot he cannot see the end of. Deeply unimpressed by a chorus that tells him what to feel.",
+      "avatar": "skin:tan;hair:grey;beard:short;hat:none;cloth:#96603f;accent:#e0c88a"
+    },
+    {
+      "id": "lysimache-priestess",
+      "name": "Lysimache",
+      "kind": "Composite",
+      "era": "Classical Athens",
+      "floruitStart": -455,
+      "floruitEnd": -415,
+      "place": "the Acropolis, Athens",
+      "role": "priestess",
+      "sketch": "Has spent her life on the correct performance of rites in a city that has just discovered its rites do not stop a plague. She is professionally interested in a play about a king who does everything the god asks and is destroyed anyway.",
+      "tastes": "Getting the god's part right. Impatient with anyone who treats an oracle as a riddle to be beaten.",
+      "avatar": "skin:light;hair:dark;beard:none;hat:veil;cloth:#7a8f6a;accent:#d8c27a"
+    },
+    {
+      "id": "aristotle",
+      "name": "Aristotle",
+      "kind": "Historical",
+      "era": "Classical Greece",
+      "floruitStart": -347,
+      "floruitEnd": -322,
+      "place": "Athens",
+      "role": "philosopher, and the first person to write a theory of plot",
+      "sketch": "Came to Athens at seventeen, stayed twenty years with Plato, and ended up disagreeing with him about poetry more usefully than anyone since. Everything he is given to say here is paraphrase of what he wrote; the reference under each turn is where to check it.",
+      "tastes": "A plot whose end follows from its middle. Impatient with anything solved from outside the story.",
+      "avatar": "skin:light;hair:grey;beard:short;hat:none;cloth:#57708c;accent:#d9cba4"
+    },
+    {
+      "id": "kallistratos-lyceum",
+      "name": "Kallistratos",
+      "kind": "Composite",
+      "era": "Classical Greece",
+      "floruitStart": -342,
+      "floruitEnd": -305,
+      "place": "Athens",
+      "role": "student in the Lyceum",
+      "sketch": "Takes notes at the lectures and argues with them afterwards, mostly to his friends. He has the advantage over his teacher of having grown up on Euripides rather than having lived through him.",
+      "tastes": "Catching a great man in an inconsistency. Genuinely loves the plays he is being taught to dissect.",
+      "avatar": "skin:olive;hair:dark;beard:none;hat:none;cloth:#6d8a5a;accent:#d9b35c"
+    }
+  ],
+
+  "debate": {
+    "id": "oedipus",
+    "work": { "authorKey": "sophocles", "titleKeys": ["oedipus tyrannus", "oedipus rex", "tyrannus"] },
+    "title": "The best-made play in Greek, and it came second",
+    "kind": "AcrossTheCenturies",
+    "compositionYear": -429,
+    "settingPlace": "Athens",
+    "settingNote": "Nobody knows exactly when this play was produced; the usual guess is the late 420s, close enough to the plague that killed a third of Athens for the opening scene to have been unbearable. What is recorded is that it did not win: the prize went to Philocles, a nephew of Aeschylus, whose play nobody has read since. Two Athenians react, and then the man who made this play the worked example of how tragedy functions - and who also lists the thing wrong with it. Aristotle is real and paraphrased from the Poetics; the other three are invented."
+  },
+
+  "turns": [
+    {
+      "seq": 1,
+      "criticId": "nikias-of-phlya",
+      "year": -429,
+      "text": "Second. To Philocles, who is Aeschylus' nephew and has been living off it since before I had a beard. I have sat through thirty years of these and I have never walked out of one the way I walked out of this. Nobody spoke on the way home.",
+      "passageRef": "1524"
+    },
+    {
+      "seq": 2,
+      "criticId": "lysimache-priestess",
+      "year": -429,
+      "text": "Do you understand what he has done to us, though? He opens on a city of people sitting at the altars with branches because the plague will not stop. We buried four thousand this summer. Half that theatre came from a funeral. And the answer the play gives is that the pollution is a man in the room who does not know it is him.",
+      "passageRef": "1"
+    },
+    {
+      "seq": 3,
+      "criticId": "nikias-of-phlya",
+      "year": -429,
+      "text": "The blind man was the worst of it. He comes because he is summoned, he begs to be sent home, and then he says the thing: how terrible it is to know, when knowing does the knower no good. He knows the whole answer in the first quarter of the play and the king makes him say it, and it changes nothing, because nobody in that theatre would have believed him either.",
+      "passageRef": "316"
+    },
+    {
+      "seq": 4,
+      "criticId": "lysimache-priestess",
+      "year": -428,
+      "text": "And the piety of it is exact, which nobody will say because they are busy being moved. He consults the god properly. He acts on the answer properly. He is destroyed, and the god is not blamed, and the play does not tell you it is unjust. I have made that offering four hundred times. I know how much that ending costs to write."
+    },
+    {
+      "seq": 5,
+      "criticId": "aristotle",
+      "year": -335,
+      "text": "Use this play whenever you need to show what the parts are for. The finest recognition is the one that happens at the same moment as the reversal - which is what the Oedipus has. A messenger arrives to cheer the man and free him from the fear about his mother, reveals who he is, and produces the opposite of what he came to produce.",
+      "passageRef": "1182",
+      "sourceCitation": "Aristotle, Poetics 1452a24-33",
+      "sourceWork": { "authorKey": "aristotle", "titleKeys": ["poetics"], "citationRef": "11.5" }
+    },
+    {
+      "seq": 6,
+      "criticId": "aristotle",
+      "year": -335,
+      "text": "And it is the right kind of man. Not outstanding in virtue and justice, and not brought down through wickedness, but through some error - a man of great reputation and good fortune, such as Oedipus. Pity is for undeserved misfortune and fear is for somebody like ourselves, and neither is available if you put a villain or a saint in the part.",
+      "sourceCitation": "Aristotle, Poetics 1453a7-12",
+      "sourceWork": { "authorKey": "aristotle", "titleKeys": ["poetics"], "citationRef": "13.5" }
+    },
+    {
+      "seq": 7,
+      "criticId": "aristotle",
+      "year": -335,
+      "text": "The test of a plot is whether it works without being watched. Merely hearing the story of Oedipus should make you shudder and pity. If a play needs its spectacle to do that, the spectacle is doing the poet's work, and it is the cheaper art.",
+      "sourceCitation": "Aristotle, Poetics 1453b3-7",
+      "sourceWork": { "authorKey": "aristotle", "titleKeys": ["poetics"], "citationRef": "14.2" }
+    },
+    {
+      "seq": 8,
+      "criticId": "aristotle",
+      "year": -335,
+      "text": "Now the fault, since I am not in the business of admiring. A plot should contain nothing irrational, and if it must, the irrational thing belongs outside the story. Oedipus not knowing how Laius died is exactly that: it is unbelievable, it is load-bearing, and Sophocles was right to keep it outside the drama rather than stage it.",
+      "sourceCitation": "Aristotle, Poetics 1460a27-32",
+      "sourceWork": { "authorKey": "aristotle", "titleKeys": ["poetics"], "citationRef": "24.20" }
+    },
+    {
+      "seq": 9,
+      "criticId": "kallistratos-lyceum",
+      "year": -335,
+      "text": "So the worked example of how a tragedy should be built came second to a play nobody in this room can name a line of. I would like that recorded beside the theory. Whatever the judges of that year were measuring, it was not this.",
+      "passageRef": "1524"
+    }
+  ]
+}

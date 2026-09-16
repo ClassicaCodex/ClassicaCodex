@@ -133,6 +133,35 @@ stays out of reach until you've written something.
 
 <img width="700" alt="MyTranslateWorkbenchScreenshot" src="https://github.com/user-attachments/assets/18a7ff1d-6280-45e8-909b-41cad83f8775" />
 
+**Fictional Ancient Reactions** — right-click a work and read the argument its
+first audiences might have had about it, laid out like a group chat you are
+not in. Most of the speakers are invented — a charcoal-burner from Acharnae, a
+retired chorus-trainer, a rower who came back from Sicily — and the window
+says so before anything else is readable.
+
+The real ones are handled differently. Where an ancient critic's view on a
+work actually survives, they appear under their own name with a *real person*
+badge, and every line they are given carries the reference it is paraphrased
+from: Aristotle on the *Medea*'s ending, Quintilian ranking Vergil second to
+Homer, Augustine on weeping for Dido at school. Where your library has that
+text, the reference is a link and you can go and read it. The program checks
+those rules on every build — nobody may speak before the work was written or
+outside their own lifetime, and no real person may be given a view without a
+citation — so the constraint is enforced rather than remembered.
+
+It is a way into the argument, not evidence, and it is deliberately kept apart
+Thirteen debates ship, on the *Iliad*, the *Odyssey*, the *Clouds* twice (the
+evening it came third, and what the play did to Socrates over the following
+eight centuries), the *Frogs*, the *Medea*, *Oedipus Tyrannus*, Herodotus,
+Thucydides, the *Republic*, the *Aeneid*, the *Metamorphoses*, and Cicero —
+who appears as a critic in two of the others and is put on trial in his own.
+Herodotus gets to defend himself out of his own text; Aristotle takes the
+*Republic* apart from inside the Academy; Augustine explains what the *Aeneid*
+did to him at school.
+
+You can add your own as JSON in a `Reactions` folder beside the program — see
+[docs/reactions-packs.md](docs/reactions-packs.md).
+
 **Dark mode**, with a parchment light theme and separate artwork for each.
 
 <img width="700" alt="DarkModeScreenshot" src="https://github.com/user-attachments/assets/20bffceb-a7b0-482e-bf3a-e1e3c1869244" />
@@ -179,6 +208,7 @@ stays out of reach until you've written something.
 - **Picks up where you left off** — reopens the passage you were last reading, and can be turned off if you'd rather it didn't
 - **Medieval Nordic manuscripts** — Old Norse, Icelandic, Swedish and Danish texts from the [Medieval Nordic Text Archive](https://www.menota.org), transcribed word by word from the parchment rather than edited into a printed text: Heimskringla, Laxdœla saga, the Codex Wormianus, the Old Norwegian homily book, Vǫluspá in the Codex Regius. A manuscript is a physical object containing whatever was bound into it, so the import shows you what it found in each file and lets you merge, split, retitle or drop works before anything is written
 - **Editor's Notes** — the apparatus of those manuscripts, kept beside the text rather than read as part of it. Manuscript variants carry the adopted reading, the alternative and the witness it came from; editorial notes carry ligatures, scribal corrections, worn passages and missing leaves. A variant collated from another manuscript is not a word of this one, and reading the two together would quietly corrupt every word count and frequency measure built on the text
+- **Fictional Ancient Reactions** — a staged debate about a work, read like a group chat, with period-appropriate critics arguing about what their own age actually cared about. Clearly labelled as fiction everywhere it appears. Invented speakers stand in for the audiences who left nothing in writing; real critics appear under their own name only where their view survives, carry a badge saying so, and every line they speak carries the ancient reference it paraphrases — which is a link into your own library wherever you have the text. The anachronism and citation rules are enforced by tests, not by good intentions. Kept separate from the stylometry and attribution tools on purpose
 - **Dark mode**, with a parchment light theme, and separate artwork for each
 
 ## Getting started
@@ -313,7 +343,7 @@ suspecting.
 
 ## Status
 
-Version 3.7.2.
+Version 3.8.0.
 
 Version 1 was a reader. Version 2 made it a searchable, taggable,
 cross-referenced library and added the translation workbench. Version 3 adds the

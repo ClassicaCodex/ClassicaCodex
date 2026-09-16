@@ -1,0 +1,146 @@
+{
+  "critics": [
+    {
+      "id": "philyra-garland-seller",
+      "name": "Philyra",
+      "kind": "Composite",
+      "era": "Classical Athens",
+      "floruitStart": -445,
+      "floruitEnd": -414,
+      "place": "Athens",
+      "role": "sells myrtle and garlands by the Leokoreion",
+      "sketch": "Her stall stands where the jury panels wait to be called, so she has heard every opinion in Athens twice before noon and has formed few of her own. She knows exactly who is disliked in this city and for what.",
+      "tastes": "Knowing the real reason. Unmoved by philosophy in either direction, and extremely interested in who owes money to whom.",
+      "avatar": "skin:olive;hair:dark;beard:none;hat:veil;cloth:#9c5a6e;accent:#4e7f52"
+    },
+    {
+      "id": "nikodemos-dikast",
+      "name": "Nikodemos",
+      "kind": "Composite",
+      "era": "Classical Athens",
+      "floruitStart": -430,
+      "floruitEnd": -393,
+      "place": "Athens",
+      "role": "juror, fourth panel",
+      "sketch": "Sixty-one, and has drawn jury pay for nineteen years because his knees ended his other trade. He sat on the panel of five hundred in the spring of 399 and has not been asked about it since, which he minds.",
+      "tastes": "A case that stays on the charge. Distrusts a defendant who is cleverer than the court and says so out loud.",
+      "avatar": "skin:tan;hair:grey;beard:short;hat:none;cloth:#5d6b57;accent:#8a6a3b"
+    },
+    {
+      "id": "plato",
+      "name": "Plato",
+      "kind": "Historical",
+      "era": "Classical Athens",
+      "floruitStart": -399,
+      "floruitEnd": -347,
+      "place": "Athens",
+      "role": "philosopher",
+      "sketch": "Around twenty-eight at the trial and present in the court, by his own account. Everything he is given to say here is paraphrase of what he wrote; the reference under each turn is where to check it.",
+      "tastes": "The examined life, geometry, and an argument that survives being taken apart. Distrusts poetry precisely because he can feel it working on him.",
+      "avatar": "skin:light;hair:grey;beard:full;hat:none;cloth:#6d6fa0;accent:#e0d6b4"
+    },
+    {
+      "id": "aelian",
+      "name": "Aelian",
+      "kind": "Historical",
+      "era": "Roman Empire",
+      "floruitStart": 190,
+      "floruitEnd": 235,
+      "place": "Praeneste and Rome",
+      "role": "sophist and collector of curiosities",
+      "sketch": "A Roman who wrote only in Greek and boasted of never leaving Italy. His Varia Historia is six hundred years of anecdote gathered without much sorting, which is both why it preserves so much and why it has to be handled carefully.",
+      "tastes": "A good story about a famous man. Weak on whether it happened.",
+      "avatar": "skin:light;hair:dark;beard:short;hat:none;cloth:#8a4b3c;accent:#d7c9a7"
+    },
+    {
+      "id": "theodoulos-copyist",
+      "name": "Theodoulos",
+      "kind": "Composite",
+      "era": "Late Antiquity",
+      "floruitStart": 375,
+      "floruitEnd": 435,
+      "place": "Alexandria",
+      "role": "schoolmaster and copyist",
+      "sketch": "Teaches Attic Greek to boys who speak a language eight hundred years past it, from a play about a philosopher none of them could name. He copies what he teaches, and he has begun to notice where his two sources disagree.",
+      "tastes": "A clean hand, a rare word, and a note in the margin saying which manuscript it came from.",
+      "avatar": "skin:olive;hair:dark;beard:short;hat:cap;cloth:#4a5a72;accent:#c7a15a"
+    }
+  ],
+
+  "debate": {
+    "id": "clouds-reception",
+    "work": { "authorKey": "aristophanes", "titleKeys": ["clouds", "nubes"] },
+    "title": "What the play did, over eight hundred years",
+    "kind": "AcrossTheCenturies",
+    "compositionYear": -423,
+    "settingPlace": "Athens, and afterwards",
+    "settingNote": "Not a conversation. Five people who never met, set in the order they spoke, because what happened to this comedy afterwards is the most serious thing about it. Twenty-four years after the Clouds came third and was forgotten, a jury of five hundred Athenians voted to execute the man it had made a figure of fun, and the defendant told them where the picture in their heads had come from. Two of the five speakers below are real and are paraphrased from what they wrote; the reference under each of their turns is where to check it."
+  },
+
+  "turns": [
+    {
+      "seq": 1,
+      "criticId": "philyra-garland-seller",
+      "year": -416,
+      "text": "Seven years on and the play is gone. Nobody at my stall could tell you how it ended. What they can tell you is that there is a man in this city who walks on air and looks down on the sun, and they can tell you his name, and not one of them has heard him speak.",
+      "passageRef": "225"
+    },
+    {
+      "seq": 2,
+      "criticId": "nikodemos-dikast",
+      "year": -399,
+      "text": "I sat on that panel. I want to be exact, because everyone since has not been. The charge read out was not a comedy. It was corrupting the young and not acknowledging the city's gods. Nobody mentioned a play. Nobody had to."
+    },
+    {
+      "seq": 3,
+      "criticId": "plato",
+      "year": -399,
+      "text": "He began by saying there were two sets of accusers and the dangerous ones were not in the room. The old charge was that Socrates investigates what is under the earth and in the sky, makes the weaker argument the stronger, and teaches others to do it. Then he told the jury where they had got it: you saw this yourselves, in Aristophanes' comedy, a Socrates carried about the stage announcing that he walks on air.",
+      "sourceCitation": "Plato, Apology 19b-c",
+      "sourceWork": { "authorKey": "plato", "titleKeys": ["apology"], "citationRef": "19" }
+    },
+    {
+      "seq": 4,
+      "criticId": "nikodemos-dikast",
+      "year": -399,
+      "text": "And what were we supposed to do with that? Half the panel had been in the theatre. Several had laughed. He was asking five hundred men to unremember a thing they had enjoyed."
+    },
+    {
+      "seq": 5,
+      "criticId": "plato",
+      "year": -399,
+      "text": "That was his complaint exactly. The first accusers got at you when you were children, he said, and they win by default, because there is no one to cross-examine. He could question Meletus. He could not question a chorus of clouds from twenty-four years ago.",
+      "sourceCitation": "Plato, Apology 18b-d",
+      "sourceWork": { "authorKey": "plato", "titleKeys": ["apology"], "citationRef": "18" }
+    },
+    {
+      "seq": 6,
+      "criticId": "aelian",
+      "year": 220,
+      "text": "There is more to it than that. Anytus and his people wanted him and did not dare bring the charge directly, because the name stood too high. So they put Aristophanes up to the comedy first, to test the ground. I add that it would hardly be surprising if he took money for it.",
+      "sourceCitation": "Aelian, Varia Historia 2.13",
+      "sourceWork": { "authorKey": "aelian", "titleKeys": ["varia"], "citationRef": "2.13" }
+    },
+    {
+      "seq": 7,
+      "criticId": "aelian",
+      "year": 220,
+      "text": "And he was there. The foreigners in the audience did not know who was being mocked and began asking, so Socrates stood up where he sat and remained standing, in view, for the whole performance. That is how little he cared for comedy, or for Athens.",
+      "sourceCitation": "Aelian, Varia Historia 2.13",
+      "sourceWork": { "authorKey": "aelian", "titleKeys": ["varia"], "citationRef": "2.13" }
+    },
+    {
+      "seq": 8,
+      "criticId": "theodoulos-copyist",
+      "year": 400,
+      "text": "I have both of those on my desk and they do not fit. Aelian has the whole theatre shouting that Aristophanes must be given the prize. The record of the festival has the play third of three. Somebody's manuscript is telling a better story than it is entitled to, and I would not build much on the man standing up either."
+    },
+    {
+      "seq": 9,
+      "criticId": "theodoulos-copyist",
+      "year": 400,
+      "text": "What I can tell you is what has lasted. I set this play for the Attic. The boys learn the word for walking on air out of it, as a vocabulary item, and they learn the name attached to it. Eight hundred years, and the joke has outlived the argument, the trial and the man.",
+      "passageRef": "225"
+    }
+  ]
+}

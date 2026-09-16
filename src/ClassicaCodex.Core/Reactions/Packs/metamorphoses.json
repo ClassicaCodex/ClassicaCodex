@@ -1,0 +1,131 @@
+{
+  "critics": [
+    {
+      "id": "ovid",
+      "name": "Ovid",
+      "kind": "Historical",
+      "era": "Augustan Rome",
+      "floruitStart": -25,
+      "floruitEnd": 17,
+      "place": "Rome, then Tomis on the Black Sea",
+      "role": "the poet, writing from exile",
+      "sketch": "Banished by Augustus in AD 8 to a garrison town on the edge of the empire, for reasons he never states plainly, and never allowed back. Everything he is given to say here is paraphrase of the exile poems, which are the only defence he got to make.",
+      "tastes": "The turn, the joke inside the horror, the line that will not leave you alone. Knew his faults and has said so in writing.",
+      "avatar": "skin:light;hair:dark;beard:none;hat:none;cloth:#7b5a8c;accent:#e6c98f"
+    },
+    {
+      "id": "caecilia-reader",
+      "name": "Caecilia",
+      "kind": "Composite",
+      "era": "Roman Empire",
+      "floruitStart": 5,
+      "floruitEnd": 58,
+      "place": "Rome",
+      "role": "owns fifteen books and has read them all twice",
+      "sketch": "Married into enough money for a small library and reads in the afternoons, which her husband finds funny. She bought the Metamorphoses in the year the poet died and has never been able to explain to anybody why she keeps rereading the frightening parts.",
+      "tastes": "A story that changes shape while you are inside it. Impatient with men who praise a poem by ranking it.",
+      "avatar": "skin:olive;hair:dark;beard:none;hat:none;cloth:#9c6a7e;accent:#d9c07a"
+    },
+    {
+      "id": "seneca-elder",
+      "name": "Seneca the Elder",
+      "kind": "Historical",
+      "era": "Roman Empire",
+      "floruitStart": -5,
+      "floruitEnd": 39,
+      "place": "Corduba and Rome",
+      "role": "rhetorician, and a man with an extraordinary memory",
+      "sketch": "Sat in the declamation halls for fifty years and wrote down what he heard, from memory, in old age, for his sons. He knew Ovid as a young declaimer and is the only person who has left us an eyewitness account of how the man worked.",
+      "tastes": "A well-turned epigram and an accurate anecdote. Can tell you which speaker used which colour in a case forty years ago.",
+      "avatar": "skin:light;hair:white;beard:short;hat:none;cloth:#6b5a4a;accent:#c4a870"
+    },
+    {
+      "id": "quintilian",
+      "name": "Quintilian",
+      "kind": "Historical",
+      "era": "Roman Empire",
+      "floruitStart": 68,
+      "floruitEnd": 96,
+      "place": "Rome",
+      "role": "the first salaried professor of rhetoric in Rome",
+      "sketch": "Taught for twenty years on a state salary and then wrote twelve books on how to do it, including a reading list that decided what Europe read for the next fourteen centuries. Paraphrased here from the Institutio; the reference under each turn is where to check it.",
+      "tastes": "Judgement, and saying plainly where a writer stands. Has no patience for enthusiasm that cannot rank things.",
+      "avatar": "skin:light;hair:grey;beard:none;hat:none;cloth:#5f6f8c;accent:#e0d2a8"
+    }
+  ],
+
+  "debate": {
+    "id": "metamorphoses",
+    "work": { "authorKey": "ovid", "titleKeys": ["metamorphos"] },
+    "title": "A man who knew his own faults and liked them",
+    "kind": "AcrossTheCenturies",
+    "compositionYear": 8,
+    "settingPlace": "Rome, and the Black Sea",
+    "settingNote": "Ovid was exiled in the year he finished the Metamorphoses, burned his own copy before he left, and spent the rest of his life writing from the Black Sea about what he had lost. Three real readers and one invented one, over eighty-six years. The poet, the rhetorician who had watched him work as a young man, and the professor who put him on the reading list are all paraphrased from surviving texts; Caecilia is invented, and is there because no ordinary Roman reader of this poem left an opinion in writing."
+  },
+
+  "turns": [
+    {
+      "seq": 1,
+      "criticId": "ovid",
+      "year": 9,
+      "text": "I burned it. Whatever you have heard, that part is true - I put my own flesh on the fire, because the thing was unrevised and I was leaving and it would have to stand for me. It survived anyway. Copies were already out. So what you are reading is a draft its author condemned, and I am told that people prefer it.",
+      "sourceCitation": "Ovid, Tristia 1.7.15-24",
+      "sourceWork": { "authorKey": "ovid", "titleKeys": ["tristia"], "citationRef": "1.7.20" }
+    },
+    {
+      "seq": 2,
+      "criticId": "ovid",
+      "year": 12,
+      "text": "And since somebody will ask what I did: two charges destroyed me, a poem and a mistake, and about the second I must be silent. Note which of the two comes first in the sentence. I had written the last lines of this book before any of it happened - that I had finished a work which neither the anger of Jupiter nor fire could destroy. I have since tested the fire personally.",
+      "passageRef": "15.871",
+      "sourceCitation": "Ovid, Tristia 2.207",
+      "sourceWork": { "authorKey": "ovid", "titleKeys": ["tristia"], "citationRef": "2.1.207" }
+    },
+    {
+      "seq": 3,
+      "criticId": "caecilia-reader",
+      "year": 20,
+      "text": "I bought it the year he died. Everyone talks about the wit. Nobody warns you that it is a book about being changed into something that cannot speak. The girl becomes a tree and the god is still holding her. The weaver wins the contest and is beaten for it and hangs herself and is made into the thing that spins forever. It is very funny for eight lines at a time and then it is not funny at all.",
+      "passageRef": "1.452"
+    },
+    {
+      "seq": 4,
+      "criticId": "seneca-elder",
+      "year": 35,
+      "text": "I knew him as a young man in the declamation halls, and I can tell you exactly what he was. In his verse he did not fail to notice his own faults - he loved them. His friends once asked him to strike out three lines. He agreed, if he could name three that must stay. Both sides wrote their lists in private. The lines were the same.",
+      "sourceCitation": "Seneca the Elder, Controversiae 2.2.12",
+      "sourceWork": { "authorKey": "seneca", "titleKeys": ["controversiae"], "citationRef": "2.2.12" }
+    },
+    {
+      "seq": 5,
+      "criticId": "seneca-elder",
+      "year": 35,
+      "text": "So the man of the highest talent did not lack the judgement to restrain his own verse. He lacked the will. He used to say a face is more becoming with a mole on it. That is the whole case against him, and he made it himself, cheerfully, at dinner.",
+      "sourceCitation": "Seneca the Elder, Controversiae 2.2.12",
+      "sourceWork": { "authorKey": "seneca", "titleKeys": ["controversiae"], "citationRef": "2.2.12" }
+    },
+    {
+      "seq": 6,
+      "criticId": "caecilia-reader",
+      "year": 45,
+      "text": "Gentlemen, he is not being cheerful. He is telling you that he chose it. There is a difference between a man who cannot stop and a man who has decided that stopping would make it worse, and every one of you has decided which he was without asking the poem."
+    },
+    {
+      "seq": 7,
+      "criticId": "quintilian",
+      "year": 95,
+      "text": "Let the verdict be exact, because he will be taught either way. Ovid is frivolous even in epic and too much in love with his own talent, but he is to be praised in parts. That is where I put him on the list, and I put him on the list.",
+      "sourceCitation": "Quintilian, Institutio Oratoria 10.1.88",
+      "sourceWork": { "authorKey": "quintilian", "titleKeys": ["institutio"], "citationRef": "10.1.88" }
+    },
+    {
+      "seq": 8,
+      "criticId": "quintilian",
+      "year": 95,
+      "text": "And here is what I regret. His Medea - the tragedy, which we have and you may not - shows what the man could have achieved if he had chosen to command his talent instead of indulging it. I am not saying he was minor. I am saying we were shown the bill for what he was.",
+      "sourceCitation": "Quintilian, Institutio Oratoria 10.1.98",
+      "sourceWork": { "authorKey": "quintilian", "titleKeys": ["institutio"], "citationRef": "10.1.98" }
+    }
+  ]
+}

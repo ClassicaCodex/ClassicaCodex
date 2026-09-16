@@ -1,0 +1,150 @@
+{
+  "critics": [
+    {
+      "id": "herodotus",
+      "name": "Herodotus",
+      "kind": "Historical",
+      "era": "Classical Greece",
+      "floruitStart": -455,
+      "floruitEnd": -425,
+      "place": "Halicarnassus, Athens, Thurii",
+      "role": "the author, defending himself",
+      "sketch": "Wrote the first prose work in Greek that tried to explain rather than list, and spent a good deal of it telling you where he got a story and whether he believes it. Everything he is given to say here is paraphrase of his own text.",
+      "tastes": "The custom that turns out to make sense once you know why. Careful to distinguish what he saw, what he was told, and what he thinks.",
+      "avatar": "skin:tan;hair:grey;beard:full;hat:fillet;cloth:#3f7f86;accent:#e0cf9a"
+    },
+    {
+      "id": "arion-of-samos",
+      "name": "Arion",
+      "kind": "Composite",
+      "era": "Classical Greece",
+      "floruitStart": -450,
+      "floruitEnd": -408,
+      "place": "Samos, and most ports between Naucratis and the Black Sea",
+      "role": "merchant, twenty-two years at sea",
+      "sketch": "Has actually been to a good many of the places in this book, on business, and has heard the local guides give the same tour to every Greek who lands. He is not a scholar and does not pretend to be. He knows what a story sounds like when it has been polished for visitors.",
+      "tastes": "A detail only somebody who went there would know. Instantly suspicious of a round number and of anything a priest was paid to say.",
+      "avatar": "skin:brown;hair:dark;beard:short;hat:cap;cloth:#8a6a2f;accent:#4f7f5a"
+    },
+    {
+      "id": "thucydides-author",
+      "name": "Thucydides",
+      "kind": "Historical",
+      "era": "Classical Athens",
+      "floruitStart": -431,
+      "floruitEnd": -399,
+      "place": "Athens, then twenty years of exile",
+      "role": "the next man to try it, and not an admirer",
+      "sketch": "Never names Herodotus. Opens instead by correcting two things everybody believed, both of which are in Herodotus, and by setting out a method designed to be the opposite of his. Paraphrased from his own text; whether he means Herodotus is the oldest argument in the subject.",
+      "tastes": "What can be established, and saying so when it cannot. Regards the pleasure of the hearer as a thing to be resisted.",
+      "avatar": "skin:light;hair:dark;beard:full;hat:none;cloth:#4a5a72;accent:#c3b184"
+    },
+    {
+      "id": "cicero",
+      "name": "Cicero",
+      "kind": "Historical",
+      "era": "Late Roman Republic",
+      "floruitStart": -80,
+      "floruitEnd": -43,
+      "place": "Rome",
+      "role": "advocate, consul, and the most influential prose stylist in Latin",
+      "sketch": "Spent his life persuading juries and then wrote the books on how it is done. His remarks on Thucydides come from a quarrel about style with younger Romans who claimed the Greek as their model. Paraphrased from the Orator.",
+      "tastes": "A sentence that lands, and an audience that follows it the first time. Regards obscurity in a public speaker as a professional failure, whatever it is in a historian.",
+      "avatar": "skin:light;hair:grey;beard:none;hat:laurel;cloth:#8c3b3b;accent:#e2cf9e"
+    },
+    {
+      "id": "plutarch",
+      "name": "Plutarch",
+      "kind": "Historical",
+      "era": "Roman Empire",
+      "floruitStart": 70,
+      "floruitEnd": 120,
+      "place": "Chaeronea in Boeotia",
+      "role": "priest at Delphi, biographer, and an aggrieved Boeotian",
+      "sketch": "Wrote a whole essay called On the Malice of Herodotus, five centuries after the fact, largely because of what Herodotus says about Thebes and Corinth in the Persian War. It is the most sustained attack on a historian surviving from antiquity, and it is not disinterested.",
+      "tastes": "Character, and the moral shape of a life. Believes a historian owes the dead the benefit of the doubt.",
+      "avatar": "skin:olive;hair:grey;beard:short;hat:fillet;cloth:#6b4f7a;accent:#d4c07e"
+    }
+  ],
+
+  "debate": {
+    "id": "herodotus",
+    "work": { "authorKey": "herodotus", "titleKeys": ["histories", "historiae"] },
+    "title": "Father of history, or father of lies",
+    "kind": "AcrossTheCenturies",
+    "compositionYear": -425,
+    "settingPlace": "Greece, Rome, Chaeronea",
+    "settingNote": "Herodotus invented the job and was being accused of doing it badly within a generation. The charge has two halves that keep getting confused: that he is credulous, and that he is unfair - and the second was pressed hardest by a Boeotian writing five hundred years later about what Herodotus had said of Thebes. Four of the five speakers are real, including the author, who is paraphrased from his own defence of his method. The merchant is invented, and is there because the people who had actually been to these places left nothing in writing."
+  },
+
+  "turns": [
+    {
+      "seq": 1,
+      "criticId": "herodotus",
+      "year": -425,
+      "text": "Let me set out the rule before anybody else does it for me. Whoever finds the Egyptian accounts credible is welcome to them. My practice throughout is to write down what is said by each people, as I heard it. That is the undertaking. It is not the same undertaking as telling you what happened, and I have never said it was.",
+      "passageRef": "2.123.1",
+      "sourceCitation": "Herodotus 2.123.1"
+    },
+    {
+      "seq": 2,
+      "criticId": "arion-of-samos",
+      "year": -425,
+      "text": "I have been to Egypt eleven times. I know the priests he talked to at Memphis, or men exactly like them, and I will tell you what they do: they tell every Greek who lands the same four stories, and the stories have been improved for the audience, and the fee is the same either way. Half this book is a very good record of what a paid guide says.",
+      "passageRef": "2.123.1"
+    },
+    {
+      "seq": 3,
+      "criticId": "herodotus",
+      "year": -425,
+      "text": "Yes. And I say so. Take the worst of it - the charge that the Argives invited the Persian in. I am obliged to report what is said; I am not obliged to believe it, and let that stand for the whole work. I put both versions down and I tell you which is which. What exactly would you have me suppress?",
+      "passageRef": "7.152.3",
+      "sourceCitation": "Herodotus 7.152.3"
+    },
+    {
+      "seq": 4,
+      "criticId": "arion-of-samos",
+      "year": -420,
+      "text": "Nothing. That is the part I defend and the part that will get him into trouble. He has written down the customs of people the rest of you call barbarians as though they had reasons, and he has let a Persian make the better argument more than once. Fifty years from now that will not be called honesty."
+    },
+    {
+      "seq": 5,
+      "criticId": "thucydides-author",
+      "year": -410,
+      "text": "My own account has been composed to be useful rather than to be pleasant to hear. The poets exaggerate for effect and the prose-chroniclers put their material together to please an audience rather than to be true, and what they deal in cannot be checked and has mostly drifted into fable. I have not written that way.",
+      "sourceCitation": "Thucydides 1.21.1, 1.22.4",
+      "sourceWork": { "authorKey": "thucydides", "titleKeys": ["history", "peloponnesian"], "citationRef": "1.21.1" }
+    },
+    {
+      "seq": 6,
+      "criticId": "thucydides-author",
+      "year": -410,
+      "text": "And since the point has been raised, two examples. The Spartan kings do not have two votes each; they have one. There is no Pitanate company in the Spartan army; there has never been one. The Greeks accept a great many things about their own time without taking any trouble to test them. I name nobody.",
+      "sourceCitation": "Thucydides 1.20.3 - the two errors he corrects are both in Herodotus 6.57 and 9.53",
+      "sourceWork": { "authorKey": "thucydides", "titleKeys": ["history", "peloponnesian"], "citationRef": "1.20.3" }
+    },
+    {
+      "seq": 7,
+      "criticId": "cicero",
+      "year": -46,
+      "text": "In Herodotus, the father of history, there are countless tales. I use both halves of that sentence deliberately, and Romans who quote only the first half of me are as careless as the man they are defending.",
+      "sourceCitation": "Cicero, On the Laws 1.5: apud Herodotum patrem historiae ... sunt innumerabiles fabulae"
+    },
+    {
+      "seq": 8,
+      "criticId": "plutarch",
+      "year": 110,
+      "text": "His style has deceived a great many people - simple, effortless, running lightly over the facts - but far more have been taken in by his character. It reads as good nature. Look at what the good nature is doing to the reputations of the dead, city by city, and then tell me it is artless.",
+      "sourceCitation": "Plutarch, On the Malice of Herodotus 1",
+      "sourceWork": { "authorKey": "plutarch", "titleKeys": ["malign"], "citationRef": "1" }
+    },
+    {
+      "seq": 9,
+      "criticId": "plutarch",
+      "year": 110,
+      "text": "And he is so fond of barbarians that he clears Busiris of human sacrifice and murdering guests, testifies to the great piety and justice of all Egyptians, and then turns that same charge of blood-guilt back on the Greeks. I am from Boeotia. I have read what he says about Thebes. Judge for yourself whether a man who does that is merely reporting what he heard.",
+      "sourceCitation": "Plutarch, On the Malice of Herodotus 12",
+      "sourceWork": { "authorKey": "plutarch", "titleKeys": ["malign"], "citationRef": "12" }
+    }
+  ]
+}

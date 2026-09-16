@@ -1,0 +1,171 @@
+{
+  "critics": [
+    {
+      "id": "propertius",
+      "name": "Propertius",
+      "kind": "Historical",
+      "era": "Augustan Rome",
+      "floruitStart": -32,
+      "floruitEnd": -15,
+      "place": "Rome",
+      "role": "elegist, and a friend of the wrong genre",
+      "sketch": "Wrote four books of love elegy and spent them insisting he would never write an epic. He is the earliest surviving reader to say what the Aeneid was going to be, and he said it before it existed - in a poem about why he is not writing one.",
+      "tastes": "The small poem done perfectly. Praises epic the way a man praises a mountain he has no intention of climbing.",
+      "avatar": "skin:light;hair:dark;beard:none;hat:fillet;cloth:#8c4a5e;accent:#e8d39a"
+    },
+    {
+      "id": "tyche-freedwoman",
+      "name": "Tyche",
+      "kind": "Composite",
+      "era": "Augustan Rome",
+      "floruitStart": -35,
+      "floruitEnd": -8,
+      "place": "Rome and Naples",
+      "role": "freedwoman, kept the household accounts",
+      "sketch": "Bought her freedom out of a literary household and stayed on for wages, because the work was quiet and the wine was good. She has been in the room for three recitations and has strong views about what a reading does to the people listening to it.",
+      "tastes": "Watching an audience rather than a performer. Knows exactly how long a room can hold its breath.",
+      "avatar": "skin:olive;hair:dark;beard:none;hat:none;cloth:#6f7f5a;accent:#c2a05a"
+    },
+    {
+      "id": "vipsanius-agrippa",
+      "name": "Marcus Agrippa",
+      "kind": "Historical",
+      "era": "Augustan Rome",
+      "floruitStart": -37,
+      "floruitEnd": -12,
+      "place": "Rome",
+      "role": "admiral, builder, and the second man in the empire",
+      "sketch": "Won Actium, built the first Pantheon and the aqueducts, and married the emperor's daughter. His one recorded literary opinion is a hostile verdict on Vergil, preserved because a biographer thought it worth writing down.",
+      "tastes": "Plain, useful, Roman. Suspicious of a style that draws attention to itself while pretending not to.",
+      "avatar": "skin:tan;hair:dark;beard:none;hat:laurel;cloth:#7b2f2f;accent:#d8c27a"
+    },
+    {
+      "id": "marcus-grammaticus",
+      "name": "Marcus",
+      "kind": "Composite",
+      "era": "Roman Empire",
+      "floruitStart": 35,
+      "floruitEnd": 85,
+      "place": "Rome",
+      "role": "grammaticus, teaches boys aged eleven to fifteen",
+      "sketch": "Paid badly to take the whole Aeneid apart in front of thirty boys, twice a year, for twenty years. He has explained the first line four hundred times and can no longer hear it.",
+      "tastes": "A boy who asks a real question. Has a professional grudge against Book 4, which is the only one any of them have read ahead.",
+      "avatar": "skin:light;hair:grey;beard:short;hat:none;cloth:#4d5a6b;accent:#b8a06a"
+    },
+    {
+      "id": "quintilian",
+      "name": "Quintilian",
+      "kind": "Historical",
+      "era": "Roman Empire",
+      "floruitStart": 68,
+      "floruitEnd": 96,
+      "place": "Rome",
+      "role": "the first salaried professor of rhetoric in Rome",
+      "sketch": "Taught for twenty years on a state salary and then wrote twelve books on how to do it, including a reading list that decided what Europe read for the next fourteen centuries. Paraphrased here from the Institutio; the reference under each turn is where to check it.",
+      "tastes": "Judgement, and saying plainly where a writer stands. Has no patience for enthusiasm that cannot rank things.",
+      "avatar": "skin:light;hair:grey;beard:none;hat:none;cloth:#5f6f8c;accent:#e0d2a8"
+    },
+    {
+      "id": "augustine",
+      "name": "Augustine",
+      "kind": "Historical",
+      "era": "Late Antiquity",
+      "floruitStart": 386,
+      "floruitEnd": 430,
+      "place": "Hippo Regius, North Africa",
+      "role": "bishop, and formerly a professor of rhetoric",
+      "sketch": "Taught Latin literature for twelve years before his conversion, which is why his account of what the Aeneid did to him as a schoolboy is the most precise one anybody wrote. Paraphrased here from the Confessions.",
+      "tastes": "Knowing exactly what he loved and exactly why it was the wrong thing. Merciless about his own eleven-year-old self.",
+      "avatar": "skin:tan;hair:dark;beard:short;hat:cap;cloth:#3f5a6b;accent:#c9b070"
+    }
+  ],
+
+  "debate": {
+    "id": "aeneid",
+    "work": { "authorKey": "vergil", "titleKeys": ["aeneid", "aeneis"] },
+    "title": "The national poem, from before it existed to long after Rome",
+    "kind": "AcrossTheCenturies",
+    "compositionYear": -29,
+    "settingPlace": "Rome, and the empire after it",
+    "settingNote": "Vergil worked on the Aeneid for eleven years, never finished it, and asked on his deathbed for it to be burned. Augustus overruled him. What follows spans more than four centuries, from a poet announcing the thing before anyone had read it to a bishop in North Africa explaining what it had done to him at school. Four of the six speakers are real and are paraphrased from surviving texts; the freedwoman and the schoolmaster are invented, and stand in for everybody who met this poem without leaving a word about it."
+  },
+
+  "turns": [
+    {
+      "seq": 1,
+      "criticId": "propertius",
+      "year": -26,
+      "text": "Give way, Roman writers, give way, Greeks: something greater than the Iliad is being born. I have not read it. Nobody has read it. That is the point - it is already the largest thing in Rome and it is not finished.",
+      "sourceCitation": "Propertius, Elegies 2.34.65-66",
+      "sourceWork": { "authorKey": "propertius", "titleKeys": ["elegiae"], "citationRef": "2.34b.42" }
+    },
+    {
+      "seq": 2,
+      "criticId": "tyche-freedwoman",
+      "year": -22,
+      "text": "He read three books aloud to the household of the first man in Rome - the fall of Troy, the queen, and the descent to the dead. His sister was in the room. When the poet reached the boy in the underworld and said you shall be Marcellus, she went down in a faint, and it took some time to bring her round. Her son had been dead a year. I have never seen a room do that before or since.",
+      "passageRef": "6.883",
+      "sourceCitation": "Donatus, Life of Vergil 32"
+    },
+    {
+      "seq": 3,
+      "criticId": "tyche-freedwoman",
+      "year": -19,
+      "text": "And then he caught a fever at Megara and died at Brundisium, and the first thing he asked for was the box, to burn it. Varius refused to his face. Caesar overruled a dead man and had it published with as little changed as possible. So the poem you are all about to spend four hundred years arguing over is one its author did not want you to have.",
+      "sourceCitation": "Donatus, Life of Vergil 39-41"
+    },
+    {
+      "seq": 4,
+      "criticId": "vipsanius-agrippa",
+      "year": -17,
+      "text": "I will say what the rest of you will not. He is the inventor of a new sort of affectation - not swollen and not thin, but hidden, because it is made out of ordinary words. That is the cleverest kind and the hardest to call out, and I am calling it out.",
+      "sourceCitation": "Donatus, Life of Vergil 44, reporting M. Vipsanius: novae cacozeliae repertorem"
+    },
+    {
+      "seq": 5,
+      "criticId": "marcus-grammaticus",
+      "year": 60,
+      "text": "Eighty years on and I earn my bread from it. Every boy in the empire meets arms and the man before he can shave, and construes it, and is beaten when he cannot. Whatever it was written to be, it is now the thing Latin is taught out of.",
+      "passageRef": "1.1"
+    },
+    {
+      "seq": 6,
+      "criticId": "marcus-grammaticus",
+      "year": 60,
+      "text": "And I will tell you which book they read ahead to, every single year, without being set it. Not the fall of Troy. Not the underworld. Book four - the unhappy queen burning, wandering the whole city. Thirty boys who cannot be made to care about the founding of Rome, and every one of them has an opinion about Dido.",
+      "passageRef": "4.68"
+    },
+    {
+      "seq": 7,
+      "criticId": "quintilian",
+      "year": 95,
+      "text": "Let us have the ranking straight, and I shall use the words I heard from Domitius Afer when I was young. I asked him who came closest to Homer. He said: Vergil is second, but nearer to the first than to the third. We begin the Roman reading list where the Greeks begin theirs, and we begin it with him.",
+      "sourceCitation": "Quintilian, Institutio Oratoria 10.1.85-86",
+      "sourceWork": { "authorKey": "quintilian", "titleKeys": ["institutio"], "citationRef": "10.1.86" }
+    },
+    {
+      "seq": 8,
+      "criticId": "quintilian",
+      "year": 95,
+      "text": "Second is not an insult. The Greek had the advantage of coming first and of an inspiration nobody has matched; ours has the more even hand throughout. As much as we are beaten in the peaks, we may make it up in evenness. That is a judgement, not a compliment, and I would rather be held to it than to the enthusiasm of elegists.",
+      "sourceCitation": "Quintilian, Institutio Oratoria 10.1.86",
+      "sourceWork": { "authorKey": "quintilian", "titleKeys": ["institutio"], "citationRef": "10.1.86" }
+    },
+    {
+      "seq": 9,
+      "criticId": "augustine",
+      "year": 397,
+      "text": "I was made to learn the wanderings of a man called Aeneas while forgetting my own, and to weep over the death of Dido, who killed herself for love - and I wept, and did not weep for myself, dying in the middle of it for want of loving you. What could be more wretched than a wretch who does not pity himself?",
+      "sourceCitation": "Augustine, Confessions 1.13.20-21",
+      "sourceWork": { "authorKey": "augustine", "titleKeys": ["confess"], "citationRef": "1.21" }
+    },
+    {
+      "seq": 10,
+      "criticId": "augustine",
+      "year": 397,
+      "text": "And understand what I am accusing. Not the poem. The curriculum. Ask the sellers and buyers of grammar whether Aeneas ever came to Carthage: the ignorant will say they do not know and the learned will deny it outright. Ask them how his name is spelt and every one of them answers. One and one is two was a hateful chant to me, and a wooden horse full of armed men and Troy burning were the sweetest spectacle of vanity. I am readier to forget how to read than to forget the wanderings of Aeneas, and that is the injury.",
+      "sourceCitation": "Augustine, Confessions 1.13.22",
+      "sourceWork": { "authorKey": "augustine", "titleKeys": ["confess"], "citationRef": "1.22" }
+    }
+  ]
+}
