@@ -165,16 +165,7 @@ public class EditionRepository
         // stranded id is one deletion pattern away from belonging to a
         // different passage, and then the index would be claiming a word for a
         // line that never had it.
-        await using (var wordIndex = conn.CreateCommand())
-        {
-            wordIndex.Transaction = (SqliteTransaction)tx;
-            wordIndex.CommandText =
-                "DELETE FROM WordIndex WHERE TextNodeId IN " +
-                "(SELECT TextNodeId FROM TextNodes WHERE EditionId = @EditionId);";
-            wordIndex.Parameters.AddWithValue("@EditionId", editionId);
-            wordIndex.CommandTimeout = 120;
-            await wordIndex.ExecuteNonQueryAsync(cancellationToken);
-        }
+        await DeleteWordIndexForEditionAsync(conn, (SqliteTransaction)tx, editionId, cancellationToken);
 
         await using (var cmd = conn.CreateCommand())
         {
@@ -350,9 +341,9 @@ public class EditionRepository
         // the index can only be found through them, so deleting them first
         // strands its entries permanently. Removing an edition from the
         // library left its whole word index behind.
-        await ExecuteAsync(
-            "DELETE FROM WordIndex WHERE TextNodeId IN " +
-            "(SELECT TextNodeId FROM TextNodes WHERE EditionId = @EditionId);", "@EditionId", editionId);
+        await DeleteWordIndexForEditionAsync(
+            conn, (Microsoft.Data.Sqlite.SqliteTransaction)tx, editionId, cancellationToken);
+
         await ExecuteAsync("DELETE FROM TextNodes WHERE EditionId = @EditionId;", "@EditionId", editionId);
         await ExecuteAsync("DELETE FROM ApparatusEntries WHERE EditionId = @EditionId;", "@EditionId", editionId);
         await ExecuteAsync("DELETE FROM Editions WHERE EditionId = @EditionId;", "@EditionId", editionId);
@@ -579,5 +570,87 @@ public class EditionRepository
         cmd.CommandText = "SELECT EXISTS (SELECT 1 FROM TextNodes WHERE Milestone IS NOT NULL);";
         cmd.CommandTimeout = 60;
         return Convert.ToInt32(await cmd.ExecuteScalarAsync(cancellationToken));
+    }
+
+    /// <summary>
+    /// Removes an edition's word-index entries by naming each row's primary
+    /// key, rather than asking the index to find them by line.
+    ///
+    /// <b>This is the difference between a second and an afternoon.</b>
+    /// WordIndex is WITHOUT ROWID keyed (NormalizedWord, TextNodeId), so
+    /// there is no access path by line alone: a WHERE on TextNodeId is
+    /// answered with a skip-scan that probes once per distinct word - 2.2
+    /// million of them on a full library. WordIndexRepository.DeleteByEdition
+    /// Async documents the measurement: an edition of no lines took 1.4
+    /// seconds, and one of 8,088 lines had not finished in fifteen minutes.
+    ///
+    /// That was judged acceptable because a whole-edition re-ingest "happens
+    /// once". It does not. A Menota manuscript is one file containing many
+    /// works, and the importer clears and rewrites an edition per work:
+    /// Holm-A-80.xml alone carries 275, so importing it paid 275 skip-scans
+    /// of a twenty-six-million-row index. The import did not hang - it was
+    /// going to finish, several hours later - and reported the same file for
+    /// all of it, which is why it was reported as a stall at 44 of 91.
+    ///
+    /// Naming the rows costs one seek apiece. The words come from the text as
+    /// the database currently holds it, which is what was indexed, and the
+    /// empty-word marker is offered for every line because that is the row
+    /// WordIndexService writes for a line with nothing indexable in it.
+    ///
+    /// The honest limit: if a line's text was changed without the index being
+    /// updated, this leaves that line's old rows behind instead of removing
+    /// them. That is the same trade SyncEditionAsync already makes, an
+    /// orphaned row is invisible to search - it points at a passage that no
+    /// longer exists and drops out of the join - and a full index rebuild
+    /// clears any that accumulate.
+    /// </summary>
+    private static async Task DeleteWordIndexForEditionAsync(
+        SqliteConnection conn,
+        SqliteTransaction transaction,
+        int editionId,
+        CancellationToken cancellationToken)
+    {
+        var lines = new List<(long TextNodeId, string Text)>();
+
+        await using (var read = conn.CreateCommand())
+        {
+            read.Transaction = transaction;
+            read.CommandText = "SELECT TextNodeId, Text FROM TextNodes WHERE EditionId = @EditionId;";
+            read.Parameters.AddWithValue("@EditionId", editionId);
+
+            await using var reader = await read.ExecuteReaderAsync(cancellationToken);
+            while (await reader.ReadAsync(cancellationToken))
+            {
+                lines.Add((reader.GetInt64(0), reader.IsDBNull(1) ? string.Empty : reader.GetString(1)));
+            }
+        }
+
+        if (lines.Count == 0) return;
+
+        await using var delete = conn.CreateCommand();
+        delete.Transaction = transaction;
+        delete.CommandText =
+            "DELETE FROM WordIndex WHERE NormalizedWord = @Word AND TextNodeId = @TextNodeId;";
+        var word = delete.Parameters.Add("@Word", SqliteType.Text);
+        var node = delete.Parameters.Add("@TextNodeId", SqliteType.Integer);
+
+        foreach (var (textNodeId, text) in lines)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            node.Value = textNodeId;
+
+            foreach (var token in ClassicaCodex.Core.WordNormalizer.TokenizeLine(text))
+            {
+                word.Value = token;
+                await delete.ExecuteNonQueryAsync(cancellationToken);
+            }
+
+            // The marker row for a line with no indexable words in it. Always
+            // offered rather than only when the line tokenizes to nothing: it
+            // is a single primary-key seek, and leaving it is how the count of
+            // indexed lines drifts.
+            word.Value = string.Empty;
+            await delete.ExecuteNonQueryAsync(cancellationToken);
+        }
     }
 }
