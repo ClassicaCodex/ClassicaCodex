@@ -1,0 +1,125 @@
+{
+  "critics": [
+    {
+      "id": "diodoros-ferryman",
+      "name": "Diodoros",
+      "kind": "Composite",
+      "era": "Classical Athens",
+      "floruitStart": -442,
+      "floruitEnd": -399,
+      "place": "the Piraeus",
+      "role": "rows people across the harbour for two obols",
+      "sketch": "Twenty years of taking fares off people who are going somewhere they would rather not go, which he considers adequate training for watching a play that opens with a ferryman taking a fare off a god. He has never been to the theatre in a good year.",
+      "tastes": "A joke he can repeat in the boat tomorrow. Suspicious of choruses, which he regards as the part where the poet stops being funny on purpose.",
+      "avatar": "skin:brown;hair:dark;beard:full;hat:cap;cloth:#3f6a7f;accent:#c98a3f"
+    },
+    {
+      "id": "myrrhine-innkeeper",
+      "name": "Myrrhine",
+      "kind": "Composite",
+      "era": "Classical Athens",
+      "floruitStart": -446,
+      "floruitEnd": -398,
+      "place": "Athens, near the Diomeian gate",
+      "role": "keeps an inn and hears the city complain",
+      "sketch": "Has fed and watered Athens through twenty-six years of war and can date the decline of the city precisely by what her customers can afford. Two of her sons are dead and one is at sea. She is not in a mood for a play about the good old days.",
+      "tastes": "Somebody saying the true thing out loud. Has no view on tragedy and a very strong view on who is running the city.",
+      "avatar": "skin:olive;hair:dark;beard:none;hat:veil;cloth:#8a5a7a;accent:#d6bb6e"
+    },
+    {
+      "id": "kritodemos-old-juror",
+      "name": "Kritodemos",
+      "kind": "Composite",
+      "era": "Classical Athens",
+      "floruitStart": -458,
+      "floruitEnd": -399,
+      "place": "Athens",
+      "role": "old enough to have seen Aeschylus staged in his lifetime",
+      "sketch": "Seventy-four, and saw the Oresteia as a boy of sixteen, which he mentions. He has outlived the poets, the empire and most of his family, and he goes to the theatre now mainly to see whether anyone remembers what it used to be.",
+      "tastes": "Weight. Believes a chorus should frighten you and that nobody has managed it since.",
+      "avatar": "skin:light;hair:white;beard:full;hat:none;cloth:#6b6455;accent:#a8894f"
+    },
+    {
+      "id": "phanias-young-man",
+      "name": "Phanias",
+      "kind": "Composite",
+      "era": "Classical Athens",
+      "floruitStart": -424,
+      "floruitEnd": -392,
+      "place": "Athens",
+      "role": "twenty-one, and knows a great deal of Euripides by heart",
+      "sketch": "Born into the war and has never known the city at peace. He can quote the prologues, argues in the street about what the gods are for, and is the exact young man the old men in this play are complaining about.",
+      "tastes": "An argument he has not heard before. Cannot see why a poet should be praised for being old.",
+      "avatar": "skin:light;hair:dark;beard:none;hat:fillet;cloth:#4a7f6a;accent:#dcc87c"
+    }
+  ],
+
+  "debate": {
+    "id": "frogs",
+    "work": { "authorKey": "aristophanes", "titleKeys": ["frogs", "ranae"] },
+    "title": "A comedy that judges tragedy, in the last year of the war",
+    "kind": "Scene",
+    "compositionYear": -405,
+    "settingYear": -405,
+    "settingPlace": "Athens",
+    "settingNote": "The Lenaea of 405. Euripides died the year before and Sophocles a few months after him, so Athens has lost both of its living tragedians and is about to lose the war; within eighteen months the walls come down. Aristophanes has answered by writing a comedy in which the god of the theatre goes down to Hades to fetch a poet back, and then makes the two dead poets compete for the ticket. It won first prize, and - uniquely, so far as anyone knows - it was granted a second performance, which the ancient scholars say was for the advice it gives the city about its exiles. All four speakers here are invented."
+  },
+
+  "turns": [
+    {
+      "seq": 1,
+      "criticId": "diodoros-ferryman",
+      "text": "I will say this for it. Somebody has finally noticed that the interesting part of dying is the fare. He puts Dionysos in my boat, makes him row, and charges him two obols, and the whole theatre looked at me. Well - at the men like me. Best two obols I have spent."
+    },
+    {
+      "seq": 2,
+      "criticId": "kritodemos-old-juror",
+      "text": "And then he does the thing nobody has dared do, which is to put Aeschylus on a stage and let him speak. I saw those plays performed. I was sixteen at the Oresteia and I have never got the sound of that chorus out of my head. Watching a comic actor do him was like watching somebody wear my father's armour."
+    },
+    {
+      "seq": 3,
+      "criticId": "phanias-young-man",
+      "text": "Wear it badly, though, and he knew it. The old man does not argue, he thunders, and when he is asked a question he answers with a mountain. Euripides asks him why his characters stand silent for half a play with their heads covered and he has no answer, because there is not one.",
+      "passageRef": "907"
+    },
+    {
+      "seq": 4,
+      "criticId": "kritodemos-old-juror",
+      "text": "He has an answer and you did not like it. I never made whores like Phaedra and Stheneboea - that is the answer, and the theatre roared, and it roared because it is true. Your man put a woman in love on the stage and called it holding the mirror up. I have watched this city stop being able to tell the difference.",
+      "passageRef": "1043"
+    },
+    {
+      "seq": 5,
+      "criticId": "myrrhine-innkeeper",
+      "text": "You have both been in my rooms arguing this for twenty years and neither of you has ever paid for the other's wine. Shall I tell you what the theatre actually went quiet for? Not the poetry. The chorus telling the city to take back the men it disenfranchised, because we are running out of men. The whole theatre stopped breathing."
+    },
+    {
+      "seq": 6,
+      "criticId": "diodoros-ferryman",
+      "text": "That is the truth and it sat oddly in a play about a bottle of oil. He spends a hundred lines making the old man ruin every prologue with the same three words, which was the funniest thing I have seen in ten years, and then he turns round and tells us how to run the war.",
+      "passageRef": "1198"
+    },
+    {
+      "seq": 7,
+      "criticId": "phanias-young-man",
+      "text": "That is not oddly. That is the argument. He weighs their lines on a pair of scales - actual scales, on stage - and the heavy words win, and the joke is that weighing poetry is idiotic and the whole city does it anyway. Then he picks the poet who will save Athens rather than the better poet, and does not pretend they are the same choice.",
+      "passageRef": "1364"
+    },
+    {
+      "seq": 8,
+      "criticId": "myrrhine-innkeeper",
+      "text": "And he takes his swipe at your philosophers on the way out. Charming, isn't it, not to sit beside Socrates and chatter, throwing away the art and missing the greatest part of the tragic craft. My customers came in repeating that one. They could not have named a play of Euripides between them.",
+      "passageRef": "1491"
+    },
+    {
+      "seq": 9,
+      "criticId": "kritodemos-old-juror",
+      "text": "So the comedy about how to judge poets is the best-judged thing anyone has staged in a decade, and the two men it is about are both dead, and there is nobody left to write the next one. I am too old to find that funny."
+    },
+    {
+      "seq": 10,
+      "criticId": "diodoros-ferryman",
+      "text": "You will find it funny by the second performance. There will be one. I have never said that about a play in my life and I am saying it about this one."
+    }
+  ]
+}

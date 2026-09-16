@@ -1,0 +1,120 @@
+{
+  "critics": [
+    {
+      "id": "thrasyllos-democrat",
+      "name": "Thrasyllos",
+      "kind": "Composite",
+      "era": "Classical Athens",
+      "floruitStart": -392,
+      "floruitEnd": -348,
+      "place": "Athens",
+      "role": "has served on the Council and thinks that qualifies him",
+      "sketch": "Drew the lot for the Council once and has dined out on it since. He genuinely believes that the worst thing about Athens is preferable to the best thing anybody has designed, and he has the war and the Thirty to point at when asked why.",
+      "tastes": "A show of hands. Reacts to the phrase \"those best fitted to rule\" the way other men react to a drawn sword.",
+      "avatar": "skin:tan;hair:dark;beard:full;hat:none;cloth:#7f5a3f;accent:#c9a45c"
+    },
+    {
+      "id": "kleoboule-reader",
+      "name": "Kleoboule",
+      "kind": "Composite",
+      "era": "Classical Athens",
+      "floruitStart": -385,
+      "floruitEnd": -330,
+      "place": "the Piraeus",
+      "role": "reads what her brother brings home from the Academy",
+      "sketch": "Runs a household, cannot vote, cannot own the house she runs, and has read the fifth book of this dialogue four times. She is aware that she is not the audience for it and reads it anyway.",
+      "tastes": "The argument taken to the end rather than stopped where it gets awkward. Notices exactly which objections a writer answers and which he skips.",
+      "avatar": "skin:olive;hair:dark;beard:none;hat:veil;cloth:#5f7f8c;accent:#e0c887"
+    },
+    {
+      "id": "aristotle",
+      "name": "Aristotle",
+      "kind": "Historical",
+      "era": "Classical Greece",
+      "floruitStart": -347,
+      "floruitEnd": -322,
+      "place": "Athens",
+      "role": "philosopher, and the first person to write a theory of plot",
+      "sketch": "Came to Athens at seventeen, stayed twenty years with Plato, and ended up disagreeing with him about poetry more usefully than anyone since. Everything he is given to say here is paraphrase of what he wrote; the reference under each turn is where to check it.",
+      "tastes": "A plot whose end follows from its middle. Impatient with anything solved from outside the story.",
+      "avatar": "skin:light;hair:grey;beard:short;hat:none;cloth:#57708c;accent:#d9cba4"
+    }
+  ],
+
+  "debate": {
+    "id": "republic",
+    "work": { "authorKey": "plato", "titleKeys": ["republic", "respublica"] },
+    "title": "The city in words, and the man who lived in it for twenty years",
+    "kind": "AcrossTheCenturies",
+    "compositionYear": -375,
+    "settingPlace": "Athens",
+    "settingNote": "The most-read work of philosophy ever written, and the first sustained criticism of it came from inside the building: Aristotle spent twenty years in Plato's Academy and then devoted the opening of the second book of his Politics to taking the Republic apart, point by point, by name. That is what his turns here are. The other two speakers are invented, and stand for the two audiences the dialogue reaches and does not answer - the ordinary citizen whose vote it proposes to remove, and the woman whose place in it is the most radical thing any Greek proposed and is never argued with anyone who has to live it."
+  },
+
+  "turns": [
+    {
+      "seq": 1,
+      "criticId": "thrasyllos-democrat",
+      "year": -370,
+      "text": "Let me be sure I have it. The city is to be run by the people best fitted to run it, they are to be found by examination, and the rest of us are to be told a story about metals in our souls so that we accept it. I have heard this argument before. It was called the Thirty, it lasted eight months, and fifteen hundred of us did not survive it.",
+      "passageRef": "3.414"
+    },
+    {
+      "seq": 2,
+      "criticId": "kleoboule-reader",
+      "year": -368,
+      "text": "Read the fifth book before you decide what it is. He says that women of the guardian class are to do the same work as the men, be educated the same way, and exercise in the same place - and that the only thing anybody will find ridiculous about it is the novelty. No Athenian has written that sentence before. My brother thinks it is a joke inside the argument. It is not written as one.",
+      "passageRef": "5.457"
+    },
+    {
+      "seq": 3,
+      "criticId": "thrasyllos-democrat",
+      "year": -368,
+      "text": "And in the same book he abolishes the household. Wives in common, children in common, nobody knowing whose son is whose, and he calls that the greatest good because the city will say \"mine\" about the same things all at once. A man with no son of his own has nothing to lose in a battle line. Ask anybody who has stood in one.",
+      "passageRef": "5.462"
+    },
+    {
+      "seq": 4,
+      "criticId": "thrasyllos-democrat",
+      "year": -352,
+      "text": "I will grant the book one thing, and it is not the politics. The prisoners in the cave, the shadows on the wall, and the man who gets out and comes back and is laughed at. I have been in the Assembly. I know exactly what he means and I resent that I do.",
+      "passageRef": "7.514"
+    },
+    {
+      "seq": 5,
+      "criticId": "aristotle",
+      "year": -335,
+      "text": "Begin where he begins, because the premise is the error. He treats the greatest possible unity as the greatest good. But a city is by its nature a plurality, and the more of a unity you make it the more it becomes a household, and then a single man - and you will have destroyed the thing you were trying to perfect by improving it.",
+      "sourceCitation": "Aristotle, Politics 1261a10-24",
+      "sourceWork": { "authorKey": "aristotle", "titleKeys": ["politics"], "citationRef": "2.1261a" }
+    },
+    {
+      "seq": 6,
+      "criticId": "aristotle",
+      "year": -335,
+      "text": "Then the children. What is common to the greatest number gets the least care: each man thinks chiefly of his own and neglects what he expects another to see to. Two thousand fathers to a boy is not two thousand fathers; it is none. Everyone will say \"mine\" and everyone will mean it in the way a man means it of a thing he has a two-thousandth share in.",
+      "sourceCitation": "Aristotle, Politics 1261b32-1262a14",
+      "sourceWork": { "authorKey": "aristotle", "titleKeys": ["politics"], "citationRef": "2.1262a" }
+    },
+    {
+      "seq": 7,
+      "criticId": "aristotle",
+      "year": -335,
+      "text": "And a practical question he never faces. If the women are common and the property is private, who runs the house? The farmers' wives are not common and the farmers' land is not either, so his own arrangement holds only at the top and he has told us nothing about the city underneath it - which is most of the city.",
+      "sourceCitation": "Aristotle, Politics 1264b",
+      "sourceWork": { "authorKey": "aristotle", "titleKeys": ["politics"], "citationRef": "2.1264b" }
+    },
+    {
+      "seq": 8,
+      "criticId": "kleoboule-reader",
+      "year": -334,
+      "text": "Your teacher's pupil has spent six chapters on the households and not one line on whether the women should be educated. He objects that nobody has worked out who keeps the accounts. I notice which half of the proposal each of you found worth arguing with."
+    },
+    {
+      "seq": 9,
+      "criticId": "kleoboule-reader",
+      "year": -332,
+      "text": "That is the thing about it. You can lose every argument in it and not be able to put it down. Nobody has written a city since that did not have to answer this one, and nobody has answered it."
+    }
+  ]
+}

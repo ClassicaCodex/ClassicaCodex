@@ -1,0 +1,148 @@
+{
+  "critics": [
+    {
+      "id": "pherekles-rhapsode",
+      "name": "Pherekles",
+      "kind": "Composite",
+      "era": "Archaic Greece",
+      "floruitStart": -545,
+      "floruitEnd": -498,
+      "place": "Chios, and wherever there is a festival",
+      "role": "rhapsode",
+      "sketch": "Has recited Homer for a living since he was nineteen, in a saffron robe, holding a staff, in about forty cities. He does not read the poem. He knows it, the way a man knows a road he has walked ten thousand times.",
+      "tastes": "A crowd that goes quiet at the right line. Believes the poem is older and truer than anything said about it, and has never once been paid to think otherwise.",
+      "avatar": "skin:tan;hair:grey;beard:full;hat:fillet;cloth:#b8862f;accent:#7a2f2f"
+    },
+    {
+      "id": "plato",
+      "name": "Plato",
+      "kind": "Historical",
+      "era": "Classical Athens",
+      "floruitStart": -399,
+      "floruitEnd": -347,
+      "place": "Athens",
+      "role": "philosopher",
+      "sketch": "Around twenty-eight at the trial and present in the court, by his own account. Everything he is given to say here is paraphrase of what he wrote; the reference under each turn is where to check it.",
+      "tastes": "The examined life, geometry, and an argument that survives being taken apart. Distrusts poetry precisely because he can feel it working on him.",
+      "avatar": "skin:light;hair:grey;beard:full;hat:none;cloth:#6d6fa0;accent:#e0d6b4"
+    },
+    {
+      "id": "aristotle",
+      "name": "Aristotle",
+      "kind": "Historical",
+      "era": "Classical Greece",
+      "floruitStart": -347,
+      "floruitEnd": -322,
+      "place": "Athens",
+      "role": "philosopher, and the first person to write a theory of plot",
+      "sketch": "Came to Athens at seventeen, stayed twenty years with Plato, and ended up disagreeing with him about poetry more usefully than anyone since. Everything he is given to say here is paraphrase of what he wrote; the reference under each turn is where to check it.",
+      "tastes": "A plot whose end follows from its middle. Impatient with anything solved from outside the story.",
+      "avatar": "skin:light;hair:grey;beard:short;hat:none;cloth:#57708c;accent:#d9cba4"
+    },
+    {
+      "id": "aristarchus",
+      "name": "Aristarchus of Samothrace",
+      "kind": "Historical",
+      "era": "Hellenistic Alexandria",
+      "floruitStart": -180,
+      "floruitEnd": -144,
+      "place": "the Library at Alexandria",
+      "role": "head of the Library, and the man who decided what Homer says",
+      "sketch": "Ran the Library, produced the edition of Homer that stands behind every text since, and invented a good deal of the apparatus scholars still use - the marginal signs that mark a line as suspect. Almost nothing he wrote survives; what is known of his judgements comes from the notes later scholars copied into the margins.",
+      "tastes": "Homer explained out of Homer, and nothing imported from later poets. Marks a line rather than deleting it, which is why the lines he doubted are still here to argue about.",
+      "avatar": "skin:olive;hair:grey;beard:short;hat:none;cloth:#55607a;accent:#cdb67f"
+    },
+    {
+      "id": "horace",
+      "name": "Horace",
+      "kind": "Historical",
+      "era": "Augustan Rome",
+      "floruitStart": -40,
+      "floruitEnd": -8,
+      "place": "Rome and the Sabine farm",
+      "role": "poet, and the most quoted critic in Latin",
+      "sketch": "A freedman's son who fought on the losing side at Philippi and ended up the closest thing Rome had to an official poet. His verse letter on the art of poetry was read as a rulebook for seventeen centuries, which would have surprised him.",
+      "tastes": "The thing done properly and without fuss. Deeply suspicious of length, of prologues, and of poets who explain themselves.",
+      "avatar": "skin:light;hair:dark;beard:none;hat:laurel;cloth:#6b7f4a;accent:#e0cf92"
+    }
+  ],
+
+  "debate": {
+    "id": "odyssey",
+    "work": { "authorKey": "homer", "titleKeys": ["odyssey", "odyssea"] },
+    "title": "The one they asked for, and where it ends",
+    "kind": "AcrossTheCenturies",
+    "compositionYear": -720,
+    "settingPlace": "the Greek world, then Alexandria and Rome",
+    "settingNote": "The Iliad was the poem Greeks argued about and the Odyssey was the poem they liked, which is a different thing and produced a different quarrel: not whether it was good for you, but how it is put together and where it stops. Four of the five speakers are real. Aristarchus is the one whose own words are lost almost entirely - what is known of his judgements survives only in notes later scholars copied into the margins of their Homers, which is why his turn is cited to a scholion rather than to a book."
+  },
+
+  "turns": [
+    {
+      "seq": 1,
+      "criticId": "pherekles-rhapsode",
+      "year": -530,
+      "text": "Ask an audience which they want and four times in five it is this one. Not the wrath. The man of many turns, the raft, the cave, and the moment he tells the monster his name is Nobody and a whole hall of grown men lean forward because they know what is coming and want to hear it again.",
+      "passageRef": "9.366"
+    },
+    {
+      "seq": 2,
+      "criticId": "plato",
+      "year": -375,
+      "text": "Then consider one line in it, and what it does to a young man who is going to have to stand in a battle line. Achilles in the underworld says he would rather work the soil for a landless man than be king over all the dead. If we are to have guardians who fear slavery more than death, that line and every line like it must go - not because it is badly made, but because it is beautifully made.",
+      "passageRef": "11.489",
+      "sourceCitation": "Plato, Republic 3.386c-387b",
+      "sourceWork": { "authorKey": "plato", "titleKeys": ["republic"], "citationRef": "3.386" }
+    },
+    {
+      "seq": 3,
+      "criticId": "aristotle",
+      "year": -335,
+      "text": "Set the length aside and look at the argument, which is short. A man is abroad many years, watched by Poseidon and alone; at home his goods are being eaten by suitors and his son plotted against; he arrives after a storm, makes himself known to certain people, attacks, and survives. That is the Odyssey. Everything else is episode.",
+      "sourceCitation": "Aristotle, Poetics 1455b16-23",
+      "sourceWork": { "authorKey": "aristotle", "titleKeys": ["poetics"], "citationRef": "17.10" }
+    },
+    {
+      "seq": 4,
+      "criticId": "aristotle",
+      "year": -335,
+      "text": "And that is the achievement, because the material is enormous and he did not use it. From the Iliad and the Odyssey you can make one tragedy each, or two; from the Cypria you can make a great many, and from the Little Iliad more than eight. A poet who takes a whole war and tells you all of it has chosen the easy thing.",
+      "sourceCitation": "Aristotle, Poetics 1459b1-7",
+      "sourceWork": { "authorKey": "aristotle", "titleKeys": ["poetics"], "citationRef": "23.7" }
+    },
+    {
+      "seq": 5,
+      "criticId": "aristotle",
+      "year": -335,
+      "text": "The fault, since somebody should say it. The putting-ashore is absurd. Sailors carry a sleeping man onto a beach and leave him there with his treasure, and he does not wake. Give that scene to a poor poet and it would be unbearable. As it is, the poet buries the absurdity under everything else he is doing and you do not notice until you are asked.",
+      "passageRef": "13.119",
+      "sourceCitation": "Aristotle, Poetics 1460a35-b2",
+      "sourceWork": { "authorKey": "aristotle", "titleKeys": ["poetics"], "citationRef": "24.22" }
+    },
+    {
+      "seq": 6,
+      "criticId": "aristarchus",
+      "year": -150,
+      "text": "My concern is narrower and it will annoy everybody. The poem ends when the two of them come gladly to the old rite of their bed. What follows - the second visit to the dead, the orchard, the fight with the families - is in every copy I have, and it is not his. I do not strike it out. I put a mark beside it, and I write down why, and the next man may disagree with me in writing.",
+      "passageRef": "23.296",
+      "sourceCitation": "Scholia on Odyssey 23.296, reporting that Aristophanes of Byzantium and Aristarchus called this line the end of the poem"
+    },
+    {
+      "seq": 7,
+      "criticId": "horace",
+      "year": -20,
+      "text": "How much better the man who attempts nothing ineptly. He does not begin the return of Diomede from the death of Meleager, or the Trojan war from the egg. He hurries to the outcome, carries you into the middle of things as though you already knew them, and drops whatever will not take a polish. That is the whole of the craft and it is one sentence long.",
+      "sourceCitation": "Horace, Ars Poetica 140-152",
+      "sourceWork": { "authorKey": "horace", "titleKeys": ["ars poetica"], "citationRef": "148" }
+    },
+    {
+      "seq": 8,
+      "criticId": "horace",
+      "year": -20,
+      "text": "And it is not only made well. Read again what strength and wisdom can do, and Homer has set us a useful example in Ulysses - a man who saw the cities and the manners of many people, and who, while working a return across a wide sea, endured a great deal and could not be drowned. I have set it for my own pupils. There is more philosophy in it than in the philosophers I could name.",
+      "passageRef": "1.1",
+      "sourceCitation": "Horace, Epistles 1.2.17-22",
+      "sourceWork": { "authorKey": "horace", "titleKeys": ["epistulae"], "citationRef": "1.2.17" }
+    }
+  ]
+}

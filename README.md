@@ -150,12 +150,16 @@ outside their own lifetime, and no real person may be given a view without a
 citation — so the constraint is enforced rather than remembered.
 
 It is a way into the argument, not evidence, and it is deliberately kept apart
-from the stylometry and attribution tools. Nine debates ship: the *Clouds*
-twice (the evening it came third, and what the play did to Socrates over the
-following eight centuries), the *Medea*, *Oedipus Tyrannus*, the *Iliad*, the
-*Aeneid*, the *Metamorphoses*, Thucydides, and Herodotus — who gets to defend
-himself, out of his own text. You can add your own as JSON in a `Reactions`
-folder beside the program — see
+Thirteen debates ship, on the *Iliad*, the *Odyssey*, the *Clouds* twice (the
+evening it came third, and what the play did to Socrates over the following
+eight centuries), the *Frogs*, the *Medea*, *Oedipus Tyrannus*, Herodotus,
+Thucydides, the *Republic*, the *Aeneid*, the *Metamorphoses*, and Cicero —
+who appears as a critic in two of the others and is put on trial in his own.
+Herodotus gets to defend himself out of his own text; Aristotle takes the
+*Republic* apart from inside the Academy; Augustine explains what the *Aeneid*
+did to him at school.
+
+You can add your own as JSON in a `Reactions` folder beside the program — see
 [docs/reactions-packs.md](docs/reactions-packs.md).
 
 **Dark mode**, with a parchment light theme and separate artwork for each.

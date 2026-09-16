@@ -1,0 +1,134 @@
+{
+  "critics": [
+    {
+      "id": "rufio-juror",
+      "name": "Rufio",
+      "kind": "Composite",
+      "era": "Late Roman Republic",
+      "floruitStart": -70,
+      "floruitEnd": -40,
+      "place": "Rome",
+      "role": "shopkeeper on the Argiletum, and was in the Forum that day",
+      "sketch": "Sold ink and wax two streets from the Senate house and closed up whenever there was a speech worth standing for. He heard the Catilinarian and has been telling people about it for thirty years, with improvements.",
+      "tastes": "A man who can hold a crowd in the open air. Regards written speeches as a poor relation of the thing itself, having been present at the thing itself.",
+      "avatar": "skin:tan;hair:dark;beard:short;hat:none;cloth:#7a5f3f;accent:#cfae63"
+    },
+    {
+      "id": "quintilian",
+      "name": "Quintilian",
+      "kind": "Historical",
+      "era": "Roman Empire",
+      "floruitStart": 68,
+      "floruitEnd": 96,
+      "place": "Rome",
+      "role": "the first salaried professor of rhetoric in Rome",
+      "sketch": "Taught for twenty years on a state salary and then wrote twelve books on how to do it, including a reading list that decided what Europe read for the next fourteen centuries. Paraphrased here from the Institutio; the reference under each turn is where to check it.",
+      "tastes": "Judgement, and saying plainly where a writer stands. Has no patience for enthusiasm that cannot rank things.",
+      "avatar": "skin:light;hair:grey;beard:none;hat:none;cloth:#5f6f8c;accent:#e0d2a8"
+    },
+    {
+      "id": "sabinus-declaimer",
+      "name": "Sabinus",
+      "kind": "Composite",
+      "era": "Roman Empire",
+      "floruitStart": 60,
+      "floruitEnd": 105,
+      "place": "Rome",
+      "role": "declaims for a living in front of paying audiences",
+      "sketch": "Makes his money from set-piece speeches on imaginary cases, performed indoors to people who have come to be impressed. He has never addressed a jury that could have him killed, and he knows that this is the whole difference between his trade and the one he was taught to admire.",
+      "tastes": "The sentence that lands in the first four words. Thinks the old style is admired mainly by men who have never had to hold a bored room.",
+      "avatar": "skin:olive;hair:dark;beard:none;hat:none;cloth:#8a4f6a;accent:#d9c07e"
+    },
+    {
+      "id": "tacitus",
+      "name": "Tacitus",
+      "kind": "Historical",
+      "era": "Roman Empire",
+      "floruitStart": 88,
+      "floruitEnd": 117,
+      "place": "Rome",
+      "role": "historian, and the author of a dialogue about why oratory declined",
+      "sketch": "Wrote a dialogue in which several speakers argue about Roman oratory, and gave the sharpest case against Cicero to a character called Aper. What is paraphrased here is that text - Tacitus wrote the words; whether he agreed with them is exactly what the dialogue leaves open, which is the point of writing a dialogue.",
+      "tastes": "The case put as well as its holder could put it. Distrusts a golden age, having been asked to believe in several.",
+      "avatar": "skin:light;hair:dark;beard:none;hat:none;cloth:#4f5f6b;accent:#c4b184"
+    }
+  ],
+
+  "debate": {
+    "id": "cicero",
+    "work": { "authorKey": "cicero", "titleKeys": ["catilinam", "catiline"] },
+    "title": "Whether the greatest orator in Latin is worth imitating",
+    "kind": "AcrossTheCenturies",
+    "compositionYear": -63,
+    "settingPlace": "Rome",
+    "settingNote": "Cicero criticises Thucydides elsewhere in these debates; here he is the one being judged. Within a century of his death Roman critics had split into those who thought his speeches were the standard Latin would never beat and those who found them slow, padded and old-fashioned, and the argument was still live when Quintilian set out to settle it. Both of the real speakers are paraphrased from surviving texts. The dialogue Tacitus is paraphrased from puts its case in the mouth of a character; his card says so."
+  },
+
+  "turns": [
+    {
+      "seq": 1,
+      "criticId": "rufio-juror",
+      "year": -62,
+      "text": "I was there. Shop shut, standing at the back, November, cold. He opened with a question - how long are you going to abuse our patience - and the man he was asking was sitting in the room. Nobody sat near him. I have never seen a crowd do that before or since, and I have been going to hear speeches since I was twelve.",
+      "passageRef": "1.1"
+    },
+    {
+      "seq": 2,
+      "criticId": "rufio-juror",
+      "year": -44,
+      "text": "And then they killed him for it, twenty years on, and nailed his hands and his head up where he used to stand. So when a young man tells me the style is out of fashion I do wonder what exactly he thinks the style was for."
+    },
+    {
+      "seq": 3,
+      "criticId": "sabinus-declaimer",
+      "year": 75,
+      "text": "With respect to the dead: try reading one aloud. Really reading it, to a room. You are forty words into the sentence before anything happens, and there are six more of those before he comes to the charge. It was written for men who had nowhere else to be. My audience has somewhere else to be."
+    },
+    {
+      "seq": 4,
+      "criticId": "quintilian",
+      "year": 95,
+      "text": "I will set him against any Greek they care to name and take the argument. I know what I am starting by saying it, and I am not chiefly trying to prove that our orators beat theirs - I would rather be judged on him than on the claim.",
+      "sourceCitation": "Quintilian, Institutio Oratoria 10.1.105",
+      "sourceWork": { "authorKey": "quintilian", "titleKeys": ["institutio"], "citationRef": "10.1.105" }
+    },
+    {
+      "seq": 5,
+      "criticId": "quintilian",
+      "year": 95,
+      "text": "The men of his own time said he reigned in the courts. With those who came after he did better: Cicero has stopped being the name of a man and become the name of eloquence itself. That is what we should look at. A student who finds he likes Cicero very much may take it that he has made progress.",
+      "sourceCitation": "Quintilian, Institutio Oratoria 10.1.112",
+      "sourceWork": { "authorKey": "quintilian", "titleKeys": ["institutio"], "citationRef": "10.1.112" }
+    },
+    {
+      "seq": 6,
+      "criticId": "tacitus",
+      "year": 102,
+      "text": "Let the case be put properly, because it is a serious one. Cicero fought the same battle with his own contemporaries that we are fighting now - they admired the ancients and he preferred the eloquence of his own day. He was the first to be selective, to choose his words, to shape a period. And a man who changed the art is a strange choice of monument for people who say the art must never change.",
+      "sourceCitation": "Tacitus, Dialogue on Oratory 22, in the mouth of Aper",
+      "sourceWork": { "authorKey": "tacitus", "titleKeys": ["dialogus"], "citationRef": "22" }
+    },
+    {
+      "seq": 7,
+      "criticId": "tacitus",
+      "year": 102,
+      "text": "And the charge itself, since Aper makes it and I wrote it down. The early speeches are not free of the fault of the age: he is slow in his openings, long in his narrations, careless about digressions, slow to be stirred and rarely warm. Barely a handful of his endings will bear being lifted out. There is a good deal of him you would not read twice.",
+      "sourceCitation": "Tacitus, Dialogue on Oratory 22",
+      "sourceWork": { "authorKey": "tacitus", "titleKeys": ["dialogus"], "citationRef": "22" }
+    },
+    {
+      "seq": 8,
+      "criticId": "sabinus-declaimer",
+      "year": 103,
+      "text": "Both of those can be true and are. He is the standard, and the standard is slow. What none of you will say out loud is why the speeches got shorter: there is no longer a jury that can be talked out of a verdict, because there is no longer a verdict that is ours to reach. We are declaiming about pirates and stepmothers because the real cases are decided elsewhere."
+    },
+    {
+      "seq": 9,
+      "criticId": "tacitus",
+      "year": 105,
+      "text": "That is the argument my dialogue ends on, and I gave it to Maternus rather than to Aper, so that nobody would have to own it twice. That great and notable eloquence is the foster-child of licence, which fools call liberty - companion of sedition, goad of an unbridled people, insubordinate, rash, arrogant, and not found in a well-ordered state. It grows in a city that is arguing with itself. Ours has stopped.",
+      "sourceCitation": "Tacitus, Dialogue on Oratory 40.2, in the mouth of Maternus",
+      "sourceWork": { "authorKey": "tacitus", "titleKeys": ["dialogus"], "citationRef": "40.2" }
+    }
+  ]
+}
