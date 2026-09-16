@@ -102,7 +102,26 @@ internal static class DpiScaling
     /// to a second screen gets the right answer on the next layout pass.
     /// </summary>
     public static int Scale(Control control, int designPixels) =>
-        control.IsHandleCreated
-            ? (int)Math.Round(designPixels * control.DeviceDpi / DesignDpi.Width)
-            : designPixels;
+        (int)Math.Round(designPixels * CurrentDpi(control) / DesignDpi.Width);
+
+    private static float CurrentDpi(Control control) =>
+        DpiForTests ?? (control.IsHandleCreated ? control.DeviceDpi : DesignDpi.Width);
+
+    /// <summary>
+    /// Pretends the display is at a different DPI. Set by tests, null in the
+    /// application, and never read anywhere else.
+    ///
+    /// <b>Why a seam rather than none.</b> A test process runs at 96 DPI and
+    /// there is no way to change that from inside it. Control.Scale reproduces
+    /// the pass WinForms performs on a high-DPI display, but only half of it:
+    /// it moves and resizes the controls and leaves DeviceDpi reading 96, so a
+    /// method that scales its own coordinates would still be handed design
+    /// values and the test would be measuring a mixture that cannot occur.
+    ///
+    /// Without this, the 150% layout can only be checked by installing the
+    /// application on a 150% machine and looking - which is exactly how the
+    /// Guided Setup wizard shipped with its path box inside its own
+    /// description paragraph, and its Menota folder painted over entirely.
+    /// </summary>
+    internal static float? DpiForTests { get; set; }
 }

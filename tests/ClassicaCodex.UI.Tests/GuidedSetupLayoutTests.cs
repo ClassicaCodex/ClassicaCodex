@@ -24,8 +24,11 @@ namespace ClassicaCodex.UI.Tests;
 /// they hold at any scaling: the path row sits below the description, and the
 /// button stays level with its box.
 /// </summary>
-public class GuidedSetupLayoutTests : IClassFixture<EmptyLibraryFixture>
+public class GuidedSetupLayoutTests : IClassFixture<EmptyLibraryFixture>, IDisposable
 {
+    /// <summary>Never leave a simulated DPI behind for the next test.</summary>
+    public void Dispose() => DpiScaling.DpiForTests = null;
+
     private const int DataFolderStep = 2;
     private const int DatabaseStep = 1;
 
@@ -37,6 +40,12 @@ public class GuidedSetupLayoutTests : IClassFixture<EmptyLibraryFixture>
             form.ShowInTaskbar = false;
             form.Show();
             Application.DoEvents();
+
+            // Both halves of what a high-DPI display does: move and resize the
+            // controls, AND make the code that scales its own coordinates see the
+            // same factor. Only the first measures a mixture that cannot occur -
+            // see DpiScaling.DpiForTests.
+            DpiScaling.DpiForTests = 96f * factor;
 
             if (Math.Abs(factor - 1f) > 0.001f)
             {
@@ -109,6 +118,183 @@ public class GuidedSetupLayoutTests : IClassFixture<EmptyLibraryFixture>
                 + $"{Math.Abs(browse.Top - path.Top)}px apart");
         });
     }
+
+    /// <summary>
+    /// Nothing anywhere in the wizard may be drawn on top of anything else.
+    ///
+    /// <b>This is the test for the symptom that was reported as "the Norse
+    /// Menota folder path was gone".</b> It had not gone: the Menota step is
+    /// the one source step that shows the folder its files must be put in, and
+    /// the path box was being positioned at its design coordinate inside the
+    /// description panel's scaled bounds. The description panel is added to
+    /// the content panel first, and in WinForms the earlier control is the
+    /// FRONT one, so it simply painted over the box. A reader on that step saw
+    /// an instruction to put a file in a folder and no folder.
+    ///
+    /// Walking every step at every scaling is what makes this worth having
+    /// over a test for the one step that was reported. "The other areas were
+    /// cramped too" was the other half of the report, and cramped is what a
+    /// person calls this when the overlap is not quite complete.
+    /// </summary>
+    [Theory]
+    [InlineData(1.0f)]
+    [InlineData(1.25f)]
+    [InlineData(1.5f)]
+    [InlineData(2.0f)]
+    public void NothingInTheWizardIsDrawnOnTopOfAnythingElse(float scaling)
+    {
+        var problems = new List<string>();
+
+        StaHarness.Run(_ =>
+        {
+            using var form = new GuidedSetupForm();
+            form.ShowInTaskbar = false;
+            form.Show();
+            Application.DoEvents();
+            DpiScaling.DpiForTests = 96f * scaling;
+
+
+            if (Math.Abs(scaling - 1f) > 0.001f)
+            {
+                form.Scale(new SizeF(scaling, scaling));
+                Application.DoEvents();
+            }
+
+            var type = typeof(GuidedSetupForm);
+            var stepField = type.GetField("_currentStep", BindingFlags.NonPublic | BindingFlags.Instance)!;
+            var render = type.GetMethod("RenderStep", BindingFlags.NonPublic | BindingFlags.Instance)!;
+            var total = (int)type.GetProperty("TotalSteps", BindingFlags.NonPublic | BindingFlags.Instance)!
+                .GetValue(form)!;
+
+            var content = (Panel)type.GetField("_contentPanel", BindingFlags.NonPublic | BindingFlags.Instance)!
+                .GetValue(form)!;
+
+            for (var step = 0; step < total; step++)
+            {
+                stepField.SetValue(form, step);
+                render.Invoke(form, null);
+                Application.DoEvents();
+
+                if (!content.Visible) continue;
+
+                var shown = content.Controls.Cast<Control>().Where(c => c.Visible).ToList();
+
+                for (var i = 0; i < shown.Count; i++)
+                for (var j = i + 1; j < shown.Count; j++)
+                {
+                    var a = shown[i].Bounds;
+                    var b = shown[j].Bounds;
+                    if (!a.IntersectsWith(b)) continue;
+
+                    var overlap = Rectangle.Intersect(a, b);
+                    problems.Add(
+                        $"step {step}: {Name(shown[i])} and {Name(shown[j])} overlap by "
+                        + $"{overlap.Width}x{overlap.Height}px");
+                }
+
+                foreach (var control in shown.Where(c => c.Bottom > content.Height))
+                {
+                    problems.Add($"step {step}: {Name(control)} ends {control.Bottom - content.Height}px "
+                                 + "below the bottom of the panel");
+                }
+            }
+
+            return Task.CompletedTask;
+        });
+
+        Assert.True(problems.Count == 0,
+            $"at {scaling:P0} the wizard draws controls on top of each other:\n  "
+            + string.Join("\n  ", problems.Distinct().Take(14)));
+    }
+
+    /// <summary>
+    /// The Menota step must show the folder it is telling you to put a file
+    /// into.
+    ///
+    /// It is the one source step that displays a destination path, and the
+    /// step whose whole instruction is "download this file into the folder
+    /// below". At 150% the box was positioned inside the description panel's
+    /// bounds, and since that panel is added first - and the earlier control
+    /// is the front one in WinForms - it painted over the box completely. The
+    /// reader was told to put a file somewhere and shown nowhere.
+    ///
+    /// Found by a person on a laptop, not by any test, which is why this one
+    /// walks every step rather than trusting a remembered index.
+    /// </summary>
+    [Theory]
+    [InlineData(1.0f)]
+    [InlineData(1.5f)]
+    [InlineData(2.0f)]
+    public void TheStepThatNamesAFolderActuallyShowsIt(float scaling)
+    {
+        var checkedSteps = 0;
+        var hidden = new List<string>();
+
+        StaHarness.Run(_ =>
+        {
+            using var form = new GuidedSetupForm();
+            form.ShowInTaskbar = false;
+            form.Show();
+            Application.DoEvents();
+
+            DpiScaling.DpiForTests = 96f * scaling;
+
+            if (Math.Abs(scaling - 1f) > 0.001f)
+            {
+                form.Scale(new SizeF(scaling, scaling));
+                Application.DoEvents();
+            }
+
+            var type = typeof(GuidedSetupForm);
+            var stepField = type.GetField("_currentStep", BindingFlags.NonPublic | BindingFlags.Instance)!;
+            var render = type.GetMethod("RenderStep", BindingFlags.NonPublic | BindingFlags.Instance)!;
+            var total = (int)type.GetProperty("TotalSteps", BindingFlags.NonPublic | BindingFlags.Instance)!
+                .GetValue(form)!;
+
+            var path = (Control)type.GetField("_pathBox", BindingFlags.NonPublic | BindingFlags.Instance)!
+                .GetValue(form)!;
+            var description = (Control)type
+                .GetField("_descriptionScroll", BindingFlags.NonPublic | BindingFlags.Instance)!
+                .GetValue(form)!;
+
+            for (var step = 3; step < total; step++)
+            {
+                stepField.SetValue(form, step);
+                render.Invoke(form, null);
+                Application.DoEvents();
+
+                // Only the source steps that name a folder - the rest hide the
+                // box entirely, which is correct and not what this is about.
+                if (!path.Visible) continue;
+
+                checkedSteps++;
+
+                if (path.Top < description.Bottom)
+                {
+                    hidden.Add($"step {step} at {scaling:P0}: the folder box is at {path.Top}, "
+                               + $"inside the description panel which ends at {description.Bottom} "
+                               + "- it is painted over and the reader sees no folder");
+                }
+
+                if (string.IsNullOrWhiteSpace(path.Text))
+                    hidden.Add($"step {step}: the folder box is empty");
+            }
+
+            return Task.CompletedTask;
+        });
+
+        Assert.True(checkedSteps > 0,
+            "no source step showed a destination path, so this test checked nothing - "
+            + "has ShowDestinationPath been removed from the Menota source?");
+
+        Assert.True(hidden.Count == 0, string.Join("\n  ", hidden));
+    }
+
+    private static string Name(Control control) =>
+        string.IsNullOrEmpty(control.Name) ? control.GetType().Name + $"(\"{Short(control.Text)}\")" : control.Name;
+
+    private static string Short(string? text) =>
+        text is null ? string.Empty : text.Length <= 24 ? text : text[..24] + "...";
 
     /// <summary>
     /// A lint over the method that broke, because the mistake is one line
