@@ -80,4 +80,29 @@ internal static class DpiScaling
         form.AutoScaleMode = AutoScaleMode.Dpi;
         form.AutoScaleDimensions = DesignDpi;
     }
+
+    /// <summary>
+    /// A design-pixel distance in the pixels this control's display actually
+    /// has - for the coordinates that are assigned after construction.
+    ///
+    /// <b>Why this is needed at all.</b> The scaling above happens once, as
+    /// the form is built: WinForms walks the controls and multiplies the
+    /// bounds they were created with. A coordinate written later - in a method
+    /// that moves a control when the step changes, or when a panel is shown -
+    /// never went through that walk, so it lands as a raw device pixel and
+    /// stamps the 100% layout back over the scaled one.
+    ///
+    /// The Guided Setup wizard had eleven of them in one method, and at 150%
+    /// the effect was this: the path box was moved back up to its design
+    /// position while the Browse button beside it, never reassigned, stayed
+    /// where the scaling had put it. The box landed inside the description
+    /// paragraph and the button was left stranded below it.
+    ///
+    /// DeviceDpi is per-control and follows the monitor, so a window dragged
+    /// to a second screen gets the right answer on the next layout pass.
+    /// </summary>
+    public static int Scale(Control control, int designPixels) =>
+        control.IsHandleCreated
+            ? (int)Math.Round(designPixels * control.DeviceDpi / DesignDpi.Width)
+            : designPixels;
 }

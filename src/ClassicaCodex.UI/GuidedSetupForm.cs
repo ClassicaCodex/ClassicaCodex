@@ -522,6 +522,9 @@ public class GuidedSetupForm : ScaledForm
         _wordIndexComplete = totalLines > 0 && indexedLines >= totalLines;
     }
 
+    /// <summary>A design pixel in this display's pixels. See DpiScaling.Scale.</summary>
+    private int Scale(int designPixels) => DpiScaling.Scale(this, designPixels);
+
     private void RenderStep()
     {
         var isWelcome = _currentStep == 0;
@@ -557,19 +560,46 @@ public class GuidedSetupForm : ScaledForm
         // it is not there. Anything longer than the room available scrolls
         // rather than being cut.
         var isPathStep = isDatabase || isDataFolder;
-        _descriptionScroll.Height = isPathStep ? 70 : 96;
+        // Every number below is a design pixel and every one of them goes
+        // through Scale(), because this runs AFTER the form has been scaled.
+        //
+        // They did not, and at 150% this method quietly stamped the 100%
+        // layout back over the scaled one - moving the path box up into the
+        // middle of the description paragraph while the Browse button beside
+        // it, which is positioned once in the constructor and never
+        // reassigned here, stayed where the scaling had put it. Reported from
+        // a laptop; invisible on the machine it was written on.
+        _descriptionScroll.Height = Scale(isPathStep ? 70 : 96);
         _pathBox.ReadOnly = !isPathStep;
-        _pathBox.Top = isPathStep ? 130 : 190;
         _browseButton.Visible = isPathStep;
 
-        _actionButton.Top = isPathStep ? 172 : 218;
+        // The scaled design position, floored at "below the description".
+        //
+        // Scaling the number is the fix; the floor is the guarantee. A design
+        // coordinate is only right as long as everything above it has the
+        // height it was measured against, and the description panel's height
+        // is itself assigned on the line above - so one of the two being
+        // wrong, for any reason, used to put this box in the middle of a
+        // paragraph. Derived from the bottom of the thing above it, that
+        // cannot happen whatever the numbers say.
+        _pathBox.Top = Math.Max(
+            Scale(isPathStep ? 130 : 190), _descriptionScroll.Bottom + Scale(10));
+
+        // Level with the box it belongs to, rather than left wherever the
+        // constructor put it. This is the pair that came apart at 150%: the
+        // box was moved and the button was not.
+        _browseButton.Top = _pathBox.Top - Scale(2);
+
+        _actionButton.Top = Math.Max(
+            Scale(isPathStep ? 172 : 218),
+            (isPathStep ? _pathBox.Bottom : _descriptionScroll.Bottom) + Scale(18));
         _secondaryButton.Top = _actionButton.Top;
-        _progressBar.Top = isPathStep ? 214 : 258;
-        _statusLabel.Top = isPathStep ? 244 : 280;
-        _statusLabel.Width = isPathStep ? 616 : 430;
-        _elapsedLabel.Top = isPathStep ? 268 : 280;
-        _elapsedLabel.Left = isPathStep ? 0 : 440;
-        _elapsedLabel.Width = isPathStep ? 616 : 176;
+        _progressBar.Top = Scale(isPathStep ? 214 : 258);
+        _statusLabel.Top = Scale(isPathStep ? 244 : 280);
+        _statusLabel.Width = Scale(isPathStep ? 616 : 430);
+        _elapsedLabel.Top = Scale(isPathStep ? 268 : 280);
+        _elapsedLabel.Left = Scale(isPathStep ? 0 : 440);
+        _elapsedLabel.Width = Scale(isPathStep ? 616 : 176);
 
         _backButton.Enabled = !isWelcome;
         _nextButton.Text = isWelcome ? "Get Started" : isFinish ? "Start Reading" : "Next";

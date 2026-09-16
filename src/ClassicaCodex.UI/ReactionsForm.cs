@@ -221,38 +221,47 @@ public sealed class ReactionsForm : ScaledForm
     {
         if (_canvas == null || _footerLeft == null) return;
 
-        const int side = 14;
-        var content = Math.Max(120, ClientSize.Width - side * 2);
+        // Scaled, because this runs after the form has been scaled - a
+        // literal written here is a raw device pixel and would leave every
+        // gap in the header two thirds of its intended size at 150%. The
+        // Guided Setup wizard had the same mistake in a method just like this
+        // one, where it was not cosmetic: it moved a text box into the middle
+        // of a paragraph.
+        var side = Scale(14);
+        var content = Math.Max(Scale(120), ClientSize.Width - side * 2);
 
         _bannerText.Width = content;
         _bannerText.Height = Measure(_bannerText, content);
-        _bannerText.Top = 6;
-        _banner.Height = _bannerText.Bottom + 8;
+        _bannerText.Top = Scale(6);
+        _banner.Height = _bannerText.Bottom + Scale(8);
         _banner.Width = ClientSize.Width;
 
         // The picker sits beside the title, so the title gets what is left.
-        var pickerWidth = _picker == null ? 0 : _picker.Width + 12;
+        var pickerWidth = _picker == null ? 0 : _picker.Width + Scale(12);
 
-        var y = _banner.Bottom + 10;
-        _title.SetBounds(side, y, Math.Max(80, content - pickerWidth), _title.Height);
+        var y = _banner.Bottom + Scale(10);
+        _title.SetBounds(side, y, Math.Max(Scale(80), content - pickerWidth), _title.Height);
 
         if (_picker != null)
         {
-            _picker.Left = Math.Max(_title.Right + 12, ClientSize.Width - side - _picker.Width);
+            _picker.Left = Math.Max(_title.Right + Scale(12), ClientSize.Width - side - _picker.Width);
             _picker.Top = y;
         }
 
-        _setting.SetBounds(side, _title.Bottom + 2, content, _setting.Height);
+        _setting.SetBounds(side, _title.Bottom + Scale(2), content, _setting.Height);
 
         _note.Width = content;
-        _note.SetBounds(side, _setting.Bottom + 6, content, Measure(_note, content));
+        _note.SetBounds(side, _setting.Bottom + Scale(6), content, Measure(_note, content));
 
         var footerTop = _footerLeft.Top;
-        var canvasTop = _note.Bottom + 8;
+        var canvasTop = _note.Bottom + Scale(8);
+        var gutter = Scale(8);
 
-        _canvas.SetBounds(8, canvasTop, Math.Max(80, ClientSize.Width - 16),
-            Math.Max(60, footerTop - canvasTop - 10));
+        _canvas.SetBounds(gutter, canvasTop, Math.Max(Scale(80), ClientSize.Width - gutter * 2),
+            Math.Max(Scale(60), footerTop - canvasTop - Scale(10)));
     }
+
+    private int Scale(int designPixels) => DpiScaling.Scale(this, designPixels);
 
     /// <summary>
     /// How tall a label's text is at a given width, with a line spare.
