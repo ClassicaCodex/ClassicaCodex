@@ -143,6 +143,28 @@ internal sealed class ReactionsCanvas : Panel
     }
 
     /// <summary>
+    /// Repaints the whole canvas on any scroll rather than the strip Windows
+    /// has just exposed.
+    ///
+    /// Scrolling blits the existing pixels and repaints only the newly
+    /// uncovered band, which is right for a grid of rectangles and risky for
+    /// this: the bubbles are rounded and antialiased, so the seam between
+    /// blitted and freshly drawn pixels can fall in the middle of a curve. A
+    /// debate is ten blocks and repainting all of them is not worth measuring.
+    /// </summary>
+    protected override void OnScroll(ScrollEventArgs se)
+    {
+        base.OnScroll(se);
+        Invalidate();
+    }
+
+    protected override void OnMouseWheel(MouseEventArgs e)
+    {
+        base.OnMouseWheel(e);
+        Invalidate();
+    }
+
+    /// <summary>
     /// Measures every block and records where each piece goes.
     ///
     /// A control with no handle measures nothing - TextRenderer returns
@@ -246,16 +268,44 @@ internal sealed class ReactionsCanvas : Panel
         return string.Join("  ·  ", parts);
     }
 
+    /// <summary>
+    /// Where a block's content coordinates land on screen right now.
+    ///
+    /// <b>This is done by arithmetic and not by Graphics.TranslateTransform,
+    /// and the difference is the whole of a bug that shipped in this file.</b>
+    ///
+    /// The transform is a GDI+ concept. Every shape here is GDI+ - FillPath,
+    /// DrawEllipse, DrawImage - and moved with it correctly. Every word here
+    /// is drawn by TextRenderer, which is GDI, and GDI has never heard of the
+    /// transform: it kept drawing at the unscrolled coordinates.
+    ///
+    /// At the top of a list the scroll offset is zero and the two agree
+    /// exactly, which is why every screenshot taken of this window looked
+    /// perfect and a reader who scrolled saw the bubbles slide up empty, with
+    /// a speaker's name stranded across the bubble above and a chip's label
+    /// floating outside its chip. The lesson generalises: a picture of a
+    /// scrolling list at the top is not a picture of a scrolling list.
+    /// </summary>
+    private Rectangle At(Rectangle content) => content with
+    {
+        X = content.X + AutoScrollPosition.X,
+        Y = content.Y + AutoScrollPosition.Y
+    };
+
     protected override void OnPaint(PaintEventArgs e)
     {
         base.OnPaint(e);
 
         e.Graphics.Clear(ReadingTheme.Background);
         e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
-        e.Graphics.TranslateTransform(AutoScrollPosition.X, AutoScrollPosition.Y);
 
         foreach (var block in _blocks)
         {
+            // Nothing off-screen, so a long debate does not pay to lay out
+            // what nobody can see - and, less obviously, so that a stale
+            // rectangle cannot be drawn over the header.
+            if (!ClientRectangle.IntersectsWith(At(block.Bubble))) continue;
+
             if (block.View == null) DrawDivider(e.Graphics, block);
             else DrawTurn(e.Graphics, block, block.View);
         }
@@ -269,11 +319,11 @@ internal sealed class ReactionsCanvas : Panel
     private void DrawDivider(Graphics g, Block block)
     {
         var size = TextRenderer.MeasureText(block.Divider, _dividerFont);
-        var pill = new Rectangle(
+        var pill = At(new Rectangle(
             (ClientSize.Width - size.Width) / 2 - 12,
             block.Bubble.Top,
             size.Width + 24,
-            size.Height + 10);
+            size.Height + 10));
 
         using (var path = Rounded(pill, pill.Height / 2))
         using (var fill = new SolidBrush(ReadingTheme.HeaderBackground))
@@ -291,12 +341,18 @@ internal sealed class ReactionsCanvas : Panel
     {
         var signature = AncientAvatars.Signature(view.Critic.Avatar);
 
+        // Every rectangle is put through At() here, and none of them is used
+        // raw. A block's own rectangles are in content coordinates - which is
+        // what the hit testing and the layout want - and the difference
+        // between the two is the scroll position.
+        var bubble = At(block.Bubble);
+
         // Toward the window's own surface rather than to a fixed white, so one
         // set of colours works in both themes: a pale wash in light mode and a
         // dark, saturated one in dark mode, from the same source colour.
         var fill = AncientAvatars.Mix(signature, ReadingTheme.Surface, ReadingTheme.IsDark ? 0.74f : 0.86f);
 
-        using (var path = Rounded(block.Bubble, 12))
+        using (var path = Rounded(bubble, 12))
         using (var brush = new SolidBrush(fill))
         using (var edge = new Pen(AncientAvatars.Mix(signature, ReadingTheme.Border, 0.55f)))
         {
@@ -308,24 +364,25 @@ internal sealed class ReactionsCanvas : Panel
         // above is deliberately faint so the text stays readable, which leaves
         // it too faint to identify anybody - this is the part you actually
         // recognise at a glance.
-        using (var clip = Rounded(block.Bubble, 12))
+        using (var clip = Rounded(bubble, 12))
         {
             var state = g.Save();
             g.SetClip(clip);
             using var stripe = new SolidBrush(signature);
-            g.FillRectangle(stripe, block.Bubble.Left, block.Bubble.Top, 4, block.Bubble.Height);
+            g.FillRectangle(stripe, bubble.Left, bubble.Top, 4, bubble.Height);
             g.Restore(state);
         }
 
         if (!block.Avatar.IsEmpty)
         {
-            g.DrawImage(AncientAvatars.Portrait(view.Critic, AvatarSize * 2), block.Avatar);
+            g.DrawImage(AncientAvatars.Portrait(view.Critic, AvatarSize * 2), At(block.Avatar));
         }
 
         if (!block.Name.IsEmpty)
         {
+            var name = At(block.Name);
             var nameSize = TextRenderer.MeasureText(view.Critic.Name, _nameFont);
-            var nameRect = new Rectangle(block.Name.Left, block.Name.Top, nameSize.Width, nameSize.Height);
+            var nameRect = new Rectangle(name.Left, name.Top, nameSize.Width, nameSize.Height);
 
             var nameColour = _hot == block && _hotSpot == HotSpot.Speaker
                 ? ReadingTheme.ActiveLinkText
@@ -340,18 +397,19 @@ internal sealed class ReactionsCanvas : Panel
             }
 
             TextRenderer.DrawText(g, SpeakerMeta(view.Critic), _metaFont,
-                new Rectangle(block.Name.Left, nameRect.Bottom + 2, block.Name.Width, block.Name.Height),
+                new Rectangle(name.Left, nameRect.Bottom + 2, name.Width, name.Height),
                 ReadingTheme.MutedText, TextFormatFlags.NoPadding | TextFormatFlags.NoPrefix);
         }
 
-        TextRenderer.DrawText(g, view.Turn.Text, _bodyFont, block.Body, ReadingTheme.Text, WrapFlags);
+        TextRenderer.DrawText(g, view.Turn.Text, _bodyFont, At(block.Body), ReadingTheme.Text, WrapFlags);
 
         if (!block.Passage.IsEmpty && view.PassageLabel != null)
         {
+            var chip = At(block.Passage);
             var enabled = view.PassageResolved;
             var hot = enabled && _hot == block && _hotSpot == HotSpot.Passage;
 
-            using var path = Rounded(block.Passage, block.Passage.Height / 2);
+            using var path = Rounded(chip, chip.Height / 2);
             using var brush = new SolidBrush(enabled
                 ? AncientAvatars.Mix(signature, ReadingTheme.Surface, hot ? 0.35f : 0.55f)
                 : ReadingTheme.HeaderBackground);
@@ -360,7 +418,7 @@ internal sealed class ReactionsCanvas : Panel
             g.FillPath(brush, path);
             g.DrawPath(edge, path);
 
-            TextRenderer.DrawText(g, view.PassageLabel, _metaFont, block.Passage,
+            TextRenderer.DrawText(g, view.PassageLabel, _metaFont, chip,
                 enabled ? ReadingTheme.Text : ReadingTheme.MutedText,
                 TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter | TextFormatFlags.NoPrefix);
         }
@@ -373,7 +431,7 @@ internal sealed class ReactionsCanvas : Panel
                     : ReadingTheme.LinkText)
                 : ReadingTheme.MutedText;
 
-            TextRenderer.DrawText(g, view.SourceLabel, _sourceFont, block.Source, colour, WrapFlags);
+            TextRenderer.DrawText(g, view.SourceLabel, _sourceFont, At(block.Source), colour, WrapFlags);
         }
     }
 
