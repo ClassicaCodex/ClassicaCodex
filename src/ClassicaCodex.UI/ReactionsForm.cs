@@ -39,6 +39,7 @@ public sealed class ReactionsForm : ScaledForm
     private readonly ComboBox? _picker;
     private readonly ReactionsCanvas _canvas;
     private readonly Label _status;
+    private Control? _footerLeft;
 
     private CancellationTokenSource? _loading;
 
@@ -129,26 +130,36 @@ public sealed class ReactionsForm : ScaledForm
             _picker.SelectedIndexChanged += async (_, _) => await ShowSelectedAsync();
         }
 
+        // No anchors: Arrange() places this, because its top depends on how
+        // many lines the banner and the setting note have wrapped to at the
+        // current width, and an anchor cannot know that.
         _canvas = new ReactionsCanvas
         {
             Left = 8,
             Top = 196,
             Width = 884,
-            Height = 498,
-            Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right
+            Height = 498
         };
         _canvas.CriticClicked += ShowCriticCard;
         _canvas.PassageClicked += async turn => await NavigateToPassageAsync(turn);
         _canvas.SourceClicked += async turn => await NavigateToSourceAsync(turn);
 
+        // Anchored on BOTH sides, so it narrows with the window instead of
+        // keeping a fixed 560-pixel box while the buttons travel left into it.
+        // It used to be Bottom|Left, and since it is added to Controls before
+        // the buttons - and index 0 is the FRONT of the WinForms z-order - its
+        // invisible box sat over them and swallowed their clicks: at about
+        // 750px wide "What am I reading?" stopped responding anywhere except
+        // its top few pixels, and by 620px so did Close.
         _status = new Label
         {
             Left = 14,
             Top = 706,
-            Width = 560,
+            Width = 614,
             Height = 20,
+            AutoEllipsis = true,
             ForeColor = ReadingTheme.MutedText,
-            Anchor = AnchorStyles.Bottom | AnchorStyles.Left
+            Anchor = AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right
         };
 
         var about = new Button
@@ -176,14 +187,90 @@ public sealed class ReactionsForm : ScaledForm
         Controls.AddRange(new Control[] { _banner, _title, _setting, _note, _canvas, _status, about, close });
         if (_picker != null) Controls.Add(_picker);
 
+        // Belt and braces with the anchoring above: whatever the widths work
+        // out to, the two buttons win the hit test against the status line.
+        _status.SendToBack();
+
+        _footerLeft = about;
         CancelButton = close;
 
         ReadingTheme.AttachTo(this, ApplyBannerColours);
         ApplyBannerColours();
 
         _canvas.UseTextSize(ReadingFontSettings.SourceSize >= 14 ? 11.25f : 9.75f);
+        Arrange();
 
         Load += async (_, _) => await ShowSelectedAsync();
+    }
+
+    /// <summary>
+    /// Lays the header out from the bottom of its own text upward.
+    ///
+    /// <b>Why this is not four anchors.</b> The banner and the setting note
+    /// are paragraphs, and how tall a paragraph is depends on how wide it is.
+    /// Given fixed heights - 52 pixels and 76 - they fitted at the design
+    /// width and lost their last line the moment the window came in, which for
+    /// the banner means the sentence explaining that the speakers are invented
+    /// stops mid-clause. That is the one line in this window that must never
+    /// be cut, and an anchor cannot measure text.
+    ///
+    /// So both are measured at the width they have, and everything below them
+    /// is placed from the result.
+    /// </summary>
+    private void Arrange()
+    {
+        if (_canvas == null || _footerLeft == null) return;
+
+        const int side = 14;
+        var content = Math.Max(120, ClientSize.Width - side * 2);
+
+        _bannerText.Width = content;
+        _bannerText.Height = Measure(_bannerText, content);
+        _bannerText.Top = 6;
+        _banner.Height = _bannerText.Bottom + 8;
+        _banner.Width = ClientSize.Width;
+
+        // The picker sits beside the title, so the title gets what is left.
+        var pickerWidth = _picker == null ? 0 : _picker.Width + 12;
+
+        var y = _banner.Bottom + 10;
+        _title.SetBounds(side, y, Math.Max(80, content - pickerWidth), _title.Height);
+
+        if (_picker != null)
+        {
+            _picker.Left = Math.Max(_title.Right + 12, ClientSize.Width - side - _picker.Width);
+            _picker.Top = y;
+        }
+
+        _setting.SetBounds(side, _title.Bottom + 2, content, _setting.Height);
+
+        _note.Width = content;
+        _note.SetBounds(side, _setting.Bottom + 6, content, Measure(_note, content));
+
+        var footerTop = _footerLeft.Top;
+        var canvasTop = _note.Bottom + 8;
+
+        _canvas.SetBounds(8, canvasTop, Math.Max(80, ClientSize.Width - 16),
+            Math.Max(60, footerTop - canvasTop - 10));
+    }
+
+    /// <summary>
+    /// How tall a label's text is at a given width, with a line spare.
+    ///
+    /// TextRenderer rather than the label's own AutoSize, because AutoSize on
+    /// a Label anchored to both sides fights the layout engine: it resizes to
+    /// its text, the anchor resizes it back, and which wins depends on the
+    /// order the two happen in.
+    /// </summary>
+    private static int Measure(Label label, int width) =>
+        TextRenderer.MeasureText(
+            label.Text, label.Font, new Size(width, int.MaxValue),
+            TextFormatFlags.WordBreak | TextFormatFlags.NoPrefix).Height + 4;
+
+    protected override void OnResize(EventArgs e)
+    {
+        base.OnResize(e);
+        Arrange();
     }
 
     /// <summary>
@@ -221,6 +308,10 @@ public sealed class ReactionsForm : ScaledForm
             ? $"Not a conversation · {debate.SettingLabel}"
             : $"A scene · {debate.SettingLabel}";
         _note.Text = debate.SettingNote ?? string.Empty;
+
+        // The note is a different length for every debate, so the header has
+        // to be measured again whenever it changes - not only on a resize.
+        Arrange();
 
         // One cancellation per load, so clicking through the picker quickly
         // cannot have an earlier debate's resolved links arrive after a later

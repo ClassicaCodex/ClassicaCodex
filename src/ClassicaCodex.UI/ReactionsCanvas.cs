@@ -41,6 +41,9 @@ internal sealed record TurnView(
 /// </summary>
 internal sealed class ReactionsCanvas : Panel
 {
+    // Measured on a 100% display, like every other coordinate in this
+    // application, and put through Scale() at the point of use - never read
+    // raw. See Scale() for what goes wrong otherwise.
     private const int AvatarSize = 44;
     private const int Gutter = 12;
     private const int Inset = 12;
@@ -134,11 +137,50 @@ internal sealed class ReactionsCanvas : Panel
         public Rectangle Passage;
         public Rectangle Source;
         public int Bottom;
+
+        /// <summary>
+        /// Where the name and the source line are actually DRAWN, as opposed
+        /// to the column they are laid out in.
+        ///
+        /// The two differ by a great deal and the difference was a live link
+        /// over empty space: a source line is measured against the full text
+        /// width because that is what it wraps at, so "Source: Cicero, Orator
+        /// 30 - open it" painted 173 pixels of italic inside a 596-pixel
+        /// rectangle, and the remaining 420 pixels of blank bubble showed a
+        /// hand cursor and, on a click, closed this window and sent the reader
+        /// to Cicero. Painting uses the wide rectangle; hit testing uses these.
+        /// </summary>
+        public Rectangle NameHit;
+
+        public Rectangle SourceHit;
     }
+
+    /// <summary>
+    /// A design-pixel distance in the pixels this display actually has.
+    ///
+    /// ScaledForm scales the control's own bounds and the fonts it inherits,
+    /// and stops there: a constant written inside a paint method is a device
+    /// pixel and stays one. So at 150% the words grew by half and the
+    /// portrait, the gutters and the widest a bubble may be did not - a
+    /// 44-pixel avatar beside 15-pixel text, and a text column capped at a
+    /// width that is now two thirds of what it was meant to be.
+    ///
+    /// DeviceDpi is the DPI of the display this control is currently on and
+    /// updates when the window is dragged to another monitor, which is the
+    /// right hook: Rebuild runs again on the size change that follows.
+    /// </summary>
+    private int Scale(int designPixels) =>
+        IsHandleCreated ? designPixels * DeviceDpi / 96 : designPixels;
 
     protected override void OnSizeChanged(EventArgs e)
     {
         base.OnSizeChanged(e);
+        Rebuild();
+    }
+
+    protected override void OnDpiChangedAfterParent(EventArgs e)
+    {
+        base.OnDpiChangedAfterParent(e);
         Rebuild();
     }
 
@@ -155,13 +197,38 @@ internal sealed class ReactionsCanvas : Panel
     protected override void OnScroll(ScrollEventArgs se)
     {
         base.OnScroll(se);
+        RefreshHotSpot();
         Invalidate();
     }
 
     protected override void OnMouseWheel(MouseEventArgs e)
     {
         base.OnMouseWheel(e);
+        RefreshHotSpot();
         Invalidate();
+    }
+
+    /// <summary>
+    /// Re-tests what is under the pointer after the content has moved
+    /// underneath it.
+    ///
+    /// Hover is only recomputed on OnMouseMove, and a wheel scroll does not
+    /// move the mouse - so the highlighted link and the hand cursor stayed on
+    /// the pixel where a link used to be. The reader saw a hand over ordinary
+    /// text, no hand over the link that had slid under the pointer, and a
+    /// chip still drawn in its hover colour three bubbles away.
+    /// </summary>
+    private void RefreshHotSpot()
+    {
+        if (!IsHandleCreated) return;
+
+        var at = PointToClient(MousePosition);
+        if (!ClientRectangle.Contains(at)) return;
+
+        var (block, spot) = HitTest(at);
+        _hot = block;
+        _hotSpot = spot;
+        Cursor = spot == HotSpot.None ? Cursors.Default : Cursors.Hand;
     }
 
     /// <summary>
@@ -185,71 +252,89 @@ internal sealed class ReactionsCanvas : Panel
             return;
         }
 
-        var available = ClientSize.Width - Inset * 2 - AvatarSize - Gutter;
-        var bubbleWidth = Math.Min(MaxBubbleWidth, Math.Max(180, available));
-        var textWidth = bubbleWidth - Inset * 2;
+        var inset = Scale(Inset);
+        var gutter = Scale(Gutter);
+        var avatar = Scale(AvatarSize);
 
-        var y = Inset;
+        var available = ClientSize.Width - inset * 2 - avatar - gutter;
+        var bubbleWidth = Math.Min(Scale(MaxBubbleWidth), Math.Max(Scale(180), available));
+        var textWidth = bubbleWidth - inset * 2;
+
+        var y = inset;
 
         foreach (var view in _turns)
         {
             if (view.DividerBefore != null)
             {
                 var divider = new Block { Divider = view.DividerBefore };
-                var height = TextRenderer.MeasureText(view.DividerBefore, _dividerFont).Height + 14;
-                divider.Bubble = new Rectangle(0, y + 8, ClientSize.Width, height);
-                divider.Bottom = divider.Bubble.Bottom + 8;
+                var height = TextRenderer.MeasureText(view.DividerBefore, _dividerFont).Height + Scale(14);
+                divider.Bubble = new Rectangle(0, y + Scale(8), ClientSize.Width, height);
+                divider.Bottom = divider.Bubble.Bottom + Scale(8);
                 _blocks.Add(divider);
                 y = divider.Bottom;
             }
 
             var block = new Block { View = view };
-            var left = Inset + AvatarSize + Gutter;
+            var left = inset + avatar + gutter;
             var top = y;
 
-            var inner = top + Inset;
+            var inner = top + inset;
 
             if (view.ShowSpeaker)
             {
-                block.Avatar = new Rectangle(Inset, top, AvatarSize, AvatarSize);
+                block.Avatar = new Rectangle(inset, top, avatar, avatar);
 
-                var nameHeight = TextRenderer.MeasureText(view.Critic.Name, _nameFont).Height;
-                var metaHeight = TextRenderer.MeasureText(SpeakerMeta(view.Critic), _metaFont).Height;
+                var nameSize = TextRenderer.MeasureText(view.Critic.Name, _nameFont);
+                var metaSize = TextRenderer.MeasureText(SpeakerMeta(view.Critic), _metaFont);
 
-                block.Name = new Rectangle(left + Inset, inner, textWidth, nameHeight + metaHeight + 2);
-                inner = block.Name.Bottom + 6;
+                block.Name = new Rectangle(
+                    left + inset, inner, textWidth, nameSize.Height + metaSize.Height + 2);
+
+                // What is DRAWN, which is much narrower than the column it is
+                // laid out in - see NameHit and SourceHit on Block for why the
+                // two are kept apart.
+                block.NameHit = block.Name with
+                {
+                    Width = Math.Min(textWidth, Math.Max(nameSize.Width, metaSize.Width))
+                };
+
+                inner = block.Name.Bottom + Scale(6);
             }
 
             var bodyHeight = TextRenderer.MeasureText(
                 view.Turn.Text, _bodyFont, new Size(textWidth, int.MaxValue), WrapFlags).Height;
 
-            block.Body = new Rectangle(left + Inset, inner, textWidth, bodyHeight);
+            block.Body = new Rectangle(left + inset, inner, textWidth, bodyHeight);
             inner = block.Body.Bottom;
 
             if (view.PassageLabel != null)
             {
                 var chip = TextRenderer.MeasureText(view.PassageLabel, _metaFont);
-                block.Passage = new Rectangle(left + Inset, inner + 8, chip.Width + 18, chip.Height + 8);
+                block.Passage = new Rectangle(
+                    left + inset, inner + Scale(8), chip.Width + Scale(18), chip.Height + Scale(8));
                 inner = block.Passage.Bottom;
             }
 
             if (view.SourceLabel != null)
             {
-                var height = TextRenderer.MeasureText(
-                    view.SourceLabel, _sourceFont, new Size(textWidth, int.MaxValue), WrapFlags).Height;
+                // Measured at the wrapping width, which gives back both the
+                // height the line needs and the width it actually used.
+                var source = TextRenderer.MeasureText(
+                    view.SourceLabel, _sourceFont, new Size(textWidth, int.MaxValue), WrapFlags);
 
-                block.Source = new Rectangle(left + Inset, inner + 8, textWidth, height);
+                block.Source = new Rectangle(left + inset, inner + Scale(8), textWidth, source.Height);
+                block.SourceHit = block.Source with { Width = Math.Min(textWidth, source.Width) };
                 inner = block.Source.Bottom;
             }
 
-            block.Bubble = new Rectangle(left, top, bubbleWidth, inner + Inset - top);
+            block.Bubble = new Rectangle(left, top, bubbleWidth, inner + inset - top);
             block.Bottom = block.Bubble.Bottom;
 
             _blocks.Add(block);
-            y = block.Bottom + (view.ShowSpeaker ? BlockGap : TuckedGap);
+            y = block.Bottom + (view.ShowSpeaker ? Scale(BlockGap) : Scale(TuckedGap));
         }
 
-        AutoScrollMinSize = new Size(0, y + Inset);
+        AutoScrollMinSize = new Size(0, y + inset);
         Invalidate();
     }
 
@@ -375,7 +460,11 @@ internal sealed class ReactionsCanvas : Panel
 
         if (!block.Avatar.IsEmpty)
         {
-            g.DrawImage(AncientAvatars.Portrait(view.Critic, AvatarSize * 2), At(block.Avatar));
+            // Twice the size it is drawn at, measured in the pixels this
+            // display actually has - a 200% screen asks for an 88-pixel
+            // portrait and would otherwise be handed a 44-pixel one blown up.
+            g.DrawImage(
+                AncientAvatars.Portrait(view.Critic, block.Avatar.Width * 2), At(block.Avatar));
         }
 
         if (!block.Name.IsEmpty)
@@ -396,9 +485,16 @@ internal sealed class ReactionsCanvas : Panel
                 DrawBadge(g, new Point(nameRect.Right + 8, nameRect.Top), "real person");
             }
 
+            // EndEllipsis, because this line is laid out as one line and
+            // TextRenderer without it simply chops at the edge: "Classical
+            // Athens . 458 BCE-4", with no sign that anything is missing. It
+            // is the first thing to overflow when the reading text size goes
+            // up or the window comes in, since the roles are the longest
+            // strings in the pack files.
             TextRenderer.DrawText(g, SpeakerMeta(view.Critic), _metaFont,
                 new Rectangle(name.Left, nameRect.Bottom + 2, name.Width, name.Height),
-                ReadingTheme.MutedText, TextFormatFlags.NoPadding | TextFormatFlags.NoPrefix);
+                ReadingTheme.MutedText,
+                TextFormatFlags.NoPadding | TextFormatFlags.NoPrefix | TextFormatFlags.EndEllipsis);
         }
 
         TextRenderer.DrawText(g, view.Turn.Text, _bodyFont, At(block.Body), ReadingTheme.Text, WrapFlags);
@@ -462,11 +558,29 @@ internal sealed class ReactionsCanvas : Panel
             TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter | TextFormatFlags.NoPrefix);
     }
 
+    /// <summary>
+    /// A rounded rectangle, and for the three pill shapes a stadium - both
+    /// ends fully semicircular.
+    ///
+    /// <b>The comparisons are strict, and were not.</b> Every pill here passes
+    /// its own half-height as the radius, so for an even height radius * 2 is
+    /// exactly the height, and a `&lt;=` sent it to the square-cornered
+    /// fallback. Whether a chip was a lozenge or a box therefore came down to
+    /// the parity of a measured line of text - odd at 96 DPI, which is why
+    /// every screenshot shows lozenges, and even at 192, where every chip,
+    /// every date divider and every "real person" badge turns into a box
+    /// beside bubbles that are still round.
+    ///
+    /// A stadium whose width equals its height is a circle, which is a
+    /// perfectly good shape for the four arcs to describe; only a rectangle
+    /// NARROWER than its corners is degenerate, and that is what the width
+    /// guard is for.
+    /// </summary>
     private static GraphicsPath Rounded(Rectangle rect, int radius)
     {
         var path = new GraphicsPath();
 
-        if (radius <= 0 || rect.Width <= radius * 2 || rect.Height <= radius * 2)
+        if (radius <= 0 || rect.Width < radius * 2 || rect.Height < radius * 2)
         {
             path.AddRectangle(rect);
             return path;
@@ -497,10 +611,10 @@ internal sealed class ReactionsCanvas : Panel
             if (!block.Passage.IsEmpty && block.View.PassageResolved && block.Passage.Contains(at))
                 return (block, HotSpot.Passage);
 
-            if (!block.Source.IsEmpty && block.View.SourceResolved && block.Source.Contains(at))
+            if (!block.Source.IsEmpty && block.View.SourceResolved && block.SourceHit.Contains(at))
                 return (block, HotSpot.Source);
 
-            if (!block.Avatar.IsEmpty && (block.Avatar.Contains(at) || block.Name.Contains(at)))
+            if (!block.Avatar.IsEmpty && (block.Avatar.Contains(at) || block.NameHit.Contains(at)))
                 return (block, HotSpot.Speaker);
         }
 
