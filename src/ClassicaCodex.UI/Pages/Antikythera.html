@@ -424,10 +424,37 @@ input[type="date"], input[type="number"], select {
 @media (max-width: 860px) {
   #app { grid-template-rows: auto auto auto auto; height: auto; min-height: 100%; }
   main { grid-template-columns: 1fr; }
-  #stage { height: 62vh; min-height: 320px; border-right: 0; border-bottom: 1px solid var(--edge); }
+  #stage { height: 58vh; min-height: 300px; border-right: 0; border-bottom: 1px solid var(--edge); }
   #rail { overflow: visible; }
   #crank { width: 74px; height: 74px; left: 12px; bottom: 12px; }
   .stage-hint { display: none; }
+
+  /* THE CONTROLS MUST STAY REACHABLE.
+
+     In this layout the rail stops being a column beside the machine and
+     becomes the rest of the page: readouts, then the eclipse card, then
+     several hundred words of notes. That pushed the transport bar to
+     nearly three thousand pixels down a page whose window was five
+     hundred and sixty-eight tall - about two and a half thousand pixels
+     below the fold, behind a wall of prose. Every control for working
+     the machine was down there, including the one that sets it against
+     the sky, and there was nothing on screen to say they existed.
+
+     Sticking the bar to the bottom of the viewport puts them back where
+     they belong: on screen, next to the thing they operate, the whole
+     way down. */
+  footer.transport {
+    position: sticky;
+    bottom: 0;
+    z-index: 5;
+    gap: 6px;
+    padding: 7px 12px;
+    padding-bottom: calc(7px + env(safe-area-inset-bottom, 0px));
+    box-shadow: 0 -6px 18px rgba(0, 0, 0, .16);
+  }
+  footer.transport .btn { font-size: 12px; padding: 4px 9px; }
+  footer.transport .label { font-size: 9.5px; }
+  footer.transport input[type="number"] { padding: 3px 5px; font-size: 12px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -4935,6 +4962,21 @@ window.A = A;
 
   function $(id) { return document.getElementById(id); }
 
+  /** Briefly swap a button's label, so a press that changes numbers the
+      reader may not be looking at still answers on the button itself. */
+  function confirmPress(button, said) {
+    if (button.dataset.saying) return;          // already mid-answer
+    button.dataset.saying = '1';
+    var was = button.textContent;
+    button.textContent = said;
+    button.classList.add('primary');
+    setTimeout(function () {
+      button.textContent = was;
+      button.classList.remove('primary');
+      delete button.dataset.saying;
+    }, 1400);
+  }
+
   /** Turns of the hand per turn of the main wheel: 223 over 48. */
   function crankRatio() {
     var r = A.gears && A.gears.CRANK_TURNS_PER_YEAR;
@@ -5502,6 +5544,10 @@ window.A = A;
       M.calibrateAt(M.jdFromTurns(state.turns));
       M.forgetEclipseCache();
       state.dirty = true;
+      // Say so. The numbers in the rail change a great deal, but this
+      // button can be pressed while looking at the dial, and a control
+      // that answers with nothing reads as a control that is broken.
+      confirmPress(this, 'Set to the sky');
     });
 
     $('b-today').addEventListener('click', function () {
