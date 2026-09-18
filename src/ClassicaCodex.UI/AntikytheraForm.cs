@@ -214,9 +214,12 @@ public class AntikytheraForm : ScaledForm
 
         AddSource(scrollHost,
             "The epoch dates, reconsidered",
-            "Jones, “The Epoch Dates of the Antikythera Mechanism (with an Appendix on its "
-            + "Authenticity)”, ISAW Papers 17 (2020).",
-            "https://isaw.nyu.edu/publications/isaw-papers/17/", ref y, textWidth);
+            "Jones, “The Epoch Dates of the Antikythera Mechanism (With an Appendix on its "
+            + "Authenticity)”, ISAW Papers 17 (2020). Open access.",
+            // ISAW Papers live on the library's digital library, not on the
+            // institute's own site. Guessing the other pattern gives a 404,
+            // which is exactly what shipped here the first time.
+            "https://dlib.nyu.edu/awdl/isaw/isaw-papers/17/", ref y, textWidth);
 
         AddSource(scrollHost,
             "Every inscription, in Greek",

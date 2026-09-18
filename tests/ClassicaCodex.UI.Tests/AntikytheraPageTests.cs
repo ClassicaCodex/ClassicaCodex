@@ -151,6 +151,56 @@ public class AntikytheraPageTests
             "The light-theme icon is missing from Icons\\Light, so dark mode would brighten the other one.");
     }
 
+    /// <summary>
+    /// Every link on the card is one that was actually opened and checked.
+    ///
+    /// The first version of this form shipped a 404. The ISAW Papers link
+    /// for Jones 2020 was not looked up - it was guessed from the shape of
+    /// the ISAW Papers 4 link already in the list, and the institute's own
+    /// site is not where those papers live. It looked entirely plausible in
+    /// review, because a citation is prose and nobody clicks prose.
+    ///
+    /// So the set below is the record of what was checked, and this test
+    /// fails the moment the form carries a URL that is not in it. That does
+    /// not prove a link still resolves - nothing here reaches the network,
+    /// and a unit test should not - but it does stop a new one appearing
+    /// without somebody having opened it first.
+    /// </summary>
+    [Fact]
+    public void EveryLinkOnTheCardHasBeenChecked()
+    {
+        var verified = new HashSet<string>(StringComparer.Ordinal)
+        {
+            // Checked 2026-09-18, each one opened and the title read back.
+            "https://dlib.nyu.edu/awdl/isaw/isaw-papers/4/",
+            "https://dlib.nyu.edu/awdl/isaw/isaw-papers/17/",
+            "https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0103275",
+            "https://www.nature.com/articles/s41598-021-84310-w",
+            "https://ssd.jpl.nasa.gov/planets/approx_pos.html"
+        };
+
+        var source = File.ReadAllText(Path.Combine(UiSourceDirectory(), "AntikytheraForm.cs"));
+
+        // Only the strings handed to AddSource as a link, not any URL that
+        // happens to be mentioned in a comment.
+        var urls = Regex.Matches(source, @"""(https?://[^""\s]+)""")
+            .Select(m => m.Groups[1].Value)
+            .Distinct()
+            .ToList();
+
+        Assert.NotEmpty(urls);
+
+        var unchecked_ = urls.Where(u => !verified.Contains(u)).ToList();
+        Assert.True(unchecked_.Count == 0,
+            "These links are in the card but not in the checked list. Open each one, "
+            + "confirm it resolves to the work it claims, then add it above: "
+            + string.Join(", ", unchecked_));
+
+        // And nothing plain-text. A citation link that downgrades is a worse
+        // look on a page about scholarship than a missing one.
+        Assert.DoesNotContain(urls, u => u.StartsWith("http://", StringComparison.OrdinalIgnoreCase));
+    }
+
     private static string UiSourceDirectory()
     {
         var directory = new DirectoryInfo(AppContext.BaseDirectory);
