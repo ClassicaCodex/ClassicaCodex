@@ -693,7 +693,6 @@ public partial class MainForm : ScaledForm
             _treeFilterBox.Visible = !_libraryTreeCollapsed;
             _favoritesOnlyCheck.Visible = !_libraryTreeCollapsed;
 
-            _favoritesOnlyCheck.Visible = !_libraryTreeCollapsed;
             AppIcons.Apply(_treeToggleButton, _libraryTreeCollapsed ? "Expand" : "Collapse", 14);
             RefreshSyncPanesIcon();
             RelayoutReaderArea();
@@ -848,8 +847,14 @@ public partial class MainForm : ScaledForm
         // - is what actually keeps this correct continuously.
         void RelayoutReaderArea()
         {
-            const int margin = 20;
-            const int collapsedToggleWidth = 36;
+            // Every distance in here goes through Scale(). This method runs on
+            // Resize and on Shown - both of which are after WinForms has
+            // scaled the window - so a bare number written here is a device
+            // pixel that undoes the scaling for whatever it touches. See
+            // ReaderAreaLayout, which is where that went wrong and what it
+            // did to the reader at 125% and above.
+            var margin = Scale(ReaderAreaLayout.Margin);
+            var buttonGap = Scale(8);
 
             // Same reasoning applies to the top-right buttons - pinned here
             // rather than via Anchor, for the identical reason. Left to
@@ -858,30 +863,28 @@ public partial class MainForm : ScaledForm
             // anchors the chain and each one before it is positioned off the
             // one already placed.
             aboutButton.Left = Math.Max(ClientSize.Width - aboutButton.Width - margin, 0);
-            _helpButton.Left = Math.Max(aboutButton.Left - _helpButton.Width - 8, 0);
-            _syncPanesButton.Left = Math.Max(_helpButton.Left - _syncPanesButton.Width - 8, 0);
-            _fontSizeButton.Left = Math.Max(_syncPanesButton.Left - _fontSizeButton.Width - 8, 0);
-            _gettingStartedButton.Left = Math.Max(_fontSizeButton.Left - _gettingStartedButton.Width - 8, 0);
-            _themeButton.Left = Math.Max(_gettingStartedButton.Left - _themeButton.Width - 8, 0);
-            setupWizardButton.Left = Math.Max(_themeButton.Left - setupWizardButton.Width - 8, 0);
+            _helpButton.Left = Math.Max(aboutButton.Left - _helpButton.Width - buttonGap, 0);
+            _syncPanesButton.Left = Math.Max(_helpButton.Left - _syncPanesButton.Width - buttonGap, 0);
+            _fontSizeButton.Left = Math.Max(_syncPanesButton.Left - _fontSizeButton.Width - buttonGap, 0);
+            _gettingStartedButton.Left = Math.Max(_fontSizeButton.Left - _gettingStartedButton.Width - buttonGap, 0);
+            _themeButton.Left = Math.Max(_gettingStartedButton.Left - _themeButton.Width - buttonGap, 0);
+            setupWizardButton.Left = Math.Max(_themeButton.Left - setupWizardButton.Width - buttonGap, 0);
 
-            // Shrinks to just its arrow once collapsed - there's nothing
-            // left underneath to line up with, so the full descriptive
-            // label would only be clutter.
-            _treeToggleButton.Width = collapsedToggleWidth;
+            // The reader starts after the library column - measured, not
+            // assumed. The column is the tree plus the row of controls above
+            // it, and which of those reaches furthest right is not fixed:
+            // scaling a control's bounds leaves its border adornment
+            // unscaled, and the tree has a 3D border where the favourites
+            // checkbox has none. They end level at 100%, and the star ends up
+            // a pixel past the tree at 125% and two at 150%. Taking the tree
+            // alone would leave the star overhanging the reader by that much.
+            var libraryRight = Math.Max(_libraryTree.Right, _favoritesOnlyCheck.Right);
 
-            // Reader area starts right after the tree - or right at the
-            // window's own left margin if the tree is collapsed, reclaiming
-            // its width for reading room.
-            var readerAreaLeft = _libraryTreeCollapsed ? 10 : 320;
-            splitContainer.Left = readerAreaLeft;
-
-            splitContainer.Width = Math.Max(ClientSize.Width - splitContainer.Left - margin, 400);
-
-            // The reader now runs to the bottom margin: the search results
-            // strip that used to sit under it has become its own window, so
-            // there's nothing left down there to leave room for.
-            splitContainer.Height = Math.Max(ClientSize.Height - margin - splitContainer.Top, 100);
+            // Runs all the way to the bottom margin: the search results strip
+            // that used to sit under the reader has become its own window, so
+            // there is nothing left down there to leave room for.
+            splitContainer.Bounds = ReaderAreaLayout.For(
+                ClientSize, splitContainer.Top, libraryRight, _libraryTreeCollapsed, Scale);
         }
 
         Resize += (_, _) => RelayoutReaderArea();
@@ -892,6 +895,14 @@ public partial class MainForm : ScaledForm
             ApplyTheme();
         };
     }
+
+    /// <summary>
+    /// A design-pixel distance in the pixels this window's display actually
+    /// has. Only needed by the code that positions controls after the window
+    /// has been built - everything set in the constructor goes through
+    /// WinForms' own scaling pass instead. See <see cref="DpiScaling.Scale"/>.
+    /// </summary>
+    private int Scale(int designPixels) => DpiScaling.Scale(this, designPixels);
 
     /// <summary>
     /// Re-applies the current theme across this window and refreshes the
