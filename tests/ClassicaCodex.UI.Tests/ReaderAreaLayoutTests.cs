@@ -37,6 +37,7 @@ namespace ClassicaCodex.UI.Tests;
 /// test sees the same factor the controls were moved by; without it the
 /// measurement would be a mixture that cannot occur on a real machine.
 /// </summary>
+[Collection(SharedProcessStateCollection.Name)]
 public class ReaderAreaLayoutTests : IDisposable
 {
     /// <summary>Never leave a simulated DPI behind for the next test.</summary>

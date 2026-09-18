@@ -24,6 +24,7 @@ namespace ClassicaCodex.UI.Tests;
 /// they hold at any scaling: the path row sits below the description, and the
 /// button stays level with its box.
 /// </summary>
+[Collection(SharedProcessStateCollection.Name)]
 public class GuidedSetupLayoutTests : IClassFixture<EmptyLibraryFixture>, IDisposable
 {
     /// <summary>Never leave a simulated DPI behind for the next test.</summary>

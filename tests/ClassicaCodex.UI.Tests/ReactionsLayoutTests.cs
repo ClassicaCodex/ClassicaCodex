@@ -58,6 +58,7 @@ public sealed class EmptyLibraryFixture : IDisposable
     }
 }
 
+[Collection(SharedProcessStateCollection.Name)]
 public class ReactionsLayoutTests : IClassFixture<EmptyLibraryFixture>
 {
     private static Work SampleWork() => new()

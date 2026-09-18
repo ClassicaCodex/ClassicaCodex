@@ -27,9 +27,11 @@ namespace ClassicaCodex.UI;
 /// The reader's left edge carries the dropdown naming the edition being read,
 /// and the library column carries the author filter box. The filter box is
 /// added to Controls before the reader, and index 0 is the FRONT of the
-/// WinForms z-order - so the box won, and at 125% it covered the first few
-/// pixels of that dropdown while at 150% it covered most of it. Reported from
-/// a laptop; invisible at 100%, which is every machine this was written on.
+/// WinForms z-order - so the box won. Measured against that dropdown: at 125%
+/// six pixels of its leading edge under the filter box and a 52-pixel band
+/// under the favourites star just inside that; at 150%, 134 pixels covered
+/// across a 145-pixel overlap. Reported from a laptop; invisible at 100%,
+/// which is every machine this was written on.
 ///
 /// So the left edge is no longer a number that happens to sit right of the
 /// library today. It is derived from where the library actually ends, which is

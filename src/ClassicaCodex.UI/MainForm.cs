@@ -872,10 +872,12 @@ public partial class MainForm : ScaledForm
 
             // The reader starts after the library column - measured, not
             // assumed. The column is the tree plus the row of controls above
-            // it, and the row is the wider of the two by a couple of pixels,
-            // so whichever reaches furthest right is what the reader has to
-            // clear. Taking the tree alone would leave the favourites star
-            // overhanging the reader's first two pixels at 125%.
+            // it, and which of those reaches furthest right is not fixed:
+            // scaling a control's bounds leaves its border adornment
+            // unscaled, and the tree has a 3D border where the favourites
+            // checkbox has none. They end level at 100%, and the star ends up
+            // a pixel past the tree at 125% and two at 150%. Taking the tree
+            // alone would leave the star overhanging the reader by that much.
             var libraryRight = Math.Max(_libraryTree.Right, _favoritesOnlyCheck.Right);
 
             // Runs all the way to the bottom margin: the search results strip
