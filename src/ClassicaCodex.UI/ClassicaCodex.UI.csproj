@@ -173,6 +173,18 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- The Antikythera page. Embedded rather than copied beside the
+         executable, for the same reason the debate packs are: a loose
+         file can go missing from a download the way the Icons folder
+         once did, and the release script checks for that folder but not
+         for this. Embedded, it cannot be absent without the build
+         failing. It is written out to the temp folder each time it is
+         opened, so a file left half-written by an interrupted run is not
+         opened forever afterwards. -->
+    <EmbeddedResource Include="Pages\Antikythera.html" LogicalName="ClassicaCodex.UI.Pages.Antikythera.html" />
+  </ItemGroup>
+
+  <ItemGroup>
     <EmbeddedResource Include="Icons\BronzeAndThunder.ico" LogicalName="ClassicaCodex.UI.Icons.BronzeAndThunder.ico" />
     <EmbeddedResource Include="Icons\BronzeBestiary.ico" LogicalName="ClassicaCodex.UI.Icons.BronzeBestiary.ico" />
     <EmbeddedResource Include="Icons\BronzeDivineGift.ico" LogicalName="ClassicaCodex.UI.Icons.BronzeDivineGift.ico" />

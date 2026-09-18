@@ -315,6 +315,17 @@ public partial class MainForm : ScaledForm
             morphologyForm.ShowDialog(this);
         };
 
+        // No Left/Top/Width/Height: the toolbar loop below assigns all four.
+        // This one opens a card rather than the thing itself - the card says
+        // what the mechanism is and how much of it is reconstruction, and
+        // carries the button that opens it.
+        var antikytheraButton = new IconButton();
+        antikytheraButton.Click += (_, _) =>
+        {
+            using var antikytheraForm = new AntikytheraForm();
+            antikytheraForm.ShowDialog(this);
+        };
+
         // A small strip above the tree rather than a separate row in the
         // already-crowded top toolbar - clicking it hides the tree entirely,
         // widening the reader area to reclaim that space (handled in
@@ -702,6 +713,7 @@ public partial class MainForm : ScaledForm
         Controls.Add(collateButton);
         Controls.Add(placesMapButton);
         Controls.Add(morphologyButton);
+        Controls.Add(antikytheraButton);
         Controls.Add(aboutButton);
         Controls.Add(setupWizardButton);
         Controls.Add(_themeButton);
@@ -745,7 +757,8 @@ public partial class MainForm : ScaledForm
             (compareTranslationsButton, "Compare Translations", "CompareTexts"),
             (collateButton, "Collate Editions", "Collate"),
             (placesMapButton, "Places Map", "PlaceMap"),
-            (morphologyButton, "Morphology", "Morphology")
+            (morphologyButton, "Morphology", "Morphology"),
+            (antikytheraButton, "The Antikythera Mechanism", "Antikythera")
         };
 
         // The icon nearly fills the button - these are illustrations, and

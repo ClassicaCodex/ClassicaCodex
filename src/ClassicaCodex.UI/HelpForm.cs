@@ -582,6 +582,22 @@ One file, several works
    A manuscript is a physical object that happens to contain whatever was bound into it, not a book with one author. The import shows what it found in each file and lets you merge divisions into a single work, split them, retitle them, or leave them out, before anything is written. Those decisions are saved beside the manuscript and reused next time.
 """),
 
+        ("The Antikythera Mechanism", """
+The last button on the main toolbar, the bronze dial. It opens a card describing the Antikythera mechanism - a Greek astronomical calculator built around 100 BC and pulled off a shipwreck in 1901 - and a button on that card opens a working simulation of it in your browser.
+
+It is a diversion rather than a research tool, and it is here because the machine belongs to the same world as the texts. Cicero describes one like it twice, in De Re Publica and in De Natura Deorum, and both passages are in this library.
+
+What you get
+   Drag a crank and thirty-odd gears turn at the ratios their tooth counts demand. The front dial shows the Sun and Moon against the Egyptian calendar and the zodiac, with six rings of planets in the middle. The back shows the nineteen-year calendar spiral and the eclipse spiral, with the fifty-one eclipse predictions that are inscribed on the original. A third view shows the gearing itself.
+
+How honest it is
+   Deliberately. Four of the twelve zodiac names are actually on the bronze, three of the twelve month names, and twenty of the fifty-one eclipse glyphs. The page letters attested text brighter than the text we supply, draws reconstructed wheels dimmer than counted ones and hypothetical wheels as outlines, and leaves the two wheels nobody can explain connected to nothing. The card lists every source it was built from.
+
+It works offline
+   The page carries everything it needs and asks the network for nothing. It is written out to your temporary files folder when you open it and handed to whatever browser you normally use.
+
+"""),
+
         ("When something looks wrong", """
 A few things the app reports about itself, and what they actually mean.
 
