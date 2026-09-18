@@ -36,6 +36,20 @@ namespace ClassicaCodex.UI;
 /// So the left edge is no longer a number that happens to sit right of the
 /// library today. It is derived from where the library actually ends, which is
 /// true at any scaling and stays true if the column is ever made wider.
+///
+/// <b>And then it happened again, with the library hidden.</b> Collapsing the
+/// library was treated as "there is nothing to the reader's left now", so the
+/// reader started at the window margin. But one thing does stay: the button
+/// that brings the library back, which has to, and which sits at the window
+/// margin on the reader's own top row. The reader slid underneath it, and the
+/// button won the z-order for the same reason the filter box did - so the
+/// first thirty-odd pixels of the edition dropdown went under it at every
+/// scaling, 100% included. Reported as an author's name reading "ymous
+/// (menota)".
+///
+/// The rule now has no special case. The reader starts one gap to the right of
+/// whatever is still on screen beside it, and which control that is depends
+/// only on whether the library is showing.
 /// </summary>
 internal static class ReaderAreaLayout
 {
@@ -71,9 +85,16 @@ internal static class ReaderAreaLayout
     /// right of the tree and the row of controls above it, measured rather
     /// than assumed.
     /// </param>
+    /// <param name="collapsedRight">
+    /// The right edge, in device pixels, of what remains beside the reader
+    /// once the library is hidden - the button that brings it back. It cannot
+    /// be hidden with the rest, it sits on the reader's own top row, and it is
+    /// in front of the reader in the z-order, so the reader has to start clear
+    /// of it rather than at the window margin.
+    /// </param>
     /// <param name="libraryCollapsed">
-    /// When the library is hidden the reader takes its width back, starting at
-    /// the window's left margin instead.
+    /// When the library is hidden the reader takes back all of the column's
+    /// width except the strip the toggle button still occupies.
     /// </param>
     /// <param name="scale">
     /// Turns a design pixel into a device pixel - <see cref="DpiScaling.Scale"/>
@@ -81,9 +102,13 @@ internal static class ReaderAreaLayout
     /// measured at a scaling the test process cannot actually be set to.
     /// </param>
     internal static Rectangle For(
-        Size client, int top, int libraryRight, bool libraryCollapsed, Func<int, int> scale)
+        Size client, int top, int libraryRight, int collapsedRight,
+        bool libraryCollapsed, Func<int, int> scale)
     {
-        var left = libraryCollapsed ? scale(LibraryGap) : libraryRight + scale(LibraryGap);
+        // Whatever is still on screen to the reader's left, in either state.
+        // One rule, no special case: start a gap to the right of it.
+        var beside = libraryCollapsed ? collapsedRight : libraryRight;
+        var left = beside + scale(LibraryGap);
 
         return new Rectangle(
             left,

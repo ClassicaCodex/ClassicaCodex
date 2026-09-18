@@ -49,31 +49,40 @@ public class ReaderAreaLayoutTests : IDisposable
     /// that a change to the column's width which is not reflected here shows
     /// up as these tests measuring something the window no longer has.
     /// </summary>
-    private static (Rectangle Tree, Rectangle FilterBox, Rectangle FavouritesStar) DesignColumn() =>
-        (new Rectangle(10, 82, 300, 658), new Rectangle(72, 54, 190, 23), new Rectangle(268, 54, 42, 24));
+    private static (Rectangle Tree, Rectangle FilterBox, Rectangle FavouritesStar, Rectangle Toggle)
+        DesignColumn() =>
+        (new Rectangle(10, 82, 300, 658), new Rectangle(72, 54, 190, 23),
+         new Rectangle(268, 54, 42, 24),
+         // The show/hide button. It is the one control in this column that
+         // stays when the library is hidden, and it is on the reader's own
+         // top row, which is why it needs to be here.
+         new Rectangle(10, 54, 36, 24));
 
     /// <summary>
     /// Runs the check against a library column scaled the way a high-DPI
     /// display would scale it. The controls are bare framework ones - no
     /// ClassicaCodex form is constructed.
     /// </summary>
-    private static void AtScale(float factor, Action<Rectangle, Rectangle, Func<int, int>> check)
+    private static void AtScale(
+        float factor, Action<Rectangle, Rectangle, Rectangle, Func<int, int>> check)
     {
         StaHarness.Run(harness =>
         {
             // Its own window rather than the harness's, because the column
             // has to be laid out at MainForm's coordinates and then scaled
             // as a whole - which is what Control.Scale does to a form.
-            var (treeBounds, filterBounds, starBounds) = DesignColumn();
+            var (treeBounds, filterBounds, starBounds, toggleBounds) = DesignColumn();
 
             using var host = new Form { ClientSize = new Size(1840, 800), ShowInTaskbar = false };
             var tree = new TreeView { Bounds = treeBounds };
             var filter = new TextBox { Bounds = filterBounds };
             var star = new CheckBox { Bounds = starBounds };
+            var toggle = new Button { Bounds = toggleBounds };
 
             host.Controls.Add(tree);
             host.Controls.Add(filter);
             host.Controls.Add(star);
+            host.Controls.Add(toggle);
             // A control with no handle measures nothing - see StaHarness.
             host.CreateControl();
             _ = host.Handle;
@@ -90,7 +99,7 @@ public class ReaderAreaLayoutTests : IDisposable
             // MainForm now measures rather than assuming the tree is widest.
             var column = Rectangle.Union(Rectangle.Union(tree.Bounds, filter.Bounds), star.Bounds);
 
-            check(host.ClientRectangle, column, n => DpiScaling.Scale(host, n));
+            check(host.ClientRectangle, column, toggle.Bounds, n => DpiScaling.Scale(host, n));
 
             return Task.CompletedTask;
         });
@@ -107,10 +116,10 @@ public class ReaderAreaLayoutTests : IDisposable
     [InlineData(2.0f)]
     public void TheReaderStartsAfterTheLibraryColumn(float scaling)
     {
-        AtScale(scaling, (client, column, scale) =>
+        AtScale(scaling, (client, column, toggle, scale) =>
         {
             var reader = ReaderAreaLayout.For(
-                client.Size, scale(54), column.Right, libraryCollapsed: false, scale);
+                client.Size, scale(54), column.Right, toggle.Right, libraryCollapsed: false, scale);
 
             Assert.True(reader.Left >= column.Right,
                 $"at {scaling:P0} the library column ends at {column.Right} and the reader starts at "
@@ -130,10 +139,10 @@ public class ReaderAreaLayoutTests : IDisposable
     [Fact]
     public void AtOneHundredPercentNothingMoves()
     {
-        AtScale(1.0f, (client, column, scale) =>
+        AtScale(1.0f, (client, column, toggle, scale) =>
         {
             var reader = ReaderAreaLayout.For(
-                client.Size, 54, column.Right, libraryCollapsed: false, scale);
+                client.Size, 54, column.Right, toggle.Right, libraryCollapsed: false, scale);
 
             // 320 left, 20 off the right, 20 off the bottom - the three
             // numbers that used to be written into RelayoutReaderArea.
@@ -144,21 +153,40 @@ public class ReaderAreaLayoutTests : IDisposable
     }
 
     /// <summary>
-    /// With the library hidden the reader takes the column's width back and
-    /// starts at the window's own left margin - which is a scaled margin, not
-    /// ten device pixels on every display.
+    /// With the library hidden the reader takes the column's width back - but
+    /// not the strip the show/hide button still occupies.
+    ///
+    /// This is the second time this bug has been fixed. The first was the
+    /// author filter box over the edition dropdown, above 100% only. This is
+    /// the same collision with the library HIDDEN: the toggle is the one
+    /// control that has to stay, it sits at the window margin on the reader's
+    /// own top row, and the reader started at that same margin - so the
+    /// button covered the first thirty-odd pixels of the dropdown, at every
+    /// scaling including 100%. Reported as an author's name reading
+    /// "ymous (menota)".
     /// </summary>
     [Theory]
     [InlineData(1.0f)]
+    [InlineData(1.25f)]
     [InlineData(1.5f)]
-    public void TheCollapsedReaderStartsAtTheWindowMargin(float scaling)
+    [InlineData(2.0f)]
+    public void TheCollapsedReaderStartsClearOfTheButtonThatBringsTheLibraryBack(float scaling)
     {
-        AtScale(scaling, (client, column, scale) =>
+        AtScale(scaling, (client, column, toggle, scale) =>
         {
             var reader = ReaderAreaLayout.For(
-                client.Size, scale(54), column.Right, libraryCollapsed: true, scale);
+                client.Size, scale(54), column.Right, toggle.Right, libraryCollapsed: true, scale);
 
-            Assert.Equal(scale(ReaderAreaLayout.LibraryGap), reader.Left);
+            Assert.True(reader.Left >= toggle.Right,
+                $"at {scaling:P0} the show/hide button ends at {toggle.Right} and the reader starts "
+                + $"at {reader.Left} - it is {toggle.Right - reader.Left}px underneath the button. "
+                + "The button is in front of the reader in the z-order, so this is the button drawn "
+                + "over the start of the dropdown naming the edition being read.");
+
+            Assert.Equal(scale(ReaderAreaLayout.LibraryGap), reader.Left - toggle.Right);
+
+            // And it must still be a real gain: the point of hiding the
+            // library is the width, and nearly all of it comes back.
             Assert.True(reader.Left < column.Right,
                 "with the library hidden the reader is supposed to reclaim its width");
         });
@@ -175,11 +203,11 @@ public class ReaderAreaLayoutTests : IDisposable
     [InlineData(2.0f)]
     public void TheWindowMarginsScale(float scaling)
     {
-        AtScale(scaling, (client, column, scale) =>
+        AtScale(scaling, (client, column, toggle, scale) =>
         {
             var top = scale(54);
             var reader = ReaderAreaLayout.For(
-                client.Size, top, column.Right, libraryCollapsed: false, scale);
+                client.Size, top, column.Right, toggle.Right, libraryCollapsed: false, scale);
 
             Assert.Equal(scale(ReaderAreaLayout.Margin), client.Width - reader.Right);
             Assert.Equal(scale(ReaderAreaLayout.Margin), client.Height - reader.Bottom);
@@ -196,10 +224,10 @@ public class ReaderAreaLayoutTests : IDisposable
     [InlineData(2.0f)]
     public void TheMinimumSizeScalesToo(float scaling)
     {
-        AtScale(scaling, (_, column, scale) =>
+        AtScale(scaling, (_, column, toggle, scale) =>
         {
             var reader = ReaderAreaLayout.For(
-                new Size(120, 90), scale(54), column.Right, libraryCollapsed: false, scale);
+                new Size(120, 90), scale(54), column.Right, toggle.Right, libraryCollapsed: false, scale);
 
             Assert.Equal(scale(ReaderAreaLayout.MinimumWidth), reader.Width);
             Assert.Equal(scale(ReaderAreaLayout.MinimumHeight), reader.Height);

@@ -893,11 +893,21 @@ public partial class MainForm : ScaledForm
             // alone would leave the star overhanging the reader by that much.
             var libraryRight = Math.Max(_libraryTree.Right, _favoritesOnlyCheck.Right);
 
+            // With the library hidden, that column is gone but its toggle is
+            // not - it is the way back, so it stays, and it sits on the
+            // reader's own top row at the window margin. Measured for the
+            // same reason as the line above: it is in front of the reader in
+            // the z-order, and the reader used to start underneath it, which
+            // put the button over the first characters of the dropdown
+            // naming the edition being read.
+            var collapsedRight = _treeToggleButton.Right;
+
             // Runs all the way to the bottom margin: the search results strip
             // that used to sit under the reader has become its own window, so
             // there is nothing left down there to leave room for.
             splitContainer.Bounds = ReaderAreaLayout.For(
-                ClientSize, splitContainer.Top, libraryRight, _libraryTreeCollapsed, Scale);
+                ClientSize, splitContainer.Top, libraryRight, collapsedRight,
+                _libraryTreeCollapsed, Scale);
         }
 
         Resize += (_, _) => RelayoutReaderArea();
