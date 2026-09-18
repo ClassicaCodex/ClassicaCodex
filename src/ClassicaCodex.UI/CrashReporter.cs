@@ -85,13 +85,18 @@ internal static class CrashReporter
         message.Append("Details were written to:").AppendLine().Append(LogPath).AppendLine().AppendLine();
 
         // Where to send it. The path alone is not much use to someone who has
-        // never typed %LocalAppData% into an address bar, and the app names
-        // its issue tracker nowhere else - About and Help both point only at
-        // the releases page, so a reader who hit a real bug had the evidence
-        // and nowhere to take it.
+        // never typed %LocalAppData% into an address bar.
+        //
+        // This dialog was the only place the app named its issue tracker at
+        // all, which made it the worst possible place for it to be the only
+        // one: a message box has no link to click and vanishes on OK, so the
+        // address had to be copied out of it by eye, in the moment something
+        // had just gone wrong. Help now carries the same address as a link
+        // that can be clicked at any time. Same constant, so a repository that
+        // moves cannot leave one of them pointing at the old place.
         message.Append(
             "If this keeps happening, please report it with that file attached at "
-            + "https://github.com/ClassicaCodex/ClassicaCodex/issues");
+            + ProjectLinks.Issues);
 
         try
         {

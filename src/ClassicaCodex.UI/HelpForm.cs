@@ -1,3 +1,5 @@
+using System.Diagnostics;
+
 namespace ClassicaCodex.UI;
 
 /// <summary>
@@ -619,6 +621,17 @@ Search finds nothing for a word you can see on screen
 
 A translation pane that says the edition has no text
    The edition was catalogued but its source file didn't parse. Re-running that corpus's setup step will retry it.
+
+Reporting it
+   None of the above, or one of them that keeps happening? "Found a problem? Report it on GitHub", at the bottom of this window, opens the issue tracker in your browser. It stays there whichever topic you are reading.
+
+   What makes a report worth answering is usually one file. Most faults are already written down:
+
+      %LocalAppData%\ClassicaCodex\errors.log
+
+   That is the same folder the messages above name, and the log holds what the dialog showed plus where in the app it happened. Attach it, say what you were doing at the time, and include the version number from About.
+
+   Nothing is sent anywhere by the app itself. Opening the page and attaching the log are both yours to do, so nothing leaves this machine unless you choose to send it - the log is written locally whether or not you ever report anything.
 """),
     };
 
@@ -631,12 +644,17 @@ A translation pane that says the edition has no text
         StartPosition = FormStartPosition.CenterParent;
         MinimumSize = new Size(700, 460);
 
+        // Both panes stop short of where they used to end, to leave the strip
+        // along the bottom for the report link. 540 rather than 570: the link
+        // sits at 560 and is around twenty tall, which puts its baseline about
+        // where the panes' bottom edge was, so the window keeps the margin it
+        // had rather than gaining a crowded one.
         _topicList = new ListBox
         {
             Left = 12,
             Top = 12,
             Width = 210,
-            Height = 570,
+            Height = 540,
             Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left,
             IntegralHeight = false
         };
@@ -648,7 +666,7 @@ A translation pane that says the edition has no text
             Left = 234,
             Top = 12,
             Width = 640,
-            Height = 570,
+            Height = 540,
             Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right,
             Multiline = true,
             ReadOnly = true,
@@ -657,8 +675,26 @@ A translation pane that says the edition has no text
             WordWrap = true
         };
 
+        // Outside the topics rather than inside one of them, because a reader
+        // who has hit a bug does not know which topic would have mentioned it
+        // - and the read-only TextBox the topics are drawn in cannot carry a
+        // link at all, so prose in there could only ever print the address for
+        // copying by hand. This is the one control in the window that is the
+        // same on every topic, which is the point: it is the way out of the
+        // help window when help is not what was needed.
+        var reportLink = new LinkLabel
+        {
+            Text = "Found a problem? Report it on GitHub",
+            Left = 12,
+            Top = 560,
+            AutoSize = true,
+            Anchor = AnchorStyles.Bottom | AnchorStyles.Left
+        };
+        reportLink.LinkClicked += (_, _) => OpenIssueTracker();
+
         Controls.Add(_topicList);
         Controls.Add(_contentBox);
+        Controls.Add(reportLink);
 
         Load += (_, _) =>
         {
@@ -669,6 +705,34 @@ A translation pane that says the edition has no text
         ReadingTheme.AttachTo(this);
 
         WindowShortcuts.CloseOnEscape(this);
+    }
+
+    /// <summary>
+    /// Hands the issue tracker to whatever browser the reader uses.
+    ///
+    /// The failure here is shown rather than swallowed, which is not what the
+    /// other links in this application do. Those are citations - a reader who
+    /// cannot open one has lost a reference and can look it up. This one is
+    /// the route for telling somebody the application is broken, so a click
+    /// that does nothing at all leaves them with no way to report the very
+    /// thing they came here about. The message carries the address so it can
+    /// be typed in by hand.
+    /// </summary>
+    private void OpenIssueTracker()
+    {
+        try
+        {
+            Process.Start(new ProcessStartInfo(ProjectLinks.Issues) { UseShellExecute = true });
+        }
+        catch (Exception ex)
+        {
+            CrashReporter.LogHandled(ex, "opening the issue tracker");
+            MessageBox.Show(this,
+                "Couldn't open a browser: " + ex.Message
+                + "\r\n\r\nThe address is:\r\n" + ProjectLinks.Issues,
+                "Report a problem",
+                MessageBoxButtons.OK, MessageBoxIcon.Warning);
+        }
     }
 
     private void ShowSelectedTopic()
