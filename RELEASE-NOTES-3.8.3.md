@@ -93,3 +93,9 @@ fits. It is cosmetic, nothing is drawn over anything else, and the last column
 in each grid already stretches to fill. It is next.
 
 1,406 tests, zero warnings.
+
+The download is not code-signed, so if you would rather check it than trust it:
+
+```
+SHA-256  79FE6C8ED03A4E52F2132AEC38774A51C6748C4DBCA758185860F96F46C227CE
+```
