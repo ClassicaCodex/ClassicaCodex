@@ -169,3 +169,7 @@ up when you close the app.
 1,418 tests, zero warnings.
 
 The download is not code-signed, so if you would rather check it than trust it:
+
+```
+SHA-256  AF1946321EFD7AC26E1047E8BC71048F7A7A56295168E2DD5AE461C45F8F74FD
+```
