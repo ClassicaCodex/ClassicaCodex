@@ -150,8 +150,13 @@ There is a link on the Help window. If a window looks wrong on your display,
 that is worth telling me about — the display-scaling audit only ever tests the
 scaling of the machine it runs on.
 
+1,427 tests, zero warnings.
+
 The download is not code-signed, so if you would rather check it than trust it:
 
 ```
-SHA-256  (recorded after the release is published)
+SHA-256  175AAC7A8DF21513531A53D0493AE6B4BEA5CFAE491298619059569EC6B92E2A
 ```
+
+That checksum was taken by downloading the published asset back and hashing it,
+not from the local build, so it covers the upload too.
