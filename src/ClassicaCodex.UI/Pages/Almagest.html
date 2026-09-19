@@ -3124,8 +3124,21 @@ window.P = P;
     var rStars = rOuter - band;
 
     R.zodiacRing(ctx, cx, cy, rStars, rOuter, pal, { degrees: false, names: true });
-    R.label(ctx, 'the sphere of the fixed stars', cx, cy - rStars - band * 0.5 - 2,
-            pal.rule, '10px ' + pal.sans, 'center', 'middle');
+
+    /* ONLY THE SELECTED RING IS NAMED, and that is the second attempt.
+       Naming all seven stacks seven labels into the radial space between
+       the innermost and outermost ring - about 130 pixels in a short
+       canvas, so under twenty pixels a ring. Laying them along a diagonal
+       instead of straight up buys a factor of 1.4 and is still not
+       enough: at 9.5px text they overlap each other AND the rings they
+       are naming.
+       The labels were redundant anyway. Every body already carries its
+       drawn symbol beside it, the metals tell them apart, and the rail
+       lists all seven with matching colour dots. This view's job is to
+       show the ORDER, and a legible ring of dots does that better than an
+       illegible one with names on it. */
+    var LABEL_DIR = 129;                      /* upper left, away from the zodiac names */
+    var ldx = Math.cos(-LABEL_DIR * P.RAD), ldy = Math.sin(-LABEL_DIR * P.RAD);
 
     var order = P.params.order;          /* Ptolemy's, outward */
     var n = order.length;
@@ -3147,8 +3160,8 @@ window.P = P;
       if (!st) {
         /* A body whose model is not implemented gets its ring and its
            name, and no marker - better than a marker in the wrong place. */
-        R.label(ctx, b.label + ' — not modelled here', cx + 6, cy - rr - 7,
-                pal.muted, '9.5px ' + pal.sans, 'left', 'middle');
+        if (name === P.sky.selected) R.label(ctx, b.label + ' — not modelled here', cx + ldx * rr - 5, cy + ldy * rr - 5,
+                pal.muted, '9.5px ' + pal.sans, 'right', 'middle');
         continue;
       }
 
@@ -3164,8 +3177,8 @@ window.P = P;
       R.disc(ctx, x, y, name === P.sky.selected ? 6.5 : 5,
              retro ? pal.vermilion : metal, pal.stage, 1.4);
       R.symbol(ctx, b.symbol, x + 12, y - 11, 6.5, retro ? pal.vermilion : metal, 1.4);
-      R.label(ctx, b.label, cx + 6, cy - rr - 7, pal.muted,
-              '9.5px ' + pal.sans, 'left', 'middle');
+      if (name === P.sky.selected) R.label(ctx, b.label, cx + ldx * rr - 5, cy + ldy * rr - 5, pal.muted,
+              '9.5px ' + pal.sans, 'right', 'middle');
     }
 
     R.disc(ctx, cx, cy, 5, pal.ink, pal.stage, 1.5);
