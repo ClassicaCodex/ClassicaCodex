@@ -590,7 +590,7 @@ The last button on the main toolbar, the bronze dial. It opens a card describing
 It is a diversion rather than a research tool, and it is here because the machine belongs to the same world as the texts. Cicero describes one like it twice, in De Re Publica and in De Natura Deorum, and both passages are in this library.
 
 What you get
-   Drag a crank and thirty-odd gears turn at the ratios their tooth counts demand. The front dial shows the Sun and Moon against the Egyptian calendar and the zodiac, with six rings of planets in the middle. The back shows the nineteen-year calendar spiral and the eclipse spiral, with the fifty-one eclipse predictions that are inscribed on the original. A third view shows the gearing itself.
+   Drag a crank and forty-one wheels turn at the ratios their tooth counts demand - more than survive, because the reconstruction supplies the gears the ratios require but the bronze does not have. The front dial shows the Sun and Moon against the Egyptian calendar and the zodiac, with six rings of planets in the middle. The back shows the nineteen-year calendar spiral and the eclipse spiral, with the fifty-one eclipse predictions that are inscribed on the original. A third view shows the gearing itself.
 
 How honest it is
    Deliberately. Four of the twelve zodiac names are actually on the bronze, three of the twelve month names, and twenty of the fifty-one eclipse glyphs. The page letters attested text brighter than the text we supply, draws reconstructed wheels dimmer than counted ones and hypothetical wheels as outlines, and leaves the two wheels nobody can explain connected to nothing. The card lists every source it was built from.

@@ -209,6 +209,7 @@ You can add your own as JSON in a `Reactions` folder beside the program — see
 - **Medieval Nordic manuscripts** — Old Norse, Icelandic, Swedish and Danish texts from the [Medieval Nordic Text Archive](https://www.menota.org), transcribed word by word from the parchment rather than edited into a printed text: Heimskringla, Laxdœla saga, the Codex Wormianus, the Old Norwegian homily book, Vǫluspá in the Codex Regius. A manuscript is a physical object containing whatever was bound into it, so the import shows you what it found in each file and lets you merge, split, retitle or drop works before anything is written
 - **Editor's Notes** — the apparatus of those manuscripts, kept beside the text rather than read as part of it. Manuscript variants carry the adopted reading, the alternative and the witness it came from; editorial notes carry ligatures, scribal corrections, worn passages and missing leaves. A variant collated from another manuscript is not a word of this one, and reading the two together would quietly corrupt every word count and frequency measure built on the text
 - **Fictional Ancient Reactions** — a staged debate about a work, read like a group chat, with period-appropriate critics arguing about what their own age actually cared about. Clearly labelled as fiction everywhere it appears. Invented speakers stand in for the audiences who left nothing in writing; real critics appear under their own name only where their view survives, carry a badge saying so, and every line they speak carries the ancient reference it paraphrases — which is a link into your own library wherever you have the text. The anachronism and citation rules are enforced by tests, not by good intentions. Kept separate from the stylometry and attribution tools on purpose
+- **The Antikythera mechanism** — a bronze dial on the toolbar opens a working simulation of the Greek astronomical calculator pulled off a shipwreck in 1901, as a self-contained page in your browser. Drag the crank and some forty gears turn at the ratios their tooth counts demand, driving the Sun, the Moon and its phase, the Egyptian calendar and zodiac, the Metonic and Saros spirals, and the six planetary rings of the 2021 reconstruction. It draws the difference between evidence and inference rather than smoothing it over: attested lettering brighter than the text we supply, counted wheels solid, reconstructed wheels dimmer, hypothesis as outlines, and the two wheels nobody can explain left connected to nothing. A diversion rather than a research tool, and here because Cicero describes one of these twice — in *De Re Publica* and *De Natura Deorum*, both of which are in this library
 - **Dark mode**, with a parchment light theme, and separate artwork for each
 
 ## Getting started
@@ -343,7 +344,7 @@ suspecting.
 
 ## Status
 
-Version 3.8.3.
+Version 3.9.0.
 
 Version 1 was a reader. Version 2 made it a searchable, taggable,
 cross-referenced library and added the translation workbench. Version 3 adds the
