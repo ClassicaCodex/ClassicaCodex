@@ -1,0 +1,3441 @@
+<!doctype html> <!-- WRAP -->
+<html lang="en"> <!-- WRAP -->
+<head> <!-- WRAP -->
+<meta charset="utf-8"> <!-- WRAP -->
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"> <!-- WRAP -->
+<title>Ptolemy's Cosmos</title>
+<style>
+/* ===== css/style.css ===== */
+/* =====================================================================
+   ALMAGEST — stylesheet
+   ---------------------------------------------------------------------
+   Two worlds, both drawn from the book and its diagrams.
+
+   LIGHT is the manuscript page: parchment, iron-gall ink, the circles
+   ruled in faded ochre and the construction lines in lapis, the way a
+   theorica diagram is drawn in Peurbach and in every Arabic and Latin
+   copy before him. This is the one that matches ClassicaCodex's reading
+   mode, which is where the page may end up.
+
+   DARK is the sky the book is about: deep blue-black, the diagram in
+   brass rule over it, the planets lit.
+
+   THE ACCENT IS THE PLANETARY METALS, and it is not decoration. The
+   seven classical planets carry seven metals - Saturn lead, Jupiter
+   tin, Mars iron, the Sun gold, Venus copper, Mercury quicksilver, the
+   Moon silver - and that correspondence is older than the Almagest and
+   outlived it by fifteen centuries. Using it means a reader can tell
+   Mars from Saturn by colour without reading a label, and the colours
+   mean something rather than being picked off a wheel.
+
+   The two structural colours are LAPIS for construction - equant,
+   deferent centre, the lines that are geometry rather than sky - and
+   VERMILION for retrograde, which is the rubricator's red used for the
+   thing the page most wants you to notice. Deliberately not the bronze
+   and verdigris of the companion Antikythera page: that object is
+   corroded metal, this one is ink on a page.
+
+   NO WEB FONTS. This page must run offline inside ClassicaCodex, which
+   redistributes no fonts and whose release script fails the build if
+   font data appears in the payload. System faces only. The Greek is
+   polytonic and is carried by Palatino Linotype and Cambria, both of
+   which have real coverage; the stack falls back to Times, which does
+   too.
+   ===================================================================== */
+
+:root {
+  /* --- light: the manuscript page -------------------------------- */
+  --ground:      #EDE6D6;   /* parchment, warmed off white but not cream */
+  --surface:     #F6F1E4;
+  --surface-2:   #E1D9C5;
+  --edge:        #C6BBA0;
+  --edge-soft:   #D8CFB8;
+
+  --ink:         #211D16;   /* iron gall, brown-black rather than neutral */
+  --ink-2:       #4A4335;
+  --muted:       #776E5B;
+
+  --rule:        #B9A878;   /* the ruled circles: faded ochre */
+  --rule-soft:   #D2C6A4;
+  --gold:        #9A7B1E;   /* the brass of an astrolabe limb */
+  --gold-hi:     #C9A63C;
+  --lapis:       #2E4B82;   /* construction lines, the manuscript blue */
+  --lapis-soft:  #6C87B8;
+  --vermilion:   #B03A22;   /* rubrication: retrograde, stations */
+
+  /* the seven metals */
+  --m-saturn:    #6E7076;   /* lead */
+  --m-jupiter:   #8E7C42;   /* tin, dulled so it is not the Sun */
+  --m-mars:      #A63E28;   /* iron, rusted */
+  --m-sun:       #C68A16;   /* gold */
+  --m-venus:     #A96442;   /* copper */
+  --m-mercury:   #5C7E92;   /* quicksilver */
+  --m-moon:      #7C8794;   /* silver */
+
+  /* semantic, kept separate from the accents on purpose */
+  --good:        #2F7D4F;
+  --warn:        #97681A;
+  --bad:         #A33C33;
+
+  /* the stage the canvas sits on - dark in both themes, because it is
+     the sky, and a diagram of the heavens on a white field reads as a
+     textbook figure rather than as the thing itself */
+  --stage:       #121620;
+  --stage-2:     #0C0F17;
+  --stage-ink:   #E8E3D6;
+  --stage-edge:  #2A3040;
+
+  --shadow: 0 1px 2px rgba(33, 29, 22, .10), 0 8px 24px rgba(33, 29, 22, .08);
+  --shadow-lift: 0 2px 6px rgba(33, 29, 22, .16), 0 18px 48px rgba(33, 29, 22, .14);
+
+  --serif: "Palatino Linotype", Palatino, "Book Antiqua", Cambria,
+           "Times New Roman", Times, serif;
+  --sans:  "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system,
+           "Helvetica Neue", Arial, sans-serif;
+  --mono:  Consolas, "SF Mono", Menlo, "DejaVu Sans Mono", monospace;
+
+  --r-sm: 3px;
+  --r-md: 5px;
+  --step: 8px;
+
+  color-scheme: light dark;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --ground:      #0B0E16;   /* night, blue-black - the Antikythera page's
+                                 unlit room is greener; these must not be
+                                 mistaken for each other */
+    --surface:     #141924;
+    --surface-2:   #1C2231;
+    --edge:        #2E3648;
+    --edge-soft:   #232A39;
+
+    --ink:         #E8E3D6;
+    --ink-2:       #B6B2A6;
+    --muted:       #7C8698;
+
+    --rule:        #6E6242;
+    --rule-soft:   #4A4230;
+    --gold:        #C9A63C;
+    --gold-hi:     #F0D680;
+    --lapis:       #6F91D0;
+    --lapis-soft:  #3C5A8C;
+    --vermilion:   #D4593C;
+
+    --m-saturn:    #9A9CA4;
+    --m-jupiter:   #C8B273;
+    --m-mars:      #D4614A;
+    --m-sun:       #E8B84B;
+    --m-venus:     #C98B6B;
+    --m-mercury:   #9FB8C8;
+    --m-moon:      #CBD3DC;
+
+    --good:        #5FBE86;
+    --warn:        #D6A445;
+    --bad:         #E0705F;
+
+    --stage:       #0A0D15;
+    --stage-2:     #06080E;
+    --stage-ink:   #E8E3D6;
+    --stage-edge:  #222839;
+
+    --shadow: 0 1px 2px rgba(0, 0, 0, .5), 0 8px 24px rgba(0, 0, 0, .4);
+    --shadow-lift: 0 2px 6px rgba(0, 0, 0, .55), 0 18px 48px rgba(0, 0, 0, .5);
+  }
+}
+
+/* The app can be pinned to one theme by ClassicaCodex, which has its own
+   reading modes and sets data-theme on the root when it opens the page. */
+:root[data-theme="dark"] {
+  --ground:      #0B0E16;
+  --surface:     #141924;
+  --surface-2:   #1C2231;
+  --edge:        #2E3648;
+  --edge-soft:   #232A39;
+  --ink:         #E8E3D6;
+  --ink-2:       #B6B2A6;
+  --muted:       #7C8698;
+  --rule:        #6E6242;
+  --rule-soft:   #4A4230;
+  --gold:        #C9A63C;
+  --gold-hi:     #F0D680;
+  --lapis:       #6F91D0;
+  --lapis-soft:  #3C5A8C;
+  --vermilion:   #D4593C;
+  --m-saturn:    #9A9CA4;
+  --m-jupiter:   #C8B273;
+  --m-mars:      #D4614A;
+  --m-sun:       #E8B84B;
+  --m-venus:     #C98B6B;
+  --m-mercury:   #9FB8C8;
+  --m-moon:      #CBD3DC;
+  --good:        #5FBE86;
+  --warn:        #D6A445;
+  --bad:         #E0705F;
+  --stage:       #0A0D15;
+  --stage-2:     #06080E;
+  --stage-edge:  #222839;
+}
+
+/* ---- frame ----------------------------------------------------------- */
+
+* { box-sizing: border-box; }
+
+html, body { height: 100%; }
+
+body {
+  margin: 0;
+  background: var(--ground);
+  color: var(--ink);
+  font: 14px/1.5 var(--sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+#app {
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  height: 100%;
+}
+
+/* ---- header ---------------------------------------------------------- */
+
+header.bar {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  padding: 10px 16px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--edge);
+}
+
+header.bar h1 {
+  margin: 0;
+  font: 600 18px/1.2 var(--serif);
+  letter-spacing: .01em;
+}
+
+header.bar .sub {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.spacer { flex: 1 1 auto; }
+
+.views { display: flex; gap: 0; }
+
+.views button {
+  font: 12px/1 var(--sans);
+  color: var(--ink-2);
+  background: var(--surface-2);
+  border: 1px solid var(--edge);
+  padding: 6px 11px;
+  cursor: pointer;
+}
+.views button + button { border-left: 0; }
+.views button:first-child { border-radius: var(--r-sm) 0 0 var(--r-sm); }
+.views button:last-child { border-radius: 0 var(--r-sm) var(--r-sm) 0; }
+.views button:hover { color: var(--ink); background: var(--surface); }
+.views button[aria-pressed="true"] {
+  color: var(--ground);
+  background: var(--lapis);
+  border-color: var(--lapis);
+}
+
+/* ---- main ------------------------------------------------------------ */
+
+main {
+  display: grid;
+  grid-template-columns: 1fr 340px;
+  min-height: 0;
+}
+
+#stage {
+  position: relative;
+  background: radial-gradient(ellipse at 50% 45%, var(--stage) 0%, var(--stage-2) 78%);
+  border-right: 1px solid var(--edge);
+  min-height: 0;
+  overflow: hidden;
+}
+
+#sky {
+  display: block;
+  width: 100%;
+  height: 100%;
+  touch-action: none;
+}
+
+.stage-hint {
+  position: absolute;
+  left: 50%;
+  bottom: 12px;
+  transform: translateX(-50%);
+  margin: 0;
+  color: var(--muted);
+  font-size: 11.5px;
+  letter-spacing: .02em;
+  pointer-events: none;
+  text-shadow: 0 1px 3px rgba(0,0,0,.6);
+}
+
+/* ---- rail ------------------------------------------------------------ */
+
+#rail {
+  background: var(--surface);
+  overflow-y: auto;
+  min-height: 0;
+  padding: 0 0 14px;
+}
+
+.panel {
+  padding: 11px 15px 13px;
+  border-bottom: 1px solid var(--edge-soft);
+}
+
+.label {
+  display: block;
+  font: 600 10px/1 var(--sans);
+  letter-spacing: .13em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 7px;
+}
+
+.date-big {
+  font: 400 19px/1.25 var(--serif);
+  color: var(--ink);
+}
+.date-sub {
+  margin: 3px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+dl.rows {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 3px 12px;
+  margin: 0;
+  align-items: baseline;
+}
+dl.rows dt { color: var(--muted); font-size: 12px; }
+dl.rows dd {
+  margin: 0;
+  text-align: right;
+  font: 13px/1.4 var(--mono);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---- the planet table ------------------------------------------------ */
+
+table.bodies {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+table.bodies th {
+  text-align: right;
+  font: 600 9.5px/1 var(--sans);
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--muted);
+  padding: 0 0 5px;
+  font-weight: 600;
+}
+table.bodies th:first-child { text-align: left; }
+table.bodies td {
+  padding: 3px 0;
+  border-top: 1px solid var(--edge-soft);
+  text-align: right;
+  font: 12px/1.4 var(--mono);
+  font-variant-numeric: tabular-nums;
+}
+table.bodies td:first-child {
+  text-align: left;
+  font: 13px/1.4 var(--serif);
+  white-space: nowrap;
+}
+table.bodies tr.on td { background: var(--surface-2); }
+table.bodies tr { cursor: pointer; }
+table.bodies tr:hover td { background: var(--surface-2); }
+
+.dot {
+  display: inline-block;
+  width: 9px; height: 9px;
+  border-radius: 50%;
+  margin-right: 7px;
+  vertical-align: baseline;
+  box-shadow: 0 0 0 1px rgba(0,0,0,.18) inset;
+}
+.dot.saturn  { background: var(--m-saturn); }
+.dot.jupiter { background: var(--m-jupiter); }
+.dot.mars    { background: var(--m-mars); }
+.dot.sun     { background: var(--m-sun); }
+.dot.venus   { background: var(--m-venus); }
+.dot.mercury { background: var(--m-mercury); }
+.dot.moon    { background: var(--m-moon); }
+
+.retro {
+  color: var(--vermilion);
+  font: 600 10px/1 var(--sans);
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+/* ---- notes and quotations -------------------------------------------- */
+
+.notes { font-size: 12.5px; line-height: 1.6; color: var(--ink-2); }
+.notes p { margin: 0 0 9px; }
+.notes p:last-child { margin-bottom: 0; }
+.notes em { color: var(--ink); font-style: italic; }
+
+blockquote.anc {
+  margin: 0 0 10px;
+  padding: 0 0 0 11px;
+  border-left: 2px solid var(--rule);
+  font: italic 13px/1.55 var(--serif);
+  color: var(--ink);
+}
+blockquote.anc .grk {
+  font-style: normal;
+  display: block;
+  margin-bottom: 4px;
+}
+blockquote.anc cite {
+  display: block;
+  margin-top: 5px;
+  font: normal 11px/1.4 var(--sans);
+  color: var(--muted);
+  letter-spacing: .02em;
+}
+
+.grk { font-family: var(--serif); }
+
+/* ---- verdict --------------------------------------------------------- */
+
+.panel.verdict dl.rows dd.good { color: var(--good); }
+.panel.verdict dl.rows dd.warn { color: var(--warn); }
+.panel.verdict dl.rows dd.bad  { color: var(--bad); }
+
+/* ---- footer transport ------------------------------------------------ */
+
+footer.transport {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  flex-wrap: wrap;
+  padding: 9px 16px;
+  background: var(--surface);
+  border-top: 1px solid var(--edge);
+}
+
+.btn {
+  font: 12.5px/1 var(--sans);
+  color: var(--ink-2);
+  background: var(--surface-2);
+  border: 1px solid var(--edge);
+  border-radius: var(--r-sm);
+  padding: 6px 11px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.btn:hover { color: var(--ink); border-color: var(--muted); }
+.btn:active { transform: translateY(1px); }
+.btn.primary {
+  color: var(--ground);
+  background: var(--lapis);
+  border-color: var(--lapis);
+  font-weight: 600;
+  min-width: 5.4em;
+}
+.btn.primary:hover { filter: brightness(1.12); color: var(--ground); }
+
+footer.transport input[type="number"],
+footer.transport select {
+  font: 12.5px/1 var(--mono);
+  color: var(--ink);
+  background: var(--ground);
+  border: 1px solid var(--edge);
+  border-radius: var(--r-sm);
+  padding: 5px 6px;
+}
+
+footer.transport .label { margin: 0; }
+
+input[type="range"] { accent-color: var(--lapis); }
+
+:focus-visible {
+  outline: 2px solid var(--lapis);
+  outline-offset: 2px;
+}
+
+/* ---- narrow ---------------------------------------------------------- */
+
+@media (max-width: 900px) {
+  #app { grid-template-rows: auto auto auto; height: auto; min-height: 100%; }
+  main { grid-template-columns: 1fr; }
+  #stage { height: 56vh; min-height: 300px; border-right: 0; border-bottom: 1px solid var(--edge); }
+  #rail { overflow: visible; }
+  .stage-hint { display: none; }
+  header.bar { flex-wrap: wrap; }
+
+  /* THE CONTROLS MUST STAY REACHABLE.
+
+     Learned on the companion page and carried here before it could
+     happen twice. Below this breakpoint the rail stops being a column
+     beside the diagram and becomes the rest of the page - readouts,
+     then a planet table, then several hundred words of notes and
+     quotations. That puts the transport bar thousands of pixels down,
+     behind a wall of prose, with nothing on screen to say it exists;
+     and since the page opens in whatever window the reader has, a side
+     panel is exactly where it happens.
+
+     Sticking the bar to the bottom of the viewport keeps every control
+     next to the thing it operates, the whole way down. */
+  footer.transport {
+    position: sticky;
+    bottom: 0;
+    z-index: 5;
+    gap: 6px;
+    padding: 7px 12px;
+    padding-bottom: calc(7px + env(safe-area-inset-bottom, 0px));
+    box-shadow: 0 -6px 18px rgba(0, 0, 0, .16);
+  }
+  footer.transport .btn { font-size: 12px; padding: 5px 9px; }
+  footer.transport .label { font-size: 9.5px; }
+  footer.transport input[type="number"] { padding: 4px 5px; font-size: 12px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .btn:active { transform: none; }
+}
+</style>
+</head> <!-- WRAP -->
+<body> <!-- WRAP -->
+
+<div id="app">
+
+  <header class="bar">
+    <h1>Ptolemy's Cosmos</h1>
+    <span class="sub">The <i>Almagest</i>, Alexandria, c.&nbsp;AD&nbsp;150 &mdash; set running</span>
+    <span class="spacer"></span>
+    <div class="views" role="group" aria-label="Which view of the model to show">
+      <button type="button" id="view-model" aria-pressed="true">The model</button>
+      <button type="button" id="view-sky" aria-pressed="false">The sky</button>
+      <button type="button" id="view-cosmos" aria-pressed="false">The cosmos</button>
+    </div>
+  </header>
+
+  <main>
+    <div id="stage">
+      <canvas id="sky" aria-label="Ptolemy's geocentric model. Deferents, epicycles and equants turning at the rates the Almagest gives."></canvas>
+      <p class="stage-hint" id="hint">Press Run &mdash; watch Mars turn back on itself</p>
+    </div>
+
+    <aside id="rail">
+
+      <section class="panel">
+        <span class="label">Set to</span>
+        <div class="date-big" id="r-date">&mdash;</div>
+        <div class="date-sub" id="r-date-sub">&mdash;</div>
+      </section>
+
+      <section class="panel">
+        <span class="label">Where the model puts them</span>
+        <table class="bodies" id="r-bodies">
+          <thead>
+            <tr><th>Body</th><th>Longitude</th><th>In sign</th><th></th></tr>
+          </thead>
+          <tbody id="r-bodies-body"></tbody>
+        </table>
+        <p class="date-sub" id="r-bodies-note">Click a row to take that planet apart.</p>
+      </section>
+
+      <section class="panel" id="p-one" hidden>
+        <span class="label">Anatomy</span>
+        <dl class="rows">
+          <dt>Epicycle radius</dt><dd id="r-one-epi">&mdash;</dd>
+          <dt>Eccentricity</dt><dd id="r-one-ecc">&mdash;</dd>
+          <dt>Apogee</dt><dd id="r-one-apo">&mdash;</dd>
+          <dt>Mean longitude</dt><dd id="r-one-mlon">&mdash;</dd>
+          <dt>Mean anomaly</dt><dd id="r-one-manom">&mdash;</dd>
+          <dt>Equation of centre</dt><dd id="r-one-eqc">&mdash;</dd>
+          <dt>Equation of anomaly</dt><dd id="r-one-eqa">&mdash;</dd>
+        </dl>
+        <p class="date-sub" id="r-one-note">&mdash;</p>
+      </section>
+
+      <section class="panel verdict" id="p-verdict">
+        <span class="label">Against the real sky</span>
+        <dl class="rows" id="r-errors"></dl>
+        <p class="date-sub" id="r-verdict-note">&mdash;</p>
+      </section>
+
+      <section class="panel" id="p-note">
+        <span class="label">Note</span>
+        <div class="notes" id="r-note"></div>
+      </section>
+
+      <section class="panel" id="p-anc">
+        <span class="label">In the library</span>
+        <div class="notes" id="r-anc"></div>
+      </section>
+
+    </aside>
+  </main>
+
+  <footer class="transport">
+    <!-- U+25C4 / U+25BA (POINTERS), not U+25C0 / U+25B6 (TRIANGLES).
+         Measured font coverage: the triangles are missing from Palatino
+         Linotype, Times New Roman, Arial, Segoe UI, Calibri AND Consolas,
+         present only in Cambria - so under this page's stack they would
+         fall through to Segoe UI Symbol or, on Windows, to Segoe UI Emoji
+         as COLOUR emoji that CSS cannot restyle. The pointers are in
+         Cambria, Times, Arial, Segoe UI and Consolas alike. -->
+    <button class="btn" type="button" id="b-year-back" title="Back one year">&#9668;&#9668;&#8239;year</button>
+    <button class="btn" type="button" id="b-month-back" title="Back one month">&#9668;&#8239;month</button>
+    <button class="btn" type="button" id="b-day-back" title="Back one day">&#9668;&#8239;day</button>
+    <button class="btn primary" type="button" id="b-run">Run</button>
+    <button class="btn" type="button" id="b-day-fwd" title="Forward one day">day&#8239;&#9658;</button>
+    <button class="btn" type="button" id="b-month-fwd" title="Forward one month">month&#8239;&#9658;</button>
+    <button class="btn" type="button" id="b-year-fwd" title="Forward one year">year&#8239;&#9658;</button>
+
+    <!-- Values are DAYS PER FRAME and the labels say so. Mars's
+         retrogradation lasts 73 days, so at 60 fps a quarter-day step
+         gives it 4.9 seconds on screen inside a 52-second synodic cycle;
+         at 1 day/frame it is over in 1.2 s, and at 4 it is 0.3 s. The
+         whole point of the page is visible in one of these settings and
+         invisible in the others, so the slow one is the default. -->
+    <label class="label" for="in-speed">Speed</label>
+    <select id="in-speed">
+      <option value="0.25" selected>&frac14;&#8239;day / frame</option>
+      <option value="0.5">&frac12;&#8239;day / frame</option>
+      <option value="1">1&#8239;day / frame</option>
+      <option value="4">4&#8239;days / frame</option>
+    </select>
+
+    <button class="btn" type="button" id="b-retro"
+            title="Jump to just before the selected planet next turns back on itself">Next retrograde</button>
+
+    <button class="btn" type="button" id="b-trace" aria-pressed="true"
+            title="Leave a trail of where each planet has been, seen from the Earth">Trail</button>
+
+    <span class="spacer"></span>
+
+    <label class="label" for="in-year">Year</label>
+    <input type="number" id="in-year" step="1" value="2026" style="width:6.5em">
+    <label class="label" for="in-month">Month</label>
+    <input type="number" id="in-month" min="1" max="12" step="1" value="9" style="width:4em">
+    <label class="label" for="in-day">Day</label>
+    <input type="number" id="in-day" min="1" max="31" step="1" value="19" style="width:4em">
+    <button class="btn" type="button" id="b-set">Set</button>
+    <button class="btn" type="button" id="b-today">Today</button>
+  </footer>
+
+</div>
+
+<script>
+/* ===== js/00-core.js ===== */
+/* =====================================================================
+   ALMAGEST — core
+   ---------------------------------------------------------------------
+   Namespace, sexagesimal arithmetic, angle helpers.
+
+   WHY SEXAGESIMAL IS A TYPE HERE, AND NOT JUST A PRINTING TRICK.
+
+   Ptolemy does not write 3.4258 degrees per day. He writes
+
+       0;59,8,17,13,12,31
+
+   — a whole part and six fractional places in base 60 — and every
+   parameter in this page comes out of a table written that way. The
+   companion Antikythera page keeps its gear ratios as exact fractions
+   for the same reason: the claim being made is that these are HIS
+   numbers, so the page has to be able to show the reader the number as
+   he wrote it, next to the decimal it became.
+
+   Keeping the sexagesimal as the source of truth also stops a whole
+   class of silent error. A transcription slip in the fourth place of
+   0;59,8,17,13,12,31 is a fifth of a degree a century — invisible on
+   screen, fatal to the claim. Parsed into a Sex and printed back out,
+   it has to round-trip, and the test page checks that it does.
+
+   Plain Numbers underneath, ES5 throughout: the build parses every file
+   with Windows Script Host, which is ES3 and has no BigInt. Six
+   sexagesimal places is 60^6 ≈ 4.7e10 — comfortably exact in a double,
+   and guarded below rather than assumed.
+   ===================================================================== */
+var P = window.P || {};
+window.P = P;
+
+(function () {
+  'use strict';
+
+  P.TAU = Math.PI * 2;
+  P.DEG = 180 / Math.PI;
+  P.RAD = Math.PI / 180;
+
+  /* ---- sexagesimal ---------------------------------------------------- */
+
+  var SAFE = 9007199254740991;   // Number.MAX_SAFE_INTEGER, spelled out for ES5
+
+  /**
+   * A number as Ptolemy writes it: whole ; sixtieths , thirty-six-hundredths , ...
+   *
+   *   new Sex(0, [59, 8, 17, 13, 12, 31])   the Sun's mean daily motion
+   *   Sex.parse('0;59,8,17,13,12,31')       the same, from the text
+   *   Sex.parse('265;15')                   a longitude
+   *
+   * Negative values carry the sign on the whole part and are understood
+   * to negate the fraction too, which is what a minus sign means in
+   * every modern edition. Ptolemy himself has no negative numbers.
+   */
+  function Sex(whole, places) {
+    this.neg = whole < 0 || (whole === 0 && places && places.negZero);
+    this.whole = Math.abs(whole) | 0;
+    this.places = [];
+    if (places) {
+      for (var i = 0; i < places.length; i++) {
+        var p = places[i] | 0;
+        if (p < 0 || p > 59) throw new Error('Sex: place ' + i + ' out of range: ' + places[i]);
+        this.places.push(p);
+      }
+    }
+    if (this.places.length > 8) throw new Error('Sex: more places than a double holds exactly');
+  }
+
+  /** "0;59,8,17" or "265;15" or "-5;2". The semicolon is the sexagesimal point. */
+  Sex.parse = function (s) {
+    if (s instanceof Sex) return s;
+    if (typeof s === 'number') return Sex.fromNumber(s);
+    var str = String(s).replace(/\s+/g, '');
+    var neg = false;
+    if (str.charAt(0) === '-') { neg = true; str = str.substring(1); }
+    var semi = str.indexOf(';');
+    var wholeStr = semi < 0 ? str : str.substring(0, semi);
+    var fracStr = semi < 0 ? '' : str.substring(semi + 1);
+    var whole = wholeStr === '' ? 0 : parseInt(wholeStr, 10);
+    if (isNaN(whole)) throw new Error('Sex.parse: cannot read whole part of "' + s + '"');
+    var places = [];
+    if (fracStr !== '') {
+      var parts = fracStr.split(',');
+      for (var i = 0; i < parts.length; i++) {
+        var v = parseInt(parts[i], 10);
+        if (isNaN(v)) throw new Error('Sex.parse: cannot read place ' + i + ' of "' + s + '"');
+        places.push(v);
+      }
+    }
+    var x = new Sex(whole, places);
+    x.neg = neg && !(whole === 0 && places.length === 0);
+    return x;
+  };
+
+  /** Decimal value. */
+  Sex.prototype.valueOf = function () {
+    var v = this.whole, scale = 1;
+    for (var i = 0; i < this.places.length; i++) {
+      scale /= 60;
+      v += this.places[i] * scale;
+    }
+    return this.neg ? -v : v;
+  };
+
+  /** Back to the text, exactly as it went in. The round trip is tested. */
+  Sex.prototype.toString = function () {
+    var s = (this.neg ? '-' : '') + this.whole;
+    if (this.places.length) s += ';' + this.places.join(',');
+    return s;
+  };
+
+  /**
+   * Decimal to sexagesimal with a given number of places.
+   * Rounds the last place and carries, so 0;59,59,59.6 becomes 1;0,0,0
+   * rather than 0;59,59,60 — which is not a sexagesimal number at all
+   * and is exactly the kind of thing that ends up printed on a page.
+   */
+  Sex.fromNumber = function (v, nplaces) {
+    if (nplaces === undefined) nplaces = 6;
+    var neg = v < 0;
+    v = Math.abs(v);
+    var scaled = Math.round(v * Math.pow(60, nplaces));
+    if (scaled > SAFE) throw new Error('Sex.fromNumber: past exact integer range');
+    var places = [];
+    for (var i = 0; i < nplaces; i++) {
+      places.unshift(scaled % 60);
+      scaled = Math.floor(scaled / 60);
+    }
+    var x = new Sex(scaled, places);
+    x.neg = neg;
+    return x;
+  };
+
+  /** Trim trailing zero places, for display. 5;30,0,0 -> 5;30 */
+  Sex.prototype.trim = function () {
+    var p = this.places.slice();
+    while (p.length && p[p.length - 1] === 0) p.pop();
+    var x = new Sex(this.whole, p);
+    x.neg = this.neg;
+    return x;
+  };
+
+  P.Sex = Sex;
+
+  /** Shorthand: P.sex('0;59,8,17') -> Number. The Sex itself is kept by the
+      parameter tables, which need to print it; callers that only want to
+      compute use this. */
+  P.sex = function (s) { return Sex.parse(s).valueOf(); };
+
+  /* ---- angles --------------------------------------------------------- */
+
+  /** Fold to [0, 360). */
+  P.norm360 = function (d) {
+    d = d % 360;
+    return d < 0 ? d + 360 : d;
+  };
+
+  /** Fold to (-180, +180]. The form you want for an error or an equation. */
+  P.norm180 = function (d) {
+    d = P.norm360(d);
+    return d > 180 ? d - 360 : d;
+  };
+
+  P.sin = function (deg) { return Math.sin(deg * P.RAD); };
+  P.cos = function (deg) { return Math.cos(deg * P.RAD); };
+  P.atan2 = function (y, x) { return Math.atan2(y, x) * P.DEG; };
+
+  /**
+   * Ptolemy computes with CHORDS, not sines: Crd(a) is the chord
+   * subtending an arc of a degrees in a circle of radius 60.
+   * Crd(a) = 120 sin(a/2). Kept because the page shows his method, and
+   * because his own worked examples are in chords.
+   */
+  P.crd = function (deg) { return 120 * Math.sin(deg * P.RAD / 2); };
+
+  /* ---- formatting ----------------------------------------------------- */
+
+  var SIGNS = ['Aries', 'Taurus', 'Gemini', 'Cancer', 'Leo', 'Virgo',
+               'Libra', 'Scorpio', 'Sagittarius', 'Capricorn', 'Aquarius', 'Pisces'];
+
+  /* THE SIGNS ARE SPELLED OUT, NOT SET AS GLYPHS, AND THAT IS DELIBERATE.
+     Font coverage on this machine was measured (docs/research-visual.md
+     6.3): NOT ONE text font available here carries a single zodiac sign -
+     not Palatino Linotype, not Cambria, not Times New Roman, not Arial,
+     not Segoe UI. Only Segoe UI Symbol has them, and it cannot set the
+     polytonic Greek this page also needs, so it can never be the text
+     face. Relying on fallback is worse than useless: on Windows these
+     code points can resolve to Segoe UI Emoji and arrive as COLOUR
+     emoji that CSS `color` cannot restyle - a colour-emoji Saturn in the
+     middle of an ink-on-parchment diagram.
+
+     The planetary symbols are drawn as canvas paths instead (see
+     js/30-render-shared.js), and the signs are set as words. "Gemini
+     12;40" is unambiguous, reads aloud correctly, and needs no glyph. */
+  P.SIGNS = SIGNS;
+
+  /** 265.25 -> "25° 15' Sagittarius" — the way an ancient table gives it,
+      as degrees within a sign rather than degrees round the whole circle. */
+  P.inSign = function (lon) {
+    var l = P.norm360(lon);
+    var i = Math.floor(l / 30);
+    var within = l - i * 30;
+    var d = Math.floor(within);
+    var m = Math.round((within - d) * 60);
+    if (m === 60) { m = 0; d += 1; }
+    return { sign: SIGNS[i], deg: d, min: m, index: i,
+             text: d + '° ' + (m < 10 ? '0' + m : m) + '′ ' + SIGNS[i] };
+  };
+
+  /** 265.2534 -> "265° 15.2′" */
+  P.dm = function (deg, places) {
+    var neg = deg < 0;
+    var a = Math.abs(deg);
+    var d = Math.floor(a);
+    var m = (a - d) * 60;
+    if (places === undefined) places = 1;
+    if (m.toFixed(places) === (60).toFixed(places)) { m = 0; d += 1; }
+    return (neg ? '−' : '') + d + '° ' + m.toFixed(places) + '′';
+  };
+
+  /** A signed error in the units a reader can feel. */
+  P.errText = function (deg) {
+    var a = Math.abs(deg);
+    var sign = deg < 0 ? '−' : '+';
+    if (a < 1 / 60) return sign + (a * 3600).toFixed(0) + '″';
+    if (a < 1) return sign + (a * 60).toFixed(1) + '′';
+    return sign + a.toFixed(2) + '°';
+  };
+
+  /* ---- small helpers -------------------------------------------------- */
+
+  P.clamp = function (v, lo, hi) { return v < lo ? lo : v > hi ? hi : v; };
+
+  P.lerp = function (a, b, t) { return a + (b - a) * t; };
+
+  /** Shortest signed way round from a to b, in degrees. */
+  P.angleDelta = function (a, b) { return P.norm180(b - a); };
+
+})();
+
+/* ===== js/01-geom.js ===== */
+/* =====================================================================
+   ALMAGEST — geometry
+   ---------------------------------------------------------------------
+   Points, the equant solution, and the one piece of real mathematics
+   in the model.
+
+   THE EQUANT IS THE WHOLE DIFFICULTY.
+
+   In Ptolemy's planetary model the centre of the epicycle rides on the
+   deferent circle, but it does NOT move uniformly round that circle's
+   own centre. It moves uniformly as seen from a third point, the
+   equant, placed as far beyond the deferent centre as the Earth is on
+   the near side. That is the "bisection of the eccentricity", and it is
+   the single device that makes the model fit the sky as well as it
+   does — and the single device that every critic from the Maragha
+   school to Copernicus objected to, because uniform motion about a
+   point that is not the centre is not, in the old physics, uniform
+   circular motion at all.
+
+   Geometrically it means: given the mean longitude (the angle at the
+   EQUANT), find where the epicycle centre actually is (the angle at the
+   DEFERENT CENTRE). That is a transcendental equation. Ptolemy solves
+   it with a table; solveEquant below solves it by iteration, and the
+   test page checks the answer against his own worked examples.
+   ===================================================================== */
+(function () {
+  'use strict';
+
+  var G = P.geom = {};
+
+  /* ---- points --------------------------------------------------------- */
+
+  G.pt = function (x, y) { return { x: x, y: y }; };
+
+  /** A point at distance r and angle deg, measured counter-clockwise from +x. */
+  G.polar = function (r, deg) {
+    return { x: r * P.cos(deg), y: r * P.sin(deg) };
+  };
+
+  G.add = function (a, b) { return { x: a.x + b.x, y: a.y + b.y }; };
+  G.sub = function (a, b) { return { x: a.x - b.x, y: a.y - b.y }; };
+
+  G.len = function (a) { return Math.sqrt(a.x * a.x + a.y * a.y); };
+
+  G.dist = function (a, b) { return G.len(G.sub(a, b)); };
+
+  /** Angle of a point from the origin, in degrees, folded to [0,360). */
+  G.angle = function (a) { return P.norm360(P.atan2(a.y, a.x)); };
+
+  /* ---- the equant ----------------------------------------------------- */
+
+  /**
+   * Solve for the true position of the epicycle centre on its deferent.
+   *
+   *   kappaBar  mean centrum: the angle of the epicycle centre from
+   *             apogee, AS SEEN FROM THE EQUANT. This is what advances
+   *             uniformly with time.
+   *   e         the eccentricity: distance from Earth to the deferent
+   *             CENTRE, in parts of a deferent radius of 60. The equant
+   *             sits a further e beyond, so it is 2e from the Earth.
+   *   R         deferent radius, 60 by convention.
+   *
+   * Returns the centrum measured from the deferent centre, from which
+   * the epicycle centre's position follows directly.
+   *
+   * The geometry: put the Earth at the origin, apogee towards +x. The
+   * deferent centre D is at (e, 0); the equant Q is at (2e, 0). A ray
+   * leaves Q at angle kappaBar from the apogee direction. It cuts the
+   * deferent circle — centre D, radius R — at one point ahead of Q, and
+   * that intersection is the epicycle centre.
+   *
+   * Solved in closed form rather than iterated, because the intersection
+   * of a ray with a circle is a quadratic and there is no reason to
+   * guess at something exact. The iteration Ptolemy needs is an artefact
+   * of working with chord tables, not of the geometry.
+   */
+  G.solveEquant = function (kappaBar, e, R) {
+    if (R === undefined) R = 60;
+    // Ray from the equant.
+    var qx = 2 * e, qy = 0;
+    var dx = P.cos(kappaBar), dy = P.sin(kappaBar);
+    // Circle centre D = (e, 0), radius R. Solve |Q + t*d - D|^2 = R^2.
+    var fx = qx - e, fy = qy - 0;              // Q - D
+    var b = 2 * (fx * dx + fy * dy);
+    var c = fx * fx + fy * fy - R * R;
+    var disc = b * b - 4 * c;
+    if (disc < 0) return null;                  // cannot happen for e < R
+    var t = (-b + Math.sqrt(disc)) / 2;         // the root ahead of Q
+    var cx = qx + t * dx, cy = qy + t * dy;     // epicycle centre, Earth-centred
+    return {
+      centre: { x: cx, y: cy },
+      /** angle of the epicycle centre seen from the DEFERENT CENTRE */
+      kappa: P.norm360(P.atan2(cy - 0, cx - e)),
+      /** angle of the epicycle centre seen from the EARTH */
+      trueCentrum: P.norm360(P.atan2(cy, cx)),
+      /** Ptolemy's "equation of centre": how far the true direction from
+          Earth differs from the uniform one from the equant. */
+      equation: P.norm180(P.atan2(cy, cx) - kappaBar),
+      /** Earth-to-epicycle-centre distance, in the same units as R. */
+      rho: Math.sqrt(cx * cx + cy * cy)
+    };
+  };
+
+  /**
+   * The same problem for a SIMPLE ECCENTRIC — no equant, the centre of
+   * uniform motion and the centre of the circle being the same point.
+   * This is the Sun's model (Alm. III) and the first lunar model, and it
+   * is what you get from solveEquant when the equant and the deferent
+   * centre coincide, i.e. the eccentricity is not bisected.
+   */
+  G.solveEccentric = function (kappaBar, e, R) {
+    if (R === undefined) R = 60;
+    // Centre of motion IS the circle centre, at (e, 0) from Earth.
+    var cx = e + R * P.cos(kappaBar);
+    var cy = 0 + R * P.sin(kappaBar);
+    return {
+      centre: { x: cx, y: cy },
+      kappa: P.norm360(kappaBar),
+      trueCentrum: P.norm360(P.atan2(cy, cx)),
+      equation: P.norm180(P.atan2(cy, cx) - kappaBar),
+      rho: Math.sqrt(cx * cx + cy * cy)
+    };
+  };
+
+  /**
+   * Given the epicycle centre (Earth-centred) and the planet's position
+   * on its epicycle, produce the planet's Earth-centred position and the
+   * geocentric longitude.
+   *
+   *   centre    epicycle centre, Earth-centred, in parts of 60
+   *   r         epicycle radius, same units
+   *   alpha     true anomaly: the planet's angle on the epicycle,
+   *             measured from the epicycle's apogee — the point directly
+   *             away from the EQUANT, not from the Earth. Getting that
+   *             reference wrong is a classic and near-invisible error,
+   *             so the caller passes an explicit apogee direction.
+   *   apogeeDir direction, in degrees, of the epicycle's apogee as seen
+   *             from the epicycle centre.
+   */
+  G.onEpicycle = function (centre, r, alpha, apogeeDir) {
+    var dir = apogeeDir + alpha;
+    var px = centre.x + r * P.cos(dir);
+    var py = centre.y + r * P.sin(dir);
+    return {
+      pos: { x: px, y: py },
+      lon: P.norm360(P.atan2(py, px)),
+      /** Earth-to-planet distance, in parts of 60. Ptolemy's model fixes
+          this only up to the scale of each planet's own deferent; it is
+          not comparable between planets. */
+      dist: Math.sqrt(px * px + py * py)
+    };
+  };
+
+  /* ---- canvas helpers ------------------------------------------------- */
+
+  /**
+   * Screen mapping. The model works in parts of 60 with +x towards the
+   * apogee and angles counter-clockwise; the canvas has +y downwards.
+   * Everything that draws goes through this, so the flip lives in one
+   * place instead of being remembered at forty call sites.
+   */
+  G.view = function (cx, cy, scale) {
+    return {
+      cx: cx, cy: cy, scale: scale,
+      to: function (p) { return { x: cx + p.x * scale, y: cy - p.y * scale }; },
+      toXY: function (x, y) { return { x: cx + x * scale, y: cy - y * scale }; },
+      /** Canvas angle for a model angle: counter-clockwise becomes clockwise. */
+      ang: function (deg) { return -deg * P.RAD; },
+      r: function (v) { return v * scale; }
+    };
+  };
+
+})();
+
+/* ===== js/10-params.js ===== */
+/* =====================================================================
+   ALMAGEST — Ptolemy's parameters
+   ---------------------------------------------------------------------
+   THE DATA. Everything on the page comes from this file, and every
+   number in it comes from the Almagest by way of docs/research-*.md,
+   where each carries a provenance tag and a source.
+
+   TWO RULES THIS FILE ENFORCES.
+
+   1. EVERY NUMBER KEEPS THE SEXAGESIMAL IT CAME FROM. Ptolemy writes
+      Mars's epicycle radius as 39;30 parts of a deferent radius of 60,
+      and his mean motions to six sexagesimal places. Both forms are
+      stored: the string as he wrote it, and the decimal derived from
+      it. tests/tests.js re-parses every string and compares, so a
+      transcription slip fails the suite instead of moving a planet
+      somewhere plausible.
+
+      Units: e and r are stored TWICE - eParts in Ptolemy's parts of 60,
+      and e as a fraction of the deferent radius, which is what the model
+      code wants. The test checks eParts against the sexagesimal, and
+      checks e === eParts/60, so neither can drift from the other.
+
+   2. A NUMBER THAT IS NOT SOURCED IS null, NOT A GUESS, and its body is
+      flagged `incomplete` so the model refuses it and the tests skip it
+      loudly. An invented epoch longitude would put a planet in the wrong
+      sign and nothing on screen would look wrong. Only the Moon is in
+      that state now: its crank and prosneusis are not implemented.
+
+   PTOLEMY'S TWO IDENTITIES, which this table must reproduce exactly.
+
+   For Saturn, Jupiter and Mars:
+
+       meanMotion.lon + meanMotion.anom  =  the Sun's mean motion
+       epochLon       + epochAnom        =  the Sun's epoch longitude
+                                         =  330;45
+
+   Both hold to the last sexagesimal digit Ptolemy gives - he built the
+   tables that way, because the sum is the geocentric shadow of a
+   heliocentric fact: the synodic rate is the difference of two orbital
+   rates. They are worth more than the numbers they check, because they
+   turn the whole table into something self-verifying. A single mistyped
+   digit anywhere in eight mean motions or six epoch positions breaks an
+   identity, and tests/tests.js asserts both.
+   ===================================================================== */
+(function () {
+  'use strict';
+
+  var PA = P.params = {};
+
+  var S = P.sex;                       /* '39;30' -> 39.5 */
+
+  /** Parts of 60 to fractions of the deferent radius. */
+  function parts(sexStr) { return S(sexStr) / 60; }
+
+  /* Ptolemy's order, outward from the Earth (Alm. IX.1): Moon, Mercury,
+     Venus, Sun, Mars, Jupiter, Saturn. He notes the order of Mercury,
+     Venus and the Sun is not settled and gives his reasons for this one. */
+  PA.order = ['moon', 'mercury', 'venus', 'sun', 'mars', 'jupiter', 'saturn'];
+
+  var ALM_IX4 = 'Alm. IX.4 (mean motions); Toomer, cross-checked against van Gent’s almagest.js';
+  var ALM_GEOM = 'Alm. IX.6–XI.6 (models); Toomer via Duke, cross-checked against van Gent';
+
+  PA.body = {
+
+    /* ---- the Sun: a simple eccentric, no equant, no epicycle -------- */
+    sun: {
+      label: 'The Sun', symbol: 'sun', metal: 'sun',
+      model: 'simple',
+      meanMotion: { lonSex: '0;59,8,17,13,12,31', lon: S('0;59,8,17,13,12,31') },
+      eSex: '2;30', eParts: S('2;30'), e: parts('2;30'),
+      r: 0,
+      apogeeSex: '65;30', apogee: S('65;30'),
+      /* Alm. III.4: the solar eccentre "always maintains the same
+         position relative to the solsticial and equinoctial points".
+         Alone among the seven, this apogee does NOT precess. */
+      apogeeFixed: true,
+      epochLonSex: '330;45', epochLon: S('330;45'),
+      /* Ptolemy states the epoch position as an elongation from apogee
+         of 265;15; 265;15 + 65;30 = 330;45. The two forms agree. */
+      epochFromApogeeSex: '265;15', epochFromApogee: S('265;15'),
+      epochAnom: 0,
+      source: 'Alm. III.1 (mean motion), III.4 (eccentricity and apogee)',
+      note: 'The one model with no equant and no epicycle. Ptolemy proves in ' +
+            'III.3 that a simple eccentric and an epicycle give exactly the ' +
+            'same motion, and chooses the eccentric as the simpler.'
+    },
+
+    /* ---- the Moon: its own machine, handled separately -------------- */
+    moon: {
+      label: 'The Moon', symbol: 'moon', metal: 'moon',
+      model: 'moon',
+      meanMotion: {
+        lonSex: '13;10,34,58,33,30,30', lon: S('13;10,34,58,33,30,30'),
+        anomSex: '13;3,53,56,17,51,59', anom: S('13;3,53,56,17,51,59'),
+        elongSex: '12;11,26,41,20,17,59', elong: S('12;11,26,41,20,17,59')
+      },
+      eSex: '10;19', eParts: S('10;19'), e: parts('10;19'),
+      rSex: '5;15', rParts: S('5;15'), r: parts('5;15'),
+      deferentSex: '49;41', deferentParts: S('49;41'),
+      apogee: 0,
+      epochLonSex: '41;22', epochLon: S('41;22'),
+      epochAnomSex: '268;49', epochAnom: S('268;49'),
+      epochElongSex: '70;37', epochElong: S('70;37'),
+      source: 'Alm. IV.9–11 (epoch), V.1–5 (the second model and the prosneusis)',
+      note: 'Ptolemy’s second lunar model swings the epicycle in and out on ' +
+            'a crank to produce evection. It works, and it makes the Moon’s ' +
+            'distance vary by nearly a factor of two — so its apparent diameter ' +
+            'should double, and visibly does not. The most famous flaw in the book.',
+      incomplete: true,
+      incompleteWhy: 'the crank and prosneusis are not implemented yet'
+    },
+
+    /* ---- Mercury: the crank, and two perigees ----------------------- */
+    mercury: {
+      label: 'Mercury', symbol: 'mercury', metal: 'mercury',
+      model: 'mercury',
+      tiedToSun: true,
+      meanMotion: {
+        lonSex: '0;59,8,17,13,12,31', lon: S('0;59,8,17,13,12,31'),
+        anomSex: '3;6,24,6,59,35,50', anom: S('3;6,24,6,59,35,50')
+      },
+      eSex: '3;0', eParts: S('3;0'), e: parts('3;0'),
+      rSex: '22;30', rParts: S('22;30'), r: parts('22;30'),
+      apogeeSex: '181;10', apogee: S('181;10'),
+      epochLonSex: '330;45', epochLon: S('330;45'),   /* = the Sun: tied */
+      epochAnomSex: '21;55', epochAnom: S('21;55'),
+      source: ALM_IX4 + '; ' + ALM_GEOM + ' (Alm. IX.6–9)',
+      note: 'The deferent centre is not fixed: it runs backwards round a small ' +
+            'circle at the same rate the epicycle centre runs forwards, which ' +
+            'gives Mercury two perigees, at 120½° and 239½° from apogee, ' +
+            'with a bump between them.',
+      /* Mercury alone does NOT get the bisected eccentricity. Its equant
+         sits at one e from the Earth, not two, with three equal 3;0
+         segments Earth-equant-centre. Using 2e here is the single
+         likeliest way to get Mercury subtly wrong. */
+      bisected: false
+    },
+
+    /* ---- Venus ------------------------------------------------------ */
+    venus: {
+      label: 'Venus', symbol: 'venus', metal: 'venus',
+      model: 'bisected',
+      tiedToSun: true,
+      meanMotion: {
+        lonSex: '0;59,8,17,13,12,31', lon: S('0;59,8,17,13,12,31'),
+        anomSex: '0;36,59,25,53,11,28', anom: S('0;36,59,25,53,11,28')
+      },
+      eSex: '1;15', eParts: S('1;15'), e: parts('1;15'),
+      rSex: '43;10', rParts: S('43;10'), r: parts('43;10'),
+      apogeeSex: '46;10', apogee: S('46;10'),
+      epochLonSex: '330;45', epochLon: S('330;45'),   /* = the Sun: tied */
+      epochAnomSex: '71;7', epochAnom: S('71;7'),
+      source: ALM_IX4 + '; ' + ALM_GEOM + ' (Alm. X.1–4)',
+      note: 'The largest epicycle in the system after Mars’s, and the reason ' +
+            'Venus never appears more than about 46° from the Sun.'
+    },
+
+    /* ---- Mars ------------------------------------------------------- */
+    mars: {
+      label: 'Mars', symbol: 'mars', metal: 'mars',
+      model: 'bisected',
+      meanMotion: {
+        lonSex: '0;31,26,36,53,51,33', lon: S('0;31,26,36,53,51,33'),
+        anomSex: '0;27,41,40,19,20,58', anom: S('0;27,41,40,19,20,58')
+      },
+      eSex: '6;0', eParts: S('6;0'), e: parts('6;0'),
+      rSex: '39;30', rParts: S('39;30'), r: parts('39;30'),
+      apogeeSex: '106;40', apogee: S('106;40'),
+      epochLonSex: '3;32', epochLon: S('3;32'),
+      epochAnomSex: '327;13', epochAnom: S('327;13'),
+      source: ALM_IX4 + '; ' + ALM_GEOM + ' (Alm. X.7–8); epoch from Toomer App. A Ex. 14',
+      note: 'The biggest epicycle relative to its deferent, so the biggest ' +
+            'retrograde loop, and the planet whose motion broke every earlier ' +
+            'model. Ptolemy’s own worked example is a Mars opposition.'
+    },
+
+    /* ---- Jupiter ---------------------------------------------------- */
+    jupiter: {
+      label: 'Jupiter', symbol: 'jupiter', metal: 'jupiter',
+      model: 'bisected',
+      meanMotion: {
+        lonSex: '0;4,59,14,26,46,31', lon: S('0;4,59,14,26,46,31'),
+        anomSex: '0;54,9,2,46,26,0', anom: S('0;54,9,2,46,26,0')
+      },
+      eSex: '2;45', eParts: S('2;45'), e: parts('2;45'),
+      rSex: '11;30', rParts: S('11;30'), r: parts('11;30'),
+      apogeeSex: '152;9', apogee: S('152;9'),
+      epochLonSex: '184;41', epochLon: S('184;41'),
+      epochAnomSex: '146;4', epochAnom: S('146;4'),
+      source: ALM_IX4 + '; ' + ALM_GEOM + ' (Alm. XI.1–2)',
+      note: 'Twelve years to the circuit, one sign a year, which is why the ' +
+            'Babylonians and the Chinese both counted years by it.'
+    },
+
+    /* ---- Saturn ----------------------------------------------------- */
+    saturn: {
+      label: 'Saturn', symbol: 'saturn', metal: 'saturn',
+      model: 'bisected',
+      meanMotion: {
+        lonSex: '0;2,0,33,31,28,51', lon: S('0;2,0,33,31,28,51'),
+        anomSex: '0;57,7,43,41,43,40', anom: S('0;57,7,43,41,43,40')
+      },
+      eSex: '3;25', eParts: S('3;25'), e: parts('3;25'),
+      rSex: '6;30', rParts: S('6;30'), r: parts('6;30'),
+      apogeeSex: '224;10', apogee: S('224;10'),
+      epochLonSex: '296;43', epochLon: S('296;43'),
+      epochAnomSex: '34;2', epochAnom: S('34;2'),
+      source: ALM_IX4 + '; ' + ALM_GEOM + ' (Alm. XI.5–6)',
+      note: 'The slowest and outermost, thirty years to the circuit, with the ' +
+            'smallest epicycle and the shallowest retrograde loop.'
+    }
+  };
+
+  /* ---- the transcription check ---------------------------------------- */
+
+  /**
+   * Every (sexagesimal string, decimal) pair a body declares, for the
+   * test that re-parses the string and compares. Angles are in degrees;
+   * e and r are compared in PARTS of 60, which is the form Ptolemy
+   * writes, and the test separately checks that the fraction-of-R value
+   * really is the parts value over sixty.
+   */
+  PA.sexFields = function (b) {
+    var out = [];
+    function add(name, sex, value) {
+      if (sex === null || sex === undefined) return;
+      if (value === null || value === undefined) return;
+      out.push({ name: name, sex: sex, value: value });
+    }
+    add('meanMotion.lon', b.meanMotion && b.meanMotion.lonSex, b.meanMotion && b.meanMotion.lon);
+    add('meanMotion.anom', b.meanMotion && b.meanMotion.anomSex, b.meanMotion && b.meanMotion.anom);
+    add('meanMotion.elong', b.meanMotion && b.meanMotion.elongSex, b.meanMotion && b.meanMotion.elong);
+    add('e', b.eSex, b.eParts);
+    add('r', b.rSex, b.rParts);
+    add('deferent', b.deferentSex, b.deferentParts);
+    add('apogee', b.apogeeSex, b.apogee);
+    add('epochLon', b.epochLonSex, b.epochLon);
+    add('epochAnom', b.epochAnomSex, b.epochAnom);
+    add('epochElong', b.epochElongSex, b.epochElong);
+    return out;
+  };
+
+  /* ---- how wrong the model is, measured ------------------------------- */
+
+  /**
+   * THE EQUINOX OFFSET, and why the page needs a toggle for it.
+   *
+   * Ptolemy's equinox observations are systematically late - one of them
+   * by about 28 hours, and the literature records that his measurements
+   * "systematically produce readings that are off by half an hour". The
+   * Sun moves 0;59 a day, so 28 hours of lateness displaces his whole
+   * tropical frame by about 1.15 degrees.
+   *
+   * Because every planet in the system is tied to the Sun - Venus and
+   * Mercury by riding the mean Sun outright, the outer three by the
+   * identity that their longitude and anomaly sum to it - that ONE
+   * observational error propagates to all seven bodies. Measured here
+   * over AD 125-150, the signed errors are: Sun -1.42, Mercury -1.09,
+   * Venus -1.41, Mars -1.15, Jupiter -0.87, Saturn -0.95. All the same
+   * sign, all about the same size, mean -1.15 - which is the predicted
+   * figure to two decimal places.
+   *
+   * So a reader grading Ptolemy sees roughly a degree of error before
+   * any model error at all, and it is not the model's fault. The page
+   * offers a toggle that removes it, because the honest question is not
+   * "how wrong was Ptolemy" but "how wrong was his geometry, given the
+   * observations he had".
+   */
+  PA.EQUINOX_OFFSET = 1.15;
+
+  /**
+   * Worst-case longitude error against modern theory over AD 2020-2030,
+   * MEASURED in this project rather than quoted, then given 15% headroom.
+   * These are regression guards: they exist so that a future edit which
+   * silently breaks a model fails the suite. They are not a claim about
+   * Ptolemy.
+   *
+   * Note how large they are, and why: by the present day the dominant
+   * term is not the geometry at all but the precession rate. Ptolemy has
+   * one degree per century where the truth is nearer 1.38, so after
+   * nineteen centuries his whole tropical frame has slipped by about
+   * seven degrees, and every body slips with it.
+   */
+  var ENVELOPE = {
+    sun: 12, mercury: 21, venus: 21, mars: 14, jupiter: 8, saturn: 11
+  };
+  for (var en in ENVELOPE) {
+    if (ENVELOPE.hasOwnProperty(en) && PA.body[en]) PA.body[en].errorEnvelope = ENVELOPE[en];
+  }
+
+  /* ---- the prose the page carries -------------------------------------- */
+
+  /**
+   * Two panels of text. The quotations are given with their loci because
+   * this page ships inside a library that holds the texts, and a reader
+   * who wants to go and read the passage should not have to guess where
+   * it is. Both were fetched and confirmed during the research pass; see
+   * docs/research-history.md 9.3.
+   */
+  P.notes = {
+    model:
+      '<p>Everything here turns at the rates the <em>Almagest</em> gives, from ' +
+      'Ptolemy’s own sexagesimal tables. Nothing is exaggerated to make the ' +
+      'loops bigger: the retrograde you see is the one his numbers produce.</p>' +
+      '<p>The <em>equant</em> is the device that makes it work and the one every ' +
+      'critic attacked. The epicycle’s centre rides the deferent, but it moves ' +
+      'uniformly only as seen from the equant — a point that is not the centre ' +
+      'of the circle. For a thousand years, from the Maragha astronomers to ' +
+      'Copernicus, that was the scandal: uniform circular motion about a point ' +
+      'that is not the centre is not, in the old physics, uniform circular ' +
+      'motion at all.</p>' +
+      '<p>Against the modern sky the model is out by degrees, and most of that is ' +
+      'not the geometry. Ptolemy has precession at one degree a century where the ' +
+      'truth is nearer 1.38, so after nineteen centuries his whole frame has ' +
+      'slipped about seven degrees, and everything slips with it. A further ' +
+      '1.15° is there before any model error at all, because his equinox ' +
+      'observations ran some 28 hours late — and because every planet in the ' +
+      'system is tied to the Sun, that one observational error reaches all of ' +
+      'them. The checkbox above removes it.</p>',
+
+    ancient:
+      '<blockquote class="anc">' +
+      '<span class="grk">in eo admirandum esse inventum Archimedi, quod excogitasset ' +
+      'quem ad modum in dissimillimis motibus inaequabiles et varios cursus ' +
+      'servaret una conversio</span>' +
+      '“The wonder of Archimedes’ invention was that he had worked out how ' +
+      'a single turning could keep unequal and various courses in motions utterly ' +
+      'unlike one another.”' +
+      '<cite>Cicero, <i>De re publica</i> 1.22</cite></blockquote>' +
+
+      '<p>Cicero is drawing exactly the distinction this page is built on: between ' +
+      'a solid star-globe of the old kind — Thales, then Eudoxus, then Aratus, ' +
+      'who put it into verse <em>non astrologiae scientia sed poetica quadam ' +
+      'facultate</em> — and a sphere with the motions of the Sun, the Moon and ' +
+      'the five wandering stars in it, which the solid kind could not do. That is ' +
+      'the difference between a star-globe and a planetarium, drawn by a Roman in ' +
+      'the first century BC.</p>' +
+
+      '<blockquote class="anc">' +
+      '<span class="grk">Novem tibi orbibus vel potius globis conexa sunt omnia</span>' +
+      '“All is bound together in nine circles, or rather spheres.”' +
+      '<cite>Cicero, <i>De re publica</i> 6.17, the <i>Somnium Scipionis</i></cite>' +
+      '</blockquote>' +
+      '<p class="date-sub">Section numbering of the <i>Somnium</i> varies; some ' +
+      'editions cite the same passage as 6.16.</p>'
+  };
+
+  /** Bodies whose parameters are complete enough to run. */
+  PA.runnable = function () {
+    var out = [];
+    for (var i = 0; i < PA.order.length; i++) {
+      var n = PA.order[i];
+      if (!PA.body[n].incomplete) out.push(n);
+    }
+    return out;
+  };
+
+  /* ---- Ptolemy's own worked examples ----------------------------------- */
+
+  /**
+   * The acceptance tests. These are not "does it run" checks: they are
+   * answers Ptolemy computed, against which the code either agrees or
+   * is wrong.
+   *
+   * Toomer's Appendix A Example 14 is the strongest one available,
+   * because his table-based answer and the closed-form answer can be
+   * compared step by step. The interval is 885 Egyptian years, 314 days
+   * and 9 hours from the epoch.
+   *
+   * The failure signatures below were MEASURED, not quoted. The research
+   * document claims a flipped anomaly sign returns 241;43 and that the
+   * error is subtle - "roughly right at conjunction, wrong by up to two
+   * degrees in the loop". Neither holds at this date. Every sign error
+   * was enumerated and none produces 241;43; the nearest any of them
+   * comes is 258;19,11. See docs/research-geometry.md, which has been
+   * corrected.
+   *
+   * That is good news for the test rather than bad: at a date this deep
+   * in the retrograde loop a sign error is off by tens of degrees, so it
+   * cannot hide.
+   */
+  PA.worked = [
+    {
+      body: 'mars',
+      label: 'Mars at Nabonassar 886, Epiphi 15/16, 9 pm',
+      cite: 'Toomer, Almagest App. A, Example 14',
+      days: 885 * 365 + 314 + 9 / 24,
+      meanLon: S('252;40,21'),
+      meanAnom: S('172;46,18'),
+      apogee: S('115;32'),
+      lon: S('241;34,30'),
+      tol: 0.02,
+      ptolemyTables: S('241;35'),
+      ptolemyObserved: S('241;36'),
+      /* Measured 2026-09-19 by enumerating the sign errors against this
+         very example. Each is a whole-degree distance from the right
+         answer, so the test discriminates rather than merely passing. */
+      signatures: {
+        anomalySignFlipped: S('274;49,32'),
+        centreSignFlippedInSum: S('258;19,11'),
+        bothFlipped: S('291;34,12'),
+        centreIgnored: S('269;5,2')
+      }
+    }
+  ];
+
+})();
+
+/* ===== js/11-models.js ===== */
+/* =====================================================================
+   ALMAGEST — the models
+   ---------------------------------------------------------------------
+   The forward computation: from a date to a longitude, by Ptolemy's
+   geometry rather than by anybody's ephemeris.
+
+   THE CHAIN (Alm. XI.10-11), for Saturn, Jupiter, Mars and Venus:
+
+      P  = t / 36525                    precession, 1 degree a century
+      A  = A0 + P                       apogee, which precesses
+      L  = L0 + t*wLon                  mean longitude
+      M  = M0 + t*wAnom                 mean anomaly
+      k  = L - A                        MEAN centrum, the angle at the equant
+
+      a  = e*cos k + sqrt(1 - e^2 sin^2 k)
+      q  = -atan2(2e*sin k, a)          EQUATION OF CENTRE
+      rho= sqrt(a^2 + (2e*sin k)^2)     Earth to epicycle centre
+
+      alpha = M - q                     TRUE anomaly
+      p  = atan2(r*sin alpha, rho + r*cos alpha)    EQUATION OF ANOMALY
+      lon= L + q + p
+
+   THE THREE SIGN TRAPS, all of which produce a plausible wrong answer:
+
+   1. q is NEGATIVE on the ascending half. Ptolemy's tables are unsigned
+      and carry "add"/"subtract" instructions in words instead, so a
+      printed table cannot tell you the sign - you have to know it.
+
+   2. alpha = M - q, NOT M + q. The mean anomaly is counted from the
+      MEAN apogee (the line equant-to-centre produced); the true anomaly
+      from the TRUE apogee (Earth-to-centre produced), and the angle
+      between those two directions is exactly |q|. Get it wrong and the
+      longitude stays roughly right at conjunction and goes wrong by up
+      to two degrees inside the retrograde loop - which is the one place
+      anybody is looking.
+
+   3. atan2, never atan. rho + r*cos alpha can go negative near epicycle
+      perigee. It does not quite, for Ptolemy's own parameters, but the
+      margin is thin and any experiment with r will cross it.
+
+   The acceptance test is Toomer's Example 14, Mars: the chain must
+   return 241;34,30 degrees. 241;43 means trap 2; about 233 means 2e was
+   used where e belongs. Both are in tests/tests.js.
+   ===================================================================== */
+(function () {
+  'use strict';
+
+  var M = P.models = {};
+
+  function body(name) {
+    var b = P.params && P.params.body ? P.params.body[name] : null;
+    if (!b) throw new Error('models: no parameters for "' + name + '"');
+    return b;
+  }
+
+  /* ---- the mean motions ------------------------------------------------ */
+
+  /**
+   * Precession: one degree per century, Ptolemy's value (Alm. VII.2-3).
+   * The modern figure is about 1.38 degrees a century, so this is the
+   * largest single error in the whole page over a two-thousand-year
+   * baseline - and the page says so rather than hiding it.
+   */
+  M.precession = function (t) { return t / 36525; };
+
+  /**
+   * The apogee at a given moment.
+   *
+   * The PLANETARY apsidal lines precess: Alm. IX.6, "the whole plane
+   * moves uniformly about centre E towards the rear of the signs,
+   * shifting the position of apogee and perigee 1 degree in 100 years."
+   *
+   * The SOLAR apogee does not. Alm. III.4: "the sun's eccentre always
+   * maintains the same position relative to the solsticial and
+   * equinoctial points." Ptolemy holds it fixed tropically at 65;30,
+   * and he is wrong to - it does move, and by his own day Hipparchus's
+   * value was already some five and a half degrees stale - but the page
+   * is showing HIS model, so it stays fixed here.
+   *
+   * Precessing it anyway is a quiet, plausible-looking bug: it was worth
+   * about a degree of extra solar error in his own era and nearly three
+   * by the present day, which looks exactly like the model simply being
+   * bad rather than like the code being wrong.
+   */
+  M.apogee = function (name, t) {
+    var b = body(name);
+    if (b.apogeeFixed) return P.norm360(b.apogee);
+    return P.norm360(b.apogee + M.precession(t));
+  };
+
+  /**
+   * Mean longitude. Venus and Mercury do not have one of their own:
+   * their epicycle centre IS the mean Sun, which is the model's way of
+   * saying they never stray far from it. This is a structural fact, not
+   * a parameter, and the test page checks it holds at every date.
+   */
+  M.meanLongitude = function (name, t) {
+    var b = body(name);
+    if (b.tiedToSun) return M.meanLongitude('sun', t);
+    return P.norm360(b.epochLon + t * b.meanMotion.lon);
+  };
+
+  M.meanAnomaly = function (name, t) {
+    var b = body(name);
+    if (!b.meanMotion.anom) return 0;
+    return P.norm360(b.epochAnom + t * b.meanMotion.anom);
+  };
+
+  /* ---- the equation of centre ----------------------------------------- */
+
+  /**
+   * The bisected-eccentricity case: Saturn, Jupiter, Mars, Venus.
+   * Closed form, derived from the ray-meets-circle quadratic. Ptolemy
+   * iterates because he is working from chord tables; the geometry
+   * itself is exact, and there is no reason to approximate it here.
+   *
+   * e is in units of the deferent radius, so 6;0 parts of 60 is 0.1.
+   */
+  function centreEquationBisected(kBar, e) {
+    var sk = P.sin(kBar), ck = P.cos(kBar);
+    var a = e * ck + Math.sqrt(1 - e * e * sk * sk);
+    var twoEsin = 2 * e * sk;
+    return {
+      q: -P.atan2(twoEsin, a),
+      rho: Math.sqrt(a * a + twoEsin * twoEsin)
+    };
+  }
+
+  /**
+   * The Sun's model (Alm. III.4): a simple eccentric, no equant, no
+   * epicycle. The centre of uniform motion and the centre of the circle
+   * are the same point, so the eccentricity is NOT bisected.
+   */
+  function centreEquationSimple(kBar, e) {
+    var x = e + P.cos(kBar), y = P.sin(kBar);
+    return {
+      q: P.norm180(P.atan2(y, x) - kBar),
+      rho: Math.sqrt(x * x + y * y)
+    };
+  }
+
+  /**
+   * Mercury (Alm. IX.6). Ptolemy's observations convinced him Mercury
+   * came closest to the Earth at TWO points, so he gave the deferent a
+   * moving centre: it runs backwards round a small circle of radius e
+   * at the same rate the epicycle centre runs forwards. The result is a
+   * deferent whose centre orbits, and two perigees at 120.5 and 239.5
+   * degrees from apogee with a bump between them.
+   *
+   * Note e, not 2e, in the equation of centre here - the geometry is
+   * genuinely different, not the bisected case with extra steps.
+   */
+  function centreEquationMercury(kBar, e) {
+    var gCos = e * (P.cos(kBar) + P.cos(2 * kBar));
+    var gSin = e * (P.sin(kBar) + P.sin(2 * kBar));
+    var t = gCos + Math.sqrt(1 - gSin * gSin);
+    var q = -P.atan2(e * P.sin(kBar), e * P.cos(kBar) + t);
+    var rho = Math.sqrt(t * t + e * e + 2 * e * t * P.cos(kBar));
+    return { q: q, rho: rho };
+  }
+
+  /* ---- the whole chain ------------------------------------------------- */
+
+  /**
+   * Everything about one body at one moment, in model units where the
+   * deferent radius is 1. Returns the intermediate quantities too,
+   * because the page shows them: the anatomy panel prints the equation
+   * of centre and the equation of anomaly, and the diagram needs the
+   * epicycle centre to draw the machine.
+   */
+  M.state = function (name, t) {
+    var b = body(name);
+    var A = M.apogee(name, t);
+    var L = M.meanLongitude(name, t);
+    var kBar = P.norm360(L - A);
+
+    var ce;
+    if (b.model === 'simple') ce = centreEquationSimple(kBar, b.e);
+    else if (b.model === 'mercury') ce = centreEquationMercury(kBar, b.e);
+    else ce = centreEquationBisected(kBar, b.e);
+
+    var q = ce.q, rho = ce.rho;
+
+    /* The Sun has no epicycle: its true longitude is the corrected mean
+       longitude and there is nothing further to do. */
+    if (!b.r) {
+      var lonS = P.norm360(L + q);
+      return {
+        name: name, t: t, apogee: A,
+        meanLon: L, meanAnom: 0, meanCentrum: kBar,
+        q: q, rho: rho, alpha: 0, p: 0,
+        lon: lonS, dist: rho,
+        centre: P.geom.polar(rho, lonS),
+        pos: P.geom.polar(rho, lonS)
+      };
+    }
+
+    var Mn = M.meanAnomaly(name, t);
+    var alpha = P.norm360(Mn - q);                 /* TRAP 2 lives here */
+    var r = b.r;
+    var px = rho + r * P.cos(alpha);
+    var py = r * P.sin(alpha);
+    var p = P.atan2(py, px);                        /* TRAP 3: atan2 */
+    var lon = P.norm360(L + q + p);
+
+    /* The epicycle centre, in the plane, with longitude zero to the
+       right. Its own direction from the Earth is the corrected mean
+       longitude, which is what "true centrum plus apogee" comes to. */
+    var centreLon = P.norm360(L + q);
+    var centre = P.geom.polar(rho, centreLon);
+
+    return {
+      name: name, t: t, apogee: A,
+      meanLon: L, meanAnom: Mn, meanCentrum: kBar,
+      q: q, rho: rho, alpha: alpha, p: p,
+      lon: lon,
+      dist: Math.sqrt(px * px + py * py),
+      centre: centre,
+      centreLon: centreLon,
+      /* The planet itself. The epicycle's apogee points directly away
+         from the EARTH along the Earth-centre line, so the planet sits
+         at centreLon + alpha from the centre. */
+      pos: P.geom.add(centre, P.geom.polar(r, P.norm360(centreLon + alpha))),
+      r: r
+    };
+  };
+
+  /** The longitude alone, which is what most callers want. */
+  M.longitude = function (name, t) {
+    var s = M.state(name, t);
+    return { lon: s.lon, dist: s.dist, state: s };
+  };
+
+  /* ---- retrograde ------------------------------------------------------ */
+
+  /**
+   * Is the body retrograding at this moment? Measured rather than
+   * derived from a station table: sample the longitude a little either
+   * side and see which way it went.
+   *
+   * A half-day step is small enough that even Mercury, the fastest
+   * thing here at about three degrees a day of anomaly, cannot alias,
+   * and large enough that floating-point noise near a station does not
+   * make the answer flicker.
+   */
+  M.isRetrograde = function (name, t, h) {
+    if (h === undefined) h = 0.5;
+    var a = M.state(name, t - h).lon;
+    var b = M.state(name, t + h).lon;
+    return P.norm180(b - a) < 0;
+  };
+
+  /** Daily motion in longitude, signed. Negative is retrograde. */
+  M.dailyMotion = function (name, t, h) {
+    if (h === undefined) h = 0.5;
+    return P.norm180(M.state(name, t + h).lon - M.state(name, t - h).lon) / (2 * h);
+  };
+
+  /**
+   * Elongation from the Sun, signed, in (-180, 180]. Positive is east
+   * of the Sun - an evening star. This is the quantity that makes the
+   * inner planets legible: Venus is never more than about 46 degrees
+   * from the Sun, and the model says so because its epicycle radius
+   * says so.
+   */
+  M.elongation = function (name, t) {
+    return P.norm180(M.state(name, t).lon - M.state('sun', t).lon);
+  };
+
+  /**
+   * Find the stations bracketing a retrograde episode near t, by
+   * bisection on the sign of the daily motion. Returns null when the
+   * body is not retrograding, so the caller can say so plainly rather
+   * than drawing an empty loop.
+   */
+  M.stations = function (name, t, searchDays) {
+    if (!M.isRetrograde(name, t)) return null;
+    if (searchDays === undefined) searchDays = 400;
+
+    function motionAt(x) { return M.dailyMotion(name, x); }
+
+    function findEdge(dir) {
+      var lo = t, hi = t + dir * searchDays, mid;
+      if (motionAt(hi) < 0) return null;            /* still retrograde: give up */
+      for (var i = 0; i < 48; i++) {
+        mid = (lo + hi) / 2;
+        if (motionAt(mid) < 0) lo = mid; else hi = mid;
+      }
+      return (lo + hi) / 2;
+    }
+
+    var first = findEdge(-1), last = findEdge(1);
+    if (first === null || last === null) return null;
+    return { first: first, last: last, days: last - first };
+  };
+
+})();
+
+/* ===== js/12-calendar.js ===== */
+/* =====================================================================
+   ALMAGEST — calendars
+   ---------------------------------------------------------------------
+   Julian Day Numbers, the Egyptian year, and the era of Nabonassar.
+
+   WHY THIS FILE IS WHERE THE BUGS WOULD BE.
+
+   Every position on the page is a mean motion multiplied by a number of
+   days since an epoch nineteen centuries before Ptolemy and twenty-seven
+   before us. Mars moves about half a degree a day. Get the day count
+   wrong by one and Mars is half a degree wrong — small enough to look
+   entirely plausible, large enough to make every claim on the page
+   false. So the conversions here are written out longhand and checked
+   in the test page against dates whose Julian Day Numbers are published.
+
+   THREE THINGS THAT CATCH PEOPLE, ALL HANDLED EXPLICITLY:
+
+   1. Astronomical year numbering. There is no year zero in the way
+      historians count, but there is in the way astronomers do: 1 BC is
+      year 0, 2 BC is year -1, and 747 BC is year -746. Every function
+      here takes the ASTRONOMICAL year, and dateBC() converts for you.
+
+   2. The calendar changes under you. Dates from 1582 October 15 onwards
+      are Gregorian; everything before is proleptic Julian, which is the
+      convention the Almagest literature and NASA both use. gregorian()
+      and julian() are separate and jdn() picks by date.
+
+   3. The Egyptian year has no leap day. 365 days exactly, twelve months
+      of thirty plus five epagomenal days. That is precisely why Ptolemy
+      uses it: the day count from any epoch is a multiplication, with no
+      intercalation to remember. It also means the Egyptian year slides
+      against the seasons by a day every four years, all the way round in
+      1,460 years, which is a fact the page should show rather than hide.
+   ===================================================================== */
+(function () {
+  'use strict';
+
+  var C = P.cal = {};
+
+  /* ---- Julian Day Number ---------------------------------------------- */
+
+  /**
+   * JDN at noon for a Gregorian calendar date.
+   * Fliegel & Van Flandern, written out rather than golfed.
+   * y is the ASTRONOMICAL year: 1 BC is 0, 2 BC is -1.
+   */
+  C.gregorianToJDN = function (y, m, d) {
+    var a = Math.floor((14 - m) / 12);
+    var yy = y + 4800 - a;
+    var mm = m + 12 * a - 3;
+    return d + Math.floor((153 * mm + 2) / 5) + 365 * yy +
+           Math.floor(yy / 4) - Math.floor(yy / 100) + Math.floor(yy / 400) - 32045;
+  };
+
+  /** JDN at noon for a Julian calendar date, proleptic before AD 1. */
+  C.julianToJDN = function (y, m, d) {
+    var a = Math.floor((14 - m) / 12);
+    var yy = y + 4800 - a;
+    var mm = m + 12 * a - 3;
+    return d + Math.floor((153 * mm + 2) / 5) + 365 * yy +
+           Math.floor(yy / 4) - 32083;
+  };
+
+  /**
+   * The calendar in force on a given date: Julian up to 1582 Oct 4,
+   * Gregorian from 1582 Oct 15. The ten days between never happened.
+   */
+  C.toJDN = function (y, m, d) {
+    if (y > 1582 || (y === 1582 && (m > 10 || (m === 10 && d >= 15)))) {
+      return C.gregorianToJDN(y, m, d);
+    }
+    return C.julianToJDN(y, m, d);
+  };
+
+  /** Inverse of gregorianToJDN. */
+  C.jdnToGregorian = function (jdn) {
+    var a = jdn + 32044;
+    var b = Math.floor((4 * a + 3) / 146097);
+    var c = a - Math.floor(146097 * b / 4);
+    var dd = Math.floor((4 * c + 3) / 1461);
+    var e = c - Math.floor(1461 * dd / 4);
+    var mm = Math.floor((5 * e + 2) / 153);
+    return {
+      day: e - Math.floor((153 * mm + 2) / 5) + 1,
+      month: mm + 3 - 12 * Math.floor(mm / 10),
+      year: 100 * b + dd - 4800 + Math.floor(mm / 10)
+    };
+  };
+
+  /** Inverse of julianToJDN. */
+  C.jdnToJulian = function (jdn) {
+    var c = jdn + 32082;
+    var d = Math.floor((4 * c + 3) / 1461);
+    var e = c - Math.floor(1461 * d / 4);
+    var m = Math.floor((5 * e + 2) / 153);
+    return {
+      day: e - Math.floor((153 * m + 2) / 5) + 1,
+      month: m + 3 - 12 * Math.floor(m / 10),
+      year: d - 4800 + Math.floor(m / 10)
+    };
+  };
+
+  C.fromJDN = function (jdn) {
+    return jdn >= 2299161 ? C.jdnToGregorian(jdn) : C.jdnToJulian(jdn);
+  };
+
+  /** 747 BC -> -746. Historians' BC to astronomers' year. */
+  C.dateBC = function (yearBC) { return 1 - yearBC; };
+
+  /* ---- the era of Nabonassar ------------------------------------------ */
+
+  /**
+   * Ptolemy reckons from Nabonassar year 1, Thoth 1 — the first day of
+   * the Egyptian year in which Nabonassar acceded at Babylon. In the
+   * proleptic Julian calendar that is 747 BC February 26, and Ptolemy's
+   * day begins at NOON at Alexandria, which is where his tabulated
+   * positions are for.
+   *
+   * COMPUTED-HERE from the date, not quoted: the date is the sourced
+   * input (see docs/research-epoch.md) and the JDN follows from it by
+   * the conversion above. The test page asserts the value, so if the
+   * research date is ever corrected the failure is loud.
+   */
+  C.NABONASSAR_JDN = C.julianToJDN(C.dateBC(747), 2, 26);
+
+  /** Days elapsed from the epoch to noon of the given JDN. */
+  C.daysFromEpoch = function (jdn) { return jdn - C.NABONASSAR_JDN; };
+
+  /* ---- the Egyptian calendar ------------------------------------------ */
+
+  /* Twelve months of thirty days, then five epagomenal days added at the
+     end — "the five days over the year". 365 days, never 366. */
+  C.EGYPTIAN_MONTHS = [
+    'Thoth', 'Phaophi', 'Athyr', 'Choiak', 'Tybi', 'Mechir',
+    'Phamenoth', 'Pharmuthi', 'Pachon', 'Payni', 'Epiphi', 'Mesore'
+  ];
+  C.EPAGOMENAL = 'Epagomenae';
+
+  /**
+   * Days since the epoch -> Egyptian date in the era of Nabonassar.
+   * Year 1 is the epoch year, so the year is 1-based like Ptolemy's.
+   */
+  C.egyptian = function (days) {
+    var d = Math.floor(days);
+    var year = Math.floor(d / 365) + 1;
+    var doy = d - (year - 1) * 365;          // 0..364
+    if (doy < 360) {
+      return {
+        year: year, monthIndex: Math.floor(doy / 30),
+        month: C.EGYPTIAN_MONTHS[Math.floor(doy / 30)],
+        day: (doy % 30) + 1, epagomenal: false
+      };
+    }
+    return {
+      year: year, monthIndex: 12, month: C.EPAGOMENAL,
+      day: doy - 360 + 1, epagomenal: true
+    };
+  };
+
+  /** "Thoth 1, year 1 of Nabonassar" */
+  C.egyptianText = function (days) {
+    var e = C.egyptian(days);
+    return (e.epagomenal ? 'Epagomenal day ' + e.day : e.month + ' ' + e.day) +
+           ', year ' + e.year + ' of Nabonassar';
+  };
+
+  /* ---- convenience ----------------------------------------------------- */
+
+  /**
+   * A civil date, as the page's controls give it, to days since epoch.
+   * Fractional days are carried so the page can run smoothly rather than
+   * stepping; hour 12 is Ptolemy's noon and therefore the integer day.
+   */
+  C.toDays = function (y, m, d, hour) {
+    if (hour === undefined) hour = 12;
+    return C.daysFromEpoch(C.toJDN(y, m, d)) + (hour - 12) / 24;
+  };
+
+  C.fromDays = function (days) {
+    var jdn = Math.floor(days + 0.5) + C.NABONASSAR_JDN;
+    var date = C.fromJDN(jdn);
+    date.julian = jdn < 2299161;
+    return date;
+  };
+
+  /** A date for display, with the era spelled out before AD 1. */
+  C.text = function (days) {
+    var d = C.fromDays(days);
+    var MON = ['January', 'February', 'March', 'April', 'May', 'June', 'July',
+               'August', 'September', 'October', 'November', 'December'];
+    var y = d.year, era = '';
+    if (y <= 0) { y = 1 - y; era = ' BC'; }
+    return d.day + ' ' + MON[d.month - 1] + ' ' + y + era +
+           (d.julian ? ' (Julian)' : '');
+  };
+
+  /** Today, from the host clock, as days since the epoch. */
+  C.today = function () {
+    var now = new Date();
+    return C.toDays(now.getFullYear(), now.getMonth() + 1, now.getDate(),
+                    now.getHours() + now.getMinutes() / 60);
+  };
+
+})();
+
+/* ===== js/13-modern.js ===== */
+/* =====================================================================
+   ALMAGEST — the modern sky, for grading
+   ---------------------------------------------------------------------
+   The truth side of the comparison. Nothing Ptolemaic happens in this
+   file; it exists so the page can say how wrong he is, and be fair
+   about it.
+
+   JPL's approximate-elements method, using TABLE 2a - the fit for
+   3000 BC to 3000 AD - and not the Table 1 elements that most web
+   snippets copy. Table 1 is fitted to 1800-2050, so at Ptolemy's epoch
+   it is nineteen centuries outside its own interval and its answers are
+   worthless. Table 2b's extra mean-anomaly terms for Jupiter and Saturn
+   go with it, and absorb the great Jupiter-Saturn inequality; omitting
+   them costs degrees, not arcminutes, at the ends of the range.
+
+   Stated accuracy over the long interval is 20 arcsec for Mercury and
+   about 600 for Saturn. Ptolemy's errors are DEGREES. So the grading is
+   provably fair: the ruler is two orders of magnitude finer than the
+   thing being measured, and the page can say so.
+
+   DELTA T IS NOT OPTIONAL. The difference between Terrestrial Time and
+   universal time was about 2 hours 34 minutes at AD 137 - the Earth
+   spun faster then. Feeding a historical civil date straight in as if
+   it were TT displaces the Moon by 1.41 degrees, which is LARGER than
+   Ptolemy's own lunar error. An implementation that skips it shows his
+   good longitudes as bad and teaches the opposite of the truth.
+   ===================================================================== */
+(function () {
+  'use strict';
+
+  var Md = P.modern = {};
+
+  /* ---- JPL Table 2a: elements and rates, 3000 BC - 3000 AD ------------- */
+  /* a (au), e, I (deg), L (deg), longPeri (deg), longNode (deg), then the
+     per-Julian-century rates in the same order. Verbatim from
+     https://ssd.jpl.nasa.gov/planets/approx_pos.html via
+     docs/research-accuracy.md, which reproduces the page. */
+  var EL = {
+    mercury: [0.38709843, 0.20563661, 7.00559432, 252.25166724, 77.45771895, 48.33961819,
+              0.00000000, 0.00002123, -0.00590158, 149472.67486623, 0.15940013, -0.12214182],
+    venus:   [0.72332102, 0.00676399, 3.39777545, 181.97970850, 131.76755713, 76.67261496,
+              -0.00000026, -0.00005107, 0.00043494, 58517.81560260, 0.05679648, -0.27274174],
+    earth:   [1.00000018, 0.01673163, -0.00054346, 100.46691572, 102.93005885, -5.11260389,
+              -0.00000003, -0.00003661, -0.01337178, 35999.37306329, 0.31795260, -0.24123856],
+    mars:    [1.52371243, 0.09336511, 1.85181869, -4.56813164, -23.91744784, 49.71320984,
+              0.00000097, 0.00009149, -0.00724757, 19140.29934243, 0.45223625, -0.26852431],
+    jupiter: [5.20248019, 0.04853590, 1.29861416, 34.33479152, 14.27495244, 100.29282654,
+              -0.00002864, 0.00018026, -0.00322699, 3034.90371757, 0.18199196, 0.13024619],
+    saturn:  [9.54149883, 0.05550825, 2.49424102, 50.07571329, 92.86136063, 113.63998702,
+              -0.00003065, -0.00032044, 0.00451969, 1222.11494724, 0.54179478, -0.25015002]
+  };
+
+  /* Table 2b: b, c, s, f. Zero for the inner planets and Mars; required
+     for Jupiter and Saturn, and ONLY when using Table 2a. */
+  var EXTRA = {
+    jupiter: [-0.00012452, 0.06064060, -0.35635438, 38.35125000],
+    saturn:  [0.00025899, -0.13434469, 0.87320147, 38.35125000]
+  };
+
+  /* Two values in Table 2a look like typos and are not: the Earth/Moon
+     barycentre's node is -5.11260389 rather than the 0.0 of Table 1
+     (the J2000 ecliptic is DEFINED by Earth's orbit at J2000, but over
+     three thousand years either side the fitted node is not zero), and
+     Saturn's longitude-of-perihelion rate is +0.54179478 where Table 1
+     has -0.41897216. Different fits, not the same fit at more places. */
+
+  /* ---- Delta T --------------------------------------------------------- */
+
+  /**
+   * Espenak & Meeus, after Morrison & Stephenson (2004), as published by
+   * NASA. Seconds. y is the year with the month folded in.
+   * https://eclipse.gsfc.nasa.gov/SEcat5/deltatpoly.html
+   */
+  Md.deltaT = function (y) {
+    var u, t;
+    if (y < -500) { u = (y - 1820) / 100; return -20 + 32 * u * u; }
+    if (y < 500) {
+      u = y / 100;
+      return 10583.6 - 1014.41 * u + 33.78311 * u * u - 5.952053 * u * u * u
+             - 0.1798452 * Math.pow(u, 4) + 0.022174192 * Math.pow(u, 5)
+             + 0.0090316521 * Math.pow(u, 6);
+    }
+    if (y < 1600) {
+      u = (y - 1000) / 100;
+      return 1574.2 - 556.01 * u + 71.23472 * u * u + 0.319781 * u * u * u
+             - 0.8503463 * Math.pow(u, 4) - 0.005050998 * Math.pow(u, 5)
+             + 0.0083572073 * Math.pow(u, 6);
+    }
+    if (y < 1700) { t = y - 1600; return 120 - 0.9808 * t - 0.01532 * t * t + t * t * t / 7129; }
+    if (y < 1800) {
+      t = y - 1700;
+      return 8.83 + 0.1603 * t - 0.0059285 * t * t + 0.00013336 * t * t * t
+             - Math.pow(t, 4) / 1174000;
+    }
+    if (y < 1860) {
+      t = y - 1800;
+      return 13.72 - 0.332447 * t + 0.0068612 * t * t + 0.0041116 * t * t * t
+             - 0.00037436 * Math.pow(t, 4) + 0.0000121272 * Math.pow(t, 5)
+             - 0.0000001699 * Math.pow(t, 6) + 0.000000000875 * Math.pow(t, 7);
+    }
+    if (y < 1900) {
+      t = y - 1860;
+      return 7.62 + 0.5737 * t - 0.251754 * t * t + 0.01680668 * t * t * t
+             - 0.0004473624 * Math.pow(t, 4) + Math.pow(t, 5) / 233174;
+    }
+    if (y < 1920) {
+      t = y - 1900;
+      return -2.79 + 1.494119 * t - 0.0598939 * t * t + 0.0061966 * t * t * t
+             - 0.000197 * Math.pow(t, 4);
+    }
+    if (y < 1941) { t = y - 1920; return 21.20 + 0.84493 * t - 0.076100 * t * t + 0.0020936 * t * t * t; }
+    if (y < 1961) { t = y - 1950; return 29.07 + 0.407 * t - t * t / 233 + t * t * t / 2547; }
+    if (y < 1986) { t = y - 1975; return 45.45 + 1.067 * t - t * t / 260 - t * t * t / 718; }
+    if (y < 2005) {
+      t = y - 2000;
+      return 63.86 + 0.3345 * t - 0.060374 * t * t + 0.0017275 * t * t * t
+             + 0.000651814 * Math.pow(t, 4) + 0.00002373599 * Math.pow(t, 5);
+    }
+    if (y < 2050) { t = y - 2000; return 62.92 + 0.32217 * t + 0.005589 * t * t; }
+    if (y < 2150) { u = (y - 1820) / 100; return -20 + 32 * u * u - 0.5628 * (2150 - y); }
+    u = (y - 1820) / 100;
+    return -20 + 32 * u * u;
+  };
+
+  /* ---- time ------------------------------------------------------------ */
+
+  /* The epoch instant: 1 Thoth year 1 of Nabonassar, mean noon at
+     Alexandria, which is 10:00 UT. JD 1448637.9166667.
+     [docs/research-epoch.md, cross-checked against JPL Horizons.] */
+  var EPOCH_JD_UT = 1448637.9166667;
+
+  /** Days since the Nabonassar epoch -> Julian centuries of TT past J2000. */
+  Md.centuries = function (days) {
+    var jdUT = EPOCH_JD_UT + days;
+    var g = P.cal.fromDays(days);
+    var yFrac = g.year + (g.month - 0.5) / 12;
+    var jdTT = jdUT + Md.deltaT(yFrac) / 86400;
+    return (jdTT - 2451545.0) / 36525;
+  };
+
+  /* ---- the method ------------------------------------------------------ */
+
+  function elements(name, T) {
+    var E = EL[name];
+    if (!E) throw new Error('modern: no elements for "' + name + '"');
+    var a = E[0] + E[6] * T;
+    var e = E[1] + E[7] * T;
+    var I = E[2] + E[8] * T;
+    var L = E[3] + E[9] * T;
+    var wbar = E[4] + E[10] * T;
+    var node = E[5] + E[11] * T;
+
+    var M = L - wbar;
+    var X = EXTRA[name];
+    if (X) {
+      M += X[0] * T * T + X[1] * P.cos(X[3] * T) + X[2] * P.sin(X[3] * T);
+    }
+    M = P.norm180(M);
+    return { a: a, e: e, I: I, L: L, w: wbar - node, node: node, M: M };
+  }
+
+  /**
+   * Kepler's equation, M = E - e* sin E with e* in degrees.
+   * Newton, which converges in a handful of steps for every eccentricity
+   * in this table (the largest is Mercury's 0.2056).
+   */
+  function kepler(M, eStar) {
+    var E = M + eStar * P.sin(M);
+    for (var i = 0; i < 24; i++) {
+      var dM = M - (E - eStar * P.sin(E));
+      var dE = dM / (1 - e_cos(eStar, E));
+      E += dE;
+      if (Math.abs(dE) < 1e-10) break;
+    }
+    return E;
+  }
+  function e_cos(eStar, E) { return (eStar * P.RAD) * P.cos(E); }
+
+  /** Heliocentric position in the J2000 ecliptic frame, in au. */
+  function heliocentric(name, T) {
+    var el = elements(name, T);
+    var eStar = el.e * P.DEG;
+    var E = kepler(el.M, eStar);
+
+    /* In the orbital plane, x towards perihelion. */
+    var xp = el.a * (P.cos(E) - el.e);
+    var yp = el.a * Math.sqrt(1 - el.e * el.e) * P.sin(E);
+
+    var cw = P.cos(el.w), sw = P.sin(el.w);
+    var cO = P.cos(el.node), sO = P.sin(el.node);
+    var cI = P.cos(el.I), sI = P.sin(el.I);
+
+    return {
+      x: (cw * cO - sw * sO * cI) * xp + (-sw * cO - cw * sO * cI) * yp,
+      y: (cw * sO + sw * cO * cI) * xp + (-sw * sO + cw * cO * cI) * yp,
+      z: (sw * sI) * xp + (cw * sI) * yp
+    };
+  }
+
+  Md.heliocentric = heliocentric;
+
+  /**
+   * Apparent geocentric ecliptic longitude, in degrees of the equinox of
+   * date - which is what has to be compared with Ptolemy, because his
+   * longitudes are tropical.
+   *
+   * The J2000 frame is converted to the equinox of date by adding the
+   * accumulated general precession. Using the J2000 frame directly would
+   * be a 26-degree error at Ptolemy's epoch and would swamp everything
+   * the page is trying to show.
+   */
+  Md.longitude = function (name, days) {
+    var T = Md.centuries(days);
+    var earth = heliocentric('earth', T);
+    var x, y;
+    if (name === 'sun') {
+      x = -earth.x; y = -earth.y;
+    } else if (name === 'moon') {
+      return null;                         /* a Keplerian ellipse is not a usable Moon */
+    } else {
+      var p = heliocentric(name, T);
+      x = p.x - earth.x; y = p.y - earth.y;
+    }
+    return P.norm360(P.atan2(y, x) + Md.precession(T));
+  };
+
+  /**
+   * General precession in longitude since J2000, degrees.
+   * p = 5028.796195"T + 1.1054348"T^2 (IAU 2006), which is the quantity
+   * that carries a J2000 longitude to the equinox of date.
+   * [MODERN-MEASURED, docs/research-epoch.md]
+   */
+  Md.precession = function (T) {
+    return (5028.796195 * T + 1.1054348 * T * T) / 3600;
+  };
+
+  /** Everything the verdict panel needs for one body. */
+  Md.compare = function (name, days) {
+    var truth = Md.longitude(name, days);
+    if (truth === null) return null;
+    var model = P.models.longitude(name, days).lon;
+    return { model: model, truth: truth, error: P.norm180(model - truth) };
+  };
+
+})();
+
+/* ===== js/20-sky.js ===== */
+/* =====================================================================
+   ALMAGEST — the sky
+   ---------------------------------------------------------------------
+   One place that knows where everything is, and the trail recorder.
+
+   THE TRAIL IS A RECORDING, NEVER A DRAWING. This is a design
+   commitment, not just an implementation detail. The whole claim of the
+   page is that retrograde motion falls out of Ptolemy's own geometry -
+   so the loop on screen has to be the accumulated output of the same
+   chain that is driving the animation, sample by sample. A pre-computed
+   or prettified path would make the headline a lie, and nobody looking
+   at the page could tell.
+
+   For the same reason nothing here exaggerates the epicycle. Duke's
+   animations do, and label it, because he is illustrating a mechanism
+   to specialists; this page is claiming that HIS numbers produce the
+   loop, and inflating r to make it prettier would destroy that.
+   ===================================================================== */
+(function () {
+  'use strict';
+
+  var K = P.sky = {};
+
+  K.days = 0;
+  K.selected = 'mars';
+
+  /* ---- state ----------------------------------------------------------- */
+
+  /** Every runnable body's full state at a moment, keyed by name. */
+  K.at = function (days) {
+    var out = {}, names = P.params.runnable();
+    for (var i = 0; i < names.length; i++) {
+      try { out[names[i]] = P.models.state(names[i], days); }
+      catch (e) { /* an incomplete body simply does not appear */ }
+    }
+    return out;
+  };
+
+  /* ---- the trail ------------------------------------------------------- */
+
+  /*
+   * Per body, a ring of recent (t, lon) samples. Sized so that at the
+   * default quarter-day step it holds about three years - comfortably
+   * more than one synodic cycle for every planet except Saturn, whose
+   * loop is the shallowest anyway.
+   */
+  var CAP = 4400;
+  var trail = {};
+
+  function ring(name) {
+    if (!trail[name]) trail[name] = { t: [], lon: [], head: 0, n: 0 };
+    return trail[name];
+  }
+
+  K.record = function (days, states) {
+    for (var name in states) {
+      if (!states.hasOwnProperty(name)) continue;
+      var r = ring(name);
+      /* Do not record the same instant twice - stepping a day forward
+         and back would otherwise lay down a spurious spike. */
+      if (r.n > 0) {
+        var last = (r.head - 1 + CAP) % CAP;
+        if (Math.abs(r.t[last] - days) < 1e-9) continue;
+      }
+      r.t[r.head] = days;
+      r.lon[r.head] = states[name].lon;
+      r.head = (r.head + 1) % CAP;
+      if (r.n < CAP) r.n++;
+    }
+  };
+
+  /** Samples oldest-first, as flat arrays. */
+  K.trailOf = function (name) {
+    var r = trail[name];
+    if (!r || r.n === 0) return null;
+    var t = [], lon = [];
+    var start = (r.head - r.n + CAP) % CAP;
+    for (var i = 0; i < r.n; i++) {
+      var k = (start + i) % CAP;
+      t.push(r.t[k]); lon.push(r.lon[k]);
+    }
+    return { t: t, lon: lon, n: r.n };
+  };
+
+  K.clearTrail = function (name) {
+    if (name) delete trail[name]; else trail = {};
+  };
+
+  /**
+   * A trail is only meaningful if it is continuous in time. Jumping the
+   * date by a year and carrying on would join two unrelated arcs with a
+   * straight line across the diagram, which reads as motion that never
+   * happened. So any jump clears the trails.
+   */
+  K.setDays = function (days, isStep) {
+    if (!isStep || Math.abs(days - K.days) > 40) K.clearTrail();
+    K.days = days;
+  };
+
+  /* ---- seeking a retrograde -------------------------------------------- */
+
+  /**
+   * The next time the named body starts going backwards, searched
+   * forwards from `from`. Coarse scan then bisection.
+   *
+   * Deliberately NUMERICAL rather than solved from a station condition.
+   * The closed-form condition is a useful seek target but it is derived
+   * from a simplified (concentric) model, so using it as the answer
+   * would put the marked station in a slightly different place from the
+   * one the running model actually reaches - and the page would be
+   * caught contradicting itself on screen.
+   */
+  K.nextRetrograde = function (name, from, limitDays) {
+    if (limitDays === undefined) limitDays = 1000;
+    var step = 2, prev = P.models.dailyMotion(name, from), t;
+    for (var d = step; d < limitDays; d += step) {
+      t = from + d;
+      var m = P.models.dailyMotion(name, t);
+      if (prev >= 0 && m < 0) {
+        var lo = t - step, hi = t;
+        for (var i = 0; i < 40; i++) {
+          var mid = (lo + hi) / 2;
+          if (P.models.dailyMotion(name, mid) < 0) hi = mid; else lo = mid;
+        }
+        return (lo + hi) / 2;
+      }
+      prev = m;
+    }
+    return null;
+  };
+
+  /* ---- the verdict ----------------------------------------------------- */
+
+  /**
+   * How wrong the model is now, body by body.
+   *
+   * `frameCorrected` removes Ptolemy's 1.15 degree equinox offset - the
+   * displacement of his whole tropical frame caused by equinox
+   * observations that ran about 28 hours late. It is offered because the
+   * interesting question is not "how wrong was Ptolemy" (which mixes his
+   * observations in with his geometry) but "how wrong was the geometry,
+   * given the observations he had".
+   */
+  K.verdict = function (days, frameCorrected) {
+    var names = P.params.runnable(), out = [];
+    for (var i = 0; i < names.length; i++) {
+      var c = P.modern.compare(names[i], days);
+      if (!c) continue;
+      var err = c.error;
+      if (frameCorrected) err = P.norm180(err + P.params.EQUINOX_OFFSET);
+      out.push({ name: names[i], label: P.params.body[names[i]].label,
+                 model: c.model, truth: c.truth, error: err });
+    }
+    return out;
+  };
+
+})();
+
+/* ===== js/30-render-shared.js ===== */
+/* =====================================================================
+   ALMAGEST — shared rendering
+   ---------------------------------------------------------------------
+   Canvas setup, theme colours, and the drawing idioms the three views
+   have in common.
+
+   No colour is hard-coded here. Every one is read back out of the CSS
+   custom properties at draw time and cached until the theme moves,
+   because the page ships inside ClassicaCodex, which has its own light
+   and dark reading modes and sets data-theme on the root when it opens
+   the page. Change a token in style.css and the diagram changes with it.
+
+   The drawing idioms in this file are deliberately those of a ruled
+   astronomical diagram rather than of a chart library: circles are thin
+   and unfilled, construction lines are dashed, and anything that is
+   geometry rather than sky is drawn in lapis so the eye can separate
+   the two without a legend.
+   ===================================================================== */
+(function () {
+  'use strict';
+
+  var R = P.render = {};
+
+  /* ---- theme ---------------------------------------------------------- */
+
+  var cache = null, cacheKey = '';
+
+  function readToken(cs, name, fallback) {
+    var v = cs.getPropertyValue(name);
+    return (v && v.trim()) || fallback;
+  }
+
+  /** Current palette, pulled from the stylesheet. */
+  R.palette = function () {
+    var root = document.documentElement;
+    var key = (root.getAttribute('data-theme') || 'auto') + '|' +
+      (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'd' : 'l');
+    if (cache && cacheKey === key) return cache;
+    var cs = getComputedStyle(root);
+    cache = {
+      stage:     readToken(cs, '--stage', '#0A0D15'),
+      stage2:    readToken(cs, '--stage-2', '#06080E'),
+      ink:       readToken(cs, '--stage-ink', '#E8E3D6'),
+      edge:      readToken(cs, '--stage-edge', '#222839'),
+      rule:      readToken(cs, '--rule', '#6E6242'),
+      ruleSoft:  readToken(cs, '--rule-soft', '#4A4230'),
+      gold:      readToken(cs, '--gold', '#C9A63C'),
+      goldHi:    readToken(cs, '--gold-hi', '#F0D680'),
+      lapis:     readToken(cs, '--lapis', '#6F91D0'),
+      lapisSoft: readToken(cs, '--lapis-soft', '#3C5A8C'),
+      vermilion: readToken(cs, '--vermilion', '#D4593C'),
+      muted:     readToken(cs, '--muted', '#7C8698'),
+      good:      readToken(cs, '--good', '#5FBE86'),
+      warn:      readToken(cs, '--warn', '#D6A445'),
+      bad:       readToken(cs, '--bad', '#E0705F'),
+      serif:     readToken(cs, '--serif', 'serif'),
+      sans:      readToken(cs, '--sans', 'sans-serif'),
+      mono:      readToken(cs, '--mono', 'monospace'),
+      metal: {
+        saturn:  readToken(cs, '--m-saturn', '#9A9CA4'),
+        jupiter: readToken(cs, '--m-jupiter', '#C8B273'),
+        mars:    readToken(cs, '--m-mars', '#D4614A'),
+        sun:     readToken(cs, '--m-sun', '#E8B84B'),
+        venus:   readToken(cs, '--m-venus', '#C98B6B'),
+        mercury: readToken(cs, '--m-mercury', '#9FB8C8'),
+        moon:    readToken(cs, '--m-moon', '#CBD3DC')
+      }
+    };
+    cacheKey = key;
+    return cache;
+  };
+
+  R.forgetPalette = function () { cache = null; };
+
+  /* ---- canvas --------------------------------------------------------- */
+
+  /**
+   * Size a canvas to its CSS box at device resolution and return a
+   * context already scaled, so everything after this is in CSS pixels.
+   * Returns null if the box has no area yet, which happens on the first
+   * frame of a hidden view and must not be treated as an error.
+   */
+  R.fit = function (canvas) {
+    var rect = canvas.getBoundingClientRect();
+    if (rect.width < 2 || rect.height < 2) return null;
+    var dpr = window.devicePixelRatio || 1;
+    var w = Math.round(rect.width * dpr), h = Math.round(rect.height * dpr);
+    if (canvas.width !== w || canvas.height !== h) { canvas.width = w; canvas.height = h; }
+    var ctx = canvas.getContext('2d');
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    return { ctx: ctx, w: rect.width, h: rect.height };
+  };
+
+  /**
+   * Where the diagram goes, and where its captions go.
+   *
+   * The ring wants to fill the canvas and the captions want the bottom
+   * two lines, and on a stacked narrow layout those are the same pixels:
+   * at 644 by 310 the ring's lower edge lands within two pixels of the
+   * caption baseline, and the zodiac names run straight through the
+   * prose. So the caption strip is reserved FIRST and the circle is
+   * sized into what is left, rather than the captions being dropped on
+   * top afterwards and hoped for.
+   */
+  R.frame = function (w, h) {
+    var capSpace = 36;
+    var usable = Math.max(60, h - capSpace);
+    return {
+      cx: w / 2,
+      cy: usable / 2,
+      rOuter: Math.min(w, usable) * 0.46,
+      cap1: h - 12,          /* the main caption baseline */
+      cap2: h - 26,          /* the secondary line, above it */
+      room: usable > 260     /* whether there is room for the second line */
+    };
+  };
+
+  R.clear = function (ctx, w, h) {
+    ctx.save();
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+    ctx.restore();
+  };
+
+  /* ---- ruled-diagram idioms ------------------------------------------- */
+
+  /** A thin unfilled circle, the basic mark of the whole diagram. */
+  R.circle = function (ctx, cx, cy, r, colour, width, dash) {
+    if (r <= 0) return;
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, 0, P.TAU);
+    ctx.strokeStyle = colour;
+    ctx.lineWidth = width || 1;
+    if (dash) ctx.setLineDash(dash);
+    ctx.stroke();
+    ctx.restore();
+  };
+
+  R.line = function (ctx, x1, y1, x2, y2, colour, width, dash) {
+    ctx.save();
+    ctx.beginPath();
+    ctx.moveTo(x1, y1);
+    ctx.lineTo(x2, y2);
+    ctx.strokeStyle = colour;
+    ctx.lineWidth = width || 1;
+    if (dash) ctx.setLineDash(dash);
+    ctx.stroke();
+    ctx.restore();
+  };
+
+  R.disc = function (ctx, cx, cy, r, fill, ring, ringWidth) {
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, 0, P.TAU);
+    ctx.fillStyle = fill;
+    ctx.fill();
+    if (ring) {
+      ctx.strokeStyle = ring;
+      ctx.lineWidth = ringWidth || 1;
+      ctx.stroke();
+    }
+    ctx.restore();
+  };
+
+  /**
+   * A small cross, for a centre that is a point rather than a body -
+   * the Earth's deferent centre, the equant. Drawn rather than dotted
+   * because a dot reads as an object and these are not objects.
+   */
+  R.cross = function (ctx, cx, cy, size, colour, width) {
+    ctx.save();
+    ctx.strokeStyle = colour;
+    ctx.lineWidth = width || 1;
+    ctx.beginPath();
+    ctx.moveTo(cx - size, cy); ctx.lineTo(cx + size, cy);
+    ctx.moveTo(cx, cy - size); ctx.lineTo(cx, cy + size);
+    ctx.stroke();
+    ctx.restore();
+  };
+
+  /**
+   * Text with a soft dark halo, so a label stays readable wherever it
+   * lands on the diagram without a filled box behind it - a filled box
+   * would punch a hole in the ruled circles, which is exactly what a
+   * draughtsman avoids.
+   */
+  R.label = function (ctx, text, x, y, colour, font, align, baseline) {
+    ctx.save();
+    ctx.font = font;
+    ctx.textAlign = align || 'left';
+    ctx.textBaseline = baseline || 'middle';
+    ctx.lineWidth = 3;
+    ctx.strokeStyle = 'rgba(6, 8, 14, .78)';
+    ctx.lineJoin = 'round';
+    ctx.strokeText(text, x, y);
+    ctx.fillStyle = colour;
+    ctx.fillText(text, x, y);
+    ctx.restore();
+  };
+
+  /** Measure, so callers can lay out without guessing. */
+  R.measure = function (ctx, text, font) {
+    ctx.save();
+    ctx.font = font;
+    var w = ctx.measureText(text).width;
+    ctx.restore();
+    return w;
+  };
+
+  /**
+   * An arrowhead at (x,y) pointing along dir (canvas radians).
+   * Used for the direction of motion, which is the one thing a static
+   * frame of an animated diagram cannot otherwise show.
+   */
+  R.arrow = function (ctx, x, y, dir, size, colour) {
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(dir);
+    ctx.beginPath();
+    ctx.moveTo(size, 0);
+    ctx.lineTo(-size * 0.7, size * 0.55);
+    ctx.lineTo(-size * 0.7, -size * 0.55);
+    ctx.closePath();
+    ctx.fillStyle = colour;
+    ctx.fill();
+    ctx.restore();
+  };
+
+  /**
+   * The zodiac ring: twelve thirty-degree divisions with their glyphs.
+   * Longitude zero is the vernal point and lies to the RIGHT, with
+   * longitude increasing counter-clockwise, which is the orientation
+   * every ancient and medieval diagram uses.
+   */
+  R.zodiacRing = function (ctx, cx, cy, rInner, rOuter, pal, opts) {
+    opts = opts || {};
+    var i, a, p1, p2;
+    R.circle(ctx, cx, cy, rOuter, pal.rule, 1);
+    R.circle(ctx, cx, cy, rInner, pal.ruleSoft, 1);
+    for (i = 0; i < 12; i++) {
+      a = -i * 30 * P.RAD;
+      p1 = { x: cx + rInner * Math.cos(a), y: cy + rInner * Math.sin(a) };
+      p2 = { x: cx + rOuter * Math.cos(a), y: cy + rOuter * Math.sin(a) };
+      R.line(ctx, p1.x, p1.y, p2.x, p2.y, pal.ruleSoft, 1);
+    }
+    /* Sign NAMES, not glyphs. Not one text font on this machine carries
+       a zodiac sign; see the note in js/00-core.js. Names are set along
+       the ring, upright where they would otherwise read upside down. */
+    if (opts.names !== false) {
+      var rm = (rInner + rOuter) / 2;
+      var size = Math.max(8, Math.min(12, (rOuter - rInner) * 0.42));
+      for (i = 0; i < 12; i++) {
+        var mid = i * 30 + 15;
+        a = -mid * P.RAD;
+        var tx = cx + rm * Math.cos(a), ty = cy + rm * Math.sin(a);
+        ctx.save();
+        ctx.translate(tx, ty);
+        /* Tangential text, flipped on the half where it would otherwise
+           read upside down - the convention on every printed ring.
+           The text's own rotation is (90 - mid) degrees, so it inverts
+           exactly when that falls in (90, 270) mod 360, which is when
+           mid exceeds 180. Deriving the threshold rather than guessing
+           it matters: the obvious guess, flipping the left-hand half at
+           90 and 270, puts Cancer and Gemini upside down at the top. */
+        var rot = a + Math.PI / 2;
+        if (mid > 180) rot += Math.PI;
+        ctx.rotate(rot);
+        R.label(ctx, P.SIGNS[i], 0, 0, pal.rule,
+                size + 'px ' + pal.sans, 'center', 'middle');
+        ctx.restore();
+      }
+    }
+    /* Single-degree ticks are drawn only when there is room for them to
+       be distinguishable; below that they merge into a grey band and
+       make the ring look dirty rather than precise. */
+    if (opts.degrees && rOuter > 150) {
+      for (i = 0; i < 360; i++) {
+        if (i % 30 === 0) continue;
+        var len = (i % 10 === 0) ? (rOuter - rInner) * 0.36 : (rOuter - rInner) * 0.18;
+        a = -i * P.RAD;
+        R.line(ctx,
+               cx + (rOuter - len) * Math.cos(a), cy + (rOuter - len) * Math.sin(a),
+               cx + rOuter * Math.cos(a), cy + rOuter * Math.sin(a),
+               pal.ruleSoft, i % 10 === 0 ? 1 : 0.5);
+      }
+    }
+  };
+
+  /* ---- the planetary symbols, drawn ------------------------------------ */
+
+  /**
+   * The seven classical symbols, as canvas paths.
+   *
+   * They are drawn rather than set as text because the coverage was
+   * measured and it is bad: no text font on this machine carries the Sun,
+   * Mercury, Jupiter or Saturn, and Venus and Mars survive only in Times
+   * and Arial because they double as the biological signs. A symbol row
+   * in any usable face would come out with two correct glyphs and four
+   * empty boxes - and it would look fine to anyone who spot-checked Mars.
+   *
+   * Drawn, they inherit the diagram's colour and line weight, scale to
+   * any size, and are identical on every platform. Each is built from the
+   * same three primitives the real symbols are: a circle, a cross, a
+   * crescent.
+   *
+   * Origin is the centre; `s` is the nominal half-height.
+   */
+  function circleAt(ctx, x, y, r) { ctx.moveTo(x + r, y); ctx.arc(x, y, r, 0, P.TAU); }
+  function crossAt(ctx, x, y, h) {
+    ctx.moveTo(x, y); ctx.lineTo(x, y + h);
+    ctx.moveTo(x - h * 0.42, y + h * 0.52); ctx.lineTo(x + h * 0.42, y + h * 0.52);
+  }
+  function crescentAt(ctx, x, y, r, open) {
+    ctx.moveTo(x + r * Math.cos(open - 1), y + r * Math.sin(open - 1));
+    ctx.arc(x, y, r, open - 1, open + 1, true);
+  }
+
+  var SYMBOL = {
+    /* a circle with a dot at its centre */
+    sun: function (ctx, s) {
+      ctx.beginPath(); circleAt(ctx, 0, 0, s * 0.62); ctx.stroke();
+      ctx.beginPath(); ctx.arc(0, 0, s * 0.11, 0, P.TAU); ctx.fill();
+    },
+    /* a crescent */
+    moon: function (ctx, s) {
+      ctx.beginPath();
+      ctx.arc(0, 0, s * 0.8, Math.PI * 0.32, Math.PI * 1.68, false);
+      ctx.stroke();
+    },
+    /* crescent over circle over cross */
+    mercury: function (ctx, s) {
+      ctx.beginPath();
+      circleAt(ctx, 0, 0, s * 0.36);
+      crossAt(ctx, 0, s * 0.36, s * 0.5);
+      ctx.moveTo(-s * 0.3, -s * 0.52);
+      ctx.arc(0, -s * 0.52, s * 0.3, Math.PI, 0, true);
+      ctx.stroke();
+    },
+    /* circle over cross */
+    venus: function (ctx, s) {
+      ctx.beginPath();
+      circleAt(ctx, 0, -s * 0.22, s * 0.44);
+      crossAt(ctx, 0, s * 0.22, s * 0.62);
+      ctx.stroke();
+    },
+    /* circle with an arrow out of the upper right */
+    mars: function (ctx, s) {
+      ctx.beginPath();
+      circleAt(ctx, -s * 0.12, s * 0.16, s * 0.46);
+      ctx.moveTo(s * 0.2, -s * 0.17); ctx.lineTo(s * 0.72, -s * 0.66);
+      ctx.moveTo(s * 0.72, -s * 0.66); ctx.lineTo(s * 0.34, -s * 0.66);
+      ctx.moveTo(s * 0.72, -s * 0.66); ctx.lineTo(s * 0.72, -s * 0.28);
+      ctx.stroke();
+    },
+    /* the stylised 4 - a crescent crossed by a stroke */
+    jupiter: function (ctx, s) {
+      ctx.beginPath();
+      ctx.moveTo(-s * 0.55, -s * 0.36);
+      ctx.arc(-s * 0.22, -s * 0.36, s * 0.34, Math.PI, Math.PI * 2.05, false);
+      ctx.lineTo(s * 0.34, s * 0.62);
+      ctx.moveTo(-s * 0.46, s * 0.62); ctx.lineTo(s * 0.62, s * 0.62);
+      ctx.stroke();
+    },
+    /* the stylised h with a crossed stem */
+    saturn: function (ctx, s) {
+      ctx.beginPath();
+      ctx.moveTo(-s * 0.5, -s * 0.5); ctx.lineTo(-s * 0.5, s * 0.2);
+      ctx.moveTo(-s * 0.76, -s * 0.24); ctx.lineTo(-s * 0.2, -s * 0.24);
+      ctx.moveTo(-s * 0.5, s * 0.2);
+      ctx.bezierCurveTo(-s * 0.1, -s * 0.2, s * 0.62, s * 0.1, s * 0.2, s * 0.66);
+      ctx.stroke();
+    }
+  };
+
+  /**
+   * Draw one symbol centred at (x, y). Falls back to nothing rather than
+   * to a box: a missing symbol should leave the diagram clean, not put a
+   * tofu square in the middle of it.
+   */
+  R.symbol = function (ctx, name, x, y, s, colour, width) {
+    var fn = SYMBOL[name];
+    if (!fn) return false;
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.strokeStyle = colour;
+    ctx.fillStyle = colour;
+    ctx.lineWidth = width || Math.max(1, s * 0.16);
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    fn(ctx, s);
+    ctx.restore();
+    return true;
+  };
+
+  R.hasSymbol = function (name) { return !!SYMBOL[name]; };
+
+  /** A tick and label at one longitude on a ring. */
+  R.ringMark = function (ctx, cx, cy, r, lon, colour, len) {
+    var a = -lon * P.RAD;
+    R.line(ctx,
+           cx + (r - (len || 8)) * Math.cos(a), cy + (r - (len || 8)) * Math.sin(a),
+           cx + r * Math.cos(a), cy + r * Math.sin(a),
+           colour, 1.5);
+  };
+
+})();
+
+/* ===== js/31-render-model.js ===== */
+/* =====================================================================
+   ALMAGEST — the model
+   ---------------------------------------------------------------------
+   One planet at a time, with the whole machine showing: deferent,
+   epicycle, equant, deferent centre, apse line, and the sightline out
+   to the zodiac ring.
+
+   THIS IS THE ONLY VIEW THAT IS HONESTLY TO SCALE, and it is worth
+   being precise about why. The Almagest fixes no distances BETWEEN
+   planets - each planet's model is stated in parts of its own deferent
+   radius of 60, and that is all the text supports. So drawing one
+   planet at its own 60p is exact; drawing six together at true relative
+   distances requires the Planetary Hypotheses, a different book, and
+   produces a Mercury epicycle under a pixel across. One planet at a
+   time is not a compromise here. It is the scale the source actually
+   has.
+
+   THE CONSTRUCTION LINES ARE LAPIS AND THE SKY IS METAL. Everything
+   that is geometry rather than body - the equant, the deferent centre,
+   the apse line, the radius vectors - is drawn in the manuscript blue,
+   so the eye separates the machine from what the machine is for without
+   needing a legend.
+   ===================================================================== */
+(function () {
+  'use strict';
+
+  var R = P.render;
+  var V = R.model = {};
+
+  V.draw = function (canvas, days, states, opts) {
+    var fit = R.fit(canvas);
+    if (!fit) return;
+    var ctx = fit.ctx, w = fit.w, h = fit.h;
+    var pal = R.palette();
+    opts = opts || {};
+
+    R.clear(ctx, w, h);
+
+    var name = P.sky.selected;
+    var b = P.params.body[name];
+    var st = states[name];
+    if (!st || !b) {
+      R.label(ctx, 'Select a planet', w / 2, h / 2, pal.muted,
+              '13px ' + pal.sans, 'center', 'middle');
+      return;
+    }
+
+    var F = R.frame(w, h);
+    var cx = F.cx, cy = F.cy, rOuter = F.rOuter;
+    var band = Math.max(15, rOuter * 0.08);
+    var rRing = rOuter - band;
+
+    /* Everything inside the ring is in units of the deferent radius.
+       The epicycle has to fit: Mars's r is 0.658 R and Venus's 0.719,
+       so the deferent gets the room left over. */
+    var unit = (rRing * 0.92) / (1 + (b.r || 0));
+
+    R.zodiacRing(ctx, cx, cy, rRing, rOuter, pal, { degrees: true, names: true });
+
+    var metal = pal.metal[b.metal] || pal.ink;
+    var A = st.apogee;
+    var ax = Math.cos(-A * P.RAD), ay = Math.sin(-A * P.RAD);
+
+    /* ---- the apse line ---------------------------------------------- */
+    R.line(ctx, cx - ax * rRing * 0.98, cy - ay * rRing * 0.98,
+           cx + ax * rRing * 0.98, cy + ay * rRing * 0.98,
+           pal.lapisSoft, 1, [5, 5]);
+    R.label(ctx, 'apogee', cx + ax * rRing * 0.99, cy + ay * rRing * 0.99,
+            pal.lapisSoft, '10px ' + pal.sans,
+            ax > 0 ? 'right' : 'left', 'middle');
+
+    /* ---- Earth, deferent centre, equant ------------------------------ */
+    var e = b.e || 0;
+    var dcx = cx + ax * e * unit, dcy = cy + ay * e * unit;          /* centre */
+    var eqx = cx + ax * 2 * e * unit, eqy = cy + ay * 2 * e * unit;  /* equant */
+
+    /* Mercury's equant is at one e, not two, and its deferent centre is
+       not fixed at all - it rides a small circle. */
+    if (b.model === 'mercury') {
+      eqx = cx + ax * e * unit; eqy = cy + ay * e * unit;
+      var kBar = st.meanCentrum;
+      var hx = cx + ax * 2 * e * unit, hy = cy + ay * 2 * e * unit;  /* small-circle centre */
+      R.circle(ctx, hx, hy, e * unit, pal.lapisSoft, 1, [3, 3]);
+      var hdir = -(A - kBar) * P.RAD;
+      dcx = hx + e * unit * Math.cos(hdir);
+      dcy = hy + e * unit * Math.sin(hdir);
+      R.label(ctx, 'the crank', hx, hy - e * unit - 9, pal.lapisSoft,
+              '9.5px ' + pal.sans, 'center', 'middle');
+    }
+
+    /* ---- the deferent ------------------------------------------------ */
+    R.circle(ctx, dcx, dcy, unit, pal.rule, 1.3);
+
+    /* ---- the sightline, Earth through planet to the ring ------------- */
+    var la = -st.lon * P.RAD;
+    R.line(ctx, cx, cy, cx + rOuter * Math.cos(la), cy + rOuter * Math.sin(la),
+           metal, 1.1, [1, 3]);
+
+    /* ---- radius vectors ---------------------------------------------- */
+    var ccx = cx + st.centre.x * unit, ccy = cy - st.centre.y * unit;
+    R.line(ctx, eqx, eqy, ccx, ccy, pal.lapis, 1);              /* equant -> centre */
+    R.line(ctx, cx, cy, ccx, ccy, pal.lapisSoft, 1);            /* Earth  -> centre */
+
+    /* ---- the epicycle ------------------------------------------------ */
+    if (b.r) {
+      R.circle(ctx, ccx, ccy, b.r * unit, pal.gold, 1.2);
+      var pxx = cx + st.pos.x * unit, pyy = cy - st.pos.y * unit;
+      R.line(ctx, ccx, ccy, pxx, pyy, pal.gold, 1);
+      var retro = P.models.isRetrograde(name, days);
+      R.disc(ctx, pxx, pyy, 6, retro ? pal.vermilion : metal, pal.stage, 1.5);
+      R.symbol(ctx, b.symbol, pxx + 14, pyy - 12, 7,
+               retro ? pal.vermilion : metal, 1.5);
+      /* The epicycle centre - a construction point, so a cross. */
+      R.cross(ctx, ccx, ccy, 4, pal.gold, 1);
+    } else {
+      var sxx = cx + st.pos.x * unit, syy = cy - st.pos.y * unit;
+      R.disc(ctx, sxx, syy, 7, metal, pal.stage, 1.5);
+      R.symbol(ctx, b.symbol, sxx + 14, syy - 12, 7, metal, 1.5);
+    }
+
+    /* ---- the three centres, drawn last so nothing covers them -------- */
+    R.cross(ctx, dcx, dcy, 5, pal.lapis, 1.2);
+    R.label(ctx, 'centre', dcx + 7, dcy - 7, pal.lapis, '9.5px ' + pal.sans, 'left', 'middle');
+    if (e > 0 && b.model !== 'simple') {
+      R.cross(ctx, eqx, eqy, 5, pal.lapis, 1.2);
+      R.label(ctx, 'equant', eqx + 7, eqy + 8, pal.lapis, '9.5px ' + pal.sans, 'left', 'middle');
+    }
+    R.disc(ctx, cx, cy, 4.5, pal.ink, pal.stage, 1.5);
+    R.label(ctx, 'Earth', cx - 8, cy + 10, pal.muted, '10px ' + pal.sans, 'right', 'middle');
+
+    /* ---- caption ----------------------------------------------------- */
+    R.label(ctx, b.label + ' — deferent 60ᵖ, epicycle ' + (b.rSex || '—') +
+                 'ᵖ, eccentricity ' + (b.eSex || '—') + 'ᵖ',
+            12, F.cap1, pal.muted, '11px ' + pal.sans, 'left', 'middle');
+    if (F.room)
+    R.label(ctx, 'to scale in parts of this planet’s own deferent',
+            12, F.cap2, pal.muted, '10px ' + pal.sans, 'left', 'middle');
+  };
+
+})();
+
+/* ===== js/32-render-sky.js ===== */
+/* =====================================================================
+   ALMAGEST — the sky
+   ---------------------------------------------------------------------
+   THE HEADLINE VIEW. Geocentric longitudes on a graduated zodiac ring,
+   with trails. No deferents, no epicycles, no radial scale at all.
+
+   WHY THIS VIEW CARRIES THE CLAIM. Every other view has to compromise
+   on scale: at true Planetary Hypotheses distances, with Saturn's
+   deferent 360 pixels across, Mercury's epicycle has a radius of under
+   one pixel. This view sidesteps the whole problem by having no radial
+   dimension - a body is simply a mark at its longitude. That makes it
+   the only view with nothing to apologise for, and it is where
+   retrograde motion lives.
+
+   RETROGRADE WILL NOT ANNOUNCE ITSELF. Measured from Ptolemy's own
+   parameters, a retrograde arc is between 7 and 16 degrees - two to
+   four and a half per cent of the circle. At the scale of a ring on a
+   screen that is a few pixels of backtracking. So it gets every help
+   the page can give it: a trail that is a recording of the real output,
+   a spiral that separates successive years so the loop does not
+   overwrite itself, marked stations, and the body drawn in vermilion
+   while it is going backwards.
+
+   THE SPIRAL IS THE KEY IDEA. A plain ring would have each year's trail
+   land on top of the last, and the loop would be lost in a smear. So
+   the trail is drawn at a radius that decreases slowly with age: recent
+   samples ride the ring, older ones fall inward. A retrograde loop then
+   shows as an unmistakable cusp - the trail turns back on itself and
+   crosses its own recent path.
+   ===================================================================== */
+(function () {
+  'use strict';
+
+  var R = P.render;
+  var V = R.sky = {};
+
+  V.draw = function (canvas, days, states, opts) {
+    var fit = R.fit(canvas);
+    if (!fit) return;
+    var ctx = fit.ctx, w = fit.w, h = fit.h;
+    var pal = R.palette();
+    opts = opts || {};
+
+    R.clear(ctx, w, h);
+
+    var F = R.frame(w, h);
+    var cx = F.cx, cy = F.cy, rOuter = F.rOuter;
+    var ringBand = Math.max(16, rOuter * 0.085);
+    var rRing = rOuter - ringBand;          /* where the bodies sit */
+    var rInner = rRing * 0.30;              /* inner limit of the spiral */
+
+    /* ---- the ring ---------------------------------------------------- */
+    R.zodiacRing(ctx, cx, cy, rRing, rOuter, pal, { degrees: true, names: true });
+
+    /* The Earth, at the centre, because in this system it is. */
+    R.disc(ctx, cx, cy, 4.5, pal.ink, pal.stage, 1.5);
+    R.label(ctx, 'Earth', cx, cy + 15, pal.muted, '10px ' + pal.sans, 'center', 'middle');
+
+    /* ---- the trails -------------------------------------------------- */
+    var names = P.params.runnable();
+    var i, j, name, st;
+
+    if (opts.trail !== false) {
+      for (i = 0; i < names.length; i++) {
+        name = names[i];
+        var tr = P.sky.trailOf(name);
+        if (!tr || tr.n < 2) continue;
+        var metal = pal.metal[P.params.body[name].metal] || pal.ink;
+        var span = tr.t[tr.n - 1] - tr.t[0];
+        if (span <= 0) continue;
+
+        /* Age 0 = now (on the ring), age 1 = oldest (fallen inward). */
+        ctx.save();
+        ctx.lineWidth = 1.4;
+        ctx.strokeStyle = metal;
+        ctx.globalAlpha = 0.55;
+        ctx.beginPath();
+        for (j = 0; j < tr.n; j++) {
+          var age = (tr.t[tr.n - 1] - tr.t[j]) / span;
+          var rr = rRing - (rRing - rInner) * age;
+          var aa = -tr.lon[j] * P.RAD;
+          var px = cx + rr * Math.cos(aa), py = cy + rr * Math.sin(aa);
+          if (j === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+        }
+        ctx.stroke();
+        ctx.restore();
+
+        /* Mark where it turned. A station is where the trail's longitude
+           stops increasing and starts decreasing, or the reverse - found
+           in the RECORDING, so the mark can never disagree with the
+           line it sits on. */
+        ctx.save();
+        for (j = 1; j < tr.n - 1; j++) {
+          var d0 = P.norm180(tr.lon[j] - tr.lon[j - 1]);
+          var d1 = P.norm180(tr.lon[j + 1] - tr.lon[j]);
+          if ((d0 > 0) === (d1 > 0)) continue;
+          var ageS = (tr.t[tr.n - 1] - tr.t[j]) / span;
+          var rS = rRing - (rRing - rInner) * ageS;
+          var aS = -tr.lon[j] * P.RAD;
+          R.disc(ctx, cx + rS * Math.cos(aS), cy + rS * Math.sin(aS),
+                 2.6, pal.vermilion);
+        }
+        ctx.restore();
+      }
+    }
+
+    /* ---- the bodies -------------------------------------------------- */
+    for (i = 0; i < names.length; i++) {
+      name = names[i];
+      st = states[name];
+      if (!st) continue;
+      var b = P.params.body[name];
+      var col = pal.metal[b.metal] || pal.ink;
+      var retro = P.models.isRetrograde(name, days);
+      var a = -st.lon * P.RAD;
+      var x = cx + rRing * Math.cos(a), y = cy + rRing * Math.sin(a);
+
+      /* The sightline: Earth, through the body, out to the graduated
+         ring. This is the one convention every period diagram has and
+         almost no modern interactive does - with it, the equations
+         become arcs you can read off the ring without arithmetic. */
+      R.line(ctx, cx, cy, cx + rOuter * Math.cos(a), cy + rOuter * Math.sin(a),
+             retro ? pal.vermilion : pal.ruleSoft, retro ? 1.4 : 0.8,
+             retro ? null : [2, 4]);
+
+      var isSel = (name === P.sky.selected);
+      R.disc(ctx, x, y, isSel ? 7 : 5.5, retro ? pal.vermilion : col,
+             pal.stage, 1.5);
+
+      /* The drawn symbol, just outside the ring. */
+      R.symbol(ctx, b.symbol, cx + (rOuter + ringBand * 0.75) * Math.cos(a),
+               cy + (rOuter + ringBand * 0.75) * Math.sin(a),
+               7, retro ? pal.vermilion : col, 1.5);
+    }
+
+    /* ---- the caption ------------------------------------------------- */
+    R.label(ctx, 'Longitude only — no distances, nothing to scale',
+            12, F.cap1, pal.muted, '11px ' + pal.sans, 'left', 'middle');
+
+    var anyRetro = [];
+    for (i = 0; i < names.length; i++) {
+      if (states[names[i]] && P.models.isRetrograde(names[i], days)) {
+        anyRetro.push(P.params.body[names[i]].label);
+      }
+    }
+    if (anyRetro.length) {
+      R.label(ctx, 'Retrograde: ' + anyRetro.join(', '),
+              w - 12, F.cap1, pal.vermilion, '600 11px ' + pal.sans, 'right', 'middle');
+    }
+    if (F.room)
+    R.label(ctx, 'trail falls inward as it ages, so a loop cannot hide behind itself',
+            12, F.cap2, pal.muted, '10px ' + pal.sans, 'left', 'middle');
+  };
+
+})();
+
+/* ===== js/33-render-cosmos.js ===== */
+/* =====================================================================
+   ALMAGEST — the cosmos
+   ---------------------------------------------------------------------
+   The orientation view: all seven in their Ptolemaic order, rings only.
+
+   THIS VIEW IS NOT TO SCALE AND SAYS SO ON ITS FACE. The radial scale
+   is compressed, deliberately, and the caption is part of the drawing
+   rather than something in the rail that a reader might miss.
+
+   The arithmetic that forces it: at true Planetary Hypotheses distances
+   with Saturn's sphere at 360 pixels, Mercury's epicycle would have a
+   radius of about nine tenths of one pixel. A "to scale" cosmos is
+   therefore not a harder version of this drawing, it is a blank one.
+   So this view draws no epicycles at all - only the ordering, which is
+   the one thing it is honestly able to show.
+
+   ORDER IS THE POINT, and it is Ptolemy's own (Alm. IX.1): Moon,
+   Mercury, Venus, Sun, Mars, Jupiter, Saturn, fixed stars. He says
+   plainly that the order of Mercury, Venus and the Sun is not settled
+   and gives his reasons for preferring this one - which is worth a
+   caption, because the reader has probably been told the sequence is
+   ancient dogma.
+   ===================================================================== */
+(function () {
+  'use strict';
+
+  var R = P.render;
+  var V = R.cosmos = {};
+
+  V.draw = function (canvas, days, states, opts) {
+    var fit = R.fit(canvas);
+    if (!fit) return;
+    var ctx = fit.ctx, w = fit.w, h = fit.h;
+    var pal = R.palette();
+
+    R.clear(ctx, w, h);
+
+    var F = R.frame(w, h);
+    var cx = F.cx, cy = F.cy, rOuter = F.rOuter;
+    var band = Math.max(14, rOuter * 0.075);
+    var rStars = rOuter - band;
+
+    R.zodiacRing(ctx, cx, cy, rStars, rOuter, pal, { degrees: false, names: true });
+
+    /* ONLY THE SELECTED RING IS NAMED, and that is the second attempt.
+       Naming all seven stacks seven labels into the radial space between
+       the innermost and outermost ring - about 130 pixels in a short
+       canvas, so under twenty pixels a ring. Laying them along a diagonal
+       instead of straight up buys a factor of 1.4 and is still not
+       enough: at 9.5px text they overlap each other AND the rings they
+       are naming.
+       The labels were redundant anyway. Every body already carries its
+       drawn symbol beside it, the metals tell them apart, and the rail
+       lists all seven with matching colour dots. This view's job is to
+       show the ORDER, and a legible ring of dots does that better than an
+       illegible one with names on it. */
+    var LABEL_DIR = 129;                      /* upper left, away from the zodiac names */
+    var ldx = Math.cos(-LABEL_DIR * P.RAD), ldy = Math.sin(-LABEL_DIR * P.RAD);
+
+    var order = P.params.order;          /* Ptolemy's, outward */
+    var n = order.length;
+    var rMin = rOuter * 0.13;
+    var i, name, b, st;
+
+    for (i = 0; i < n; i++) {
+      name = order[i];
+      b = P.params.body[name];
+      st = states[name];
+      /* Evenly spaced rings: the compression is total and obvious,
+         which is the honest way to do it. A partial compression invites
+         the reader to believe the spacing means something. */
+      var rr = rMin + (rStars * 0.86 - rMin) * (i / (n - 1));
+      var metal = pal.metal[b.metal] || pal.ink;
+
+      R.circle(ctx, cx, cy, rr, pal.ruleSoft, 1, [2, 5]);
+
+      if (!st) {
+        /* A body whose model is not implemented gets its ring and its
+           name, and no marker - better than a marker in the wrong place. */
+        if (name === P.sky.selected) R.label(ctx, b.label + ' — not modelled here', cx + ldx * rr - 5, cy + ldy * rr - 5,
+                pal.muted, '9.5px ' + pal.sans, 'right', 'middle');
+        continue;
+      }
+
+      var a = -st.lon * P.RAD;
+      var x = cx + rr * Math.cos(a), y = cy + rr * Math.sin(a);
+      var retro = P.models.isRetrograde(name, days);
+
+      /* A faint sightline, so the ordering and the longitudes can be
+         read together - the ring says how far out, the line says where. */
+      R.line(ctx, cx, cy, cx + rStars * Math.cos(a), cy + rStars * Math.sin(a),
+             pal.ruleSoft, 0.6, [1, 5]);
+
+      R.disc(ctx, x, y, name === P.sky.selected ? 6.5 : 5,
+             retro ? pal.vermilion : metal, pal.stage, 1.4);
+      R.symbol(ctx, b.symbol, x + 12, y - 11, 6.5, retro ? pal.vermilion : metal, 1.4);
+      if (name === P.sky.selected) R.label(ctx, b.label, cx + ldx * rr - 5, cy + ldy * rr - 5, pal.muted,
+              '9.5px ' + pal.sans, 'right', 'middle');
+    }
+
+    R.disc(ctx, cx, cy, 5, pal.ink, pal.stage, 1.5);
+
+    R.label(ctx, 'Ptolemy’s order (Alm. IX.1). Radial scale compressed — not to scale.',
+            12, F.cap1, pal.muted, '11px ' + pal.sans, 'left', 'middle');
+    if (F.room)
+    R.label(ctx, 'He notes the order of Mercury, Venus and the Sun is not settled.',
+            12, F.cap2, pal.muted, '10px ' + pal.sans, 'left', 'middle');
+  };
+
+})();
+
+/* ===== js/40-ui.js ===== */
+/* =====================================================================
+   ALMAGEST — the page
+   ---------------------------------------------------------------------
+   Wiring: the animation loop, the controls, and the rail.
+
+   ONE RULE ABOUT TIME. Every position on screen comes from a single
+   number, `P.sky.days` - days since the era of Nabonassar - passed
+   through the model. Nothing caches a longitude, nothing interpolates
+   between frames. So whatever the page shows, it shows because the
+   geometry put it there on that frame, and the trail is a recording of
+   exactly the values that were drawn.
+
+   A CONTROL THAT CHANGES NOTHING VISIBLE MUST STILL ANSWER. The
+   companion page learned this the hard way: a button that silently
+   worked read as broken, because the panel it changed was off screen.
+   So "Next retrograde" and "Today" say what they did, on themselves,
+   for a moment.
+   ===================================================================== */
+(function () {
+  'use strict';
+
+  var canvas, running = false, raf = null, view = 'model';
+  var frameCorrected = false, showTrail = true;
+  var states = {};
+
+  function $(id) { return document.getElementById(id); }
+
+  /* ---- drawing --------------------------------------------------------- */
+
+  function redraw() {
+    states = P.sky.at(P.sky.days);
+    var opts = { trail: showTrail };
+    if (view === 'sky') P.render.sky.draw(canvas, P.sky.days, states, opts);
+    else if (view === 'cosmos') P.render.cosmos.draw(canvas, P.sky.days, states, opts);
+    else P.render.model.draw(canvas, P.sky.days, states, opts);
+    fillRail();
+  }
+
+  function step(dt) {
+    P.sky.days += dt;
+    states = P.sky.at(P.sky.days);
+    P.sky.record(P.sky.days, states);
+  }
+
+  function loop() {
+    if (!running) return;
+    var perFrame = parseFloat($('in-speed').value) || 0.25;
+    step(perFrame);
+    redraw();
+    raf = window.requestAnimationFrame(loop);
+  }
+
+  function setRunning(on) {
+    running = on;
+    $('b-run').textContent = on ? 'Pause' : 'Run';
+    $('b-run').setAttribute('aria-pressed', on ? 'true' : 'false');
+    if (on) raf = window.requestAnimationFrame(loop);
+    else if (raf) { window.cancelAnimationFrame(raf); raf = null; }
+  }
+
+  /* ---- the rail -------------------------------------------------------- */
+
+  function fillRail() {
+    var d = P.cal.fromDays(P.sky.days);
+    $('r-date').textContent = P.cal.text(P.sky.days);
+    $('r-date-sub').textContent =
+      P.cal.egyptianText(P.sky.days) + ' · day ' +
+      Math.floor(P.sky.days).toLocaleString() + ' of the era';
+
+    /* the body table */
+    var names = P.params.runnable(), rows = [], i;
+    for (i = 0; i < names.length; i++) {
+      var name = names[i], b = P.params.body[name], st = states[name];
+      if (!st) continue;
+      var sign = P.inSign(st.lon);
+      var retro = P.models.isRetrograde(name, P.sky.days);
+      rows.push(
+        '<tr data-body="' + name + '"' + (name === P.sky.selected ? ' class="on"' : '') + '>' +
+        '<td><span class="dot ' + b.metal + '"></span>' + b.label + '</td>' +
+        '<td>' + P.dm(st.lon) + '</td>' +
+        '<td>' + sign.deg + '° ' + sign.sign + '</td>' +
+        '<td>' + (retro ? '<span class="retro">retro</span>' : '') + '</td></tr>');
+    }
+    $('r-bodies-body').innerHTML = rows.join('');
+
+    /* the anatomy panel, only in the model view */
+    var one = $('p-one');
+    if (view === 'model' && states[P.sky.selected]) {
+      one.hidden = false;
+      var b2 = P.params.body[P.sky.selected], s2 = states[P.sky.selected];
+      $('r-one-epi').textContent = b2.rSex ? b2.rSex + 'ᵖ' : '— none';
+      $('r-one-ecc').textContent = b2.eSex ? b2.eSex + 'ᵖ' : '—';
+      $('r-one-apo').textContent = P.dm(s2.apogee);
+      $('r-one-mlon').textContent = P.dm(s2.meanLon);
+      $('r-one-manom').textContent = b2.r ? P.dm(s2.meanAnom) : '—';
+      $('r-one-eqc').textContent = P.errText(s2.q);
+      $('r-one-eqa').textContent = b2.r ? P.errText(s2.p) : '—';
+      $('r-one-note').textContent = b2.note || '';
+    } else {
+      one.hidden = true;
+    }
+
+    /* the verdict */
+    var v = P.sky.verdict(P.sky.days, frameCorrected), html = [];
+    var worst = 0;
+    for (i = 0; i < v.length; i++) {
+      var a = Math.abs(v[i].error);
+      if (a > worst) worst = a;
+      var cls = a < 1 ? 'good' : a < 5 ? 'warn' : 'bad';
+      html.push('<dt>' + v[i].label + '</dt><dd class="' + cls + '">' +
+                P.errText(v[i].error) + '</dd>');
+    }
+    $('r-errors').innerHTML = html.join('');
+    $('r-verdict-note').innerHTML =
+      'Model minus modern theory. ' +
+      '<label style="cursor:pointer"><input type="checkbox" id="c-frame"' +
+      (frameCorrected ? ' checked' : '') + '> remove his 1.15° equinox offset</label>';
+    var cf = $('c-frame');
+    if (cf) cf.onchange = function () { frameCorrected = cf.checked; redraw(); };
+  }
+
+  /* ---- controls -------------------------------------------------------- */
+
+  function jump(days) {
+    P.sky.setDays(days, false);
+    syncDateInputs();
+    redraw();
+  }
+
+  function nudge(days) {
+    P.sky.setDays(P.sky.days + days, true);
+    syncDateInputs();
+    redraw();
+  }
+
+  function syncDateInputs() {
+    var d = P.cal.fromDays(P.sky.days);
+    $('in-year').value = d.year;
+    $('in-month').value = d.month;
+    $('in-day').value = d.day;
+  }
+
+  /** Say what a control did, on the control, for a moment. */
+  function flash(btn, text) {
+    var was = btn.textContent;
+    btn.textContent = text;
+    window.setTimeout(function () { btn.textContent = was; }, 1100);
+  }
+
+  function setView(v) {
+    view = v;
+    var ids = { model: 'view-model', sky: 'view-sky', cosmos: 'view-cosmos' };
+    for (var k in ids) {
+      if (ids.hasOwnProperty(k)) $(ids[k]).setAttribute('aria-pressed', k === v ? 'true' : 'false');
+    }
+    $('hint').textContent = v === 'sky'
+      ? 'Press Run — the trail falls inward as it ages, so a loop cannot hide'
+      : v === 'cosmos'
+        ? 'Ptolemy’s ordering. Radial scale compressed.'
+        : 'Press Run — watch the epicycle carry it backwards';
+    redraw();
+  }
+
+  /* ---- start ----------------------------------------------------------- */
+
+  function start() {
+    canvas = $('sky');
+
+    $('view-model').onclick = function () { setView('model'); };
+    $('view-sky').onclick = function () { setView('sky'); };
+    $('view-cosmos').onclick = function () { setView('cosmos'); };
+
+    $('b-run').onclick = function () { setRunning(!running); };
+    $('b-day-back').onclick = function () { nudge(-1); };
+    $('b-day-fwd').onclick = function () { nudge(1); };
+    $('b-month-back').onclick = function () { nudge(-30); };
+    $('b-month-fwd').onclick = function () { nudge(30); };
+    $('b-year-back').onclick = function () { nudge(-365.25); };
+    $('b-year-fwd').onclick = function () { nudge(365.25); };
+
+    $('b-set').onclick = function () {
+      var y = parseInt($('in-year').value, 10);
+      var m = parseInt($('in-month').value, 10);
+      var d = parseInt($('in-day').value, 10);
+      if (isNaN(y) || isNaN(m) || isNaN(d)) return;
+      jump(P.cal.toDays(y, m, d));
+    };
+    $('b-today').onclick = function () { jump(P.cal.today()); flash($('b-today'), 'Set to today'); };
+
+    $('b-trace').onclick = function () {
+      showTrail = !showTrail;
+      $('b-trace').setAttribute('aria-pressed', showTrail ? 'true' : 'false');
+      redraw();
+    };
+
+    /* "Next retrograde" is the control that converts "wait fifty
+       seconds hoping" into "show me". It seeks to a week before the
+       station and starts running, so the reader sees the approach, the
+       turn and the loop rather than arriving in the middle of it. */
+    $('b-retro').onclick = function () {
+      var t = P.sky.nextRetrograde(P.sky.selected, P.sky.days + 5, 1200);
+      if (t === null) { flash($('b-retro'), 'none within 3 years'); return; }
+      jump(t - 7);
+      setView('sky');
+      if (!running) setRunning(true);
+      flash($('b-retro'), 'Watch — ' + P.params.body[P.sky.selected].label + ' turns');
+    };
+
+    /* click a row to take that planet apart */
+    $('r-bodies-body').onclick = function (ev) {
+      var el = ev.target;
+      while (el && el.tagName !== 'TR') el = el.parentNode;
+      if (!el || !el.getAttribute) return;
+      var name = el.getAttribute('data-body');
+      if (!name) return;
+      P.sky.selected = name;
+      if (view === 'sky') redraw(); else setView('model');
+    };
+
+    window.addEventListener('resize', redraw);
+    if (window.matchMedia) {
+      var mq = window.matchMedia('(prefers-color-scheme: dark)');
+      if (mq.addEventListener) mq.addEventListener('change', function () {
+        P.render.forgetPalette(); redraw();
+      });
+    }
+
+    $('r-note').innerHTML = P.notes.model;
+    $('r-anc').innerHTML = P.notes.ancient;
+
+    jump(P.cal.today());
+    setView('model');
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', start);
+  } else {
+    start();
+  }
+
+})();
+
+</script>
+
+</body> <!-- WRAP -->
+</html> <!-- WRAP -->

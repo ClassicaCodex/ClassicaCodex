@@ -326,6 +326,17 @@ public partial class MainForm : ScaledForm
             antikytheraForm.ShowDialog(this);
         };
 
+        // Its companion: the machine that computed the heavens, and the
+        // theory that explained them. Same shape - a card first, which
+        // says what the model is and what is wrong with it, and carries
+        // the button that opens the page.
+        var almagestButton = new IconButton();
+        almagestButton.Click += (_, _) =>
+        {
+            using var almagestForm = new AlmagestForm();
+            almagestForm.ShowDialog(this);
+        };
+
         // A small strip above the tree rather than a separate row in the
         // already-crowded top toolbar - clicking it hides the tree entirely,
         // widening the reader area to reclaim that space (handled in
@@ -714,6 +725,7 @@ public partial class MainForm : ScaledForm
         Controls.Add(placesMapButton);
         Controls.Add(morphologyButton);
         Controls.Add(antikytheraButton);
+        Controls.Add(almagestButton);
         Controls.Add(aboutButton);
         Controls.Add(setupWizardButton);
         Controls.Add(_themeButton);
@@ -758,7 +770,8 @@ public partial class MainForm : ScaledForm
             (collateButton, "Collate Editions", "Collate"),
             (placesMapButton, "Places Map", "PlaceMap"),
             (morphologyButton, "Morphology", "Morphology"),
-            (antikytheraButton, "The Antikythera Mechanism", "Antikythera")
+            (antikytheraButton, "The Antikythera Mechanism", "Antikythera"),
+            (almagestButton, "Ptolemy's Cosmos", "Almagest")
         };
 
         // The icon nearly fills the button - these are illustrations, and
