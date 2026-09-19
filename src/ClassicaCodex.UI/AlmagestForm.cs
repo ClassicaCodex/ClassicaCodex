@@ -57,14 +57,46 @@ public class AlmagestForm : ScaledForm
         MinimumSize = new Size(520, 400);
         FormBorderStyle = FormBorderStyle.Sizable;
 
+        // NO VERTICAL PADDING ON THE SCROLLER, and that is not a style choice.
+        //
+        // A ScrollableControl measures its scroll extent from the top of its
+        // padding box: the extent is the union of the children's bounds plus
+        // each child's bottom margin, MINUS DisplayRectangle.Y - which is
+        // Padding.Top. So top padding is reserved by layout, pushing the
+        // content down, and then subtracted from the range you can scroll
+        // through. The content ends up exactly Padding.Top pixels longer than
+        // the scrollbar can reach, and the deficit comes off the BOTTOM: first
+        // out of the last child's bottom margin, then out of its glyphs.
+        //
+        // Measured, with the formula holding exactly in every configuration
+        // tried:  clipped pixels = Padding.Top - lastChild.Margin.Bottom.
+        // At Padding(16,14,16,14) with a 10px bottom margin that is 4px - the
+        // descender band of a 16px font, which reads exactly as "the last line
+        // is cut off". It gets worse with scaling, not better: 4px at 100%,
+        // 6px at 125% and 150%.
+        //
+        // Padding.Bottom does not help, because it never enters the extent at
+        // all: 40px of it bought zero reachable pixels. AutoScrollMargin does
+        // not help either - it left VerticalScroll.Maximum identical and only
+        // moved the initial scroll position, which makes the focus bug below
+        // slightly worse.
+        //
+        // So the vertical gaps travel with the content instead, as spacers.
+        // Measured trailing space after the change: +24px at 100%, +30px at
+        // 125%, +36px at 150%, holding through a resize round-trip.
+        const int gutter = 16;
+        const int gap = 14;
+
         var flow = new FlowLayoutPanel
         {
             Dock = DockStyle.Fill,
             FlowDirection = FlowDirection.TopDown,
             WrapContents = false,
             AutoScroll = true,
-            Padding = new Padding(16, 14, 16, 14)
+            Padding = new Padding(gutter, 0, gutter, 0)
         };
+
+        flow.Controls.Add(Spacer(gap));
 
         AddHeading(flow, "Ptolemy's Cosmos", 15F, FontStyle.Bold);
 
@@ -200,6 +232,8 @@ public class AlmagestForm : ScaledForm
             + "provenance tag and a source - lives with its own repository rather than here. "
             + "Where sources disagree, the page follows Toomer and says so.");
 
+        flow.Controls.Add(Spacer(gap));
+
         Controls.Add(flow);
 
         var footer = new Panel { Dock = DockStyle.Bottom, Height = 52 };
@@ -231,6 +265,44 @@ public class AlmagestForm : ScaledForm
         AcceptButton = openButton;
         CancelButton = closeButton;
 
+        // THE CARD MUST OPEN AT ITS TOP, and getting that takes one line in
+        // the right place rather than the obvious ones.
+        //
+        // When the form activates - between Load and Shown, before the first
+        // paint - WinForms gives focus to the first SELECTABLE control in tab
+        // order, and ScrollableControl then scrolls that control into view. A
+        // Label is not selectable but a LinkLabel is, so the first citation
+        // link, two thirds of the way down, decided where this card opened.
+        // Measured: the scroll position goes from 0 at Load to -316 at
+        // Activated, and the first paint is already there.
+        //
+        // It is not a LinkLabel quirk - a plain Button in the panel does the
+        // same - and AcceptButton has nothing to do with it.
+        //
+        // Setting ActiveControl to a control OUTSIDE the scrolling panel means
+        // the scroll never happens in the first place. Three other fixes were
+        // tried and measured, and each was worse: TabStop=false on the links
+        // does stop it but collapses the tab order so the links cannot be
+        // reached by keyboard at all; focusing a footer button in Shown moves
+        // focus but does not undo the scroll; and ScrollControlIntoView on the
+        // first child scrolls the leading gap away.
+        //
+        // IN Load, NOT IN THE CONSTRUCTOR, and that part is specific to this
+        // application. Assigning ActiveControl forces the handle to be
+        // created, and ScaledForm suspends layout in its own constructor and
+        // resumes it in OnHandleCreated precisely so that every control the
+        // derived constructor adds is in place before the scale is applied to
+        // all of them together. Forcing the handle from here would fire that
+        // resume in the middle of this constructor and scale half a form.
+        // Load runs after the handle exists and before the activation that
+        // assigns focus, which is exactly the window this needs.
+        Load += (_, _) => ActiveControl = closeButton;
+
+        // Belt and braces, and cheap: if anything ever puts focus inside the
+        // panel before the first paint again, this still opens at the top.
+        // Measured to land before paint, so it does not flicker.
+        Shown += (_, _) => flow.AutoScrollPosition = new Point(0, 0);
+
         // The generic theme walk cannot tell which labels are meant to be
         // quieter than the rest, so those are set here and re-set whenever
         // the theme changes.
@@ -241,6 +313,22 @@ public class AlmagestForm : ScaledForm
 
         WindowShortcuts.CloseOnEscape(this);
     }
+
+    /// <summary>
+    /// A vertical gap that is part of the content rather than part of the
+    /// container, so that it lands inside the scrollable extent.
+    ///
+    /// A Panel and not a Label: Panel is not selectable, so a spacer can never
+    /// become the focused control and drag the view to itself - which is the
+    /// other bug this file had.
+    /// </summary>
+    private static Panel Spacer(int height) => new()
+    {
+        Width = 1,
+        Height = 0,
+        TabStop = false,
+        Margin = new Padding(0, 0, 0, height)
+    };
 
     /// <summary>
     /// A wrapped paragraph that measures itself.
