@@ -202,4 +202,110 @@ public class AlmagestPageTests
         // present-day error actually comes from.
         Assert.Contains("precession", page, StringComparison.OrdinalIgnoreCase);
     }
+
+    /// <summary>
+    /// Every link on the card has been opened and confirmed to resolve to
+    /// the work it claims to be.
+    ///
+    /// A card whose whole purpose is to say where the numbers came from is
+    /// worse than useless if a citation points at a dead host or the wrong
+    /// paper - it looks like scholarship and is not. So the list below is
+    /// checked by hand and this test fails on any URL in the form that is
+    /// not in it, which forces the check rather than assuming it.
+    /// </summary>
+    [Fact]
+    public void EveryLinkOnTheCardHasBeenChecked()
+    {
+        var verified = new HashSet<string>(StringComparer.Ordinal)
+        {
+            // Checked 2026-09-19, each one fetched and read back.
+            //
+            // Title returned "Almagest Ephemeris Calculator"; confirmed it
+            // computes geocentric positions from the Syntaxis models.
+            "https://webspace.science.uu.nl/~gent0113/astro/almagestephemeris_main.htm",
+
+            // Title "Almagest Planetary Model Animations", on dduke's FSU space.
+            "https://people.sc.fsu.edu/~dduke/models.htm",
+
+            // This one is a 1.3 MB PDF whose text streams are compressed, so
+            // the title PAGE could not be read back the way the others were.
+            // Verified two other ways instead, and the weaker check is
+            // recorded here rather than glossed: the host is Richard
+            // Fitzpatrick's own UT Austin site (confirmed from its index,
+            // rfitzp@farside.ph.utexas.edu), and the PDF's own bookmark
+            // titles include "Ptolemy's Model of the Solar System",
+            // "Copernicus's Model of the Solar System" and "Euclid's
+            // Elements and Ptolemy's Almagest".
+            "https://farside.ph.utexas.edu/Books/Syntaxis/Almagest.pdf",
+
+            // Title "Almagest Book XI: Calculating Planetary Longitude".
+            // This one also confirmed the CLAIM the card makes about it: the
+            // post follows Toomer's Appendix A Example 14 and reaches
+            // Sagittarius 1;35, against Ptolemy's observed 1;36.
+            "https://jonvoisey.net/blog/2024/09/almagest-book-xi-calculating-planetary-longitude/",
+
+            // Title "Approximate Positions of the Planets"; Table 2a present
+            // and stated as the 3000 BC - 3000 AD fit, with Table 2b's extra
+            // terms for Jupiter through Neptune.
+            "https://ssd.jpl.nasa.gov/planets/approx_pos.html",
+
+            // Title "Polynomial Expressions for Delta T", after the Five
+            // Millennium Canon of Espenak and Meeus.
+            "https://eclipse.gsfc.nasa.gov/SEcat5/deltatpoly.html",
+
+            // Cicero, De re publica I, in Latin. Also confirmed the exact
+            // clause the page quotes at 1.22: "in dissimillimis motibus
+            // inaequabiles et varios cursus servaret una conversio".
+            "https://thelatinlibrary.com/cicero/repub1.shtml"
+        };
+
+        var source = File.ReadAllText(Path.Combine(UiSourceDirectory(), "AlmagestForm.cs"));
+
+        var urls = Regex.Matches(source, @"""(https?://[^""\s]+)""")
+            .Select(m => m.Groups[1].Value)
+            .Distinct()
+            .ToList();
+
+        Assert.NotEmpty(urls);
+
+        var unverified = urls.Where(u => !verified.Contains(u)).ToList();
+        Assert.True(unverified.Count == 0,
+            "These links are in the card but not in the checked list. Open each one, "
+            + "confirm it resolves to the work it claims, then add it above: "
+            + string.Join(", ", unverified));
+
+        // And nothing plain-text. A citation link that downgrades is a worse
+        // look on a page about scholarship than a missing one.
+        Assert.DoesNotContain(urls, u => u.StartsWith("http://", StringComparison.OrdinalIgnoreCase));
+    }
+
+    /// <summary>
+    /// The card still names its primary text and its standard commentaries.
+    ///
+    /// Those three have no URL - they are books - so nothing else in this
+    /// suite would notice if an edit quietly dropped them, and a page that
+    /// cites only what happens to be online is making a different and
+    /// weaker claim than this one does.
+    /// </summary>
+    [Fact]
+    public void TheCardStillNamesItsPrintedSources()
+    {
+        var source = File.ReadAllText(Path.Combine(UiSourceDirectory(), "AlmagestForm.cs"));
+
+        Assert.Contains("Toomer", source);          // the translation everything is quoted from
+        Assert.Contains("Neugebauer", source);      // HAMA
+        Assert.Contains("Pedersen", source);        // A Survey of the Almagest
+        Assert.Contains("Heiberg", source);         // the Greek text under Toomer
+    }
+
+    private static string UiSourceDirectory()
+    {
+        var directory = new DirectoryInfo(AppContext.BaseDirectory);
+
+        while (directory != null && !File.Exists(Path.Combine(directory.FullName, "ClassicaCodex.sln")))
+            directory = directory.Parent;
+
+        Assert.True(directory != null, "Could not find ClassicaCodex.sln above " + AppContext.BaseDirectory);
+        return Path.Combine(directory!.FullName, "src", "ClassicaCodex.UI");
+    }
 }

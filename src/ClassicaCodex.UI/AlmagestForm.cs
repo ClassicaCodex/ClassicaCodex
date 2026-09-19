@@ -108,19 +108,97 @@ public class AlmagestForm : ScaledForm
             + "interesting question is not how wrong Ptolemy was but how wrong his geometry was, "
             + "given the observations he had.");
 
-        AddHeading(flow, "Where it comes from", 11F, FontStyle.Bold);
-        AddMuted(flow,
-            "Parameters from the Almagest, Books III and IX to XI, in Toomer's translation, "
-            + "cross-checked against Neugebauer, Pedersen, Duke and van Gent. The comparison "
-            + "with the real sky uses JPL's approximate planetary elements on the long-interval "
-            + "fit, with the Espenak-Meeus delta-T polynomials. The engine reproduces Ptolemy's "
-            + "own worked example for Mars - Toomer's Appendix A, Example 14 - to within one "
-            + "second of arc.");
+        AddHeading(flow, "In this library", 11F, FontStyle.Bold);
+        AddParagraph(flow,
+            "Cicero draws exactly this distinction in De re publica 1.22 - between a solid "
+            + "star-globe of the old kind, from Thales through Eudoxus, and a sphere with the "
+            + "motions of the Sun, the Moon and the five wandering stars in it, which the solid "
+            + "kind could not do. That is the difference between a star-globe and a "
+            + "planetarium, drawn by a Roman in the first century BC. The Somnium Scipionis at "
+            + "6.17 gives the nine spheres. Both passages are on these shelves.");
+
+        // ---- the sources --------------------------------------------------
+        //
+        // Every number in the page came from one of these, and the page is
+        // worth nothing if that cannot be checked. The primary text is first,
+        // then the working sources the parameters were actually read in, then
+        // the modern theory the model is graded against.
+        AddHeading(flow, "Where every number came from", 11F, FontStyle.Bold);
+
+        AddSource(flow,
+            "The text",
+            "Claudius Ptolemy, Mathematike Syntaxis (the Almagest), Alexandria, c. AD 150. "
+            + "Quoted throughout from G. J. Toomer's translation, Ptolemy's Almagest "
+            + "(Duckworth 1984; Princeton 1998), with Heiberg's Greek text underlying it. "
+            + "The parameters used here are from Books III (the Sun), IV-V (the Moon) and "
+            + "IX-XI (the five planets).",
+            null);
+
+        AddSource(flow,
+            "The standard commentaries",
+            "O. Neugebauer, A History of Ancient Mathematical Astronomy (Springer 1975); "
+            + "Olaf Pedersen, A Survey of the Almagest (Odense 1974; rev. Jones, Springer 2011); "
+            + "James Evans, The History and Practice of Ancient Astronomy (OUP 1998).",
+            null);
+
+        AddSource(flow,
+            "The parameter set, cross-checked line by line",
+            "R. H. van Gent, Almagest Ephemeris Calculator (Universiteit Utrecht) - and its "
+            + "JavaScript source, which was read directly rather than summarised. Every "
+            + "eccentricity, epicycle radius, apogee, mean motion and epoch value in this page "
+            + "was confirmed against it.",
+            "https://webspace.science.uu.nl/~gent0113/astro/almagestephemeris_main.htm");
+
+        AddSource(flow,
+            "The equant, and Mercury's crank",
+            "Dennis W. Duke (Florida State University), An Interesting Property of the Equant; "
+            + "Ptolemy's Treatment of the Outer Planets; Almagest Planetary Model Animations. "
+            + "The closed form used here for the equation of centre was derived independently "
+            + "and then checked against Duke's animation source and against Fitzpatrick.",
+            "https://people.sc.fsu.edu/~dduke/models.htm");
+
+        AddSource(flow,
+            "An independent derivation",
+            "Richard Fitzpatrick, A Modern Almagest: An Updated Version of Ptolemy's Model of "
+            + "the Solar System (University of Texas at Austin), sections 4.2-4.4.",
+            "https://farside.ph.utexas.edu/Books/Syntaxis/Almagest.pdf");
+
+        AddSource(flow,
+            "The acceptance test",
+            "Toomer's Appendix A, Example 14 - Mars at Nabonassar 886, Epiphi 15/16, 9 pm - "
+            + "worked through against the printed tables by Jon Voisey, Following Kepler. "
+            + "Ptolemy's tables give the true longitude as 241;35 degrees and his own "
+            + "observation as 241;36. This engine returns 241;34,31, agreeing with his tables "
+            + "to 0.8 seconds of arc at every intermediate step.",
+            "https://jonvoisey.net/blog/2024/09/almagest-book-xi-calculating-planetary-longitude/");
+
+        AddSource(flow,
+            "The real sky, for grading",
+            "Jet Propulsion Laboratory, Approximate Positions of the Planets - Table 2a, the "
+            + "fit for 3000 BC to 3000 AD, with the Table 2b terms for Jupiter and Saturn. "
+            + "Stated accuracy over that span is 20 arcseconds for Mercury and about 600 for "
+            + "Saturn, against Ptolemaic errors measured in degrees - so the ruler is two "
+            + "orders of magnitude finer than the thing being measured.",
+            "https://ssd.jpl.nasa.gov/planets/approx_pos.html");
+
+        AddSource(flow,
+            "Delta T",
+            "Fred Espenak and Jean Meeus, Polynomial Expressions for Delta T, after Morrison & "
+            + "Stephenson (2004), published by NASA. Terrestrial time ran about 2 hours 34 "
+            + "minutes ahead of universal time at AD 137; ignoring that would displace the Moon "
+            + "by more than Ptolemy's own lunar error and make his good longitudes look bad.",
+            "https://eclipse.gsfc.nasa.gov/SEcat5/deltatpoly.html");
+
+        AddSource(flow,
+            "Cicero",
+            "De re publica 1.21-22 and 6.17, from the Latin Library text. Section numbering of "
+            + "the Somnium Scipionis varies between editions; some cite 6.17 as 6.16.",
+            "https://thelatinlibrary.com/cicero/repub1.shtml");
 
         AddMuted(flow,
-            "Cicero describes exactly this distinction in De re publica 1.22: between a solid "
-            + "star-globe of the old kind and a sphere with the motions of the Sun, the Moon and "
-            + "the five wandering stars in it. Both passages are in this library.");
+            "The full research behind the page - eight documents, every figure carrying a "
+            + "provenance tag and a source - lives with its own repository rather than here. "
+            + "Where sources disagree, the page follows Toomer and says so.");
 
         Controls.Add(flow);
 
@@ -210,6 +288,60 @@ public class AlmagestForm : ScaledForm
     {
         var label = AddWrapped(parent, text, Control.DefaultFont);
         _mutedLabels.Add(label);
+    }
+
+    /// <summary>
+    /// One citation: a bold heading, the reference itself in the quieter
+    /// colour, and where it can be reached if it is online.
+    ///
+    /// The URL is its own clickable line rather than being buried in the
+    /// prose, because a reader who wants to check a number wants to find
+    /// the link without reading the sentence - and because a LinkLabel
+    /// inside a wrapped paragraph would have to be positioned by hand,
+    /// which is the arithmetic this form exists to avoid.
+    /// </summary>
+    private void AddSource(FlowLayoutPanel parent, string title, string citation, string? url)
+    {
+        var heading = AddWrapped(parent, title, new Font(Control.DefaultFont, FontStyle.Bold));
+        heading.Margin = new Padding(0, 6, 0, 2);
+
+        var body = AddWrapped(parent, citation, Control.DefaultFont);
+        body.Margin = new Padding(0, 0, 0, url == null ? 8 : 2);
+        _mutedLabels.Add(body);
+
+        if (url == null) return;
+
+        var link = new LinkLabel
+        {
+            Text = url,
+            UseMnemonic = false,
+            AutoSize = true,
+            Margin = new Padding(0, 0, 0, 10),
+            MaximumSize = new Size(Math.Max(120, parent.ClientSize.Width - parent.Padding.Horizontal - 24), 0)
+        };
+        link.LinkClicked += (_, _) => OpenUrl(url);
+        parent.Controls.Add(link);
+        parent.ClientSizeChanged += (_, _) =>
+        {
+            link.MaximumSize = new Size(
+                Math.Max(120, parent.ClientSize.Width - parent.Padding.Horizontal - 24), 0);
+        };
+    }
+
+    private void OpenUrl(string url)
+    {
+        try
+        {
+            Process.Start(new ProcessStartInfo(url) { UseShellExecute = true });
+        }
+        catch (Exception ex)
+        {
+            CrashReporter.LogHandled(ex, "opening a source link from Ptolemy's cosmos");
+            MessageBox.Show(this,
+                "Couldn't open that link: " + ex.Message,
+                "Ptolemy's Cosmos",
+                MessageBoxButtons.OK, MessageBoxIcon.Error);
+        }
     }
 
     /// <summary>
