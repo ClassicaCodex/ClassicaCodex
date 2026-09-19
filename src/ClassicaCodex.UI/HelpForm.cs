@@ -600,6 +600,31 @@ It works offline
 
 """),
 
+        ("Ptolemy's Cosmos", """
+The button beside the bronze dial. It opens a card describing Ptolemy's model of the heavens - the one set out in the Almagest at Alexandria around AD 150 - and a button on that card opens a working planetarium of it in your browser.
+
+The two belong together. One is the machine that computed the heavens and the other is the theory that explained them, and Cicero draws exactly that distinction in De Re Publica: between a solid star-globe of the old kind and a sphere with the motions of the Sun, the Moon and the five wandering stars in it. Both passages are on these shelves.
+
+What you get
+   The Earth at the centre, and each planet riding a small circle whose centre rides a large one. Three views: one planet at a time with the whole machine showing - deferent, epicycle, equant, apse line; the zodiac with trails, where a planet stops, turns back on itself for weeks and then goes on; and the ordering of the spheres. Press Run, or press Next retrograde to jump to the moment a planet turns.
+
+The numbers are Ptolemy's
+   Every epicycle radius, eccentricity, apogee and mean motion comes from his own tables, to the six sexagesimal places he wrote them in, and the page prints each one in his notation beside the decimal it became. Nothing is exaggerated to make the loops bigger: the retrograde you see is the one his parameters produce. The engine reproduces his own worked example for Mars, from Toomer's Appendix A, to within one second of arc.
+
+How wrong it is, and why
+   In Ptolemy's own lifetime the model places the planets within a degree or two. Today it is out by seven to twelve degrees, and most of that is not his geometry - he has precession at one degree a century where the truth is nearer 1.38, so after nineteen centuries his whole frame has slipped. A further 1.15 degrees is there before any model error at all, because his equinox observations ran about 28 hours late; and since every planet in the system is tied to the Sun, that one observational error reaches all of them. The page will subtract it for you.
+
+The equant
+   The device that makes the model work and the one every critic attacked. The epicycle's centre rides the deferent but moves uniformly only as seen from a third point, the equant, which is not the centre of the circle. From the Maragha astronomers to Copernicus, that was the scandal for a thousand years.
+
+Where it comes from
+   The card names every source: Toomer's translation over Heiberg's Greek, the standard commentaries, and the working references the parameters were read in and the modern theory they are graded against. Each online source carries a link.
+
+It works offline
+   Like the mechanism, the page carries everything it needs and asks the network for nothing.
+
+"""),
+
         ("When something looks wrong", """
 A few things the app reports about itself, and what they actually mean.
 
