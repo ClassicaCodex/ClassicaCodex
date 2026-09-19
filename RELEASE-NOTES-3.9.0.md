@@ -147,19 +147,32 @@ anything else, and the last column in each grid already stretches to fill. I am
 not going to promise it again in a release note; it will be in one when it is
 done.
 
-**The two windows whose shape changed here are checked at 100% and nowhere
-else.** The Antikythera card is a new window laying out a page of prose from
-hand-placed coordinates, and the Help window's two panes were shortened to make
-room for the report link. Both were opened by the display-scaling audit, which
-now opens 28 windows and reports one caption short of room — the same one it
-reported before this release, in a window nothing here touches. But that audit
-only runs at whatever scaling the machine it runs on is set to, and this one ran
-at 100%. Above that, both windows rest on arithmetic rather than on anything
-anybody has looked at, and the card measures its paragraph heights against a
-font size it reads before Windows has scaled the window, which is the mistake
-that cost it a paragraph's last line at 125% once already. If a line looks cut
-off on your display, that is worth telling me about — there is now a link for
-it.
+**The Antikythera card is loosely spaced above 100% display scaling.** It
+measures each paragraph's height using a font Windows has already enlarged, but
+against a line width it has not, and then Windows scales the result a second
+time. The box a paragraph sits in therefore grows as roughly the square of the
+display scaling while the text inside it grows in proportion: about 1.6 times
+taller than the text needs at 125%, and about 2.5 times at 150%. The card ends
+up loosely spaced and two or so screens longer than it should be.
+
+Nothing is clipped, and that is not a hope — it cannot be, at any scaling. The
+measurement wraps at a narrower width than the label is ever drawn at, so the
+renderer can never need a line the measurement did not already allow for. The
+whole card was rebuilt with bare controls at 100%, 125% and 150%: no label's
+text exceeded its box at any of them, and the last paragraph was reachable at
+all three. The cost is wasted space and extra scrolling, not lost words.
+
+This is inherited rather than new. The About window has used the same idiom in
+three places for many releases, and the card was modelled on it. Fixing it
+properly means letting the layout do the flow instead of computing it up front,
+which is a change to both windows and not one to make in a hurry.
+
+**Neither of the two windows that changed shape here has been looked at above
+100%.** The display-scaling audit now opens 28 windows and reports one caption
+short of room — the same one it reported before this release, in a window
+nothing here touches — but it only tests the scaling of the machine it runs on,
+and that run was at 100%. If something looks wrong on your display, that is
+worth telling me about; there is now a link for it.
 
 **The mechanism's page leaves a copy of itself behind.** It is written to
 `%TEMP%\ClassicaCodex\Antikythera.html` each time you open it — about 220 KB,
