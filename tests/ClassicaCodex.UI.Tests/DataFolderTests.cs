@@ -214,4 +214,78 @@ public class DataFolderTests : IDisposable
     {
         Assert.True(DataFolderSettings.ComfortableFreeGigabytes > DataFolderSettings.FullSetGigabytes);
     }
+
+    /// <summary>
+    /// A folder inside OneDrive is recognised as one, whatever it is called
+    /// underneath.
+    ///
+    /// This matters because of where the default came from. MyDocuments is a
+    /// known folder, and on a Windows 11 install signed into a Microsoft
+    /// account, OneDrive folder backup is on by default and redirects it - so
+    /// the default download folder is inside OneDrive and the corpus steps put
+    /// nine gigabytes of small files where they will be uploaded to an account
+    /// whose free tier is five. The free-space check cannot see it: it asks
+    /// DriveInfo about the local disk and answers "250 GB free" quite
+    /// correctly.
+    ///
+    /// Nobody developing this would ever see it. The machines it was written
+    /// on have a plain C:\Users\name\Documents, where every one of these
+    /// assertions and the shipped behaviour are identical to what they were.
+    /// </summary>
+    [Theory]
+    [InlineData(@"C:\Users\someone\OneDrive\Documents\ClassicaCodexData")]
+    [InlineData(@"C:\Users\someone\OneDrive - Contoso\Documents\ClassicaCodexData")]
+    [InlineData(@"C:\Users\someone\onedrive\documents\ClassicaCodexData")]
+    public void AFolderInsideOneDriveIsRecognised(string path)
+    {
+        Assert.Equal("OneDrive", DataFolderSettings.CloudSyncedBy(path));
+    }
+
+    [Theory]
+    [InlineData(@"C:\Users\someone\Dropbox\ClassicaCodexData", "Dropbox")]
+    [InlineData(@"C:\Users\someone\Google Drive\ClassicaCodexData", "Google Drive")]
+    [InlineData(@"C:\Users\someone\iCloudDrive\ClassicaCodexData", "iCloud Drive")]
+    public void TheOtherSyncedFoldersAreRecognisedToo(string path, string expected)
+    {
+        Assert.Equal(expected, DataFolderSettings.CloudSyncedBy(path));
+    }
+
+    /// <summary>
+    /// And an ordinary folder is left alone. The last case is the one a
+    /// prefix comparison gets wrong: a sibling whose name merely starts the
+    /// same way is not inside anything.
+    /// </summary>
+    [Theory]
+    [InlineData(@"C:\Users\someone\Documents\ClassicaCodexData")]
+    [InlineData(@"D:\ClassicaCodexData")]
+    [InlineData(@"C:\Users\someone\OneDriveBackup\ClassicaCodexData")]
+    [InlineData("")]
+    [InlineData(null)]
+    public void AnOrdinaryFolderIsNotReportedAsSynced(string? path)
+    {
+        Assert.Null(DataFolderSettings.CloudSyncedBy(path));
+    }
+
+    /// <summary>
+    /// The suggestion only ever differs from the default when the default is
+    /// both synced and empty, and on a machine whose Documents is not
+    /// redirected - every machine this is developed on, and most machines
+    /// generally - the two are the same string. Asserted rather than assumed,
+    /// because the whole point of SuggestedRoot is that it changes nothing for
+    /// an install that already has data where it always was.
+    /// </summary>
+    [Fact]
+    public void TheSuggestionMatchesTheDefaultWhereDocumentsIsNotSynced()
+    {
+        if (DataFolderSettings.CloudSyncedBy(DataFolderSettings.DefaultRoot) != null)
+        {
+            // This machine's Documents IS redirected, so the interesting
+            // assertion is the other one: the suggestion must lead somewhere
+            // that is not synced.
+            Assert.Null(DataFolderSettings.CloudSyncedBy(DataFolderSettings.SuggestedRoot));
+            return;
+        }
+
+        Assert.Equal(DataFolderSettings.DefaultRoot, DataFolderSettings.SuggestedRoot);
+    }
 }

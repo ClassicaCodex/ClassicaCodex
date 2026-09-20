@@ -768,7 +768,8 @@ public class StylometryForm : ScaledForm
             $"Run and save all {targets.Count} works by {seed.AuthorName} at {settings.Describe()}?" +
             Environment.NewLine + $"Pool: {poolSummary}." +
             Environment.NewLine + Environment.NewLine +
-            "Any existing saved runs for this language and settings profile will be replaced." +
+            $"Any saved runs for {seed.AuthorName} at this profile will be replaced. Runs for " +
+            "other authors are left alone." +
             Environment.NewLine + Environment.NewLine +
             "This re-reads the corpus once per work, so expect it to take a while.",
             "Run batch", MessageBoxButtons.OKCancel, MessageBoxIcon.Question);
@@ -781,7 +782,8 @@ public class StylometryForm : ScaledForm
 
         try
         {
-            await _runRepo.DeleteRunsForSettingsAsync(seed.Language, settings);
+            await _runRepo.DeleteRunsForAuthorAndSettingsAsync(
+                seed.Language, seed.AuthorName, settings);
 
             for (var i = 0; i < targets.Count; i++)
             {

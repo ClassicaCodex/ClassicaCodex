@@ -146,8 +146,21 @@ public static class DisputedWorkData
             "On Hunting - the proem especially is doubted.", new[] { "On Hunting" }),
 
         // ---- Seneca.
+        // The reason given here until 3.10.1 was "Dramatises Seneca's own
+        // death, which settles it." It does not. Seneca is a character in the
+        // play and is alive in it, arguing with Nero about clemency in the
+        // second act, and the action ends with Octavia being taken to
+        // Pandateria in 62. What cannot be his is the prophecy: Agrippina's
+        // ghost foretells Nero's death, and its manner, in detail - 68, three
+        // years after Seneca was made to open his veins.
+        //
+        // Recorded rather than quietly corrected because of what this table is
+        // for. Every other entry in it is sound, and its whole value is that it
+        // reads as authoritative to someone who knows the texts - which is the
+        // same reader who would have caught this on first contact and had no
+        // reason to trust the other twenty-eight afterwards.
         new("Seneca", "Octavia", AttributionStatus.Spurious,
-            "Dramatises Seneca's own death, which settles it."),
+            "Agrippina's ghost foretells Nero's death, three years after Seneca's own."),
         new("Seneca", "Hercules Oetaeus", AttributionStatus.Disputed,
             "Twice the length of the other tragedies and metrically unlike them."),
 
