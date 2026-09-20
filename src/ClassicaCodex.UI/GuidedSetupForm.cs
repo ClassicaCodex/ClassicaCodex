@@ -72,18 +72,22 @@ public class GuidedSetupForm : ScaledForm
     private bool _stepRunning;
 
     /// <summary>
-    /// Set once the window is definitely going, so that a step unwinding after
-    /// it has closed does not try to put the window back the way it was.
+    /// Set when someone closes the window with a step running and confirms that
+    /// they want it stopped. The window then stays up until the step has
+    /// actually stopped, and closes itself.
     ///
-    /// Both runners restore the progress bar, the buttons and the whole step
-    /// panel in a finally block, and that block runs on the UI thread whenever
-    /// the step finishes - which, now that closing the window cancels the step,
-    /// is a moment later rather than an hour. Repainting a closed window is at
-    /// best wasted and at worst an ObjectDisposedException out of a control
-    /// that needs its handle back, raised from a continuation with no user
-    /// action behind it.
+    /// <b>Because "did it stop?" had no answer.</b> The first version of this
+    /// cancelled and let the window go immediately, which looks exactly like
+    /// cancelling and letting the window go while the work carries on - the
+    /// behaviour it replaced. The person closing it was told the step would
+    /// stop and given nothing to check that against.
+    ///
+    /// Waiting makes the window's own disappearance the signal, and it removes
+    /// the other problem in one move: the runners restore the whole step panel
+    /// in a finally block, and that block can no longer run against a window
+    /// that has been disposed.
     /// </summary>
-    private bool _closing;
+    private bool _closeWhenStopped;
 
     private System.Windows.Forms.Timer? _heartbeat;
     private DateTime _operationStart;
@@ -1185,7 +1189,7 @@ public class GuidedSetupForm : ScaledForm
         }
         catch (OperationCanceledException)
         {
-            _statusLabel.Text = "Cancelled.";
+            _statusLabel.Text = "Stopped.";
         }
         catch (Exception ex)
         {
@@ -1198,10 +1202,15 @@ public class GuidedSetupForm : ScaledForm
         {
             StopHeartbeat();
 
-            // Everything below puts the step panel back the way it was, which
-            // is worth nothing once the window has gone and can throw on the
-            // way - see _closing.
-            if (!_closing)
+            if (_closeWhenStopped)
+            {
+                // The step has stopped, which is the thing the window was being
+                // held open to establish. Repainting it now would only be a
+                // flicker before it goes. See _closeWhenStopped.
+                _stepRunning = false;
+                Close();
+            }
+            else
             {
                 _progressBar.Style = ProgressBarStyle.Blocks;
                 SetNavEnabled(true);
@@ -1255,7 +1264,7 @@ public class GuidedSetupForm : ScaledForm
         }
         catch (OperationCanceledException)
         {
-            _statusLabel.Text = "Cancelled.";
+            _statusLabel.Text = "Stopped.";
         }
         catch (Exception ex)
         {
@@ -1268,13 +1277,24 @@ public class GuidedSetupForm : ScaledForm
         {
             StopHeartbeat();
 
-            // See _closing, and the same block in RunSourceActionAsync.
-            if (!_closing)
+            if (_closeWhenStopped)
+            {
+                _stepRunning = false;
+                Close();
+            }
+            else
             {
                 _progressBar.Style = ProgressBarStyle.Blocks;
                 SetNavEnabled(true);
                 await RefreshAllCompletionAsync();
+
+                // Preserved across RenderStep for the same reason the source
+                // runner preserves it: RenderStep rewrites the status from the
+                // step's completion state, which threw away the one word the
+                // person who pressed Cancel was waiting to read.
+                var finalStatus = _statusLabel.Text;
                 RenderStep();
+                _statusLabel.Text = finalStatus;
             }
         }
     }
@@ -1352,26 +1372,42 @@ public class GuidedSetupForm : ScaledForm
     /// </summary>
     protected override void OnFormClosing(FormClosingEventArgs e)
     {
-        if (_stepRunning)
+        // Only for someone clicking the X. Windows shutting down or Task
+        // Manager ending the process is not a close that can be held up to wait
+        // for a download to unwind politely.
+        if (_stepRunning && e.CloseReason == CloseReason.UserClosing)
         {
-            var stop = MessageBox.Show(
-                this,
-                "A setup step is still running. Closing this window stops it."
-                + Environment.NewLine + Environment.NewLine
-                + "Whatever it has already installed is kept, and you can run the step again "
-                + "later from Setup Wizard - it picks up from what is already there.",
-                "Stop and close?", MessageBoxButtons.YesNo, MessageBoxIcon.Question,
-                MessageBoxDefaultButton.Button2);
-
-            if (stop != DialogResult.Yes)
+            if (!_closeWhenStopped)
             {
-                e.Cancel = true;
-                base.OnFormClosing(e);
-                return;
+                var stop = MessageBox.Show(
+                    this,
+                    "A setup step is still running. Closing this window stops it."
+                    + Environment.NewLine + Environment.NewLine
+                    + "Whatever it has already installed is kept, and you can run the step again "
+                    + "later from Setup Wizard."
+                    + Environment.NewLine + Environment.NewLine
+                    + "The window stays up until the step has actually stopped, which can take a "
+                    + "few seconds, and then closes itself.",
+                    "Stop and close?", MessageBoxButtons.YesNo, MessageBoxIcon.Question,
+                    MessageBoxDefaultButton.Button2);
+
+                if (stop != DialogResult.Yes)
+                {
+                    e.Cancel = true;
+                    base.OnFormClosing(e);
+                    return;
+                }
+
+                _closeWhenStopped = true;
+                CancelStep();
             }
 
-            _closing = true;
-            CancelStep();
+            // Held open either way - this is the first X, having just asked, or
+            // an impatient second one. The runner's finally calls Close when the
+            // step has genuinely stopped. See _closeWhenStopped.
+            e.Cancel = true;
+            base.OnFormClosing(e);
+            return;
         }
 
         base.OnFormClosing(e);

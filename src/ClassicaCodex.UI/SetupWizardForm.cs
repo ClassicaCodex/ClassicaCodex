@@ -56,12 +56,12 @@ public class SetupWizardForm : ScaledForm
     private WizardRow? _runningRow;
 
     /// <summary>
-    /// Set once this window is definitely going, so a run unwinding after it
-    /// closes does not try to repaint it. Now that closing cancels the fetch,
-    /// that unwinding happens a moment later rather than whenever the download
-    /// would have finished on its own.
+    /// Set when someone closes this window with a fetch running and confirms
+    /// that they want it stopped. The window stays up until it has actually
+    /// stopped, and then closes itself - so that its disappearance is the
+    /// answer to "did that stop?", which nothing else here could give.
     /// </summary>
-    private bool _closing;
+    private bool _closeWhenStopped;
 
     // Used only to answer "has this actually been loaded already" for the
     // completion icons below - separate from the ingestion services inside
@@ -616,7 +616,7 @@ public class SetupWizardForm : ScaledForm
         }
         catch (OperationCanceledException)
         {
-            row.StatusLabel.Text = "Cancelled.";
+            row.StatusLabel.Text = "Stopped.";
         }
         catch (Exception ex)
         {
@@ -627,9 +627,13 @@ public class SetupWizardForm : ScaledForm
         {
             _runningRow = null;
 
-            // Not worth doing to a window that has gone, and capable of
-            // throwing on the way - see _closing.
-            if (!_closing)
+            if (_closeWhenStopped)
+            {
+                // The fetch has stopped, which is what the window was being
+                // held open to establish. See _closeWhenStopped.
+                Close();
+            }
+            else
             {
                 SetAllRowsEnabled(true);
                 await RefreshCompletionIconsAsync();
@@ -692,26 +696,38 @@ public class SetupWizardForm : ScaledForm
     /// </summary>
     protected override void OnFormClosing(FormClosingEventArgs e)
     {
-        if (_runningRow != null)
+        // Only a click on the X waits. Windows shutting down does not get held
+        // up while a clone unwinds.
+        if (_runningRow != null && e.CloseReason == CloseReason.UserClosing)
         {
-            var stop = MessageBox.Show(
-                this,
-                $"{_runningRow.Title} is still running. Closing this window stops it."
-                + Environment.NewLine + Environment.NewLine
-                + "Whatever has already been installed is kept, and the step can be run again "
-                + "later - it picks up from what is already there.",
-                "Stop and close?", MessageBoxButtons.YesNo, MessageBoxIcon.Question,
-                MessageBoxDefaultButton.Button2);
-
-            if (stop != DialogResult.Yes)
+            if (!_closeWhenStopped)
             {
-                e.Cancel = true;
-                base.OnFormClosing(e);
-                return;
+                var stop = MessageBox.Show(
+                    this,
+                    $"{_runningRow.Title} is still running. Closing this window stops it."
+                    + Environment.NewLine + Environment.NewLine
+                    + "Whatever has already been installed is kept, and the step can be run again later."
+                    + Environment.NewLine + Environment.NewLine
+                    + "The window stays up until it has actually stopped, which can take a few "
+                    + "seconds, and then closes itself.",
+                    "Stop and close?", MessageBoxButtons.YesNo, MessageBoxIcon.Question,
+                    MessageBoxDefaultButton.Button2);
+
+                if (stop != DialogResult.Yes)
+                {
+                    e.Cancel = true;
+                    base.OnFormClosing(e);
+                    return;
+                }
+
+                _closeWhenStopped = true;
+                CancelRun();
             }
 
-            _closing = true;
-            CancelRun();
+            // Held open until the runner's finally calls Close.
+            e.Cancel = true;
+            base.OnFormClosing(e);
+            return;
         }
 
         base.OnFormClosing(e);
