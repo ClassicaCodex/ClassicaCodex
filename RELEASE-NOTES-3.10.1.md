@@ -117,4 +117,4 @@ are printed to the arcminute, so what is true — and still worth saying — is 
 the engine agrees with them to the precision he wrote down. Corrected here and on
 the 3.10.0 page.
 
-1,481 tests, zero warnings.
+1,452 tests, zero warnings.
