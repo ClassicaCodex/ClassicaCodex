@@ -1035,7 +1035,26 @@ public class TextNodeRepository
             // this file gets it right; this one path was only reached when the
             // word index is empty, which is the state of every library between
             // a first ingest and a first index build.
-            clauses.Add($"tn.Text LIKE @f{i} ESCAPE '\\'");
+            // The second half of the OR is for words the printed page broke
+            // across two lines, which are stored as "gra<SHY> tiam" in every
+            // library ingested before the parser started closing them up. The
+            // plain LIKE cannot see those - "gratiam" is not a substring of
+            // "gra<SHY> tiam" - so the row never came back and the whole-word
+            // confirmation below never got the chance to accept it. On Migne
+            // that is 29.7% of lines.
+            //
+            // The two replaces are the SQL of WordNormalizer.JoinSoftHyphenBreaks:
+            // the hyphen with its trailing space first, then any bare hyphen
+            // left over. This is only a prefilter, so it is allowed to be
+            // generous - the normalised pass in C# below decides.
+            //
+            // The plain LIKE comes first and SQLite's OR short-circuits, so
+            // the replaces are only built for rows the ordinary test has
+            // already rejected. This path is a full scan either way; it is the
+            // fallback taken only while a library has no word index.
+            clauses.Add(
+                $"(tn.Text LIKE @f{i} ESCAPE '\\' " +
+                $"OR replace(replace(tn.Text, char(173) || ' ', ''), char(173), '') LIKE @f{i} ESCAPE '\\')");
             cmd.Parameters.AddWithValue($"@f{i}", $"%{EscapeLikeWildcards(sqlForms[i])}%");
         }
 
@@ -1065,7 +1084,16 @@ public class TextNodeRepository
 
             // Confirm a real whole-word hit rather than an accidental
             // substring - LIKE '%λογ%' would otherwise match half the corpus.
-            var isRealMatch = text
+            //
+            // Through JoinSoftHyphenBreaks, because this confirmation can
+            // otherwise throw away hits that are perfectly real. A word broken
+            // at a printed line break is "gra<SHY> tiam" in the text, and
+            // splitting that on whitespace gives "gra" and "tiam" - neither of
+            // which is the word searched for, so a correct match was dropped
+            // here. This is the path taken before the word index has been
+            // built, which is exactly when a reader is least able to tell a
+            // missing result from an absent one.
+            var isRealMatch = WordNormalizer.JoinSoftHyphenBreaks(text)
                 .Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries)
                 .Select(WordNormalizer.Normalize)
                 .Any(w => w.Length > 0 && normalizedTargets.Contains(w));
@@ -1863,7 +1891,10 @@ public class TextNodeRepository
                 // stripped), so a literal Contains against accented Greek
                 // text would never match - and substring matching would
                 // also count "war" inside "warden" as a hit.
-                SharedWordCount: c.Text
+                // Rejoined first, or a word broken at a printed line break is
+                // two fragments here and counts as neither - see
+                // WordNormalizer.JoinSoftHyphenBreaks.
+                SharedWordCount: WordNormalizer.JoinSoftHyphenBreaks(c.Text)
                     .Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries)
                     .Select(WordNormalizer.Normalize)
                     .Where(w => w.Length > 0)

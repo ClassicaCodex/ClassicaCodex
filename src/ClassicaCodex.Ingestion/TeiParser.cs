@@ -1630,9 +1630,53 @@ public class TeiParser
         }
     }
 
+    /// <summary>
+    /// Whitespace down to single spaces - and the printed page's own line
+    /// breaks closed up before that happens.
+    ///
+    /// <b>Why the soft hyphen is dealt with here rather than downstream.</b>
+    /// Several of these corpora were digitised with the line breaks of the
+    /// printed page left in the text, as U+00AD SOFT HYPHEN followed by the
+    /// space that stood at the end of the line. A word set across two printed
+    /// lines therefore arrives as "gra&lt;SHY&gt; tiam" and was stored that way.
+    ///
+    /// Measured against a full library, 86,188 of 2,340,260 passages carry one:
+    ///
+    /// <code>
+    /// patrologia-latina  Original     85,026 of 286,531   29.7%
+    /// perseus-greek      Translation   1,036 of 223,602    0.5%
+    /// csel               Original        120 of  92,147    0.1%
+    /// first1k-greek, perseus-latin           6
+    /// </code>
+    ///
+    /// The soft hyphen has no glyph, so what the reader was shown was not a
+    /// hyphen but a gap: "ließ sich unter den Lakedämoniern also ver nehmen",
+    /// "die Athener und ihre Bundes genossen". That is the half of this that
+    /// needs no index to notice, and it is why the join belongs at ingest
+    /// rather than in the tokenizer alone - the stored text was wrong, and
+    /// every reader of it inherited the fault. Joining here means the search
+    /// index, the concordance, word study, stylometry, the vocabulary profile,
+    /// every export and the reader itself are all correct without one of them
+    /// having to remember.
+    ///
+    /// WordNormalizer.JoinSoftHyphenBreaks stays where it is regardless, for
+    /// libraries ingested before this and for text typed into the translation
+    /// workbench by hand.
+    ///
+    /// <b>Before the collapse, not after.</b> Once the whitespace has been
+    /// reduced the soft hyphen and its space are indistinguishable from a word
+    /// that simply ends there, and the two halves are two words for good.
+    ///
+    /// The 52 passages that END in a soft hyphen, where the printed line broke
+    /// across a passage boundary rather than inside one, are not joined: that
+    /// would mean moving text between citation units. The hyphen is dropped
+    /// and the two halves stay where the edition put them.
+    /// </summary>
     private static string CollapseWhitespace(string input)
     {
-        return string.Join(' ', input.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
+        return string.Join(' ',
+            WordNormalizer.JoinSoftHyphenBreaks(input)
+                .Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
     }
 
     /// <summary>
