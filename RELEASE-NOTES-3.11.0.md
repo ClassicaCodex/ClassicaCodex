@@ -136,5 +136,5 @@ shipped in 3.10.0. It has one now.
 The download is not code-signed, so if you would rather check it than trust it:
 
 ```
-SHA-256  (recorded after publishing)
+SHA-256  14FCDD3DE9E5C7FE7A0E9021D4B9DF405C6EB6909992B57F390342768795DCAF
 ```
