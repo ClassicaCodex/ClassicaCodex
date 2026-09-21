@@ -1,0 +1,1672 @@
+<!doctype html>                                        <!-- WRAP -->
+<html lang="en">                                       <!-- WRAP -->
+<head>                                                 <!-- WRAP -->
+<meta charset="utf-8">                                 <!-- WRAP -->
+<meta name="viewport" content="width=device-width, initial-scale=1">  <!-- WRAP -->
+<title>Ptolemy's Harmony</title>                       <!-- WRAP -->
+<style>
+/* ===== css/style.css ===== */
+/* =====================================================================
+   HARMONICS — the page
+   ---------------------------------------------------------------------
+   System faces only. This page ships inside ClassicaCodex, which
+   redistributes no fonts and fails its release build if font data turns
+   up in the payload, so there is no downloaded face and no CDN here.
+
+   (The build guard greps the output for the at-rule that would embed
+   one, and it greps the whole file, comments included - which is why
+   this note spells the rule's name out in words. A guard that can be
+   tripped by prose is the right way round: strict, and cheap to work
+   with.)
+
+   Palatino Linotype and Cambria both ship with Windows and both carry
+   polytonic Greek, so the serif stack asks for those and never for a
+   download. The ancient musical notation signs are NOT in any system
+   font and are not attempted in text.
+   ===================================================================== */
+
+:root {
+  color-scheme: dark;
+
+  --bg:        #0B0E16;
+  --panel:     #121725;
+  --panel-2:   #0E1320;
+  --rule:      #1C2231;
+  --text:      #E8E3D6;
+  --muted:     #7C8698;
+  --gold:      #C9A63C;
+  --gold-dim:  #6B5A24;
+  --blue:      #6F91D0;
+  --green:     #5FBE86;
+  --red:       #E0705F;
+  --string:    #C6CBD6;
+
+  --serif: "Palatino Linotype", Palatino, Cambria, Georgia, serif;
+  --sans: "Segoe UI", system-ui, -apple-system, sans-serif;
+  --mono: Consolas, "Courier New", monospace;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background: var(--bg);
+  color: var(--text);
+  font: 15px/1.65 var(--sans);
+}
+
+.wrap {
+  max-width: 980px;
+  margin: 0 auto;
+  padding: 26px 16px 70px;   /* 16px side gutter: this opens in side panels */
+}
+
+h1 {
+  font: 600 27px/1.2 var(--serif);
+  margin: 0 0 2px;
+  letter-spacing: .01em;
+}
+
+.sub {
+  color: var(--muted);
+  font: 400 14px/1.5 var(--sans);
+  margin: 0 0 22px;
+}
+
+h2 {
+  font: 600 12px/1 var(--sans);
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--blue);
+  margin: 34px 0 10px;
+  padding-bottom: 7px;
+  border-bottom: 1px solid var(--rule);
+}
+
+p { margin: 0 0 12px; max-width: 68em; }
+p.lead { color: var(--muted); }
+
+.gk { font-family: var(--serif); font-size: 1.06em; }
+.num { font-family: var(--mono); }
+
+a { color: var(--blue); }
+
+/* ---- the sound gate ---------------------------------------------- */
+/* A page in a library application must not make a noise before it is
+   asked to. Browsers require a gesture before audio anyway; this makes
+   that requirement visible instead of letting the first click fail. */
+
+#gate {
+  background: var(--panel);
+  border: 1px solid var(--gold-dim);
+  border-radius: 6px;
+  padding: 16px 18px;
+  margin: 0 0 22px;
+}
+#gate p { margin: 0 0 12px; color: var(--muted); }
+#gate strong { color: var(--text); }
+#gate.on { display: none; }
+
+/* ---- buttons ------------------------------------------------------ */
+
+button {
+  font: 500 14px/1 var(--sans);
+  color: var(--text);
+  background: #1A2133;
+  border: 1px solid #2A3348;
+  border-radius: 5px;
+  padding: 9px 14px;
+  cursor: pointer;
+}
+button:hover { background: #222C43; border-color: #3A4763; }
+button:active { background: #2A3550; }
+button:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+button[disabled] { opacity: .45; cursor: default; }
+
+button.primary { background: #2A2410; border-color: var(--gold-dim); color: var(--gold); }
+button.primary:hover { background: #3A3116; border-color: var(--gold); }
+
+.row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 0 0 12px; }
+.row .grow { flex: 1 1 auto; }
+
+/* ---- the monochord ------------------------------------------------ */
+
+#chordWrap {
+  background: var(--panel-2);
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+  padding: 10px 10px 4px;
+  margin: 0 0 12px;
+}
+#chord { display: block; width: 100%; height: 190px; touch-action: none; cursor: ew-resize; }
+
+.readout {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 18px 26px;
+  align-items: baseline;
+  padding: 2px 4px 10px;
+}
+.readout .big {
+  font: 600 27px/1 var(--mono);
+  color: var(--gold);
+  min-width: 4.5em;
+}
+.readout .name { font: 400 15px/1.3 var(--sans); color: var(--text); }
+.readout .cents { font: 400 14px/1.3 var(--mono); color: var(--muted); }
+
+/* ---- the catalogue ------------------------------------------------ */
+
+.filters { margin: 0 0 12px; }
+.filters button { padding: 6px 11px; font-size: 13px; }
+.filters button.sel { background: #2A2410; border-color: var(--gold); color: var(--gold); }
+
+table.cat {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+table.cat th {
+  text-align: left;
+  font: 600 11px/1 var(--sans);
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--muted);
+  padding: 0 8px 8px 0;
+  border-bottom: 1px solid var(--rule);
+  white-space: nowrap;
+}
+table.cat td {
+  padding: 8px 8px 8px 0;
+  border-bottom: 1px solid var(--rule);
+  vertical-align: top;
+}
+table.cat tr.div { cursor: pointer; }
+table.cat tr.div:hover td { background: #141A2A; }
+table.cat tr.sel td { background: #1B1708; }
+table.cat tr.sel td:first-child { box-shadow: inset 3px 0 0 var(--gold); }
+table.cat tr.incomplete td { color: var(--muted); }
+
+td.who { white-space: nowrap; }
+td.who b { font-weight: 600; }
+td.who span { display: block; color: var(--muted); font-size: 13px; }
+td.ratios { font-family: var(--mono); white-space: nowrap; }
+td.ratios i { font-style: normal; color: var(--muted); }
+td.cents { font-family: var(--mono); color: var(--muted); white-space: nowrap; }
+td.flags { white-space: nowrap; }
+
+.tag {
+  display: inline-block;
+  font: 600 10px/1.6 var(--sans);
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  padding: 0 6px;
+  border-radius: 3px;
+  margin-right: 5px;
+  border: 1px solid;
+}
+.tag.pyk { color: var(--gold); border-color: var(--gold-dim); }
+.tag.sup { color: var(--green); border-color: #2C5741; }
+.tag.gap { color: var(--red); border-color: #5C2F27; }
+
+.note {
+  color: var(--muted);
+  font-size: 13.5px;
+  padding: 2px 0 10px;
+  max-width: 62em;
+}
+
+/* ---- the comparison ------------------------------------------------ */
+
+.pair { display: flex; flex-wrap: wrap; gap: 14px; margin: 0 0 14px; }
+.pair .side {
+  flex: 1 1 260px;
+  background: var(--panel-2);
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+  padding: 13px 15px;
+}
+.pair h3 { font: 600 15px/1.3 var(--serif); margin: 0 0 3px; }
+.pair .who { color: var(--muted); font-size: 13px; margin: 0 0 9px; }
+.pair .r { font-family: var(--mono); font-size: 14px; margin: 0 0 4px; }
+.pair .r b { color: var(--gold); font-weight: 600; }
+.pair .mid { color: var(--muted); font-size: 13px; margin: 0 0 11px; }
+
+/* ---- small print ---------------------------------------------------- */
+
+.sources { color: var(--muted); font-size: 13.5px; }
+.sources li { margin: 0 0 7px; }
+.sources code { font-family: var(--mono); color: var(--gold); font-size: 12.5px; }
+
+footer.page {
+  margin: 36px 0 0;
+  padding: 16px 0 0;
+  border-top: 1px solid var(--rule);
+  color: var(--muted);
+  font-size: 13px;
+}
+
+/* ---- narrow ---------------------------------------------------------- */
+/* The lesson from the companion page: when the layout stacks, check where
+   the CONTROLS land, not just whether the prose reflows. Everything here
+   sits beside the thing it works, so nothing gets pushed below a wall of
+   text - but the table has to stop being a table. */
+
+@media (max-width: 760px) {
+  h1 { font-size: 23px; }
+  #chord { height: 160px; }
+  .readout .big { font-size: 23px; }
+
+  table.cat thead { display: none; }
+  table.cat tr { display: block; padding: 9px 0; border-bottom: 1px solid var(--rule); }
+  table.cat td { display: block; border: 0; padding: 1px 0; }
+  table.cat tr.sel td:first-child { box-shadow: none; }
+  table.cat tr.sel { box-shadow: inset 3px 0 0 var(--gold); padding-left: 9px; }
+  td.who span { display: inline; }
+}
+</style>
+</head>                                                <!-- WRAP -->
+<body>                                                 <!-- WRAP -->
+
+<div class="wrap">
+
+  <h1>Ptolemy's Harmony</h1>
+  <p class="sub">
+    Greek harmonic science, on the instrument it was discovered on. Every interval
+    here is synthesised from the exact whole-number ratio its author wrote &mdash;
+    Archytas in the fourth century BC, Eratosthenes, Didymus, and Ptolemy at
+    Alexandria around AD 150, in the <i>Harmonics</i>, the companion to his
+    <i>Almagest</i>.
+  </p>
+
+  <div id="gate">
+    <p>
+      <strong>This page makes sound.</strong> Nothing will play until you press
+      the button, and nothing is downloaded when you do &mdash; every note is
+      built from its ratio as it sounds. If you are somewhere quiet, the ratios,
+      the table and the monochord all work in silence.
+    </p>
+    <button id="gateBtn" class="primary">Turn the sound on</button>
+  </div>
+
+  <h2>The monochord</h2>
+
+  <p class="lead">
+    One string, and a bridge you can move. Drag it. The pitch rises as the
+    sounding length falls &mdash; the octave is <span class="num">half</span> the
+    string, the fifth <span class="num">two thirds</span>, the fourth
+    <span class="num">three quarters</span> &mdash; and that inverse is the whole
+    of the discovery: a musical interval is a ratio of two small whole numbers,
+    and you can see it on a ruler.
+  </p>
+
+  <div id="chordWrap">
+    <canvas id="chord" aria-label="A monochord: drag the bridge to change the sounding length."></canvas>
+  </div>
+
+  <div class="readout">
+    <span class="big" id="roRatio">1:1</span>
+    <span class="name" id="roName">the open string</span>
+    <span class="cents" id="roCents"></span>
+  </div>
+
+  <div class="row">
+    <button id="pluckBtn" data-needs-sound>Pluck</button>
+    <button id="droneBtn" data-needs-sound>Hold the open string</button>
+    <span class="grow"></span>
+  </div>
+
+  <p class="lead">
+    Hold the open string and drag slowly through the fifth. A little either side
+    of it the two notes beat against each other, a wobble you can count; at
+    exactly <span class="num">3:2</span> the beating stops and the pair locks.
+    That is what a just interval <i>is</i>, and it is why the Greeks trusted
+    small numbers rather than ears alone.
+  </p>
+
+  <h2>The divisions of the tetrachord</h2>
+
+  <p class="lead">
+    A tetrachord spans a perfect fourth, exactly <span class="num">4:3</span>.
+    Its outer notes are fixed and its two inner ones move, and where they are put
+    is what makes a genus. Every division below multiplies out to the fourth
+    exactly &mdash; <span class="num">498.0</span> cents &mdash; with nothing
+    rounded and nothing left over.
+  </p>
+
+  <p class="lead">
+    Two labels are computed rather than asserted.
+    <span class="tag pyk">pyknon</span> means the two lower intervals together
+    are smaller than the top one, which is what actually separates the
+    enharmonic and chromatic genera from the diatonic.
+    <span class="tag sup">epimoric</span> means every ratio in the division is
+    superparticular, of the form <span class="num">(n+1):n</span> &mdash; the
+    form Ptolemy insists on. Watch which of his eight lacks it.
+  </p>
+
+  <div class="row filters">
+    <button data-filter="all" class="sel">All twenty</button>
+    <button data-filter="ptolemy">Ptolemy's own</button>
+    <button data-filter="enharmonic">Enharmonic</button>
+    <button data-filter="chromatic">Chromatic</button>
+    <button data-filter="diatonic">Diatonic</button>
+  </div>
+
+  <table class="cat">
+    <thead>
+      <tr>
+        <th>division</th>
+        <th>intervals, low to high</th>
+        <th>cents</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody id="catBody"></tbody>
+  </table>
+
+  <div class="row" style="margin-top:14px">
+    <button id="playBtn" class="primary" data-needs-sound>Play the tetrachord</button>
+    <span class="cents" id="playLabel"></span>
+  </div>
+
+  <p class="lead">
+    The enharmonic is the one to hear. Its lowest two steps are a pair of
+    <i>quarter-tones</i> &mdash; <span class="num">46:45</span> and
+    <span class="num">24:23</span>, 38 and 74 cents &mdash; crowded at the bottom
+    under a wide major third. It sounds nothing like a scale, and Greek writers
+    were already complaining by Ptolemy's day that singers could no longer manage
+    it.
+  </p>
+
+  <h2>The same three ratios, in a different order</h2>
+
+  <p class="lead">
+    Didymus and Ptolemy divide the fourth with the identical three intervals
+    &mdash; <span class="num">16:15</span>, <span class="num">9:8</span>,
+    <span class="num">10:9</span>. Only the order differs: the tone and the minor
+    tone change places. It is the most confusable pair in Greek harmonics, and
+    the difference is audible, because the middle note moves by exactly a
+    syntonic comma, <span class="num">81:80</span>, a fifth of a semitone.
+  </p>
+
+  <div class="pair">
+    <div class="side">
+      <h3>Didymus</h3>
+      <div class="who">diatonic &middot; 1st century AD</div>
+      <div id="cmpD"></div>
+      <button id="playD" data-needs-sound>Play Didymus</button>
+    </div>
+    <div class="side">
+      <h3>Ptolemy</h3>
+      <div class="who">tense diatonic &middot; <span class="gk">διάτονον σύντονον</span></div>
+      <div id="cmpP"></div>
+      <button id="playP" data-needs-sound>Play Ptolemy</button>
+    </div>
+  </div>
+
+  <div class="row">
+    <button id="playComma" class="primary" data-needs-sound>Hear the comma between them</button>
+  </div>
+
+  <p class="lead">
+    The two middle notes in turn over a held open string, then both at once. The
+    second time they sound together you are hearing 21.5 cents of disagreement as
+    a slow beat &mdash; the same comma that separates a just major third from a
+    Pythagorean ditone, and the reason tuning has never had one right answer.
+  </p>
+
+  <h2>The small intervals</h2>
+
+  <p class="lead">
+    What is left over when two routes to the same note miss each other. A comma
+    is a discrepancy and is tiny; the limma and apotome are not commas at all but
+    the two unequal halves the tone divides into &mdash; and they differ from one
+    another by a Pythagorean comma exactly.
+  </p>
+
+  <table class="cat">
+    <tbody id="commaBody"></tbody>
+  </table>
+
+  <h2>Where the numbers come from</h2>
+
+  <ul class="sources">
+    <li>
+      Ptolemy, <i>Harmonics</i> I.15&ndash;16 and II.14, for his eight genera and
+      for the divisions of Archytas, Eratosthenes and Didymus that he reports.
+    </li>
+    <li>
+      John Chalmers, <i>Divisions of the Tetrachord</i> (Frog Peak, 1993) is the
+      standard modern catalogue; chapter 2 covers the arithmetic tradition and
+      chapter 9 is the catalog itself.
+    </li>
+    <li>
+      The ratios on this page were taken from two independent reference tables
+      that agree completely, and every one of them is checked to span exactly
+      <span class="num">4:3</span> before the page is built. A mistyped ratio
+      fails that check; it would not fail the ear, which is the reason for
+      checking. <code>106 tests, 1 skipped.</code>
+    </li>
+    <li>
+      <b>One row is incomplete on purpose.</b> The Pythagorean enharmonic used
+      the ditone <span class="num">81:64</span> over a pyknon of
+      <span class="num">256:243</span>, but how that pyknon was divided is not
+      recorded. It is shown undivided and cannot be played, because inventing a
+      split would make it the only false line in the table.
+    </li>
+  </ul>
+
+  <footer class="page">
+    One file, no network, no fonts, no recordings &mdash; every note is
+    synthesised from its ratio at the moment it sounds. A companion to
+    <i>Ptolemy's Cosmos</i> and the Antikythera mechanism.
+  </footer>
+
+</div>
+
+<script>
+/* ===== js/00-core.js ===== */
+/* =====================================================================
+   HARMONICS — core
+   ---------------------------------------------------------------------
+   Namespace, exact rational arithmetic, the interval helpers the rest
+   of the page is built out of.
+
+   WHY EXACT RATIONALS. The claim of this page is that you are hearing
+   the intervals Ptolemy wrote, not an approximation of them. A ratio
+   like 46/45 is exact in the Harmonics and must stay exact here, so the
+   page can print the fraction beside the string and the reader can check
+   it against the text. Floating point would give 1.0222222222222221 and
+   no way back to where it came from.
+
+   Plain Numbers, not BigInt, for two reasons. Every fraction is reduced
+   on construction, so a chain of intervals never builds a large
+   intermediate — the values stay the size of 531441/524288, not of
+   256^12. And the syntax checker this project builds through is Windows
+   Script Host, which parses ES5 and chokes on a BigInt literal. The
+   guard below throws if a value ever does approach the exact integer
+   limit, so the assumption is checked rather than trusted.
+
+   ES5 ONLY, and no ES5 *library* methods either (no Array.every, no
+   Math.log2) — tools/syntax.js parses every file under cscript, and
+   run.js executes this one there.
+   ===================================================================== */
+var H = window.H || {};
+window.H = H;
+
+(function () {
+  'use strict';
+
+  var SAFE = 9007199254740991;   // Number.MAX_SAFE_INTEGER, spelled out for ES5
+  var LN2 = Math.LN2;
+
+  function igcd(a, b) {
+    a = Math.abs(a); b = Math.abs(b);
+    while (b) { var t = a % b; a = b; b = t; }
+    return a;
+  }
+
+  /** Exact rational. new Frac(46, 45), Frac.of(2), Frac.of('16/15'). */
+  function Frac(n, d) {
+    if (d === undefined) d = 1;
+    n = Number(n); d = Number(d);
+    if (d === 0) throw new Error('Frac: zero denominator');
+    if (!isFinite(n) || !isFinite(d) || n !== Math.round(n) || d !== Math.round(d)) {
+      throw new Error('Frac: needs whole numbers, got ' + n + '/' + d);
+    }
+    if (Math.abs(n) > SAFE || Math.abs(d) > SAFE) {
+      // If this fires, the reduce-as-you-go assumption has failed and the
+      // ratios can no longer be trusted. Better to stop than to sound a
+      // note that is quietly wrong.
+      throw new Error('Frac: past exact integer range at ' + n + '/' + d);
+    }
+    if (d < 0) { n = -n; d = -d; }
+    var g = igcd(n, d) || 1;
+    this.n = n / g;
+    this.d = d / g;
+  }
+
+  Frac.of = function (v) {
+    if (v instanceof Frac) return v;
+    if (typeof v === 'string') {
+      var m = v.split('/');
+      return new Frac(parseInt(m[0], 10), m.length > 1 ? parseInt(m[1], 10) : 1);
+    }
+    if (typeof v === 'number' && v === Math.round(v)) return new Frac(v, 1);
+    throw new Error('Frac.of: cannot make an exact fraction from ' + v);
+  };
+
+  Frac.prototype.mul = function (o) { o = Frac.of(o); return new Frac(this.n * o.n, this.d * o.d); };
+  Frac.prototype.div = function (o) { o = Frac.of(o); return new Frac(this.n * o.d, this.d * o.n); };
+  Frac.prototype.inv = function () { return new Frac(this.d, this.n); };
+  Frac.prototype.eq  = function (o) { o = Frac.of(o); return this.n === o.n && this.d === o.d; };
+  Frac.prototype.cmp = function (o) { o = Frac.of(o); return this.n * o.d - o.n * this.d; };
+  Frac.prototype.lt  = function (o) { return this.cmp(o) < 0; };
+  Frac.prototype.gt  = function (o) { return this.cmp(o) > 0; };
+
+  /** Integer power, including negative. (9/8)^2, 3^12, 2^-19. */
+  Frac.prototype.pow = function (k) {
+    if (k !== Math.round(k)) throw new Error('Frac.pow: whole exponent only, got ' + k);
+    var base = k < 0 ? this.inv() : this;
+    var e = Math.abs(k);
+    var out = new Frac(1, 1);
+    for (var i = 0; i < e; i++) out = out.mul(base);
+    return out;
+  };
+
+  /* An epimoric — superparticular — ratio is (n+1):n. Ptolemy builds his
+     genera out of these on principle, so this is a claim about the
+     catalogue that the page displays and the suite asserts, not a
+     decoration. Reduced on construction, so the test is just n-d === 1. */
+  Frac.prototype.isSuper = function () { return this.n - this.d === 1; };
+
+  /** The interval in cents. The only place a ratio becomes a float. */
+  Frac.prototype.cents = function () { return 1200 * Math.log(this.n / this.d) / LN2; };
+
+  Frac.prototype.valueOf = function () { return this.n / this.d; };
+  Frac.prototype.toString = function () { return this.d === 1 ? String(this.n) : this.n + ':' + this.d; };
+
+  H.Frac = Frac;
+  H.frac = function (n, d) { return new Frac(n, d === undefined ? 1 : d); };
+
+  /** Parse "16/15" or "16:15" — the Harmonics uses the colon. */
+  H.parseRatio = function (s) {
+    /* The slash is escaped inside the class on purpose: JScript, which
+       tools/syntax.js runs under, ends the literal at a bare inner /. */
+    var m = String(s).split(/[\/:]/);
+    if (m.length !== 2) throw new Error('parseRatio: want n:d, got ' + s);
+    return new Frac(parseInt(m[0], 10), parseInt(m[1], 10));
+  };
+
+  /** Product of a list of ratios, exactly. [] is 1:1. */
+  H.product = function (list) {
+    var out = new Frac(1, 1);
+    for (var i = 0; i < list.length; i++) out = out.mul(Frac.of(list[i]));
+    return out;
+  };
+
+  /* ---- the fixed intervals --------------------------------------- */
+
+  H.OCTAVE = new Frac(2, 1);
+  H.FIFTH  = new Frac(3, 2);
+  H.FOURTH = new Frac(4, 3);
+  H.TONE   = new Frac(9, 8);
+
+  /* The small named intervals. Provenance: docs/research-tetrachords.md.
+     TWO KINDS, and they are not interchangeable — the suite caught this
+     file calling all four of them commas. A comma is a discrepancy, the
+     amount by which two routes to the "same" note miss each other, and
+     is a fifth of a semitone. The limma and the apotome are semitones:
+     they are the two halves the tone actually divides into, 90.2¢ and
+     113.7¢, and a rule that fits the commas does not fit them. */
+  H.INTERVALS = [
+    { id: 'syntonic',    kind: 'comma', name: 'syntonic comma', ratio: new Frac(81, 80),
+      note: '9:8 against 10:9 — the two tones apart' },
+    { id: 'pythagorean', kind: 'comma', name: 'Pythagorean comma', ratio: new Frac(531441, 524288),
+      note: 'twelve fifths against seven octaves' },
+    { id: 'limma',       kind: 'semitone', name: 'limma', ratio: new Frac(256, 243),
+      note: 'the Pythagorean semitone, 4:3 less two tones' },
+    { id: 'apotome',     kind: 'semitone', name: 'apotome', ratio: new Frac(2187, 2048),
+      note: 'the tone less the limma — the larger half' }
+  ];
+
+  /** The small intervals of one kind: 'comma' or 'semitone'. */
+  H.intervalsOfKind = function (kind) {
+    var out = [];
+    for (var i = 0; i < H.INTERVALS.length; i++) {
+      if (H.INTERVALS[i].kind === kind) out.push(H.INTERVALS[i]);
+    }
+    return out;
+  };
+
+  /* ---- pitch ------------------------------------------------------ */
+
+  /** A ratio applied to a frequency. Exactness ends here, at the speaker. */
+  H.hz = function (base, ratio) { return base * Frac.of(ratio).valueOf(); };
+
+  /* A string's sounding length is the INVERSE of its pitch ratio: the
+     octave is half the string. Every monochord drawing in this page goes
+     through here, because getting it backwards is the classic error and
+     it looks plausible either way. */
+  H.stringLength = function (full, ratio) { return full / Frac.of(ratio).valueOf(); };
+
+  /* ---- formatting -------------------------------------------------- */
+
+  H.fixed = function (v, n) {
+    if (!isFinite(v)) return '—';
+    return v.toFixed(n === undefined ? 2 : n);
+  };
+
+  /** Cents, as the page shows them: "386.3¢". */
+  H.centsText = function (ratio) {
+    return H.fixed(Frac.of(ratio).cents(), 1) + '¢';
+  };
+
+}());
+
+/* ===== js/10-genera.js ===== */
+/* =====================================================================
+   HARMONICS — the catalogue of tetrachord divisions
+   ---------------------------------------------------------------------
+   Every number here comes from docs/research-tetrachords.md, where each
+   one carries its source. DO NOT EDIT A RATIO HERE without changing it
+   there too: the document is the authority and this file is its code.
+
+   ORDERING IS ASCENDING FROM THE LOWEST NOTE of the tetrachord. This is
+   not cosmetic. Didymus's diatonic and Ptolemy's tense diatonic are the
+   SAME THREE RATIOS in a different order, and the order is the only
+   thing that tells them apart.
+
+   THE INVARIANT: every division multiplies to exactly 4:3. That is what
+   a tetrachord is. tests/tests.js asserts it for every entry, so a
+   mistyped ratio fails the build instead of quietly sounding wrong.
+   ===================================================================== */
+(function () {
+  'use strict';
+
+  var F = H.frac;
+
+  /* Each entry:
+       id         stable key
+       theorist   whose division it is
+       genus      'enharmonic' | 'chromatic' | 'diatonic'
+       name       what to call it on screen
+       greek      Ptolemy's own name, where he gives one
+       ratios     ascending from the lowest note, exact
+       source     the provenance tags in the research doc
+       note       what is interesting about this one, if anything   */
+  var G = [
+
+    /* ---- Ptolemy's own genera, Harmonics I.15-16 and II.14 -------- */
+
+    { id: 'ptol-enh', theorist: 'Ptolemy', genus: 'enharmonic',
+      name: 'enharmonic', greek: 'ἐναρμόνιον',
+      ratios: [F(46, 45), F(24, 23), F(5, 4)],
+      source: '[MT] [SRCH]',
+      note: 'The pyknon is a pair of quarter-tones. Nobody believes this one until they hear it.' },
+
+    { id: 'ptol-chr-mal', theorist: 'Ptolemy', genus: 'chromatic',
+      name: 'soft chromatic', greek: 'χρῶμα μαλακόν',
+      ratios: [F(28, 27), F(15, 14), F(6, 5)],
+      source: '[MT] [W-PYK]', note: '' },
+
+    { id: 'ptol-chr-syn', theorist: 'Ptolemy', genus: 'chromatic',
+      name: 'tense chromatic', greek: 'χρῶμα σύντονον',
+      ratios: [F(22, 21), F(12, 11), F(7, 6)],
+      source: '[MT] [W-PYK]', note: '' },
+
+    { id: 'ptol-dia-mal', theorist: 'Ptolemy', genus: 'diatonic',
+      name: 'soft diatonic', greek: 'διάτονον μαλακόν',
+      ratios: [F(21, 20), F(10, 9), F(8, 7)],
+      source: '[MT] [W-GEN]', note: '' },
+
+    { id: 'ptol-dia-ton', theorist: 'Ptolemy', genus: 'diatonic',
+      name: 'tonic diatonic', greek: 'διάτονον τονιαῖον',
+      ratios: [F(28, 27), F(8, 7), F(9, 8)],
+      source: '[MT] [W-GEN]',
+      note: 'Archytas’s diatonic, adopted under a name of his own.' },
+
+    { id: 'ptol-dia-hom', theorist: 'Ptolemy', genus: 'diatonic',
+      name: 'equable diatonic', greek: 'διάτονον ὁμαλόν',
+      ratios: [F(12, 11), F(11, 10), F(10, 9)],
+      source: '[MT] [W-GEN]',
+      note: 'Three near-equal steps — as far from a pyknon as a tetrachord gets.' },
+
+    { id: 'ptol-dia-syn', theorist: 'Ptolemy', genus: 'diatonic',
+      name: 'tense diatonic', greek: 'διάτονον σύντονον',
+      ratios: [F(16, 15), F(9, 8), F(10, 9)],
+      source: '[MT] [W-GEN]',
+      note: 'The just major tetrachord. Same three ratios as Didymus, in a different order.' },
+
+    { id: 'ptol-dia-dit', theorist: 'Ptolemy', genus: 'diatonic',
+      name: 'ditonic diatonic', greek: 'διάτονον διτονιαῖον',
+      ratios: [F(256, 243), F(9, 8), F(9, 8)],
+      source: '[MT] [W-GEN]',
+      note: 'The Pythagorean tuning, reported rather than endorsed — and the only division of his that is not superparticular throughout.' },
+
+    /* ---- the older divisions Ptolemy reports ---------------------- */
+
+    { id: 'arch-enh', theorist: 'Archytas', genus: 'enharmonic', name: 'enharmonic', greek: '',
+      ratios: [F(28, 27), F(36, 35), F(5, 4)],
+      source: '[MT] [W-GEN] [W-PYK]',
+      note: 'The ditone replaced by a just major third — the first break with Pythagorean arithmetic.' },
+
+    { id: 'arch-chr', theorist: 'Archytas', genus: 'chromatic', name: 'chromatic', greek: '',
+      ratios: [F(28, 27), F(243, 224), F(32, 27)],
+      source: '[MT] [W-GEN]', note: '' },
+
+    { id: 'arch-dia', theorist: 'Archytas', genus: 'diatonic', name: 'diatonic', greek: '',
+      ratios: [F(28, 27), F(8, 7), F(9, 8)],
+      source: '[MT] [W-GEN]',
+      note: 'Identical to Ptolemy’s tonic diatonic.' },
+
+    { id: 'erat-enh', theorist: 'Eratosthenes', genus: 'enharmonic', name: 'enharmonic', greek: '',
+      ratios: [F(40, 39), F(39, 38), F(19, 15)],
+      source: '[MT] [W-PYK]', note: '' },
+
+    { id: 'erat-chr', theorist: 'Eratosthenes', genus: 'chromatic', name: 'chromatic', greek: '',
+      ratios: [F(20, 19), F(19, 18), F(6, 5)],
+      source: '[MT] [SRCH]', note: '' },
+
+    { id: 'erat-dia', theorist: 'Eratosthenes', genus: 'diatonic', name: 'diatonic', greek: '',
+      ratios: [F(256, 243), F(9, 8), F(9, 8)],
+      source: '[MT]',
+      note: 'The Pythagorean division again, unchanged.' },
+
+    { id: 'didy-enh', theorist: 'Didymus', genus: 'enharmonic', name: 'enharmonic', greek: '',
+      ratios: [F(32, 31), F(31, 30), F(5, 4)],
+      source: '[MT] [W-GEN] [W-PYK]', note: '' },
+
+    { id: 'didy-chr', theorist: 'Didymus', genus: 'chromatic', name: 'chromatic', greek: '',
+      ratios: [F(16, 15), F(25, 24), F(6, 5)],
+      source: '[MT] [W-GEN]', note: '' },
+
+    { id: 'didy-dia', theorist: 'Didymus', genus: 'diatonic', name: 'diatonic', greek: '',
+      ratios: [F(16, 15), F(10, 9), F(9, 8)],
+      source: '[MT] [W-GEN]',
+      note: 'Ptolemy’s tense diatonic with the upper two steps exchanged. The middle note moves by a syntonic comma.' },
+
+    { id: 'pyth-chr', theorist: 'Pythagorean', genus: 'chromatic', name: 'chromatic', greek: '',
+      ratios: [F(256, 243), F(2187, 2048), F(32, 27)],
+      source: '[MT] [W-GEN]', note: '' },
+
+    { id: 'pyth-dia', theorist: 'Pythagorean', genus: 'diatonic', name: 'diatonic (ditone)', greek: '',
+      ratios: [F(256, 243), F(9, 8), F(9, 8)],
+      source: '[MT] [W-GEN]', note: '' },
+
+    /* The one row in the catalogue with a hole in it. The large interval
+       is the ditone and the pyknon is the limma, but how the pyknon was
+       divided is NOT KNOWN [W-PYK]. It is carried here incomplete, with
+       no ratios, so that nothing downstream can quietly invent a split:
+       the suite skips it by name and counts the skip. */
+    { id: 'pyth-enh', theorist: 'Pythagorean', genus: 'enharmonic', name: 'enharmonic', greek: '',
+      ratios: null, incomplete: true,
+      ditone: F(81, 64), pyknon: F(256, 243),
+      source: '[W-GEN] [W-PYK]',
+      note: 'How the pyknon was divided is not known. Shown undivided, because inventing a split would be the only dishonest row in the table.' }
+  ];
+
+  H.GENERA = G;
+
+  H.genusById = function (id) {
+    for (var i = 0; i < G.length; i++) if (G[i].id === id) return G[i];
+    return null;
+  };
+
+  /** The divisions that have all three ratios — everything but pyth-enh. */
+  H.completeGenera = function () {
+    var out = [];
+    for (var i = 0; i < G.length; i++) if (!G[i].incomplete) out.push(G[i]);
+    return out;
+  };
+
+  /** Pitches of the four notes, as ratios above the lowest. Ends at 4:3. */
+  H.degrees = function (div) {
+    if (div.incomplete) return null;
+    var out = [H.frac(1, 1)], acc = H.frac(1, 1);
+    for (var i = 0; i < div.ratios.length; i++) {
+      acc = acc.mul(div.ratios[i]);
+      out.push(acc);
+    }
+    return out;
+  };
+
+  /* A pyknon is the two lower intervals TAKEN TOGETHER being smaller than
+     the remaining one [W-PYK]. Computed, not labelled — which is the
+     point: the three genus names are a consequence of the arithmetic. */
+  H.hasPyknon = function (div) {
+    if (div.incomplete) return null;
+    var lower = div.ratios[0].mul(div.ratios[1]);
+    return lower.lt(div.ratios[2]);
+  };
+
+  /** True when every ratio in the division is (n+1):n. */
+  H.allSuperparticular = function (div) {
+    if (div.incomplete) return null;
+    for (var i = 0; i < div.ratios.length; i++) {
+      if (!div.ratios[i].isSuper()) return false;
+    }
+    return true;
+  };
+
+  /** Divisions sharing an identical ratio list — the catalogue's collisions. */
+  H.duplicatesOf = function (div) {
+    var out = [];
+    if (div.incomplete) return out;
+    for (var i = 0; i < G.length; i++) {
+      var o = G[i];
+      if (o.id === div.id || o.incomplete) continue;
+      if (o.ratios.length !== div.ratios.length) continue;
+      var same = true;
+      for (var j = 0; j < o.ratios.length; j++) {
+        if (!o.ratios[j].eq(div.ratios[j])) { same = false; break; }
+      }
+      if (same) out.push(o);
+    }
+    return out;
+  };
+
+}());
+
+/* ===== js/20-audio.js ===== */
+/* =====================================================================
+   HARMONICS — the sound
+   ---------------------------------------------------------------------
+   Every note on this page is synthesised from its exact ratio at the
+   moment it sounds. There is no audio file here and the build script
+   fails if one ever appears: a recording would fix the tuning at
+   whatever the recorder believed, which is the one thing this page
+   cannot afford.
+
+   WHY IT DOES NOT SIMPLY START. Two reasons, and they point the same
+   way. A browser will not open an AudioContext without a gesture, so
+   an ungated page would fail its first click in silence. And this page
+   opens from a library application, where a reader who has not asked
+   for a noise should not get one. So nothing is created until the
+   reader presses the button, and H.audio.ready() is false until then.
+
+   WHY A PLUCKED STRING. The instrument of Greek harmonic science was
+   the monochord - one string, one moveable bridge - and a plucked tone
+   carries enough upper harmonics for two notes to BEAT against each
+   other. That beating is the whole argument for just intervals: 3:2
+   locks and sits still, and anything near it wobbles audibly. A sine
+   would hide exactly the thing the page is about.
+   ===================================================================== */
+(function () {
+  'use strict';
+
+  var ctx = null;
+  var master = null;
+  var wave = null;
+  var droneNodes = null;
+  var failed = false;
+
+  /* The open string. Low enough for the upper octave of a tetrachord to
+     stay comfortable, high enough that a laptop speaker reproduces the
+     fundamental rather than only its harmonics. */
+  var BASE = 220;
+
+  /* A plucked string's spectrum: harmonics falling off roughly as 1/n,
+     with the even ones a little weaker, which is what gives a stopped
+     string its slight hollowness. Twelve is plenty - past that the
+     lowpass in the envelope has removed them within a tenth of a
+     second anyway. */
+  function buildWave() {
+    var n = 13;
+    var real = new Float32Array(n);
+    var imag = new Float32Array(n);
+    for (var i = 1; i < n; i++) {
+      var amp = 1 / i;
+      if (i % 2 === 0) amp *= 0.6;
+      imag[i] = amp;
+    }
+    return ctx.createPeriodicWave(real, imag, { disableNormalization: false });
+  }
+
+  /** True once the reader has turned sound on and it actually works. */
+  H.audioReady = function () { return ctx !== null && !failed; };
+
+  /** Called from a click. Returns true if sound is available afterwards. */
+  H.audioStart = function () {
+    if (failed) return false;
+    try {
+      if (!ctx) {
+        var Ctor = window.AudioContext || window.webkitAudioContext;
+        if (!Ctor) { failed = true; return false; }
+        ctx = new Ctor();
+        master = ctx.createGain();
+        master.gain.value = 0.9;
+        master.connect(ctx.destination);
+        wave = buildWave();
+      }
+      /* Opened before a gesture, or auto-suspended after a while. */
+      if (ctx.state === 'suspended' && ctx.resume) ctx.resume();
+      return true;
+    } catch (e) {
+      failed = true;
+      return false;
+    }
+  };
+
+  H.audioBase = function () { return BASE; };
+
+  /**
+   * One plucked note.
+   *   freq   hertz
+   *   at     seconds from now
+   *   secs   how long it rings
+   *   level  0..1
+   */
+  H.pluck = function (freq, at, secs, level) {
+    if (!H.audioReady()) return;
+    if (at === undefined) at = 0;
+    if (secs === undefined) secs = 1.5;
+    if (level === undefined) level = 0.5;
+
+    var t0 = ctx.currentTime + at;
+
+    var osc = ctx.createOscillator();
+    osc.setPeriodicWave(wave);
+    osc.frequency.value = freq;
+
+    /* The damping. A real string loses its upper harmonics first, so the
+       filter closes as the note decays; without this a synthesised pluck
+       stays bright all the way down and sounds like an organ. */
+    var lp = ctx.createBiquadFilter();
+    lp.type = 'lowpass';
+    lp.frequency.setValueAtTime(Math.min(freq * 14, 12000), t0);
+    lp.frequency.exponentialRampToValueAtTime(Math.max(freq * 2.2, 220), t0 + secs);
+
+    var g = ctx.createGain();
+    g.gain.setValueAtTime(0.0001, t0);
+    g.gain.exponentialRampToValueAtTime(level, t0 + 0.006);   // the pluck
+    g.gain.exponentialRampToValueAtTime(0.0001, t0 + secs);
+
+    osc.connect(lp); lp.connect(g); g.connect(master);
+    osc.start(t0);
+    osc.stop(t0 + secs + 0.05);
+  };
+
+  /** A ratio above the open string, plucked. */
+  H.pluckRatio = function (ratio, at, secs, level) {
+    H.pluck(H.hz(BASE, ratio), at, secs, level);
+  };
+
+  /**
+   * A run of ratios, one after another, and then all of them together
+   * if `chord` is set — which is how a tetrachord is worth hearing:
+   * the steps, then the span.
+   */
+  H.playRatios = function (ratios, spacing, chord) {
+    if (!H.audioReady()) return 0;
+    if (spacing === undefined) spacing = 0.42;
+    var i, t = 0;
+    for (i = 0; i < ratios.length; i++) {
+      H.pluckRatio(ratios[i], t, 1.5, 0.45);
+      t += spacing;
+    }
+    if (chord) {
+      t += spacing * 0.6;
+      for (i = 0; i < ratios.length; i++) {
+        H.pluckRatio(ratios[i], t, 2.6, 0.3);
+      }
+      t += 2.6;
+    }
+    return t;
+  };
+
+  /**
+   * A held reference note under everything else.
+   *
+   * This is not decoration. A just interval is one that stops beating,
+   * and you cannot hear a thing stop beating unless something is holding
+   * still underneath it. The drone is how the syntonic comma between
+   * Didymus and Ptolemy becomes obvious rather than theoretical.
+   */
+  H.droneOn = function (ratio) {
+    if (!H.audioReady()) return;
+    H.droneOff();
+    var freq = H.hz(BASE, ratio === undefined ? H.frac(1, 1) : ratio);
+    var t0 = ctx.currentTime;
+
+    var osc = ctx.createOscillator();
+    osc.setPeriodicWave(wave);
+    osc.frequency.value = freq;
+
+    var lp = ctx.createBiquadFilter();
+    lp.type = 'lowpass';
+    lp.frequency.value = freq * 6;
+
+    var g = ctx.createGain();
+    g.gain.setValueAtTime(0.0001, t0);
+    g.gain.exponentialRampToValueAtTime(0.16, t0 + 0.25);
+
+    osc.connect(lp); lp.connect(g); g.connect(master);
+    osc.start(t0);
+    droneNodes = { osc: osc, gain: g };
+  };
+
+  H.droneOff = function () {
+    if (!droneNodes || !H.audioReady()) return;
+    var d = droneNodes;
+    droneNodes = null;
+    try {
+      var t0 = ctx.currentTime;
+      d.gain.gain.cancelScheduledValues(t0);
+      d.gain.gain.setValueAtTime(Math.max(d.gain.gain.value, 0.0001), t0);
+      d.gain.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.18);
+      d.osc.stop(t0 + 0.24);
+    } catch (e) { /* already stopped */ }
+  };
+
+  H.droneIsOn = function () { return droneNodes !== null; };
+
+  /** Everything off, now. The page calls this when it is hidden. */
+  H.silence = function () {
+    H.droneOff();
+    if (!H.audioReady()) return;
+    try {
+      master.gain.cancelScheduledValues(ctx.currentTime);
+      master.gain.setValueAtTime(0, ctx.currentTime);
+      master.gain.linearRampToValueAtTime(0.9, ctx.currentTime + 0.35);
+    } catch (e) { /* nothing playing */ }
+  };
+
+}());
+
+/* ===== js/30-monochord.js ===== */
+/* =====================================================================
+   HARMONICS — the monochord
+   ---------------------------------------------------------------------
+   One string and a moveable bridge: the instrument all of this was
+   discovered on, and the reason the ratios are ratios at all.
+
+   THE INVERSION THAT IS EASY TO DRAW BACKWARDS. Pitch goes UP as the
+   sounding length goes DOWN. The octave is half the string, the fifth
+   two thirds, the fourth three quarters. Every position here is
+   computed through H.stringLength, which the suite pins, because a
+   picture of the inverse relation looks entirely plausible and would
+   quietly teach the opposite of the truth.
+   ===================================================================== */
+(function () {
+  'use strict';
+
+  /* The landmarks. Enough to navigate by, few enough to read. */
+  H.MARKS = [
+    { r: H.frac(1, 1),   name: 'the open string', major: true },
+    { r: H.frac(16, 15), name: 'semitone',        major: false },
+    { r: H.frac(10, 9),  name: 'minor tone',      major: false },
+    { r: H.frac(9, 8),   name: 'tone',            major: true },
+    { r: H.frac(32, 27), name: 'Pythagorean minor third', major: false },
+    { r: H.frac(6, 5),   name: 'minor third',     major: false },
+    { r: H.frac(5, 4),   name: 'major third',     major: true },
+    { r: H.frac(81, 64), name: 'ditone',          major: false },
+    { r: H.frac(4, 3),   name: 'the fourth',      major: true },
+    { r: H.frac(3, 2),   name: 'the fifth',       major: true },
+    { r: H.frac(8, 5),   name: 'minor sixth',     major: false },
+    { r: H.frac(5, 3),   name: 'major sixth',     major: false },
+    { r: H.frac(15, 8),  name: 'major seventh',   major: false },
+    { r: H.frac(2, 1),   name: 'the octave',      major: true }
+  ];
+
+  var TOP = 2;                 /* highest ratio the string is drawn to */
+
+  function Monochord(canvas) {
+    this.canvas = canvas;
+    this.ctx = canvas.getContext('2d');
+    this.ratio = H.frac(1, 1);
+    this.exact = true;          /* sitting on a landmark, or dragged free */
+    this.free = 1;              /* the dragged value when not exact */
+    this.degrees = null;        /* the selected division's four notes */
+    this.vib = 0;               /* vibration amplitude, decaying */
+    this.vibAt = 0;
+    this.onChange = null;
+    this.raf = null;
+  }
+
+  /* ---- geometry ---------------------------------------------------- */
+
+  Monochord.prototype.metrics = function () {
+    var w = this.canvas.clientWidth || 600;
+    var h = this.canvas.clientHeight || 190;
+    var pad = w < 520 ? 22 : 34;
+    var x0 = pad;
+    var x1 = w - pad;
+    /* The string is drawn out to the octave, so the far half of the
+       board is the second octave and would be mostly empty. Stop at the
+       octave and label the end. */
+    return { w: w, h: h, x0: x0, x1: x1, len: x1 - x0, y: Math.round(h * 0.52) };
+  };
+
+  /** Where a pitch ratio sits along the board. */
+  Monochord.prototype.xOf = function (ratio, m) {
+    var v = (typeof ratio === 'number') ? ratio : ratio.valueOf();
+    /* length is the inverse of pitch: the whole point. */
+    var frac = (1 - 1 / v) / (1 - 1 / TOP);
+    return m.x0 + frac * m.len;
+  };
+
+  /** The pitch ratio at a pixel. */
+  Monochord.prototype.ratioAt = function (x, m) {
+    var frac = (x - m.x0) / m.len;
+    if (frac < 0) frac = 0;
+    if (frac > 1) frac = 1;
+    var inv = 1 - frac * (1 - 1 / TOP);
+    if (inv < 1 / TOP) inv = 1 / TOP;
+    return 1 / inv;
+  };
+
+  /* ---- interaction --------------------------------------------------- */
+
+  Monochord.prototype.setRatio = function (ratio, exact) {
+    this.ratio = ratio;
+    this.exact = exact !== false;
+    if (this.exact) this.free = ratio.valueOf();
+    this.draw();
+    if (this.onChange) this.onChange();
+  };
+
+  Monochord.prototype.setFree = function (v) {
+    this.free = v;
+    this.exact = false;
+    /* Snap to a landmark when within a few pixels of one. A quarter-tone
+       is about 50 cents and the enharmonic pyknon lives there, so the
+       snap has to be tight enough not to swallow it: 6 pixels on a
+       600-pixel board is under 10 cents near the middle. */
+    var m = this.metrics();
+    var x = this.xOf(v, m);
+    var best = null, bestD = 7;
+    for (var i = 0; i < H.MARKS.length; i++) {
+      var d = Math.abs(this.xOf(H.MARKS[i].r, m) - x);
+      if (d < bestD) { bestD = d; best = H.MARKS[i]; }
+    }
+    if (best) { this.ratio = best.r; this.exact = true; this.free = best.r.valueOf(); }
+    else { this.ratio = null; }
+    this.draw();
+    if (this.onChange) this.onChange();
+  };
+
+  /** The value being shown, exact fraction or not. */
+  Monochord.prototype.value = function () {
+    return this.exact ? this.ratio.valueOf() : this.free;
+  };
+
+  /** The nearest landmark and how far off it is, in cents. */
+  Monochord.prototype.nearest = function () {
+    var v = this.value();
+    var cents = 1200 * Math.log(v) / Math.LN2;
+    var best = null, bestD = 1e9;
+    for (var i = 0; i < H.MARKS.length; i++) {
+      var d = cents - H.MARKS[i].r.cents();
+      if (Math.abs(d) < Math.abs(bestD)) { bestD = d; best = H.MARKS[i]; }
+    }
+    return { mark: best, off: bestD };
+  };
+
+  Monochord.prototype.pluck = function () {
+    H.pluck(H.audioBase() * this.value(), 0, 1.7, 0.5);
+    this.vib = 1;
+    this.vibAt = (new Date()).getTime();
+    this.animate();
+  };
+
+  Monochord.prototype.animate = function () {
+    var self = this;
+    if (this.raf) return;
+    function step() {
+      var dt = ((new Date()).getTime() - self.vibAt) / 1000;
+      self.vib = Math.exp(-dt * 3.2);
+      self.draw();
+      if (self.vib > 0.02) {
+        self.raf = window.requestAnimationFrame(step);
+      } else {
+        self.vib = 0; self.raf = null; self.draw();
+      }
+    }
+    this.raf = window.requestAnimationFrame(step);
+  };
+
+  /* ---- drawing -------------------------------------------------------- */
+
+  Monochord.prototype.resize = function () {
+    var dpr = window.devicePixelRatio || 1;
+    var w = this.canvas.clientWidth || 600;
+    var h = this.canvas.clientHeight || 190;
+    this.canvas.width = Math.round(w * dpr);
+    this.canvas.height = Math.round(h * dpr);
+    this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    this.draw();
+  };
+
+  Monochord.prototype.draw = function () {
+    var g = this.ctx, m = this.metrics();
+    var narrow = m.w < 520;
+
+    g.clearRect(0, 0, m.w, m.h);
+
+    var bx = this.xOf(this.value(), m);
+
+    /* ---- the board ---- */
+    g.strokeStyle = '#2A3348';
+    g.lineWidth = 1;
+    g.beginPath();
+    g.moveTo(m.x0, m.y + 34); g.lineTo(m.x1, m.y + 34);
+    g.stroke();
+
+    /* ---- landmarks ---- */
+    g.textAlign = 'center';
+    for (var i = 0; i < H.MARKS.length; i++) {
+      var mk = H.MARKS[i];
+      var x = this.xOf(mk.r, m);
+      var isMaj = mk.major;
+      if (narrow && !isMaj) continue;
+      g.strokeStyle = isMaj ? '#4A5872' : '#2A3348';
+      g.beginPath();
+      g.moveTo(x, m.y + 6); g.lineTo(x, m.y + (isMaj ? 20 : 13));
+      g.stroke();
+      if (isMaj) {
+        g.fillStyle = '#7C8698';
+        g.font = '11px Consolas, monospace';
+        g.fillText(mk.r.toString(), x, m.y + 32);
+      }
+    }
+
+    /* ---- the selected division's notes, above the string ---- */
+    if (this.degrees) {
+      for (var d = 0; d < this.degrees.length; d++) {
+        var dx = this.xOf(this.degrees[d], m);
+        g.fillStyle = '#C9A63C';
+        g.beginPath();
+        g.moveTo(dx, m.y - 16);
+        g.lineTo(dx + 4.5, m.y - 10);
+        g.lineTo(dx, m.y - 4);
+        g.lineTo(dx - 4.5, m.y - 10);
+        g.closePath();
+        g.fill();
+        if (!narrow) {
+          g.fillStyle = '#8E7526';
+          g.font = '10px Consolas, monospace';
+          g.fillText(this.degrees[d].toString(), dx, m.y - 21);
+        }
+      }
+    }
+
+    /* ---- the string ---- */
+    /* The part beyond the bridge is damped and does not sound, so it is
+       drawn as a dead line. The sounding part vibrates. */
+    g.strokeStyle = '#39404F';
+    g.lineWidth = 1.5;
+    g.beginPath();
+    g.moveTo(bx, m.y); g.lineTo(m.x1, m.y);
+    g.stroke();
+
+    g.strokeStyle = '#C6CBD6';
+    g.lineWidth = 2;
+    g.beginPath();
+    if (this.vib > 0.02) {
+      var amp = 7 * this.vib;
+      var t = ((new Date()).getTime() % 1000) / 1000 * Math.PI * 2;
+      g.moveTo(m.x0, m.y);
+      for (var px = m.x0; px <= bx; px += 3) {
+        var u = (px - m.x0) / Math.max(1, bx - m.x0);
+        g.lineTo(px, m.y + Math.sin(u * Math.PI) * Math.sin(t * 6) * amp);
+      }
+      g.lineTo(bx, m.y);
+    } else {
+      g.moveTo(m.x0, m.y); g.lineTo(bx, m.y);
+    }
+    g.stroke();
+
+    /* ---- nut and end ---- */
+    g.fillStyle = '#5A6479';
+    g.fillRect(m.x0 - 3, m.y - 13, 3, 26);
+    g.fillRect(m.x1, m.y - 13, 3, 26);
+
+    /* ---- the bridge ---- */
+    g.fillStyle = this.exact ? '#C9A63C' : '#6F91D0';
+    g.beginPath();
+    g.moveTo(bx, m.y + 2);
+    g.lineTo(bx + 7, m.y + 17);
+    g.lineTo(bx - 7, m.y + 17);
+    g.closePath();
+    g.fill();
+    g.fillRect(bx - 1, m.y - 12, 2, 16);
+
+    /* ---- the sounding length, stated ---- */
+    g.fillStyle = '#7C8698';
+    g.font = '11px "Segoe UI", sans-serif';
+    g.textAlign = 'left';
+    var pct = Math.round(1000 / this.value()) / 10;
+    g.fillText('sounding length ' + pct + '% of the string', m.x0, m.y + 52);
+    g.textAlign = 'right';
+    g.fillText('octave', m.x1, m.y + 52);
+  };
+
+  H.Monochord = Monochord;
+
+}());
+
+/* ===== js/40-ui.js ===== */
+/* =====================================================================
+   HARMONICS — wiring
+   ---------------------------------------------------------------------
+   The page's behaviour: the sound gate, the monochord's pointer
+   handling, the catalogue table, and the two set-pieces.
+
+   Nothing here decides a ratio. Every number comes from js/10-genera.js,
+   which is the transcription of docs/research-tetrachords.md, which is
+   where the sources are.
+   ===================================================================== */
+(function () {
+  'use strict';
+
+  var chord = null;
+  var selected = null;
+  var soundOn = false;
+
+  function $(id) { return document.getElementById(id); }
+
+  function text(el, s) { el.textContent = s; }
+
+  /* ---- the sound gate ---------------------------------------------- */
+
+  function enableSound() {
+    soundOn = H.audioStart();
+    var gate = $('gate');
+    if (soundOn) {
+      gate.className = 'on';
+    } else {
+      /* No AudioContext at all. The page is still worth reading, and
+         saying so is better than a button that does nothing. */
+      gate.innerHTML = '<p><strong>This browser will not play sound.</strong> ' +
+        'Everything else on the page works: the ratios, the table and the ' +
+        'monochord are all still live, and only the notes are missing.</p>';
+    }
+    setEnabled();
+  }
+
+  function setEnabled() {
+    var bs = document.querySelectorAll('button[data-needs-sound]');
+    for (var i = 0; i < bs.length; i++) bs[i].disabled = !soundOn;
+  }
+
+  /* ---- the monochord ------------------------------------------------ */
+
+  function setupMonochord() {
+    var canvas = $('chord');
+    chord = new H.Monochord(canvas);
+    chord.onChange = updateReadout;
+
+    var dragging = false;
+
+    function place(ev, andPluck) {
+      var rect = canvas.getBoundingClientRect();
+      var x = (ev.clientX !== undefined ? ev.clientX : 0) - rect.left;
+      chord.setFree(chord.ratioAt(x, chord.metrics()));
+      if (andPluck) chord.pluck();
+    }
+
+    function down(ev) {
+      dragging = true;
+      if (canvas.setPointerCapture && ev.pointerId !== undefined) {
+        try { canvas.setPointerCapture(ev.pointerId); } catch (e) { /* fine */ }
+      }
+      place(ev, true);
+      ev.preventDefault();
+    }
+    function move(ev) { if (dragging) { place(ev, false); ev.preventDefault(); } }
+    function up() { if (dragging) { dragging = false; chord.pluck(); } }
+
+    if (window.PointerEvent) {
+      canvas.addEventListener('pointerdown', down);
+      canvas.addEventListener('pointermove', move);
+      canvas.addEventListener('pointerup', up);
+      canvas.addEventListener('pointercancel', up);
+    } else {
+      canvas.addEventListener('mousedown', down);
+      window.addEventListener('mousemove', move);
+      window.addEventListener('mouseup', up);
+    }
+
+    /* Keyboard: the bridge is a control, so it has to be reachable
+       without a pointer. Arrows step landmark to landmark. */
+    canvas.setAttribute('tabindex', '0');
+    canvas.addEventListener('keydown', function (ev) {
+      var k = ev.key;
+      if (k !== 'ArrowLeft' && k !== 'ArrowRight' && k !== ' ' && k !== 'Enter') return;
+      ev.preventDefault();
+      if (k === ' ' || k === 'Enter') { chord.pluck(); return; }
+      var v = chord.value(), i, best = null;
+      if (k === 'ArrowRight') {
+        for (i = 0; i < H.MARKS.length; i++) {
+          if (H.MARKS[i].r.valueOf() > v + 1e-9) { best = H.MARKS[i].r; break; }
+        }
+      } else {
+        for (i = H.MARKS.length - 1; i >= 0; i--) {
+          if (H.MARKS[i].r.valueOf() < v - 1e-9) { best = H.MARKS[i].r; break; }
+        }
+      }
+      if (best) { chord.setRatio(best, true); chord.pluck(); }
+    });
+
+    window.addEventListener('resize', function () { chord.resize(); });
+    chord.resize();
+    updateReadout();
+  }
+
+  function updateReadout() {
+    var big = $('roRatio'), nm = $('roName'), ct = $('roCents');
+    var near = chord.nearest();
+
+    if (chord.exact) {
+      text(big, chord.ratio.toString());
+      text(nm, near.mark ? near.mark.name : '');
+      text(ct, H.fixed(chord.ratio.cents(), 1) + '¢  ·  ' +
+               H.fixed(H.audioBase() * chord.ratio.valueOf(), 1) + ' Hz');
+    } else {
+      var v = chord.value();
+      var cents = 1200 * Math.log(v) / Math.LN2;
+      text(big, H.fixed(v, 4));
+      var off = near.off;
+      text(nm, near.mark
+        ? (Math.abs(off) < 0.05 ? near.mark.name
+            : (off > 0 ? '+' : '−') + H.fixed(Math.abs(off), 1) +
+              '¢ from ' + near.mark.r.toString() + ', ' + near.mark.name)
+        : '');
+      text(ct, H.fixed(cents, 1) + '¢  ·  ' + H.fixed(H.audioBase() * v, 1) + ' Hz');
+    }
+  }
+
+  /* ---- the catalogue -------------------------------------------------- */
+
+  var filter = 'all';
+
+  function matches(div) {
+    if (filter === 'all') return true;
+    if (filter === 'ptolemy') return div.theorist === 'Ptolemy';
+    return div.genus === filter;
+  }
+
+  function ratioCells(div) {
+    if (div.incomplete) {
+      return '<i>ditone</i> ' + div.ditone.toString() +
+             ' <i>over an undivided pyknon</i> ' + div.pyknon.toString();
+    }
+    var out = [];
+    for (var i = 0; i < div.ratios.length; i++) out.push(div.ratios[i].toString());
+    return out.join('  ·  ');
+  }
+
+  /* The three intervals in cents.
+     NO SUM IS PRINTED, deliberately. Every division totals the fourth,
+     498.0 cents, but the three ROUNDED values do not always add up to
+     the rounded total - the tense chromatic reads 80.5 + 150.6 + 266.9
+     at one decimal and 81 + 151 + 267 at none, which is 499. Printing
+     "= 498" beside figures that visibly sum to something else makes the
+     page look as though it cannot add up, when the exact arithmetic is
+     the one thing here that is beyond doubt. The total belongs in the
+     prose, where it can be stated exactly. */
+  function centsCells(div) {
+    if (div.incomplete) return '—';
+    var out = [];
+    for (var i = 0; i < div.ratios.length; i++) {
+      out.push(H.fixed(div.ratios[i].cents(), 1));
+    }
+    return out.join('  ·  ');
+  }
+
+  function flagCells(div) {
+    if (div.incomplete) return '<span class="tag gap">not known</span>';
+    var s = '';
+    if (H.hasPyknon(div)) s += '<span class="tag pyk">pyknon</span>';
+    if (H.allSuperparticular(div)) s += '<span class="tag sup">epimoric</span>';
+    return s;
+  }
+
+  function renderCatalogue() {
+    var body = $('catBody');
+    var html = [];
+    var all = H.GENERA;
+    for (var i = 0; i < all.length; i++) {
+      var div = all[i];
+      if (!matches(div)) continue;
+      var cls = 'div' + (div.incomplete ? ' incomplete' : '') +
+                (selected && selected.id === div.id ? ' sel' : '');
+      html.push('<tr class="' + cls + '" data-id="' + div.id + '">');
+      html.push('<td class="who"><b>' + div.theorist + '</b><span>' + div.name +
+                (div.greek ? ' <span class="gk">' + div.greek + '</span>' : '') + '</span></td>');
+      html.push('<td class="ratios">' + ratioCells(div) + '</td>');
+      html.push('<td class="cents">' + centsCells(div) + '</td>');
+      html.push('<td class="flags">' + flagCells(div) + '</td>');
+      html.push('</tr>');
+      if (selected && selected.id === div.id && div.note) {
+        html.push('<tr class="sel"><td colspan="4"><div class="note">' +
+                  div.note + '</div></td></tr>');
+      }
+    }
+    body.innerHTML = html.join('');
+
+    var rows = body.querySelectorAll('tr.div');
+    for (var j = 0; j < rows.length; j++) {
+      rows[j].addEventListener('click', onRow);
+    }
+  }
+
+  function onRow(ev) {
+    var id = ev.currentTarget.getAttribute('data-id');
+    select(H.genusById(id), true);
+  }
+
+  function select(div, andPlay) {
+    selected = div;
+    renderCatalogue();
+
+    if (div.incomplete) {
+      /* Nothing to sound: the division is not known. The monochord shows
+         the two notes that ARE known and the gap between them stays a
+         gap, which is the honest picture. */
+      chord.degrees = [H.frac(1, 1), H.frac(81, 64), H.frac(4, 3)];
+      chord.draw();
+      text($('playLabel'), 'The Pythagorean enharmonic cannot be played — ' +
+        'how its pyknon was divided is not recorded.');
+      return;
+    }
+
+    /* The division's four notes go on the board as markers, but the
+       BRIDGE STAYS WHERE THE READER PUT IT. Moving it would take the
+       one control they are holding and reposition it under their hand,
+       and there is no reason a choice of tuning should do that. */
+    chord.degrees = H.degrees(div);
+    chord.draw();
+    text($('playLabel'), div.theorist + ' — ' + div.name);
+    if (andPlay && soundOn) playSelected();
+  }
+
+  function playSelected() {
+    if (!selected || selected.incomplete || !soundOn) return;
+    H.playRatios(H.degrees(selected), 0.44, true);
+  }
+
+  /* ---- Didymus against Ptolemy ---------------------------------------- */
+
+  function setupComparison() {
+    var d = H.genusById('didy-dia'), p = H.genusById('ptol-dia-syn');
+    var dd = H.degrees(d), pd = H.degrees(p);
+
+    $('cmpD').innerHTML = rowsFor(d, dd);
+    $('cmpP').innerHTML = rowsFor(p, pd);
+
+    $('playD').addEventListener('click', function () { H.playRatios(dd, 0.44, true); });
+    $('playP').addEventListener('click', function () { H.playRatios(pd, 0.44, true); });
+    $('playComma').addEventListener('click', function () {
+      /* The two middle notes, one after the other, then together. Held
+         against the open string, the comma is a slow beat rather than a
+         difference of pitch you have to remember. */
+      H.droneOn(H.frac(1, 1));
+      H.pluckRatio(dd[2], 0.15, 2.0, 0.5);
+      H.pluckRatio(pd[2], 1.55, 2.0, 0.5);
+      H.pluckRatio(dd[2], 3.1, 2.8, 0.42);
+      H.pluckRatio(pd[2], 3.1, 2.8, 0.42);
+      window.setTimeout(function () { H.droneOff(); }, 6200);
+    });
+  }
+
+  function rowsFor(div, degs) {
+    var out = [];
+    for (var i = 0; i < div.ratios.length; i++) {
+      var isMid = (i === 1);
+      out.push('<div class="r">' + (isMid ? '<b>' : '') + div.ratios[i].toString() +
+               (isMid ? '</b>' : '') + '  ·  ' +
+               H.fixed(div.ratios[i].cents(), 1) + '¢</div>');
+    }
+    out.push('<div class="mid">middle note at ' + degs[2].toString() +
+             ', ' + H.fixed(degs[2].cents(), 1) + '¢</div>');
+    return out.join('');
+  }
+
+  /* ---- the commas ------------------------------------------------------ */
+
+  function renderIntervals() {
+    var html = [];
+    for (var i = 0; i < H.INTERVALS.length; i++) {
+      var c = H.INTERVALS[i];
+      html.push('<tr><td class="who"><b>' + c.name + '</b><span>' + c.kind + '</span></td>' +
+                '<td class="ratios">' + c.ratio.toString() + '</td>' +
+                '<td class="cents">' + H.fixed(c.ratio.cents(), 1) + '¢</td>' +
+                '<td class="flags"><span class="note">' + c.note + '</span></td></tr>');
+    }
+    $('commaBody').innerHTML = html.join('');
+  }
+
+  /* ---- boot -------------------------------------------------------------- */
+
+  function boot() {
+    $('gateBtn').addEventListener('click', enableSound);
+
+    setupMonochord();
+    renderCatalogue();
+    setupComparison();
+    renderIntervals();
+
+    $('pluckBtn').addEventListener('click', function () { chord.pluck(); });
+    $('playBtn').addEventListener('click', playSelected);
+    $('droneBtn').addEventListener('click', function () {
+      if (H.droneIsOn()) { H.droneOff(); text($('droneBtn'), 'Hold the open string'); }
+      else { H.droneOn(H.frac(1, 1)); text($('droneBtn'), 'Stop the open string'); }
+    });
+
+    var fs = document.querySelectorAll('.filters button');
+    for (var i = 0; i < fs.length; i++) {
+      fs[i].addEventListener('click', function (ev) {
+        filter = ev.currentTarget.getAttribute('data-filter');
+        var all = document.querySelectorAll('.filters button');
+        for (var j = 0; j < all.length; j++) {
+          all[j].className = all[j].getAttribute('data-filter') === filter ? 'sel' : '';
+        }
+        renderCatalogue();
+      });
+    }
+
+    select(H.genusById('ptol-dia-syn'), false);
+    setEnabled();
+
+    /* A page that keeps humming in a background tab is a page nobody
+       opens twice. */
+    document.addEventListener('visibilitychange', function () {
+      if (document.hidden) H.droneOff();
+    });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', boot);
+  } else {
+    boot();
+  }
+
+}());
+
+</script>
+
+</body>                                                <!-- WRAP -->
+</html>                                                <!-- WRAP -->

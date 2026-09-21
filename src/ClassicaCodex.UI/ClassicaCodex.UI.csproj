@@ -185,6 +185,13 @@
     <!-- Ptolemy's planetarium, on the same terms and for the same
          reasons as the mechanism above it. -->
     <EmbeddedResource Include="Pages\Almagest.html" LogicalName="ClassicaCodex.UI.Pages.Almagest.html" />
+    <!-- Greek harmonic science, the third of the set and the only one
+         that makes a noise. It carries no audio: every note is
+         synthesised from its ratio as it sounds, so this is the same
+         kind of payload as the other two - one HTML file, no network,
+         no fonts. The card in front of it warns about the sound before
+         anything can play. -->
+    <EmbeddedResource Include="Pages\Harmonics.html" LogicalName="ClassicaCodex.UI.Pages.Harmonics.html" />
   </ItemGroup>
 
   <ItemGroup>

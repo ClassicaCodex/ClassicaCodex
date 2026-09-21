@@ -337,6 +337,19 @@ public partial class MainForm : ScaledForm
             almagestForm.ShowDialog(this);
         };
 
+        // The third of the set, and the only one that can make a noise.
+        // Same shape again - a card first - but here the card earns its
+        // place twice over: it is where the reader is told about the sound,
+        // before anything can play. The page behind it is silent until a
+        // second press on the page itself, so a reader in a quiet room can
+        // open it, read all of it and never make a sound.
+        var harmonicsButton = new IconButton();
+        harmonicsButton.Click += (_, _) =>
+        {
+            using var harmonicsForm = new HarmonicsForm();
+            harmonicsForm.ShowDialog(this);
+        };
+
         // A small strip above the tree rather than a separate row in the
         // already-crowded top toolbar - clicking it hides the tree entirely,
         // widening the reader area to reclaim that space (handled in
@@ -771,7 +784,8 @@ public partial class MainForm : ScaledForm
             (placesMapButton, "Places Map", "PlaceMap"),
             (morphologyButton, "Morphology", "Morphology"),
             (antikytheraButton, "The Antikythera Mechanism", "Antikythera"),
-            (almagestButton, "Ptolemy's Cosmos", "Almagest")
+            (almagestButton, "Ptolemy's Cosmos", "Almagest"),
+            (harmonicsButton, "Ptolemy's Harmony  (makes sound)", "Harmonics")
         };
 
         // The icon nearly fills the button - these are illustrations, and

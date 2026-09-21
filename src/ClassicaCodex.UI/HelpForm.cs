@@ -585,7 +585,7 @@ One file, several works
 """),
 
         ("The Antikythera Mechanism", """
-The last button on the main toolbar, the bronze dial. It opens a card describing the Antikythera mechanism - a Greek astronomical calculator built around 100 BC and pulled off a shipwreck in 1901 - and a button on that card opens a working simulation of it in your browser.
+The bronze dial on the main toolbar, third from the end. It opens a card describing the Antikythera mechanism - a Greek astronomical calculator built around 100 BC and pulled off a shipwreck in 1901 - and a button on that card opens a working simulation of it in your browser.
 
 It is a diversion rather than a research tool, and it is here because the machine belongs to the same world as the texts. Cicero describes one like it twice, in De Re Publica and in De Natura Deorum, and both passages are in this library.
 
@@ -623,6 +623,28 @@ Where it comes from
 It works offline
    Like the mechanism, the page carries everything it needs and asks the network for nothing.
 
+"""),
+
+        ("Ptolemy's Harmony", """
+The last button on the main toolbar, the terracotta plate with four strings on it. It opens a card describing Greek harmonic science, and a button on that card opens a working monochord in your browser.
+
+It makes sound - and nothing else in this application does
+   That is why the card in front of it says so before it says anything else, and why the page itself opens silent and stays silent until you press a button on it marked "Turn the sound on". If you are somewhere a sudden note would be unwelcome, you can open it, read all of it and work the monochord without a sound: the ratios, the table and the diagram all run in silence. Somewhere you can listen, turn it on - a page about music you cannot hear is half a page.
+
+It completes the set
+   The mechanism computed the heavens, the Almagest explained them, and the Harmonics is by the same author as the second. It is the one of the three you listen to rather than look at.
+
+What you get
+   A monochord: one string with a bridge you can drag. The pitch rises as the sounding length falls - the octave at half the string, the fifth at two thirds - which is the discovery itself, that an interval is a ratio of two small whole numbers. Then twenty divisions of the tetrachord, from Archytas in the fourth century BC to Ptolemy, each one playable; the two that differ only in the order of their intervals, side by side; and the small intervals left over when two routes to the same note miss each other.
+
+What is worth hearing
+   The enharmonic genus, whose two lowest steps are quarter-tones - it sounds nothing like a scale, and Greek writers were already complaining in Ptolemy's day that singers could no longer manage it. And the beating: hold the open string, drag slowly through the fifth, and the two notes wobble against each other until, at exactly 3:2, the wobble stops. Headphones are worth it.
+
+The ratios are the ones they wrote
+   Every division is required to multiply out to exactly 4:3, which is what a tetrachord is, so a mistyped ratio fails a check rather than simply sounding - and it would simply sound, because almost any ratio near the right one sounds like music. One row cannot be played at all: how the Pythagorean enharmonic divided its pyknon is not recorded anywhere, so it is shown undivided rather than invented.
+
+It works offline
+   Like the other two, the page carries everything it needs and asks the network for nothing. It carries no recordings either - every note is built from its ratio at the moment it sounds.
 """),
 
         ("When something looks wrong", """
