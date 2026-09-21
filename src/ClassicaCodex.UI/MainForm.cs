@@ -739,6 +739,7 @@ public partial class MainForm : ScaledForm
         Controls.Add(morphologyButton);
         Controls.Add(antikytheraButton);
         Controls.Add(almagestButton);
+        Controls.Add(harmonicsButton);
         Controls.Add(aboutButton);
         Controls.Add(setupWizardButton);
         Controls.Add(_themeButton);
