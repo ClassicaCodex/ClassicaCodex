@@ -156,9 +156,15 @@ public static class VocabularyProfile
 
     /// <summary>
     /// Counts word forms in the way the lemma data is keyed, so the two can
-    /// be matched. Splits on whitespace and normalises exactly as the word
-    /// index does - but without its per-line Distinct, because this needs
-    /// how many times, which is precisely what the index does not record.
+    /// be matched. Rejoins printed line breaks, splits on whitespace and
+    /// normalises exactly as the word index does - but without its per-line
+    /// Distinct, because this needs how many times, which is precisely what
+    /// the index does not record.
+    ///
+    /// The soft-hyphen join is not optional for a frequency measure. Without
+    /// it a Migne profile ranks 'tur' and 'rum' among the commonest words in
+    /// the text, and every genuine word broken at a line break is counted
+    /// short - see WordNormalizer.JoinSoftHyphenBreaks.
     /// </summary>
     public static Dictionary<string, int> CountForms(IEnumerable<string> lines)
     {
@@ -166,7 +172,8 @@ public static class VocabularyProfile
 
         foreach (var line in lines)
         {
-            foreach (var raw in line.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries))
+            foreach (var raw in WordNormalizer.JoinSoftHyphenBreaks(line)
+                         .Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries))
             {
                 var word = WordNormalizer.Normalize(raw);
                 if (word.Length == 0 || word.Length > 200) continue;

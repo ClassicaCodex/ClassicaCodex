@@ -137,4 +137,66 @@ public class WordOccurrenceTests
             Assert.InRange(start + length, start + 1, text.Length);
         }
     }
+
+    // ---- words broken across a printed line break -----------------------
+    //
+    // Migne carries the line breaks of the printed page in the text, as a
+    // soft hyphen and the space that followed it: 29.7% of the lines in
+    // patrologia-latina have at least one. The word index now joins those
+    // halves into one word, so the search finds them - and this file is the
+    // half that has to point at them once it does. Without these the fix
+    // would have handed the reader thousands of new Migne hits with nothing
+    // marked in any of them: the exact failure described at the top.
+
+    private const char Shy = (char)0x00AD;
+
+    /// <summary>
+    /// Both halves mark, and the page's line break between them does not -
+    /// it belongs to the printing, not to the word.
+    /// </summary>
+    [Fact]
+    public void BothHalvesOfABrokenWordAreMarked() =>
+        Assert.Equal(new[] { "gra", "tiam" }, Found($"per gra{Shy} tiam dei", "gratiam"));
+
+    /// <summary>
+    /// The word on either side of the break is not swept up with it.
+    /// </summary>
+    [Fact]
+    public void OnlyTheBrokenWordIsMarked() =>
+        Assert.Equal(new[] { "gra", "tiam" }, Found($"per gra{Shy} tiam dei nostri", "gratiam"));
+
+    /// <summary>
+    /// The halves are not words, so asking for one alone must not mark it.
+    /// The index no longer holds 'tiam' either - the two have to agree, or
+    /// the highlighter points at something no search could have returned.
+    /// </summary>
+    [Fact]
+    public void HalfOfABrokenWordIsNotAWord() => Assert.Empty(Found($"per gra{Shy} tiam dei", "tiam"));
+
+    /// <summary>
+    /// Same line, more than one break - the ordinary case in a passage that
+    /// is a whole section of printed page.
+    /// </summary>
+    [Fact]
+    public void EachBrokenWordInTheLineIsFoundSeparately() =>
+        Assert.Equal(
+            new[] { "sapien", "tia", "domum" },
+            Found($"sapien{Shy} tia aedificavit sibi domum", "sapientia domum"));
+
+    /// <summary>
+    /// Spans still have to slice the line they came from, now that one word
+    /// can produce two of them.
+    /// </summary>
+    [Fact]
+    public void TheSpansOfABrokenWordLieInsideTheText()
+    {
+        var text = $"⟨gra{Shy} tiam⟩, per gra{Shy}";
+        var targets = WordOccurrences.TargetsFor("gratiam");
+
+        foreach (var (start, length) in WordOccurrences.Find(text, targets))
+        {
+            Assert.InRange(start, 0, text.Length - 1);
+            Assert.InRange(start + length, start + 1, text.Length);
+        }
+    }
 }

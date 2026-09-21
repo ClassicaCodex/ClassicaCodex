@@ -808,15 +808,16 @@ public class TextNodeRepository
 
     /// <summary>
     /// The distinct words of a phrase in the shape the word index stores them.
-    /// Deliberately the same three steps as WordIndexService.TokenizeLine: a
-    /// lookup built any other way would not find what the index holds.
+    ///
+    /// This calls the tokenizer the index build itself uses rather than
+    /// repeating its steps, which is what it used to do: a lookup built any
+    /// other way would not find what the index holds. The soft-hyphen join
+    /// is the case that made the copy untenable - a phrase pasted out of a
+    /// Migne passage carries the printed page's line-break hyphens with it,
+    /// and has to be read back into words the same way the passage was.
     /// </summary>
-    private static List<string> IndexableWordsOf(string phrase) => phrase
-        .Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries)
-        .Select(WordNormalizer.Normalize)
-        .Where(w => w.Length > 0 && w.Length <= 200)
-        .Distinct(StringComparer.Ordinal)
-        .ToList();
+    private static List<string> IndexableWordsOf(string phrase) =>
+        WordNormalizer.TokenizeLine(phrase).ToList();
 
     /// <summary>
     /// Phrase search against the inverted index. Returns null (not an empty
