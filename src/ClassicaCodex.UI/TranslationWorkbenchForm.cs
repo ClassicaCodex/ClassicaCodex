@@ -745,7 +745,12 @@ public class TranslationWorkbenchForm : ScaledForm
     /// </summary>
     private static IEnumerable<string> SplitWords(string text)
     {
-        foreach (var raw in text.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries))
+        // Rejoined first, for the same reason Word Study does it: a word the
+        // printed page broke across two lines would otherwise arrive here as
+        // two fragments, and the workbench would ask the lemma data about
+        // both and find nothing for either.
+        foreach (var raw in ClassicaCodex.Core.WordNormalizer.JoinSoftHyphenBreaks(text)
+                     .Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries))
         {
             // Elision leaves an apostrophe that isn't part of the word -
             // stripping non-letters turns "d'" into "d", which is the form

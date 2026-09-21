@@ -398,7 +398,11 @@ public class WordStudyForm : ScaledForm
 
     private void PopulateWords(string text)
     {
-        var words = text
+        // Rejoined first. A word the printed page broke across two lines is
+        // "gra<SHY> tiam" in the text, and without this the list offered two
+        // entries, "gra" and "tiam", neither of which is a word and neither of
+        // which has a dictionary entry or a lemma to find.
+        var words = ClassicaCodex.Core.WordNormalizer.JoinSoftHyphenBreaks(text)
             .Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries)
             .Select(w => new string(w.Where(char.IsLetter).ToArray()))
             .Where(w => w.Length > 0)

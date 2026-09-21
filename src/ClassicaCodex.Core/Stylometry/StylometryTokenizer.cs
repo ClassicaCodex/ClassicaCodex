@@ -70,12 +70,24 @@ public static class StylometryTokenizer
 
     /// <summary>
     /// Every token in a piece of reading text, in order.
+    ///
+    /// The soft-hyphen join runs first, for the same reason the word index
+    /// needs it and with more at stake here. U+00AD is Unicode category Cf,
+    /// so \p{L}+ stops dead at it: "gra&lt;SHY&gt; tiam" is two tokens, and
+    /// in patrologia-latina, where 29.7% of lines carry one, the halves are
+    /// Latin word endings - 'tur', 'rum', 'bus', 'tione'. Delta weights by
+    /// frequency over the most common words, so a handful of invented
+    /// function-word-shaped tokens go straight to the top of the feature
+    /// list and the analysis starts measuring which corpus a text came from.
+    /// That is the same confound StripElisionMarks exists to remove, in a
+    /// coarser form: an artefact of how the text was digitised, read as
+    /// authorial style.
     /// </summary>
     public static List<string> Tokenize(string text, bool foldAccents)
     {
         var tokens = new List<string>();
 
-        foreach (Match m in WordPattern.Matches(text))
+        foreach (Match m in WordPattern.Matches(WordNormalizer.JoinSoftHyphenBreaks(text)))
         {
             var w = NormalizeToken(m.Value, foldAccents);
 

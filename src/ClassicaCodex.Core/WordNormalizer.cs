@@ -104,6 +104,68 @@ public static class WordNormalizer
     }
 
     /// <summary>
+    /// U+00AD SOFT HYPHEN: the hyphen a printed page puts at the end of a
+    /// line when a word runs over onto the next one.
+    /// </summary>
+    private const char SoftHyphen = (char)0x00AD;
+
+    /// <summary>
+    /// Rejoins words that a printed line break split in two.
+    ///
+    /// <b>This is a search-correctness fix, not a tidiness measure.</b> Migne
+    /// was digitised with the line breaks of the printed page left in the
+    /// text: "gratiam" set across two lines arrives as "gra&lt;SHY&gt; tiam".
+    /// 85,026 of the 286,531 Latin lines in patrologia-latina carry a soft
+    /// hyphen - 29.7% of the collection - and 99.9% of the 86,188 occurrences
+    /// corpus-wide are a soft hyphen followed by a space, which is exactly
+    /// this. Every other collection is clean: csel 120 nodes, perseus-latin 2,
+    /// first1k-greek 2, perseus-greek and menota none.
+    ///
+    /// Left alone the damage runs both ways. TokenizeLine splits on
+    /// whitespace, so the reader searching for the whole word misses every
+    /// broken occurrence of it in the whole of Migne; and the halves become
+    /// live index entries in its place. They are Latin word ENDINGS, and they
+    /// were sitting in the index in their thousands - 'tur' 12,692 rows, 'rum'
+    /// 12,284, 'bus' 8,198, 'runt' 3,672, 'tione' 3,365, 'tatem' 1,911,
+    /// 'niam' 1,674 - which is the worst possible shape for anything
+    /// frequency-based, the same way the detached punctuation fragments were
+    /// that TeiParser.AppendText exists to prevent.
+    ///
+    /// Only the whitespace needs skipping here. A soft hyphen with no space
+    /// after it (the other 0.1%) is already joined by Normalize, which keeps
+    /// letters and drops everything else - so both spellings of the break end
+    /// up as one word, which is the point.
+    /// </summary>
+    public static string JoinSoftHyphenBreaks(string text)
+    {
+        if (string.IsNullOrEmpty(text)) return text;
+
+        // Most lines have no soft hyphen at all, and this runs once per line
+        // over 2.3 million of them on every index build. Nothing is allocated
+        // for the 70% that come back here untouched.
+        var first = text.IndexOf(SoftHyphen);
+        if (first < 0) return text;
+
+        var sb = new StringBuilder(text.Length);
+        sb.Append(text, 0, first);
+
+        for (var i = first; i < text.Length; i++)
+        {
+            if (text[i] != SoftHyphen)
+            {
+                sb.Append(text[i]);
+                continue;
+            }
+
+            // Drop the hyphen and the line break it sat at the end of, so the
+            // two halves close up. The loop's own i++ moves past the hyphen.
+            while (i + 1 < text.Length && char.IsWhiteSpace(text[i + 1])) i++;
+        }
+
+        return sb.ToString();
+    }
+
+    /// <summary>
     /// The distinct indexable words in one line, exactly as the word index
     /// stores them.
     ///
@@ -121,9 +183,15 @@ public static class WordNormalizer
     /// is what keeps a run-on OCR artefact out of the index, and the pair
     /// (word, line) is the index's primary key, so a repeated word in one line
     /// is one row and must be offered for deletion once.
+    ///
+    /// The soft-hyphen pass has to come before the split rather than after
+    /// it - see JoinSoftHyphenBreaks. Once the whitespace has done its work
+    /// the two halves are separate tokens and nothing downstream can tell
+    /// them from two real words.
     /// </summary>
     public static IEnumerable<string> TokenizeLine(string text) =>
-        text.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries)
+        JoinSoftHyphenBreaks(text)
+            .Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries)
             .Select(Normalize)
             .Where(w => w.Length > 0 && w.Length <= 200)
             .Distinct(StringComparer.Ordinal);
