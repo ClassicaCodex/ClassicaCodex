@@ -89,6 +89,13 @@ public class GuidedSetupForm : ScaledForm
     /// </summary>
     private bool _closeWhenStopped;
 
+    /// <summary>
+    /// What the action button said before it became Cancel, so that ending the
+    /// step can put it back at once rather than leaving it to the RenderStep at
+    /// the far end of the finally block. See <see cref="SetNavEnabled"/>.
+    /// </summary>
+    private string _actionLabelBeforeStep = string.Empty;
+
     private System.Windows.Forms.Timer? _heartbeat;
     private DateTime _operationStart;
 
@@ -1301,7 +1308,21 @@ public class GuidedSetupForm : ScaledForm
 
     private void SetNavEnabled(bool enabled)
     {
-        if (enabled) _stepRunning = false;
+        if (enabled && _stepRunning)
+        {
+            _stepRunning = false;
+
+            // Restored HERE, not by the RenderStep at the end of the runner's
+            // finally block. Between the two there is an await on
+            // RefreshAllCompletionAsync, which counts distinct rows in the word
+            // index - twenty-four seconds on a full library, per the note in
+            // Load. For all of that the button still said "Cancel" while being
+            // enabled and _stepRunning already false, so pressing the button
+            // labelled Cancel started the download again. Reported as "the
+            // button still says Cancel after you hit cancel", which was the
+            // visible half of it.
+            if (_actionLabelBeforeStep.Length > 0) _actionButton.Text = _actionLabelBeforeStep;
+        }
 
         _actionButton.Enabled = enabled;
         _secondaryButton.Enabled = enabled;
@@ -1334,6 +1355,7 @@ public class GuidedSetupForm : ScaledForm
         SetNavEnabled(false);
 
         _stepRunning = true;
+        _actionLabelBeforeStep = _actionButton.Text;
         _actionButton.Enabled = true;
         _actionButton.Text = "Cancel";
     }
