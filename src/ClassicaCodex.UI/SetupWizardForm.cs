@@ -26,6 +26,13 @@ public class SetupWizardForm : ScaledForm
         public Func<Task<bool>> CheckComplete => Source.CheckComplete;
         public TextBox DestinationBox = null!;
         public Button ActionButton = null!;
+
+        /// <summary>
+        /// What the action button says when the row is idle. Held because the
+        /// button becomes Cancel while this row is running and has to be able
+        /// to say what it was again afterwards.
+        /// </summary>
+        public string ActionText = string.Empty;
         public Label StatusLabel = null!;
         public PictureBox StatusIcon = null!;
     }
@@ -40,6 +47,21 @@ public class SetupWizardForm : ScaledForm
     // folder and every later step reading another.
     private Button _dataFolderButton = null!;
     private CancellationTokenSource? _cts;
+
+    /// <summary>
+    /// The row whose fetch or ingest is running, or null when nothing is. It is
+    /// the row rather than a flag because that row's own button is the Cancel
+    /// button - see <see cref="SetAllRowsEnabled"/>.
+    /// </summary>
+    private WizardRow? _runningRow;
+
+    /// <summary>
+    /// Set when someone closes this window with a fetch running and confirms
+    /// that they want it stopped. The window stays up until it has actually
+    /// stopped, and then closes itself - so that its disappearance is the
+    /// answer to "did that stop?", which nothing else here could give.
+    /// </summary>
+    private bool _closeWhenStopped;
 
     // Used only to answer "has this actually been loaded already" for the
     // completion icons below - separate from the ingestion services inside
@@ -517,7 +539,19 @@ public class SetupWizardForm : ScaledForm
         };
 
         row.ActionButton = new Button { Text = "Fetch && Ingest", Left = 718, Top = y + 40, Width = 154, Height = 26 };
-        row.ActionButton.Click += async (_, _) => await RunRowAsync(row);
+        row.ActionText = row.ActionButton.Text;
+
+        // The running row's own button becomes Cancel; see SetAllRowsEnabled.
+        row.ActionButton.Click += async (_, _) =>
+        {
+            if (_runningRow != null)
+            {
+                if (ReferenceEquals(_runningRow, row)) CancelRun();
+                return;
+            }
+
+            await RunRowAsync(row);
+        };
 
         row.StatusLabel = new Label { Left = 12, Top = y + 72, Width = 860, Height = 20, ForeColor = Color.DarkSlateGray };
 
@@ -543,8 +577,11 @@ public class SetupWizardForm : ScaledForm
             return;
         }
 
-        SetAllRowsEnabled(false);
+        // Token first, so a Cancel arriving on the very first click has
+        // something to cancel.
         _cts = new CancellationTokenSource();
+        _runningRow = row;
+        SetAllRowsEnabled(false);
 
         var progress = new Progress<string>(message => row.StatusLabel.Text = message);
 
@@ -579,7 +616,7 @@ public class SetupWizardForm : ScaledForm
         }
         catch (OperationCanceledException)
         {
-            row.StatusLabel.Text = "Cancelled.";
+            row.StatusLabel.Text = "Stopped.";
         }
         catch (Exception ex)
         {
@@ -588,22 +625,112 @@ public class SetupWizardForm : ScaledForm
         }
         finally
         {
-            SetAllRowsEnabled(true);
-            await RefreshCompletionIconsAsync();
+            _runningRow = null;
+
+            if (_closeWhenStopped)
+            {
+                // The fetch has stopped, which is what the window was being
+                // held open to establish. See _closeWhenStopped.
+                Close();
+            }
+            else
+            {
+                SetAllRowsEnabled(true);
+                await RefreshCompletionIconsAsync();
+            }
         }
     }
 
+    /// <summary>
+    /// Every row's action button, except the one belonging to the step that is
+    /// running - that one stays live and says Cancel.
+    ///
+    /// Until 3.10.1 it was disabled with the rest, which left this window with
+    /// nothing to press while a fetch ran. The token was already threaded
+    /// through the download and the ingest, and the catch for
+    /// OperationCanceledException was already here reporting "Cancelled." -
+    /// nothing ever called Cancel.
+    /// </summary>
     private void SetAllRowsEnabled(bool enabled)
     {
         foreach (var row in _rows)
         {
-            row.ActionButton.Enabled = enabled;
+            var isRunningRow = ReferenceEquals(row, _runningRow);
+
+            row.ActionButton.Enabled = enabled || isRunningRow;
+            row.ActionButton.Text = isRunningRow && !enabled ? "Cancel" : row.ActionText;
+            row.DestinationBox.Enabled = enabled;
         }
 
         // Along with the rows, because changing the download folder closes this
         // window - and closing it mid-fetch would take the progress display
         // away from a download that carried on running.
         _dataFolderButton.Enabled = enabled;
+    }
+
+    /// <summary>
+    /// Asks the running fetch or ingest to stop. The runner already reports
+    /// "Cancelled." on the row when it does.
+    /// </summary>
+    private void CancelRun()
+    {
+        if (_cts is null || _cts.IsCancellationRequested) return;
+
+        if (_runningRow != null)
+        {
+            _runningRow.ActionButton.Enabled = false;
+            _runningRow.StatusLabel.Text = "Stopping...";
+        }
+
+        _cts.Cancel();
+    }
+
+    /// <summary>
+    /// Closing this window stops what it is running, and asks before it does.
+    ///
+    /// The comment on SetAllRowsEnabled has always said that closing mid-fetch
+    /// "would take the progress display away from a download that carried on
+    /// running" - which is precisely what the X did, because nothing cancelled
+    /// the token. The download folder button was locked to prevent it; the
+    /// window's own close box was not.
+    /// </summary>
+    protected override void OnFormClosing(FormClosingEventArgs e)
+    {
+        // Only a click on the X waits. Windows shutting down does not get held
+        // up while a clone unwinds.
+        if (_runningRow != null && e.CloseReason == CloseReason.UserClosing)
+        {
+            if (!_closeWhenStopped)
+            {
+                var stop = MessageBox.Show(
+                    this,
+                    $"{_runningRow.Title} is still running. Closing this window stops it."
+                    + Environment.NewLine + Environment.NewLine
+                    + "Whatever has already been installed is kept, and the step can be run again later."
+                    + Environment.NewLine + Environment.NewLine
+                    + "The window stays up until it has actually stopped, which can take a few "
+                    + "seconds, and then closes itself.",
+                    "Stop and close?", MessageBoxButtons.YesNo, MessageBoxIcon.Question,
+                    MessageBoxDefaultButton.Button2);
+
+                if (stop != DialogResult.Yes)
+                {
+                    e.Cancel = true;
+                    base.OnFormClosing(e);
+                    return;
+                }
+
+                _closeWhenStopped = true;
+                CancelRun();
+            }
+
+            // Held open until the runner's finally calls Close.
+            e.Cancel = true;
+            base.OnFormClosing(e);
+            return;
+        }
+
+        base.OnFormClosing(e);
     }
 
     /// <summary>

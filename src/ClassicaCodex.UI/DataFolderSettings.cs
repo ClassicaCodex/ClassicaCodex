@@ -58,16 +58,22 @@ public static class DataFolderSettings
         {
             if (_chosenThisSession != null) return _chosenThisSession;
 
+            // SuggestedRoot rather than DefaultRoot for the fallbacks, so that
+            // the box, the status line, the tick and the downloads themselves
+            // cannot disagree about where a machine with no preference is
+            // going to put nine gigabytes. It answers DefaultRoot in every case
+            // except one: a default folder that is inside a synced folder and
+            // does not exist yet. See SuggestedRoot.
             try
             {
-                if (!File.Exists(PreferenceFile)) return DefaultRoot;
+                if (!File.Exists(PreferenceFile)) return SuggestedRoot;
 
                 var stored = File.ReadAllText(PreferenceFile).Trim();
-                return stored.Length == 0 ? DefaultRoot : stored;
+                return stored.Length == 0 ? SuggestedRoot : stored;
             }
             catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
             {
-                return DefaultRoot;
+                return SuggestedRoot;
             }
         }
         set
@@ -101,6 +107,134 @@ public static class DataFolderSettings
     /// </summary>
     public static string DefaultRoot => Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "ClassicaCodexData");
+
+    /// <summary>
+    /// What to put in the box on a machine that has never chosen - which is not
+    /// always <see cref="DefaultRoot"/>.
+    ///
+    /// <b>MyDocuments is not always in Documents.</b> On a Windows 11 install
+    /// signed into a Microsoft account, OneDrive folder backup is on by default
+    /// and the known folder is redirected, so MyDocuments resolves to
+    /// %USERPROFILE%\OneDrive\Documents. The default download folder is then
+    /// inside a synced folder, and the corpus steps put about nine gigabytes of
+    /// small XML files into it - tens of thousands of them - which OneDrive
+    /// then starts uploading to an account whose free tier is five.
+    ///
+    /// What that costs someone is quota warnings, their other backed-up files
+    /// silently ceasing to sync, and on a metered connection an actual bill,
+    /// ten minutes after installing a reading application. The free-space check
+    /// cannot see it coming either: it asks DriveInfo about the local disk and
+    /// reports "250 GB free" quite correctly.
+    ///
+    /// None of this is worth syncing in any case. These folders hold downloaded
+    /// source files that can be fetched again at any time; the library built
+    /// from them is in the database, which lives under LocalApplicationData and
+    /// is never redirected.
+    ///
+    /// <b>Only when there is nothing there yet.</b> If the default folder
+    /// already exists this returns it unchanged, because an install that has
+    /// been downloading into a synced Documents for months should not be
+    /// silently pointed somewhere empty. <see cref="DefaultRoot"/> itself is
+    /// untouched for the same reason - it is what Root falls back to when no
+    /// preference was ever written, so moving it would move existing installs.
+    /// </summary>
+    public static string SuggestedRoot
+    {
+        get
+        {
+            var standard = DefaultRoot;
+
+            if (CloudSyncedBy(standard) == null) return standard;
+
+            try
+            {
+                if (Directory.Exists(standard)) return standard;
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+                return standard;
+            }
+
+            // The profile root is visible, writable without elevation, and the
+            // one place a known-folder redirection cannot follow.
+            return Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "ClassicaCodexData");
+        }
+    }
+
+    /// <summary>
+    /// The name of the service syncing this folder to the cloud, or null if
+    /// nothing appears to be.
+    ///
+    /// OneDrive is asked about by environment variable, which is what it sets
+    /// for its own configured roots and is reliable whether or not the folder
+    /// is called OneDrive. The others are recognised by their folder name,
+    /// which is weaker but only ever produces a note - nothing is refused on
+    /// the strength of it, so a false positive costs a sentence and a false
+    /// negative costs what it cost before this existed.
+    /// </summary>
+    public static string? CloudSyncedBy(string? folder)
+    {
+        if (string.IsNullOrWhiteSpace(folder)) return null;
+
+        string full;
+        try
+        {
+            full = Path.GetFullPath(folder);
+        }
+        catch (Exception ex) when (ex is ArgumentException or NotSupportedException
+                                      or PathTooLongException or System.Security.SecurityException)
+        {
+            return null;
+        }
+
+        foreach (var variable in new[] { "OneDriveConsumer", "OneDriveCommercial", "OneDrive" })
+        {
+            var root = Environment.GetEnvironmentVariable(variable);
+            if (!string.IsNullOrWhiteSpace(root) && IsUnder(full, root)) return "OneDrive";
+        }
+
+        foreach (var segment in full.Split(
+                     new[] { Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar },
+                     StringSplitOptions.RemoveEmptyEntries))
+        {
+            // Equals, or the business naming - "OneDrive - Contoso". Not a
+            // bare StartsWith, which claims OneDriveBackup as well and would
+            // tell someone their ordinary folder is being uploaded.
+            if (segment.Equals("OneDrive", StringComparison.OrdinalIgnoreCase)
+                || segment.StartsWith("OneDrive - ", StringComparison.OrdinalIgnoreCase)) return "OneDrive";
+            if (segment.Equals("Dropbox", StringComparison.OrdinalIgnoreCase)) return "Dropbox";
+            if (segment.Equals("Google Drive", StringComparison.OrdinalIgnoreCase)) return "Google Drive";
+            if (segment.Equals("iCloudDrive", StringComparison.OrdinalIgnoreCase)) return "iCloud Drive";
+        }
+
+        return null;
+    }
+
+    /// <summary>
+    /// Whether one path sits inside another. Compared segment-wise via a
+    /// trailing separator, so C:\Users\x\OneDriveBackup is not read as being
+    /// inside C:\Users\x\OneDrive.
+    /// </summary>
+    private static bool IsUnder(string path, string candidateParent)
+    {
+        try
+        {
+            var parent = Path.GetFullPath(candidateParent)
+                .TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)
+                         + Path.DirectorySeparatorChar;
+
+            var child = path.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)
+                        + Path.DirectorySeparatorChar;
+
+            return child.StartsWith(parent, StringComparison.OrdinalIgnoreCase);
+        }
+        catch (Exception ex) when (ex is ArgumentException or NotSupportedException
+                                      or PathTooLongException or System.Security.SecurityException)
+        {
+            return false;
+        }
+    }
 
     /// <summary>Whether a folder has been chosen, as opposed to inherited.</summary>
     public static bool IsCustom =>

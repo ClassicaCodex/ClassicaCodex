@@ -59,8 +59,9 @@ animation, sample by sample, never a drawn path.
 
 The engine reproduces Ptolemy's own worked example — Toomer's Appendix A,
 Example 14, Mars on Nabonassar 886 — at every intermediate step, reaching a true
-longitude of `241;34,31` against the `241;35` his tables give and the `241;36` he
-recorded observing. That is agreement to within a second of arc.
+longitude of `241;34,30` against the `241;35` his tables give and the `241;36` he
+recorded observing. His tables are printed to the arcminute, so that is half an
+arcminute out: agreement to the precision he wrote down.
 
 Two identities in his tables hold exactly, to the last digit he gives: for
 Saturn, Jupiter and Mars, the mean motion in longitude plus the mean motion in

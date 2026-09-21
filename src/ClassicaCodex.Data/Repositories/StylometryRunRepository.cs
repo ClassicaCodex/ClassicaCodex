@@ -436,21 +436,44 @@ public class StylometryRunRepository
     }
 
     /// <summary>
-    /// Deletes every run matching a target and settings profile. Used before a
+    /// Deletes every run for one author at one settings profile. Used before a
     /// batch re-run so repeated batches do not accumulate duplicates that would
     /// then be averaged into the same reference distribution.
+    ///
+    /// <b>The author clause is the whole point, and it was missing until
+    /// 3.10.1.</b> This was called DeleteRunsForSettingsAsync and filtered on
+    /// language and settings alone, so a batch did not clear the author about
+    /// to be re-run - it cleared every saved run in that language at those
+    /// settings, whoever they belonged to.
+    ///
+    /// The settings form resets to its constants every time it opens, so two
+    /// authors batched one after another always share a profile. Batch
+    /// Sophocles, batch Euripides, and the seven Sophocles runs were deleted
+    /// with their results and features cascading after them - silently, with no
+    /// count reported, no undo, and no delete-run command anywhere in the UI to
+    /// have made the loss expected. Each one costs a full corpus pass to
+    /// rebuild, and comparing authors across saved runs is the reason Compare
+    /// Saved Runs exists, so this fired the first time anyone used the feature
+    /// as intended.
+    ///
+    /// Nothing else called it, and the duplicate-run problem it was written for
+    /// is per-author anyway: batching an author twice duplicates that author's
+    /// works, not anyone else's.
     /// </summary>
-    public async Task DeleteRunsForSettingsAsync(
-        string language, StylometrySettings settings, CancellationToken cancellationToken = default)
+    public async Task DeleteRunsForAuthorAndSettingsAsync(
+        string language, string targetAuthorName, StylometrySettings settings,
+        CancellationToken cancellationToken = default)
     {
         await using var conn = await DbConnectionFactory.OpenConnectionAsync(cancellationToken);
         await using var cmd = conn.CreateCommand();
         cmd.CommandText = @"
             DELETE FROM StylometryRuns
-            WHERE Language = @Language AND FeatureWordCount = @Features AND FoldAccents = @Fold
+            WHERE Language = @Language AND TargetAuthorName = @TargetAuthorName
+              AND FeatureWordCount = @Features AND FoldAccents = @Fold
               AND StripElisionMarks = @Strip AND AlgorithmVersion = @AlgVersion
               AND COALESCE(ChunkSize, 0) = @ChunkSize;";
         cmd.Parameters.AddWithValue("@Language", language);
+        cmd.Parameters.AddWithValue("@TargetAuthorName", targetAuthorName);
         cmd.Parameters.AddWithValue("@Features", settings.FeatureWordCount);
         cmd.Parameters.AddWithValue("@Fold", settings.FoldAccents ? 1 : 0);
         cmd.Parameters.AddWithValue("@Strip", settings.StripElisionMarks ? 1 : 0);

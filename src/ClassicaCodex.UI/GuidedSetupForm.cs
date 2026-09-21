@@ -63,6 +63,39 @@ public class GuidedSetupForm : ScaledForm
     private long _totalLines;
 
     private CancellationTokenSource? _cts;
+
+    /// <summary>
+    /// True from the moment a step starts until its finally block runs. Decides
+    /// what the action button does when clicked and whether closing the window
+    /// has to ask first - see <see cref="SetNavEnabled"/>.
+    /// </summary>
+    private bool _stepRunning;
+
+    /// <summary>
+    /// Set when someone closes the window with a step running and confirms that
+    /// they want it stopped. The window then stays up until the step has
+    /// actually stopped, and closes itself.
+    ///
+    /// <b>Because "did it stop?" had no answer.</b> The first version of this
+    /// cancelled and let the window go immediately, which looks exactly like
+    /// cancelling and letting the window go while the work carries on - the
+    /// behaviour it replaced. The person closing it was told the step would
+    /// stop and given nothing to check that against.
+    ///
+    /// Waiting makes the window's own disappearance the signal, and it removes
+    /// the other problem in one move: the runners restore the whole step panel
+    /// in a finally block, and that block can no longer run against a window
+    /// that has been disposed.
+    /// </summary>
+    private bool _closeWhenStopped;
+
+    /// <summary>
+    /// What the action button said before it became Cancel, so that ending the
+    /// step can put it back at once rather than leaving it to the RenderStep at
+    /// the far end of the finally block. See <see cref="SetNavEnabled"/>.
+    /// </summary>
+    private string _actionLabelBeforeStep = string.Empty;
+
     private System.Windows.Forms.Timer? _heartbeat;
     private DateTime _operationStart;
 
@@ -298,7 +331,23 @@ public class GuidedSetupForm : ScaledForm
         }
 
         _actionButton = new Button { Left = 0, Top = 172, Width = 280, Height = 38 };
-        _actionButton.Click += async (_, _) => await RunCurrentStepActionAsync();
+
+        // Doubles as Cancel while a step is running, rather than a second
+        // button appearing beside it. Two reasons. The button that started the
+        // step is where someone looks to stop it; and this panel's layout is
+        // rewritten coordinate by coordinate in RenderStep, every one of them
+        // scaled by hand, so a new control here is a new row of arithmetic to
+        // get wrong at 150% - which is exactly what 3.8.1 was for.
+        _actionButton.Click += async (_, _) =>
+        {
+            if (_stepRunning)
+            {
+                CancelStep();
+                return;
+            }
+
+            await RunCurrentStepActionAsync();
+        };
 
         // Only sources that declare one show this; it stays hidden otherwise,
         // which is every source but Menota today.
@@ -906,7 +955,13 @@ public class GuidedSetupForm : ScaledForm
     {
         if (!_dataFolderComplete) return "Error";
 
-        var freeGb = DataFolderSettings.FreeGigabytesAt(DataFolderSettings.Root);
+        var root = DataFolderSettings.Root;
+
+        // A synced folder is a warning however much local room it has, which
+        // is the whole point: the drive is not what runs out.
+        if (DataFolderSettings.CloudSyncedBy(root) != null) return "Warning";
+
+        var freeGb = DataFolderSettings.FreeGigabytesAt(root);
 
         // Unknown free space is not a warning. A network path cannot answer,
         // and refusing to tick a folder for being unmeasurable would flag the
@@ -920,6 +975,19 @@ public class GuidedSetupForm : ScaledForm
     {
         var root = DataFolderSettings.Root;
         var freeGb = DataFolderSettings.FreeGigabytesAt(root);
+
+        // Before the free-space line, not after it, because the free-space
+        // line is the reassuring one and it is measuring the wrong thing here -
+        // DriveInfo reports the local disk and knows nothing about a sync
+        // quota. See DataFolderSettings.SuggestedRoot.
+        var synced = DataFolderSettings.CloudSyncedBy(root);
+        if (synced != null)
+        {
+            return $"{root} is synced by {synced}. The downloads are about " +
+                   $"{DataFolderSettings.FullSetGigabytes:N0} GB in tens of thousands of small files, " +
+                   $"and {synced} would upload all of it. Choose a folder outside it - nothing here " +
+                   "needs backing up, because your library lives in the database, not in this folder.";
+        }
 
         if (freeGb == null) return $"Ready: {root}{TemporaryDriveNote(root)}";
 
@@ -1073,8 +1141,10 @@ public class GuidedSetupForm : ScaledForm
         Func<string, IProgress<string>, CancellationToken, Task<IngestOutcome>> action,
         bool fetch)
     {
-        SetNavEnabled(false);
+        // Token before the button, so a Cancel arriving on the very first
+        // click has something to cancel.
         _cts = new CancellationTokenSource();
+        BeginCancellableStep();
         _progressBar.Style = ProgressBarStyle.Marquee;
         StartHeartbeat();
 
@@ -1126,7 +1196,7 @@ public class GuidedSetupForm : ScaledForm
         }
         catch (OperationCanceledException)
         {
-            _statusLabel.Text = "Cancelled.";
+            _statusLabel.Text = "Stopped.";
         }
         catch (Exception ex)
         {
@@ -1138,30 +1208,42 @@ public class GuidedSetupForm : ScaledForm
         finally
         {
             StopHeartbeat();
-            _progressBar.Style = ProgressBarStyle.Blocks;
-            SetNavEnabled(true);
-            await RefreshAllCompletionAsync();
 
-            // RenderStep rewrites the status label from the step's completion
-            // state and clears the log, which is right when arriving at a step
-            // and wrong the instant a run has just finished: it replaced the
-            // result of the run - the count of skipped files, the plan names
-            // to go and confirm - with "Not loaded yet." The step looked like
-            // it had done nothing, on every run, however much it had done.
-            var finalStatus = _statusLabel.Text;
-            var finalLog = _outputBox.Text;
+            if (_closeWhenStopped)
+            {
+                // The step has stopped, which is the thing the window was being
+                // held open to establish. Repainting it now would only be a
+                // flicker before it goes. See _closeWhenStopped.
+                _stepRunning = false;
+                Close();
+            }
+            else
+            {
+                _progressBar.Style = ProgressBarStyle.Blocks;
+                SetNavEnabled(true);
+                await RefreshAllCompletionAsync();
 
-            RenderStep();
+                // RenderStep rewrites the status label from the step's completion
+                // state and clears the log, which is right when arriving at a step
+                // and wrong the instant a run has just finished: it replaced the
+                // result of the run - the count of skipped files, the plan names
+                // to go and confirm - with "Not loaded yet." The step looked like
+                // it had done nothing, on every run, however much it had done.
+                var finalStatus = _statusLabel.Text;
+                var finalLog = _outputBox.Text;
 
-            _statusLabel.Text = finalStatus;
-            if (_outputBox.Visible) _outputBox.Text = finalLog;
+                RenderStep();
+
+                _statusLabel.Text = finalStatus;
+                if (_outputBox.Visible) _outputBox.Text = finalLog;
+            }
         }
     }
 
     private async Task RunWordIndexAsync()
     {
-        SetNavEnabled(false);
         _cts = new CancellationTokenSource();
+        BeginCancellableStep();
         _progressBar.Style = ProgressBarStyle.Marquee;
         StartHeartbeat();
 
@@ -1189,7 +1271,7 @@ public class GuidedSetupForm : ScaledForm
         }
         catch (OperationCanceledException)
         {
-            _statusLabel.Text = "Cancelled.";
+            _statusLabel.Text = "Stopped.";
         }
         catch (Exception ex)
         {
@@ -1201,18 +1283,156 @@ public class GuidedSetupForm : ScaledForm
         finally
         {
             StopHeartbeat();
-            _progressBar.Style = ProgressBarStyle.Blocks;
-            SetNavEnabled(true);
-            await RefreshAllCompletionAsync();
-            RenderStep();
+
+            if (_closeWhenStopped)
+            {
+                _stepRunning = false;
+                Close();
+            }
+            else
+            {
+                _progressBar.Style = ProgressBarStyle.Blocks;
+                SetNavEnabled(true);
+                await RefreshAllCompletionAsync();
+
+                // Preserved across RenderStep for the same reason the source
+                // runner preserves it: RenderStep rewrites the status from the
+                // step's completion state, which threw away the one word the
+                // person who pressed Cancel was waiting to read.
+                var finalStatus = _statusLabel.Text;
+                RenderStep();
+                _statusLabel.Text = finalStatus;
+            }
         }
     }
 
     private void SetNavEnabled(bool enabled)
     {
+        if (enabled && _stepRunning)
+        {
+            _stepRunning = false;
+
+            // Restored HERE, not by the RenderStep at the end of the runner's
+            // finally block. Between the two there is an await on
+            // RefreshAllCompletionAsync, which counts distinct rows in the word
+            // index - twenty-four seconds on a full library, per the note in
+            // Load. For all of that the button still said "Cancel" while being
+            // enabled and _stepRunning already false, so pressing the button
+            // labelled Cancel started the download again. Reported as "the
+            // button still says Cancel after you hit cancel", which was the
+            // visible half of it.
+            if (_actionLabelBeforeStep.Length > 0) _actionButton.Text = _actionLabelBeforeStep;
+        }
+
         _actionButton.Enabled = enabled;
+        _secondaryButton.Enabled = enabled;
         _backButton.Enabled = enabled && _currentStep > 0;
         _nextButton.Enabled = enabled;
+    }
+
+    /// <summary>
+    /// Starts a step that can be stopped, leaving its own button live as the
+    /// Cancel button.
+    ///
+    /// Separate from <see cref="SetNavEnabled"/> because only two of the four
+    /// things this form waits on are cancellable. Preparing the database and
+    /// recounting completion after a folder move both finish on their own in
+    /// well under a second and hold no token; offering to cancel those would be
+    /// a button that says it can stop something it cannot.
+    ///
+    /// Until 3.10.1 there was no such button at all. Every long step disabled
+    /// Back, Next and its own action button, leaving the window with nothing
+    /// enabled for as long as the step took - and the longest of them says on
+    /// its own face that it is about an hour. The token existed and was
+    /// threaded through every download and ingest; nothing ever cancelled it.
+    ///
+    /// The label is not restored here. Both runners call RenderStep from the
+    /// same finally block that re-enables navigation, and RenderStep writes the
+    /// step's own label back over "Cancel".
+    /// </summary>
+    private void BeginCancellableStep()
+    {
+        SetNavEnabled(false);
+
+        _stepRunning = true;
+        _actionLabelBeforeStep = _actionButton.Text;
+        _actionButton.Enabled = true;
+        _actionButton.Text = "Cancel";
+    }
+
+    /// <summary>
+    /// Asks the running step to stop. Both runners already catch
+    /// OperationCanceledException and report "Cancelled." - this is only the
+    /// thing that was missing to make them do it.
+    ///
+    /// The button is disabled rather than left live, so a second click cannot
+    /// arrive while the step is unwinding; the finally block re-enables it.
+    /// </summary>
+    private void CancelStep()
+    {
+        if (_cts is null || _cts.IsCancellationRequested) return;
+
+        _actionButton.Enabled = false;
+        _statusLabel.Text = "Stopping...";
+        _cts.Cancel();
+    }
+
+    /// <summary>
+    /// Closing the window stops the work, and says so first.
+    ///
+    /// It did neither. The form was disposed while the download or the ingest
+    /// carried on against a token nobody had cancelled - still filling the
+    /// download folder, still writing to the same SQLite file MainForm was
+    /// about to open, with no progress shown anywhere because the window
+    /// showing it was gone. On a first run that is up to an hour and several
+    /// gigabytes after the person believes they stopped it, and Task Manager is
+    /// the only remaining way out.
+    ///
+    /// The question is asked rather than assumed because the other reading is
+    /// just as likely: someone who has waited forty minutes for a corpus and
+    /// hits the wrong button should not lose it to a silent close.
+    /// </summary>
+    protected override void OnFormClosing(FormClosingEventArgs e)
+    {
+        // Only for someone clicking the X. Windows shutting down or Task
+        // Manager ending the process is not a close that can be held up to wait
+        // for a download to unwind politely.
+        if (_stepRunning && e.CloseReason == CloseReason.UserClosing)
+        {
+            if (!_closeWhenStopped)
+            {
+                var stop = MessageBox.Show(
+                    this,
+                    "A setup step is still running. Closing this window stops it."
+                    + Environment.NewLine + Environment.NewLine
+                    + "Whatever it has already installed is kept, and you can run the step again "
+                    + "later from Setup Wizard."
+                    + Environment.NewLine + Environment.NewLine
+                    + "The window stays up until the step has actually stopped, which can take a "
+                    + "few seconds, and then closes itself.",
+                    "Stop and close?", MessageBoxButtons.YesNo, MessageBoxIcon.Question,
+                    MessageBoxDefaultButton.Button2);
+
+                if (stop != DialogResult.Yes)
+                {
+                    e.Cancel = true;
+                    base.OnFormClosing(e);
+                    return;
+                }
+
+                _closeWhenStopped = true;
+                CancelStep();
+            }
+
+            // Held open either way - this is the first X, having just asked, or
+            // an impatient second one. The runner's finally calls Close when the
+            // step has genuinely stopped. See _closeWhenStopped.
+            e.Cancel = true;
+            base.OnFormClosing(e);
+            return;
+        }
+
+        base.OnFormClosing(e);
     }
 
     /// <summary>

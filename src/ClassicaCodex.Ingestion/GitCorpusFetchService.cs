@@ -51,12 +51,50 @@ public class GitCorpusFetchService
                                     $"{tp.ReceivedBytes / 1024 / 1024} MB",
                                     0));
                                 return !cancellationToken.IsCancellationRequested;
-                            }
+                            },
+
+                            // The transfer callback only fires once objects
+                            // start arriving, and the server can spend a long
+                            // time counting them first on a corpus this size.
+                            // This one fires during that, so Cancel is noticed
+                            // then rather than whenever the first packet lands.
+                            OnProgress = _ => !cancellationToken.IsCancellationRequested
                         }
                     };
 
                     if (depth.HasValue) options.FetchOptions.Depth = depth.Value;
                     return options;
+                }
+
+                // A clone that reports a cancellation as a cancellation.
+                //
+                // THIS IS WHAT MADE CANCEL START A BIGGER DOWNLOAD INSTEAD OF
+                // STOPPING. A progress callback returning false is how libgit2
+                // is told to abort, and LibGit2Sharp surfaces that as
+                // UserCancelledException - which derives from
+                // LibGit2SharpException, the very type the shallow-clone
+                // fallback below catches. So pressing Cancel aborted the
+                // shallow clone, was read as "this server cannot do shallow",
+                // and was answered by deleting the partial download and
+                // starting a FULL clone of the same repository. The status line
+                // said "fetching in full instead" and the machine went back to
+                // work on something several times larger.
+                //
+                // It could not have been found by reading either piece alone.
+                // The token was threaded through correctly and the fallback was
+                // right about every failure that had ever happened to it;
+                // nothing had ever cancelled, because until 3.10.1 no button
+                // called Cancel.
+                void CloneWith(int? depth)
+                {
+                    try
+                    {
+                        Repository.Clone(repoUrl, tempClonePath, BuildCloneOptions(depth));
+                    }
+                    catch (LibGit2SharpException) when (cancellationToken.IsCancellationRequested)
+                    {
+                        throw new OperationCanceledException(cancellationToken);
+                    }
                 }
 
                 // Depth 1 - only the tip commit, none of the history behind
@@ -75,17 +113,22 @@ public class GitCorpusFetchService
                 // always worked rather than failing setup outright.
                 try
                 {
-                    Repository.Clone(repoUrl, tempClonePath, BuildCloneOptions(depth: 1));
+                    CloneWith(depth: 1);
                 }
                 catch (LibGit2SharpException)
                 {
+                    // Not reached on a cancellation: CloneWith converts that to
+                    // OperationCanceledException, which is not a
+                    // LibGit2SharpException and so passes straight through here
+                    // rather than being mistaken for a server that cannot do
+                    // shallow clones. See CloneWith.
                     progress?.Report(new FetchProgress(
                         "Shallow download unavailable for this repository - fetching in full instead...", 0));
 
                     // A failed clone can leave a partial directory behind,
                     // and Repository.Clone refuses a non-empty target.
                     TryDeleteDirectory(tempClonePath);
-                    Repository.Clone(repoUrl, tempClonePath, BuildCloneOptions(depth: null));
+                    CloneWith(depth: null);
                 }
 
                 cancellationToken.ThrowIfCancellationRequested();
