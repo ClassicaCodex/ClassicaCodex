@@ -109,5 +109,5 @@ entirely. The table above is the corrected count.
 The download is not code-signed, so if you would rather check it than trust it:
 
 ```
-SHA-256  (recorded after publishing)
+SHA-256  A57C3964B94B7C0D7751102D83FCD59C007152900067499F44AF292B10C03531
 ```
