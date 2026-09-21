@@ -118,3 +118,9 @@ the engine agrees with them to the precision he wrote down. Corrected here and o
 the 3.10.0 page.
 
 1,452 tests, zero warnings.
+
+The download is not code-signed, so if you would rather check it than trust it:
+
+```
+SHA-256  C4B2FF2DDD9749B237A1C41B0090B49A9EACBDC955589AFDE41E3A91D6426D6F
+```
