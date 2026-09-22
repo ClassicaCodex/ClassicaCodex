@@ -26,12 +26,24 @@ public static class WordNormalizer
         var decomposed = word.Normalize(NormalizationForm.FormD);
         var sb = new StringBuilder(decomposed.Length);
 
-        foreach (var ch in decomposed)
+        // Runes, not chars. A char is a UTF-16 code unit, and every Egyptian
+        // hieroglyph and cuneiform sign is a surrogate pair - two code units,
+        // neither of which is a letter on its own. Walking this by char drops
+        // both halves and returns the empty string, so a word index built over
+        // such a text is built successfully and contains nothing. See
+        // LetterRuns for the measurement and the fuller note.
+        //
+        // For Greek and Latin this is the same walk it always was: every
+        // letter and every combining mark in those scripts is a single code
+        // unit, so each one is its own rune. EnumerateRunes is a struct
+        // enumerator and allocates nothing, which matters because this runs
+        // once per word across a multi-million-line index build.
+        foreach (var rune in decomposed.EnumerateRunes())
         {
-            if (CharUnicodeInfo.GetUnicodeCategory(ch) == UnicodeCategory.NonSpacingMark) continue;
-            if (!char.IsLetter(ch)) continue;
+            if (Rune.GetUnicodeCategory(rune) == UnicodeCategory.NonSpacingMark) continue;
+            if (!Rune.IsLetter(rune)) continue;
 
-            var lower = char.ToLowerInvariant(ch);
+            var lower = Rune.ToLowerInvariant(rune);
 
             // Final sigma and medial sigma are the same letter positionally,
             // so fold them together or λόγος won't match λόγοσ-stemmed data.
@@ -49,7 +61,7 @@ public static class WordNormalizer
             // ToLowerInvariant has already turned capital lunate sigma
             // (U+03F9) into this one, the same way it turns Σ into σ, so
             // only the lowercase form needs naming here.
-            if (lower is 'ς' or 'ϲ') lower = 'σ';
+            if (lower.Value is 'ς' or 'ϲ') lower = new Rune('σ');
 
             sb.Append(lower);
         }

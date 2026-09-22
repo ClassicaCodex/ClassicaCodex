@@ -12,7 +12,11 @@ namespace ClassicaCodex.Core.Stylometry;
 /// </summary>
 public static class StylometryTokenizer
 {
-    private static readonly Regex WordPattern = new(@"\p{L}+", RegexOptions.Compiled);
+    // Was a \p{L}+ regex. .NET's regex engine matches 16-bit code units, so
+    // \p{L} cannot see a letter that lives outside the Basic Multilingual
+    // Plane - which is every Egyptian hieroglyph and every cuneiform sign.
+    // LetterRuns walks runes instead and accepts exactly the categories
+    // \p{L} does, so Greek and Latin tokenize identically. See LetterRuns.
 
     /// <summary>
     /// Removes elision apostrophes so that δ' and δε count as the same token.
@@ -26,10 +30,10 @@ public static class StylometryTokenizer
     /// It has to happen here rather than being left to the regex or to
     /// WordNormalizer, because both let it through:
     ///
-    ///   - The regex above matches \p{L}+, and U+02BC MODIFIER LETTER
-    ///     APOSTROPHE is Unicode category Lm, which is a Letter category. So
-    ///     \p{L} captures it as part of the word.
-    ///   - WordNormalizer.Normalize filters on char.IsLetter, which returns
+    ///   - The letter scan above keeps every Letter category, and U+02BC
+    ///     MODIFIER LETTER APOSTROPHE is Unicode category Lm, which is one of
+    ///     them. So it is captured as part of the word.
+    ///   - WordNormalizer.Normalize filters on Rune.IsLetter, which returns
     ///     true for Lm for the same reason. It strips combining marks and folds
     ///     final sigma, but the apostrophe survives.
     ///
@@ -73,7 +77,7 @@ public static class StylometryTokenizer
     ///
     /// The soft-hyphen join runs first, for the same reason the word index
     /// needs it and with more at stake here. U+00AD is Unicode category Cf,
-    /// so \p{L}+ stops dead at it: "gra&lt;SHY&gt; tiam" is two tokens, and
+    /// so the letter scan stops dead at it: "gra&lt;SHY&gt; tiam" is two tokens, and
     /// in patrologia-latina, where 29.7% of lines carry one, the halves are
     /// Latin word endings - 'tur', 'rum', 'bus', 'tione'. Delta weights by
     /// frequency over the most common words, so a handful of invented
@@ -87,9 +91,9 @@ public static class StylometryTokenizer
     {
         var tokens = new List<string>();
 
-        foreach (Match m in WordPattern.Matches(WordNormalizer.JoinSoftHyphenBreaks(text)))
+        foreach (var word in LetterRuns.Words(WordNormalizer.JoinSoftHyphenBreaks(text)))
         {
-            var w = NormalizeToken(m.Value, foldAccents);
+            var w = NormalizeToken(word, foldAccents);
 
             // Normalize drops everything that isn't a letter, so a token
             // consisting only of marks can come back empty. Counting those
