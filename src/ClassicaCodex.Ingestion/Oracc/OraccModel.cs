@@ -68,8 +68,54 @@ public sealed class OraccText
     /// <summary>"Q003414". Q numbers are composite texts, P numbers physical objects.</summary>
     public string TextId { get; init; } = string.Empty;
 
-    /// <summary>"Tiglath-pileser III 1", from the catalogue's designation.</summary>
+    /// <summary>"Tiglath-pileser III 01", from the catalogue's designation.</summary>
     public string Designation { get; init; } = string.Empty;
+
+    /// <summary>
+    /// The king whose inscription this is - "Tiglath-pileser III".
+    ///
+    /// Used as the author, which is a convention rather than a claim: a royal
+    /// inscription is composed by scribes and speaks in the king's voice, and
+    /// Assyriology cites it under his name. Where the catalogue gives no
+    /// ruler, the importer falls back to the project rather than inventing
+    /// one.
+    /// </summary>
+    public string? Ruler { get; init; }
+
+    /// <summary>"Royal Inscription".</summary>
+    public string? Genre { get; init; }
+
+    /// <summary>"Neo-Assyrian".</summary>
+    public string? Period { get; init; }
+
+    /// <summary>Where it was dug up - "Nimrud (Kalhu)".</summary>
+    public string? Provenience { get; init; }
+
+    /// <summary>"Akkadian", as the catalogue names it.</summary>
+    public string? LanguageName { get; init; }
+
+    /// <summary>
+    /// The catalogue's credits line, which names the editors and states this
+    /// text's own licence.
+    ///
+    /// Kept verbatim and per text, because it does not always agree with the
+    /// project. rinap/rinap1's metadata.json says the data is CC0 while every
+    /// text's credits say "The annotated edition is released under the
+    /// Creative Commons Attribution Share-Alike license 3.0". Those are
+    /// different obligations. Flattening them to whichever we read first
+    /// would be choosing a licence on the reader's behalf, so both are
+    /// carried and the stricter one governs.
+    /// </summary>
+    public string? Credits { get; init; }
+
+    /// <summary>
+    /// The languages the catalogue says a translation exists in - "en".
+    ///
+    /// It says "en" for RINAP and the download still contains no English.
+    /// The translation is on Oracc's website; this field records that one
+    /// exists, not that we have it.
+    /// </summary>
+    public string? TranslationLanguages { get; init; }
 
     public List<OraccLine> Lines { get; init; } = new();
 }

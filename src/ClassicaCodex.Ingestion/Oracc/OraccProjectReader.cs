@@ -4,6 +4,21 @@ using System.Text.Json;
 namespace ClassicaCodex.Ingestion.Oracc;
 
 /// <summary>
+/// One catalogue row, which is the metadata Oracc holds about a text apart
+/// from the text itself. Internal because it is a parsing detail: what the
+/// importer works from is <see cref="OraccText"/>, which has these folded in.
+/// </summary>
+internal sealed record OraccCatalogueEntry(
+    string? Designation,
+    string? Ruler,
+    string? Genre,
+    string? Period,
+    string? Provenience,
+    string? LanguageName,
+    string? Credits,
+    string? TranslationLanguages);
+
+/// <summary>
 /// Reads an extracted Oracc project download into <see cref="OraccProject"/>.
 ///
 /// WHY THIS IS NOT TeiParser. Oracc does publish TEI per text, but only
@@ -90,7 +105,8 @@ public static class OraccProjectReader
 
             try
             {
-                project.Texts.Add(ReadText(content, textId, designations));
+                designations.TryGetValue(textId, out var catalogue);
+                project.Texts.Add(ReadText(content, textId, catalogue));
             }
             catch (JsonException e)
             {
@@ -102,29 +118,38 @@ public static class OraccProjectReader
     }
 
     /// <summary>
-    /// The catalogue's designation for each text - "Tiglath-pileser III 1" -
-    /// which is what a reader recognises. The textid is not a title.
+    /// What the catalogue knows about each text, which is a great deal more
+    /// than its title: the ruler it belongs to, its genre and period, where it
+    /// was excavated, and the credits line naming its editors and its licence.
     ///
     /// A project may ship no catalogue, or one missing entries for texts that
-    /// exist, so this is a lookup with a fallback rather than a requirement.
+    /// exist, so every caller of this treats a miss as normal.
     /// </summary>
-    private static Dictionary<string, string> ReadCatalogue(string path)
+    private static Dictionary<string, OraccCatalogueEntry> ReadCatalogue(string path)
     {
-        var designations = new Dictionary<string, string>(StringComparer.Ordinal);
-        if (!File.Exists(path)) return designations;
+        var entries = new Dictionary<string, OraccCatalogueEntry>(StringComparer.Ordinal);
+        if (!File.Exists(path)) return entries;
 
         using var document = JsonDocument.Parse(File.ReadAllText(path));
         if (!document.RootElement.TryGetProperty("members", out var members)
-            || members.ValueKind != JsonValueKind.Object) return designations;
+            || members.ValueKind != JsonValueKind.Object) return entries;
 
         foreach (var entry in members.EnumerateObject())
         {
             if (entry.Value.ValueKind != JsonValueKind.Object) continue;
-            var designation = String(entry.Value, "designation");
-            if (designation.Length > 0) designations[entry.Name] = designation;
+
+            entries[entry.Name] = new OraccCatalogueEntry(
+                Optional(entry.Value, "designation"),
+                Optional(entry.Value, "ruler"),
+                Optional(entry.Value, "genre"),
+                Optional(entry.Value, "period"),
+                Optional(entry.Value, "provenience"),
+                Optional(entry.Value, "language"),
+                Optional(entry.Value, "credits"),
+                Optional(entry.Value, "trans"));
         }
 
-        return designations;
+        return entries;
     }
 
     /// <summary>
@@ -132,7 +157,7 @@ public static class OraccProjectReader
     /// an empty file from a malformed one before getting here, and so this is
     /// testable without a download on disk.
     /// </summary>
-    internal static OraccText ReadText(string content, string fallbackId, IReadOnlyDictionary<string, string> designations)
+    internal static OraccText ReadText(string content, string fallbackId, OraccCatalogueEntry? catalogue)
     {
         using var document = JsonDocument.Parse(content);
         var root = document.RootElement;
@@ -143,7 +168,14 @@ public static class OraccProjectReader
         var text = new OraccText
         {
             TextId = textId,
-            Designation = designations.TryGetValue(textId, out var d) ? d : textId
+            Designation = catalogue?.Designation ?? textId,
+            Ruler = catalogue?.Ruler,
+            Genre = catalogue?.Genre,
+            Period = catalogue?.Period,
+            Provenience = catalogue?.Provenience,
+            LanguageName = catalogue?.LanguageName,
+            Credits = catalogue?.Credits,
+            TranslationLanguages = catalogue?.TranslationLanguages
         };
 
         if (!root.TryGetProperty("cdl", out var cdl) || cdl.ValueKind != JsonValueKind.Array) return text;

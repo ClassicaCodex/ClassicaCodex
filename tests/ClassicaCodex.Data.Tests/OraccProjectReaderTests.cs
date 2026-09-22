@@ -46,7 +46,7 @@ public class OraccProjectReaderTests
     """;
 
     private static OraccText Read(string json) =>
-        OraccProjectReader.ReadText(json, "fallback", new Dictionary<string, string>());
+        OraccProjectReader.ReadText(json, "fallback", catalogue: null);
 
     [Fact]
     public void ReadsTheWordAndItsLemmatisation()
@@ -206,6 +206,75 @@ public class OraccProjectReaderTests
         {
             Directory.Delete(root, recursive: true);
         }
+    }
+
+    /// <summary>
+    /// The two editions a text becomes must have the same number of rows.
+    ///
+    /// The reader synchronises linked panes by row index, so a transliteration
+    /// pane and a sign pane that disagree on row count do not scroll together,
+    /// they drift - and the drift grows down the page rather than announcing
+    /// itself at the top.
+    ///
+    /// The case that breaks a naive importer is real: Q003622 is a monument
+    /// inscribed in Akkadian and then in Aramaic, and the Aramaic lines are
+    /// alphabetic, so Oracc records no cuneiform for them. Skipping the rows
+    /// with no signs would have left those panes two lines apart.
+    /// </summary>
+    [Fact]
+    public void BothEditionsOfABilingualKeepTheSameRows()
+    {
+        const string bilingual = """
+        { "textid": "Q003622", "cdl": [{ "node": "c", "cdl": [
+          { "node": "d", "type": "line-start", "n": "1", "label": "Akkadian 1" },
+          { "node": "l", "frag": "E2.GAL", "f": { "form": "E2.GAL", "gdl": [
+              { "group": [ { "utf8": "𒂍" } ] } ] } },
+          { "node": "d", "type": "line-start", "n": "1", "label": "Aramaic 1" },
+          { "node": "l", "frag": "zy", "f": { "form": "zy" } },
+          { "node": "d", "type": "line-start", "n": "2", "label": "Aramaic 2" },
+          { "node": "l", "frag": "br", "f": { "form": "br" } }
+        ]}]}
+        """;
+
+        var (transliteration, cuneiform) = OraccIngestService.BuildNodes(Read(bilingual));
+
+        Assert.Equal(3, transliteration.Count);
+        Assert.Equal(transliteration.Count, cuneiform.Count);
+
+        // Same citation on the same row in both, which is what makes a click
+        // in one pane mean anything in the other.
+        Assert.Equal(
+            transliteration.Select(n => n.CitationRef),
+            cuneiform.Select(n => n.CitationRef));
+
+        // The Aramaic rows are present and blank rather than absent.
+        Assert.NotEqual(string.Empty, cuneiform[0].Text);
+        Assert.Equal(string.Empty, cuneiform[1].Text);
+        Assert.Equal(string.Empty, cuneiform[2].Text);
+    }
+
+    /// <summary>
+    /// A bilingual numbers each language from 1, so the plain counter is not
+    /// unique within the text and the printed label is the only thing that
+    /// tells two different lines apart.
+    /// </summary>
+    [Fact]
+    public void CitationsAreUniqueInABilingual()
+    {
+        const string bilingual = """
+        { "textid": "Q003622", "cdl": [{ "node": "c", "cdl": [
+          { "node": "d", "type": "line-start", "n": "1", "label": "Akkadian 1" },
+          { "node": "l", "frag": "E2.GAL", "f": { "form": "E2.GAL" } },
+          { "node": "d", "type": "line-start", "n": "1", "label": "Aramaic 1" },
+          { "node": "l", "frag": "zy", "f": { "form": "zy" } }
+        ]}]}
+        """;
+
+        var refs = OraccIngestService.BuildNodes(Read(bilingual)).Transliteration
+            .Select(n => n.CitationRef).ToList();
+
+        Assert.Equal(new[] { "Akkadian 1", "Aramaic 1" }, refs);
+        Assert.Equal(refs.Count, refs.Distinct().Count());
     }
 
     /// <summary>
