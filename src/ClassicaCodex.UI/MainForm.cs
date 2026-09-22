@@ -1640,6 +1640,25 @@ public partial class MainForm : ScaledForm
         prefaceItem.Click += (_, _) => ShowPrefaceForPane(list);
         menu.Opening += (_, _) => prefaceItem.Visible = GetPrefaceMatch(list) != null;
 
+        // For a text that lives on the web as well as here. The label names
+        // the host rather than a project, so it stays true for whatever
+        // records a web address next, and so the reader can see where the
+        // click is about to send them before they make it.
+        //
+        // Cuneiform is why this exists. Oracc's published translations are
+        // on its own site and not in the open data, so for those texts this
+        // is the route to an English reading - and it copies nothing, which
+        // is the point.
+        var sourcePageItem = menu.Items.Add("View online...");
+        sourcePageItem.Image = AppIcons.Get("Preface", 16);
+        sourcePageItem.Click += (_, _) => OpenSourceWebPage(list);
+        menu.Opening += (_, _) =>
+        {
+            var page = SourceWebPageForPane(list);
+            sourcePageItem.Visible = page != null;
+            if (page != null) sourcePageItem.Text = $"View on {page.Host}...";
+        };
+
         // What to show beside the text. Built fresh each time the menu opens
         // and only from the kinds this edition actually contains, so a prose
         // history offers nothing about speakers and a play does - the menu
@@ -3039,6 +3058,67 @@ public partial class MainForm : ScaledForm
     /// </summary>
     private Edition? EditionForPane(SyncListView pane) =>
         _paneSource.TryGetValue(pane, out var source) ? source.Edition : null;
+
+    /// <summary>
+    /// The page this pane's text came from, when it came from one.
+    ///
+    /// Most editions record the file they were ingested from. A few record a
+    /// web address instead, because that is where the text actually lives and
+    /// a local path stops being true the moment the library moves - Oracc's
+    /// editions carry the text's own page on oracc.org. Where that is so,
+    /// the reader can be offered it.
+    ///
+    /// That matters most for cuneiform, where the published English
+    /// translation exists on Oracc's site and is not in the open data, so
+    /// this link is the only route to it that copies nothing.
+    ///
+    /// ONLY http AND https. SourcePath is ingested data, and for every other
+    /// collection it is a path on disk. Handing an arbitrary stored string to
+    /// the shell would turn a source field into a way to launch things, so
+    /// anything that is not a web address is simply not a link.
+    /// </summary>
+    private Uri? SourceWebPageForPane(SyncListView pane) =>
+        WebPageFromSourcePath(EditionForPane(pane)?.SourcePath);
+
+    /// <summary>
+    /// A stored source path read as a web address, or nothing.
+    ///
+    /// Pure and static because this is the security-relevant half and it
+    /// should be pinned by test rather than reasoned about: it decides
+    /// whether a string out of the database is handed to the shell.
+    /// </summary>
+    internal static Uri? WebPageFromSourcePath(string? sourcePath)
+    {
+        if (string.IsNullOrWhiteSpace(sourcePath)) return null;
+
+        return Uri.TryCreate(sourcePath, UriKind.Absolute, out var uri)
+               && (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps)
+            ? uri
+            : null;
+    }
+
+    /// <summary>
+    /// Opens the page this pane's text came from, in the reader's own
+    /// browser. The one place in this app that deliberately leaves it.
+    /// </summary>
+    private void OpenSourceWebPage(SyncListView pane)
+    {
+        if (SourceWebPageForPane(pane) is not { } page) return;
+
+        try
+        {
+            System.Diagnostics.Process.Start(
+                new System.Diagnostics.ProcessStartInfo(page.AbsoluteUri) { UseShellExecute = true });
+        }
+        catch (Exception ex)
+        {
+            // A machine with no browser association, or one that refuses the
+            // launch. Saying so beats a menu item that does nothing at all.
+            MessageBox.Show(this,
+                $"Could not open {page.AbsoluteUri}\r\n\r\n{ex.Message}",
+                "Could not open the page", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+        }
+    }
 
     private (string CitationRef, string Text)? GetPrefaceMatch(SyncListView pane) =>
         ReferenceEquals(pane, _originalPane) ? _originalPrefaceMatch : _translationPrefaceMatch;
