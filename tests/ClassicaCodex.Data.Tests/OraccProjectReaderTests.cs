@@ -278,6 +278,84 @@ public class OraccProjectReaderTests
     }
 
     /// <summary>
+    /// The depth of the project inside its archive is not constant, and
+    /// guessing it wrong fails in the worst possible way.
+    ///
+    /// Measured against the real downloads: blms.zip extracts to blms/, one
+    /// level, because blms is a top-level project. rinap-rinap1.zip extracts
+    /// to rinap/rinap1/, two levels, because rinap1 is a subproject of rinap.
+    /// Hardcoding either depth works for about half of Oracc's 208 projects -
+    /// and the half it fails on does not throw, it finds no texts, so the
+    /// setup step would report success over an empty import.
+    /// </summary>
+    [Theory]
+    [InlineData("blms")]              // a top-level project, one level deep
+    [InlineData("rinap/rinap1")]      // a subproject, one level deeper again
+    [InlineData("a/b/c")]             // deeper than Oracc actually goes
+    public void FindsTheProjectAtWhateverDepthTheArchiveNestsIt(string nesting)
+    {
+        var root = Path.Combine(Path.GetTempPath(), "oracc-depth-" + Guid.NewGuid().ToString("N"));
+        var project = Path.Combine(new[] { root }.Concat(nesting.Split('/')).ToArray());
+        Directory.CreateDirectory(project);
+
+        try
+        {
+            File.WriteAllText(Path.Combine(project, "metadata.json"), "{}");
+
+            Assert.Equal(project, OraccDownloadService.FindProjectDirectory(root));
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    /// <summary>
+    /// No metadata.json anywhere means the caller must be told, not handed a
+    /// folder that will import nothing.
+    /// </summary>
+    [Fact]
+    public void FindsNothingWhenTheArchiveHasNoProject()
+    {
+        var root = Path.Combine(Path.GetTempPath(), "oracc-nodepth-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(Path.Combine(root, "junk", "deeper"));
+
+        try
+        {
+            Assert.Null(OraccDownloadService.FindProjectDirectory(root));
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    /// <summary>
+    /// The starter set is what a reader gets, and its size is stated on the
+    /// setup step before they commit to the download. A project added without
+    /// a size, or a size that drifts to zero, would make that promise false.
+    /// </summary>
+    [Fact]
+    public void EveryStarterProjectIsNamedAndSized()
+    {
+        var starters = OraccDownloadService.StarterProjects;
+
+        Assert.NotEmpty(starters);
+        Assert.All(starters, p =>
+        {
+            Assert.False(string.IsNullOrWhiteSpace(p.Id));
+            Assert.False(string.IsNullOrWhiteSpace(p.Title));
+            Assert.True(p.ApproxMegabytes > 0, $"{p.Id} has no size");
+        });
+
+        // Ids are the download filename, so a duplicate would silently
+        // overwrite another project's archive.
+        Assert.Equal(starters.Count, starters.Select(p => p.Id).Distinct().Count());
+
+        Assert.True(OraccDownloadService.ApproxTotalMegabytes > 0);
+    }
+
+    /// <summary>
     /// Pointing the reader at the top of an extracted zip rather than at the
     /// project folder inside it is the obvious first mistake, so it has to say
     /// so rather than return an empty project that looks like a finished

@@ -1,6 +1,7 @@
 using ClassicaCodex.Core.Models;
 using ClassicaCodex.Data.Repositories;
 using ClassicaCodex.Ingestion;
+using ClassicaCodex.Ingestion.Oracc;
 
 namespace ClassicaCodex.UI;
 
@@ -19,9 +20,17 @@ namespace ClassicaCodex.UI;
 ///                    extend those corpora into late antiquity, First1KGreek
 ///                    and CSEL; then Migne, which is the widest net and the
 ///                    largest download; then the collections that are their
-///                    own thing - the Renaissance English, Bodin, and last
-///                    Menota, which is the only source that cannot be fetched
-///                    for you and asks the most of a reader.
+///                    own thing - the Renaissance English, Bodin, then the
+///                    cuneiform, and last Menota, which is the only source
+///                    that cannot be fetched for you and asks the most of a
+///                    reader.
+///
+///                    The cuneiform sits second-to-last for the same reason
+///                    Menota is last: it is the furthest from what someone
+///                    opening this app came for, and the Greek and Latin
+///                    should already be downloading before anyone is asked
+///                    whether they also want Assyrian royal inscriptions. It
+///                    is ahead of Menota only because it fetches itself.
 ///
 ///   the dictionary   what Word Study looks a word up in, and the first step
 ///                    that is about the texts rather than more of them.
@@ -68,6 +77,14 @@ public static class SetupDataSourceCatalog
         public const string PoliticalTheory = "pdl-politics";
         public const string Renaissance = "renaissance";
         public const string Menota = "menota";
+
+        /// <summary>
+        /// Cuneiform from Oracc. Deliberately the project family rather than
+        /// one project: the step installs eight of them and they belong to one
+        /// collection in the library, the way perseus-greek is one collection
+        /// and not one repository per author.
+        /// </summary>
+        public const string Oracc = OraccIngestService.CollectionKey;
     }
 
     /// <summary>
@@ -86,6 +103,7 @@ public static class SetupDataSourceCatalog
         CollectionKeys.PoliticalTheory => "Political Theory (Bodin)",
         CollectionKeys.Renaissance => "English Literature (Renaissance)",
         CollectionKeys.Menota => "Medieval Nordic (Menota)",
+        CollectionKeys.Oracc => "Cuneiform (Oracc)",
         _ => key
     };
 
@@ -490,6 +508,42 @@ public static class SetupDataSourceCatalog
                     await editionRepo.IsCollectionCompleteAsync(CollectionKeys.PoliticalTheory),
                 CheckHasSomeContent = async () =>
                     await editionRepo.CountByCollectionAsync(CollectionKeys.PoliticalTheory) > 0
+            },
+
+            new SetupDataSource
+            {
+                Title = "Cuneiform Texts (Oracc)",
+                RepoUrl = "https://oracc.museum.upenn.edu/",
+                DisplayNote =
+                    $"{OraccDownloadService.StarterProjects.Count} projects, about "
+                    + $"{OraccDownloadService.ApproxTotalMegabytes} MB; transliteration and signs, no translation",
+                DefaultDestination = Path.Combine(dataRoot, "oracc"),
+
+                // Not DirectDownload: that fetches one file, and this is eight
+                // separate project archives that each need extracting and
+                // importing before the next is fetched. Same reason the
+                // artefact catalogue manages its own fetching.
+                FetchMode = SetupFetchMode.SelfManaged,
+
+                PlainLanguageDescription =
+                    "Akkadian and Sumerian written in cuneiform - the royal inscriptions of the Assyrian " +
+                    "kings, the letters written to Sargon II, scholarly commentaries and bilinguals. " +
+                    "Each text arrives twice, once in the wedge signs themselves and once in the " +
+                    "transliteration scholars read them by, so the two can be opened side by side. " +
+                    "There is no English translation: Oracc's open data does not include one, and rather " +
+                    "than generate something and present it as the text, the gap is left visible - every " +
+                    "word carries its dictionary meaning instead.",
+
+                RunIngest = async (root, progress, ct) =>
+                {
+                    var service = new OraccIngestService();
+                    return await service.InstallStarterProjectsAsync(root, progress, ct);
+                },
+
+                CheckComplete = async () =>
+                    await editionRepo.IsCollectionCompleteAsync(CollectionKeys.Oracc),
+                CheckHasSomeContent = async () =>
+                    await editionRepo.CountByCollectionAsync(CollectionKeys.Oracc) > 0
             },
 
             new SetupDataSource

@@ -226,6 +226,28 @@ public class AboutForm : ScaledForm
 
         AddSourceSection(
             scrollHost, ref y,
+            "Cuneiform Texts",
+            "Akkadian and Sumerian pressed into clay - the royal inscriptions of Tiglath-pileser III, " +
+            "Sennacherib and Esarhaddon, the letters written to Sargon II, scholarly commentaries and " +
+            "bilinguals. Each text is held twice, in the wedge signs themselves and in the " +
+            "transliteration scholars read them by. Every word arrives already tied to a dictionary " +
+            "entry, and the gods, kings and places are marked as such by Oracc's own editors, which is " +
+            "why a cuneiform word can be looked up here at all.",
+            "Oracc: The Open Richly Annotated Cuneiform Corpus (oracc.org)",
+            "Creative Commons Attribution-ShareAlike 3.0, or CC0, depending on the project",
+            "https://oracc.museum.upenn.edu/",
+            "Oracc licenses per project rather than as a whole, and the two licences carry different " +
+            "obligations, so this app records each text's own credits line - naming its editors and " +
+            "stating its licence - alongside the text, and shows it on the edition. Where a project's " +
+            "own metadata and its texts disagree, the stricter licence is the one applied. " +
+            "No translation is included. Oracc's open data carries the transliteration, the " +
+            "lemmatisation and an index of the English, but not the translated prose, which stays on " +
+            "Oracc's own site - for some corpora because the translation is a living scholar's " +
+            "published work. Rather than generate English and let it stand where a translation should " +
+            "be, that gap is left open, and each word's dictionary meaning is offered instead.");
+
+        AddSourceSection(
+            scrollHost, ref y,
             "Medieval Nordic Manuscripts",
             "Old Norse, Old Icelandic, Old Swedish and Old Danish manuscripts, transcribed word by word " +
             "from the parchment - Heimskringla, Laxdœla saga, the Codex Wormianus, the Old Norwegian " +

@@ -56,6 +56,56 @@ public class OraccIngestService
     /// </summary>
     public List<(string FilePath, string Error)> Noted { get; } = new();
 
+    /// <summary>
+    /// Downloads and imports the starter projects - what the setup step runs.
+    ///
+    /// Each project is fetched and imported before the next is fetched, rather
+    /// than downloading all of them first. A reader who cancels halfway then
+    /// has some of the corpus rather than none of it, and a project that fails
+    /// to download costs only itself.
+    /// </summary>
+    public async Task<IngestOutcome> InstallStarterProjectsAsync(
+        string destinationRoot,
+        IProgress<string> progress,
+        CancellationToken cancellationToken = default)
+    {
+        var downloads = new OraccDownloadService();
+        var outcomes = new List<IngestOutcome>();
+
+        foreach (var choice in OraccDownloadService.StarterProjects)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            try
+            {
+                var directory = await downloads.FetchAsync(choice, destinationRoot, progress, cancellationToken);
+                var outcome = await IngestAsync(directory, progress, cancellationToken);
+
+                // A project that downloaded cleanly and installed nothing is
+                // not success. Some Oracc projects are portals rather than
+                // corpora - amgg ships an empty corpusjson - and a step that
+                // lists one as installed is claiming texts the library does
+                // not have.
+                if (outcome.FilesAttempted == 0)
+                    Noted.Add((choice.Id, "downloaded but contains no texts; it may be a portal project"));
+
+                outcomes.Add(outcome);
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                // One project failing must not lose the seven that worked.
+                // Recorded as a skip so the step reports it rather than
+                // finishing quietly with a short library.
+                progress.Report($"{choice.Title} could not be installed: {ex.Message}");
+                FailedFiles.Add((choice.Id, ex.Message));
+            }
+        }
+
+        return outcomes.Count == 0
+            ? IngestOutcome.From(FailedFiles, Noted)
+            : IngestOutcome.Combine(outcomes.ToArray());
+    }
+
     public async Task<IngestOutcome> IngestAsync(
         string projectDirectory,
         IProgress<string>? progress = null,
