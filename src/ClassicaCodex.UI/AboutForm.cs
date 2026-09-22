@@ -229,10 +229,11 @@ public class AboutForm : ScaledForm
             "Cuneiform Texts",
             "Akkadian and Sumerian pressed into clay - the royal inscriptions of Tiglath-pileser III, " +
             "Sennacherib and Esarhaddon, the letters written to Sargon II, scholarly commentaries and " +
-            "bilinguals. Each text is held twice, in the wedge signs themselves and in the " +
-            "transliteration scholars read them by. Every word arrives already tied to a dictionary " +
-            "entry, and the gods, kings and places are marked as such by Oracc's own editors, which is " +
-            "why a cuneiform word can be looked up here at all.",
+            "bilinguals. Each text is held three ways: in the wedge signs themselves, in the " +
+            "transliteration scholars read them by, and as the dictionary meaning of every word in " +
+            "order, which opens opposite the signs where a translation would. Gods, kings and places " +
+            "are marked as such by Oracc's own editors, which is why a cuneiform word can be looked up " +
+            "here at all.",
             "Oracc: The Open Richly Annotated Cuneiform Corpus (oracc.org)",
             "Creative Commons Attribution-ShareAlike 3.0, or CC0, depending on the project",
             "https://oracc.museum.upenn.edu/",

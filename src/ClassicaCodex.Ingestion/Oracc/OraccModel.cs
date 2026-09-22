@@ -145,6 +145,24 @@ public sealed class OraccLine
     /// a broken or unidentified sign has a transliteration and no glyph.
     /// </summary>
     public string Cuneiform => string.Join(" ", Words.Select(w => w.Cuneiform).Where(s => s.Length > 0));
+
+    /// <summary>
+    /// The line's words rendered as their dictionary meanings, in order.
+    ///
+    /// Separated by a middle dot rather than a space, because these are a
+    /// string of separate meanings and not a sentence. "offspring Baltil
+    /// very valuable loved one Šerua" invites being read as English prose
+    /// and misread as a translation; "offspring · Baltil · very valuable ·
+    /// loved one · Šerua" shows its joins, which is what it is.
+    /// </summary>
+    public string Gloss => string.Join(" · ", Words.Select(w => w.Gloss).Where(g => g.Length > 0));
+
+    /// <summary>
+    /// Whether anything on this line was actually looked up, as opposed to
+    /// every word falling back to its own transliteration - which would make
+    /// a "gloss" that is just the other pane again.
+    /// </summary>
+    public bool HasAnyGloss => Words.Any(w => !string.IsNullOrWhiteSpace(w.CitationForm));
 }
 
 /// <summary>
@@ -203,4 +221,45 @@ public sealed class OraccWord
 
     /// <summary>True when Oracc types this as a divine name.</summary>
     public bool IsDivineName => string.Equals(PartOfSpeech, "DN", StringComparison.Ordinal);
+
+    /// <summary>
+    /// What this word means, in one English word or phrase - the unit the
+    /// gloss line is built from.
+    ///
+    /// NOT A TRANSLATION, and the difference matters enough to keep saying.
+    /// This is the dictionary entry the editors tied the word to, so the
+    /// gloss line reads as a string of meanings rather than as a sentence:
+    /// "offspring Baltil very valuable loved one Šerua" beside a published
+    /// translation's "precious scion of Baltil (Aššur), beloved of the
+    /// goddess Šērūa". Close enough to read, nowhere near close enough to
+    /// quote.
+    ///
+    /// Sense first, then the guide word, because the sense is the one chosen
+    /// for THIS instance and the guide word labels the whole entry -
+    /// perʾu is filed under "bud" and used here as "offspring".
+    ///
+    /// A NUMBER IS NOT A MEANING. Oracc distinguishes same-spelled proper
+    /// nouns by numbering them, so the god Šerua arrives as
+    /// Šerua[1//1]DN - sense "1", guide word "1". Glossing that as "1" would
+    /// be worse than useless, so anything purely numeric falls through to
+    /// the name itself. Place names usually carry a real gloss and keep it:
+    /// Baltil[Aššur//Aššur]QN stays "Aššur".
+    ///
+    /// A word Oracc never lemmatised - 1,659 of rinap/rinap1's 11,273 - has
+    /// no meaning to give, so the transliteration stands in. That is honest
+    /// where a blank would just look like a gap in the line.
+    /// </summary>
+    public string Gloss
+    {
+        get
+        {
+            if (IsMeaningful(Sense)) return Sense!;
+            if (IsMeaningful(GuideWord)) return GuideWord!;
+            if (!string.IsNullOrWhiteSpace(CitationForm)) return CitationForm!;
+            return Form;
+        }
+    }
+
+    private static bool IsMeaningful(string? value) =>
+        !string.IsNullOrWhiteSpace(value) && !value.All(char.IsDigit);
 }

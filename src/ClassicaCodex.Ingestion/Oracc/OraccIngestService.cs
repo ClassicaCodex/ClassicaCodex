@@ -173,25 +173,54 @@ public class OraccIngestService
                 // and the re-insert are not one transaction - the same reason
                 // PerseusIngestService spells out - so a throw between them
                 // destroys text with nothing to put back.
-                var (transliteration, signs) = BuildNodes(text);
+                var built = BuildNodes(text);
 
-                await SaveEditionAsync(
-                    project, text, workId, "transliteration",
-                    "Transliteration", transliteration, cancellationToken);
-
-                // Skipped rather than saved blank when no line in the text has
-                // a sign recorded at all - which happens for texts known only
-                // from an old hand copy. An empty second pane is worse than
-                // one pane.
-                if (signs.Any(n => n.Text.Length > 0))
+                // ORDER IS THE READING ARRANGEMENT. The reader fills its left
+                // pane from the first original and its right from what is not
+                // an original, so writing the signs first puts the text itself
+                // on the left and the meanings on the right - the same shape
+                // as a Greek work beside its translation. The transliteration
+                // stays in the left dropdown, a click away, which is where
+                // someone who reads Akkadian will go first.
+                //
+                // Skipped rather than saved blank when no line has a sign
+                // recorded at all, which happens for texts known only from an
+                // old hand copy.
+                if (built.Cuneiform.Any(n => n.Text.Length > 0))
                 {
                     await SaveEditionAsync(
-                        project, text, workId, "cuneiform",
-                        "Cuneiform", signs, cancellationToken);
+                        project, text, workId, "cuneiform", "Cuneiform",
+                        EditionKind.Original, "akk", null, built.Cuneiform, cancellationToken);
                 }
                 else
                 {
                     Noted.Add((text.TextId, "no cuneiform signs recorded; transliteration only"));
+                }
+
+                await SaveEditionAsync(
+                    project, text, workId, "transliteration", "Transliteration",
+                    EditionKind.Original, "akk", null, built.Transliteration, cancellationToken);
+
+                // The gloss goes in as a translation because that is the pane
+                // it belongs in and the machinery has no third word for it -
+                // but it is labelled everywhere a reader can see, because it
+                // is emphatically not one. See the Translator line below.
+                //
+                // Written only when something was actually looked up. A text
+                // Oracc never lemmatised would otherwise get a "gloss" that is
+                // its own transliteration back again, in a pane promising
+                // English.
+                if (text.Lines.Any(l => l.HasAnyGloss))
+                {
+                    await SaveEditionAsync(
+                        project, text, workId, "gloss", "Word-by-word meanings",
+                        EditionKind.Translation, "eng",
+                        "Word-by-word dictionary meanings from Oracc's lemmatisation - not a translation",
+                        built.Gloss, cancellationToken);
+                }
+                else
+                {
+                    Noted.Add((text.TextId, "no lemmatised words; no gloss written"));
                 }
             }
             catch (Exception ex) when (ex is not OperationCanceledException)
@@ -204,22 +233,34 @@ public class OraccIngestService
         return IngestOutcome.From(FailedFiles, Noted, attempted);
     }
 
+    /// <summary>
+    /// One rendering of one text, as an edition.
+    ///
+    /// The signs and the transliteration are both Original: a transliteration
+    /// renders the script in Latin letters, it does not translate the text
+    /// into another language, and filing it as a translation would make the
+    /// reader offer it as the English side of a pair.
+    ///
+    /// The gloss is the one that genuinely is in another language, and it
+    /// goes in as a Translation so it lands in the second pane. That is the
+    /// closest thing the model has and it is a stretch - so the stretch is
+    /// named rather than hidden, in the Translator field, in the edition's
+    /// title, and in the About page.
+    /// </summary>
     private async Task SaveEditionAsync(
         OraccProject project, OraccText text, int workId,
-        string urnSuffix, string label, List<TextNode> nodes,
+        string urnSuffix, string label,
+        EditionKind kind, string language, string? translator,
+        List<TextNode> nodes,
         CancellationToken cancellationToken)
     {
         var editionId = await _editionRepo.UpsertAsync(new Edition
         {
             WorkId = workId,
             CtsUrn = $"oracc:{project.ProjectPath}:{text.TextId}:{urnSuffix}",
-            // Both are the original. Transliteration is a rendering of the
-            // signs in Latin letters, not a translation of the text into
-            // another language, and filing it as one would make the reader
-            // offer it as the English side of a pair.
-            Kind = EditionKind.Original,
-            Language = "akk",
-            Translator = null,
+            Kind = kind,
+            Language = language,
+            Translator = translator,
             Collection = CollectionKey,
             SourcePath = $"{project.Source}/{text.TextId}"
         }, cancellationToken);
@@ -250,7 +291,22 @@ public class OraccIngestService
     }
 
     /// <summary>
-    /// The two editions' rows, built together and guaranteed parallel.
+    /// The three renderings of one text, kept row for row.
+    /// </summary>
+    internal sealed class OraccTextNodes
+    {
+        /// <summary>The wedges. The left pane's default, being the text itself.</summary>
+        public List<TextNode> Cuneiform { get; } = new();
+
+        /// <summary>The same line in Latin letters, as Assyriology reads it.</summary>
+        public List<TextNode> Transliteration { get; } = new();
+
+        /// <summary>Each word's dictionary meaning, in order.</summary>
+        public List<TextNode> Gloss { get; } = new();
+    }
+
+    /// <summary>
+    /// The three editions' rows, built together and guaranteed parallel.
     ///
     /// THEY MUST BE THE SAME LENGTH. The reader synchronises linked panes by
     /// row index - MainForm.SyncScroll copies TopIndex straight across - so
@@ -274,10 +330,9 @@ public class OraccIngestService
     /// tell apart. SortOrder carries document order separately, since "2'"
     /// and "i 14" do not sort as numbers.
     /// </summary>
-    internal static (List<TextNode> Transliteration, List<TextNode> Cuneiform) BuildNodes(OraccText text)
+    internal static OraccTextNodes BuildNodes(OraccText text)
     {
-        var transliteration = new List<TextNode>(text.Lines.Count);
-        var cuneiform = new List<TextNode>(text.Lines.Count);
+        var built = new OraccTextNodes();
         var order = 0;
 
         foreach (var line in text.Lines)
@@ -285,18 +340,20 @@ public class OraccIngestService
             var written = line.Transliteration;
 
             // A line with no words at all is a structural artefact rather than
-            // a line of text, and it is dropped from BOTH so they stay level.
+            // a line of text, and it is dropped from ALL THREE so they stay
+            // level.
             if (written.Length == 0) continue;
 
             var reference = line.Label.Length > 0 ? line.Label : (order + 1).ToString();
 
-            transliteration.Add(new TextNode { CitationRef = reference, SortOrder = order, Text = written });
-            cuneiform.Add(new TextNode { CitationRef = reference, SortOrder = order, Text = line.Cuneiform });
+            built.Cuneiform.Add(new TextNode { CitationRef = reference, SortOrder = order, Text = line.Cuneiform });
+            built.Transliteration.Add(new TextNode { CitationRef = reference, SortOrder = order, Text = written });
+            built.Gloss.Add(new TextNode { CitationRef = reference, SortOrder = order, Text = line.Gloss });
 
             order++;
         }
 
-        return (transliteration, cuneiform);
+        return built;
     }
 
     /// <summary>

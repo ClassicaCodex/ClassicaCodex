@@ -95,6 +95,33 @@ public class EditionPaneSplitTests
     }
 
     /// <summary>
+    /// The cuneiform reading arrangement, which is what an Oracc work has to
+    /// land in: the signs on the left, the word-by-word meanings on the
+    /// right, and the transliteration a click away in the left dropdown.
+    ///
+    /// The order matters and is set by ingest writing the signs first. Get it
+    /// wrong and the reader opens on transliteration with the meanings beside
+    /// it, which is a different and worse pairing - the text itself would not
+    /// be on screen at all.
+    /// </summary>
+    [Fact]
+    public void ACuneiformWorkOpensOnSignsWithMeaningsBeside()
+    {
+        var (left, right) = MainForm.SplitEditionsBetweenPanes(new[]
+        {
+            Of(EditionKind.Original, 1, "akk"),      // cuneiform, written first
+            Of(EditionKind.Original, 2, "akk"),      // transliteration
+            Of(EditionKind.Translation, 3, "eng"),   // the gloss
+        });
+
+        // The signs open by default, the transliteration is reachable.
+        Assert.Equal(new[] { 1, 2 }, left.Select(e => e.EditionId));
+
+        // The meanings sit opposite, where a translation would.
+        Assert.Equal(new[] { 3 }, right.Select(e => e.EditionId));
+    }
+
+    /// <summary>
     /// One original on its own must not be split away from itself, leaving the
     /// left pane empty and the text on the right where nothing looks for it.
     /// </summary>

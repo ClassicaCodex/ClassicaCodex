@@ -236,21 +236,25 @@ public class OraccProjectReaderTests
         ]}]}
         """;
 
-        var (transliteration, cuneiform) = OraccIngestService.BuildNodes(Read(bilingual));
+        var built = OraccIngestService.BuildNodes(Read(bilingual));
 
-        Assert.Equal(3, transliteration.Count);
-        Assert.Equal(transliteration.Count, cuneiform.Count);
+        Assert.Equal(3, built.Transliteration.Count);
+        Assert.Equal(built.Transliteration.Count, built.Cuneiform.Count);
+        Assert.Equal(built.Transliteration.Count, built.Gloss.Count);
 
-        // Same citation on the same row in both, which is what makes a click
-        // in one pane mean anything in the other.
+        // Same citation on the same row in all three, which is what makes a
+        // click in one pane mean anything in another.
         Assert.Equal(
-            transliteration.Select(n => n.CitationRef),
-            cuneiform.Select(n => n.CitationRef));
+            built.Transliteration.Select(n => n.CitationRef),
+            built.Cuneiform.Select(n => n.CitationRef));
+        Assert.Equal(
+            built.Transliteration.Select(n => n.CitationRef),
+            built.Gloss.Select(n => n.CitationRef));
 
         // The Aramaic rows are present and blank rather than absent.
-        Assert.NotEqual(string.Empty, cuneiform[0].Text);
-        Assert.Equal(string.Empty, cuneiform[1].Text);
-        Assert.Equal(string.Empty, cuneiform[2].Text);
+        Assert.NotEqual(string.Empty, built.Cuneiform[0].Text);
+        Assert.Equal(string.Empty, built.Cuneiform[1].Text);
+        Assert.Equal(string.Empty, built.Cuneiform[2].Text);
     }
 
     /// <summary>
@@ -275,6 +279,76 @@ public class OraccProjectReaderTests
 
         Assert.Equal(new[] { "Akkadian 1", "Aramaic 1" }, refs);
         Assert.Equal(refs.Count, refs.Distinct().Count());
+    }
+
+    /// <summary>
+    /// The gloss line: each word's dictionary meaning, in order, joined by a
+    /// middle dot.
+    ///
+    /// The separator is deliberate. "offspring Baltil very valuable" invites
+    /// being read as English prose and mistaken for a translation; the dots
+    /// show the joins, which is what a string of dictionary entries is.
+    /// </summary>
+    [Fact]
+    public void GlossesEachWordByItsSense()
+    {
+        var line = Assert.Single(Read(OneWordText).Lines);
+
+        Assert.Equal("offspring", line.Gloss);
+        Assert.True(line.HasAnyGloss);
+    }
+
+    /// <summary>
+    /// A NUMBER IS NOT A MEANING. Oracc tells same-spelled proper nouns apart
+    /// by numbering them, so the god Šerua arrives as Šerua[1//1]DN - sense
+    /// "1", guide word "1". Glossing that as "1" would be worse than leaving
+    /// it out, so a purely numeric sense falls through to the name.
+    ///
+    /// A place name that carries a real gloss keeps it: Baltil is glossed
+    /// Aššur, which is the information a reader wants.
+    /// </summary>
+    [Fact]
+    public void ANumberedNameIsGlossedByItsNameNotItsNumber()
+    {
+        const string names = """
+        { "textid": "T1", "cdl": [{ "node": "c", "cdl": [
+          { "node": "d", "type": "line-start", "label": "1" },
+          { "node": "l", "frag": "{d}še-ru-a", "f": { "form": "x",
+              "cf": "Šerua", "gw": "1", "sense": "1", "pos": "DN" } },
+          { "node": "l", "frag": "bal-til", "f": { "form": "y",
+              "cf": "Baltil", "gw": "Aššur", "sense": "Aššur", "pos": "QN" } }
+        ]}]}
+        """;
+
+        var line = Assert.Single(Read(names).Lines);
+
+        Assert.Equal("Šerua · Aššur", line.Gloss);
+    }
+
+    /// <summary>
+    /// A word Oracc never lemmatised has no meaning to give - 1,659 of
+    /// rinap/rinap1's 11,273 - so its transliteration stands in. A blank
+    /// would read as a gap in the line rather than as a word nobody has
+    /// identified.
+    /// </summary>
+    [Fact]
+    public void AnUnlemmatisedWordFallsBackToItsTransliteration()
+    {
+        const string bare = """
+        { "textid": "T1", "cdl": [{ "node": "c", "cdl": [
+          { "node": "d", "type": "line-start", "label": "1" },
+          { "node": "l", "frag": "x-ni", "f": { "form": "x-ni" } }
+        ]}]}
+        """;
+
+        var line = Assert.Single(Read(bare).Lines);
+
+        Assert.Equal("x-ni", line.Gloss);
+
+        // And nothing on this line was actually looked up, so a text made
+        // only of lines like it gets no gloss edition at all - otherwise the
+        // pane promising English would be showing the transliteration back.
+        Assert.False(line.HasAnyGloss);
     }
 
     /// <summary>

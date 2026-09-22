@@ -528,11 +528,12 @@ public static class SetupDataSourceCatalog
                 PlainLanguageDescription =
                     "Akkadian and Sumerian written in cuneiform - the royal inscriptions of the Assyrian " +
                     "kings, the letters written to Sargon II, scholarly commentaries and bilinguals. " +
-                    "Each text arrives twice, once in the wedge signs themselves and once in the " +
-                    "transliteration scholars read them by, so the two can be opened side by side. " +
-                    "There is no English translation: Oracc's open data does not include one, and rather " +
-                    "than generate something and present it as the text, the gap is left visible - every " +
-                    "word carries its dictionary meaning instead.",
+                    "Each text arrives three ways: in the wedge signs, in the transliteration scholars " +
+                    "read them by, and as the dictionary meaning of every word in order - which opens " +
+                    "opposite the signs, where a translation would sit. It is not a translation and is " +
+                    "labelled as one nowhere: Oracc's open data carries no English prose, and rather " +
+                    "than generate some and let it stand in a translation's place, the meanings are " +
+                    "offered for what they are. They get you most of the way through a line.",
 
                 RunIngest = async (root, progress, ct) =>
                 {
