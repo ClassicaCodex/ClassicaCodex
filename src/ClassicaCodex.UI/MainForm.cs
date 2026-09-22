@@ -105,6 +105,11 @@ public partial class MainForm : ScaledForm
     private readonly PassageMarkRepository _passageMarkRepo = new();
     private readonly PassageInquiryRepository _inquiryRepo = new();
 
+    // Only ever asked whether a pane's edition has anything to offer, when
+    // that edition loads - see ReaderPaneCapabilities.
+    private readonly LemmaRepository _lemmaRepo = new();
+    private readonly ApparatusRepository _apparatusRepo = new();
+
     private bool _syncingScroll;
 
     // ContextMenuStrip isn't a child Control, so ReadingTheme.Apply's tree
@@ -1594,6 +1599,25 @@ public partial class MainForm : ScaledForm
         apparatusItem.Image = AppIcons.Get("Concordance", 16);
         apparatusItem.Click += (_, _) => ShowApparatusForSelectedLine(list);
 
+        // Both hidden when the text in this pane has nothing for them to
+        // open, on the same rule as Fictional Ancient Reactions and View
+        // Preface above - and read fresh each time, because the reader can
+        // change the edition under the menu between right-clicks.
+        //
+        // Word Study on a text with no lemma data for its language, and
+        // Editor's Notes on an edition with no apparatus, are both windows
+        // that open empty. Cuneiform has neither and made that ordinary
+        // rather than rare, but the gate is about the data: a Greek edition
+        // that carries no apparatus stops offering Editor's Notes too, and
+        // Word Study returns for Akkadian the day a glossary is imported,
+        // without anyone editing this.
+        menu.Opening += (_, _) =>
+        {
+            var capabilities = CapabilitiesOf(list);
+            wordStudyItem.Visible = capabilities.HasLexicon;
+            apparatusItem.Visible = capabilities.HasApparatus;
+        };
+
         var exportItem = menu.Items.Add("Export...");
         exportItem.Image = AppIcons.Get("Export", 16);
         exportItem.Click += async (_, _) => await ExportSelectedLineAsync(list, font.Name);
@@ -2360,9 +2384,7 @@ public partial class MainForm : ScaledForm
             return;
         }
 
-        var sourceEdition = ReferenceEquals(list, _originalPane)
-            ? (_originalEditionCombo.SelectedItem as EditionOption)?.Edition
-            : (_translationEditionCombo.SelectedItem as EditionOption)?.Edition;
+        var sourceEdition = EditionForPane(list);
 
         var sourceInfo = await _textNodeRepo.GetTextNodeSourceInfoAsync(node.TextNodeId);
         var authorName = sourceInfo?.AuthorName ?? "Unknown Author";
@@ -2494,9 +2516,7 @@ public partial class MainForm : ScaledForm
         // Which pane the line came from determines its language, and that
         // can't be inferred from the word itself - an English translation
         // and a Latin original are both written in the Latin alphabet.
-        var edition = ReferenceEquals(list, _originalPane)
-            ? (_originalEditionCombo.SelectedItem as EditionOption)?.Edition
-            : (_translationEditionCombo.SelectedItem as EditionOption)?.Edition;
+        var edition = EditionForPane(list);
 
         // Scoped to the work being read, same as from the translation
         // workbench - the corpus-wide count for a common word stops at the
@@ -2787,6 +2807,11 @@ public partial class MainForm : ScaledForm
             // clearing the pane entirely) doesn't leave a stale preface
             // pointing at the previous work.
             SetPrefaceMatch(pane, null);
+
+            // Reset for the same reason as the preface above: an edition that
+            // offers less than the last one must not inherit its menu.
+            _paneCapabilities[pane] = ReaderPaneCapabilities.Empty;
+
             pane.SetPassageMarks(new Dictionary<string, PassageMarks>(StringComparer.Ordinal));
 
             if (edition == null)
@@ -2794,6 +2819,20 @@ public partial class MainForm : ScaledForm
                 pane.ShowMessage(emptyMessage);
                 return;
             }
+
+            // What this edition's right-click menu should offer, settled once
+            // here rather than when the menu opens. Opening is a synchronous
+            // event and both of these are database questions, so asking them
+            // there would block the UI thread on every right-click - and the
+            // answer cannot change while an edition sits in a pane anyway.
+            _paneCapabilities[pane] = ReaderPaneCapabilities.For(
+                edition.Language,
+                string.IsNullOrWhiteSpace(edition.Language)
+                    ? 0
+                    : await _lemmaRepo.CountByLanguageAsync(edition.Language),
+                await _apparatusRepo.CountForEditionAsync(edition.EditionId));
+
+            if (_paneFillGeneration[pane] != generation) return;
 
             // Before the items, so that the first paint already has them. The
             // marks used to be appended to the row's text and so had to be in
@@ -2902,6 +2941,66 @@ public partial class MainForm : ScaledForm
         if (ReferenceEquals(pane, _originalPane)) _originalPrefaceMatch = match;
         else _translationPrefaceMatch = match;
     }
+
+    /// <summary>
+    /// What the text in one pane can actually support, so the right-click
+    /// menu can offer the tools that will do something and leave out the ones
+    /// that will open an empty window.
+    ///
+    /// This is the rule BuildKindMenu already states - the menu describes the
+    /// document in front of the reader rather than everything the parser can
+    /// produce - applied to the tools rather than to the node kinds.
+    ///
+    /// DELIBERATELY ABOUT DATA, NOT ABOUT LANGUAGE OR COLLECTION. Cuneiform
+    /// is what made this necessary: an Oracc edition has no lexicon and no
+    /// apparatus, so Word Study and Editor's Notes open on nothing. But
+    /// "hide these for Akkadian" would be the wrong rule twice over - it
+    /// would stay wrong for a Greek edition that happens to carry no
+    /// apparatus, and it would still be hiding Word Study on the day somebody
+    /// imports Oracc's own Akkadian glossaries. A gate on the data switches
+    /// itself back on when the data arrives; a gate on the collection has to
+    /// be remembered and edited.
+    /// </summary>
+    internal readonly record struct ReaderPaneCapabilities(bool HasLexicon, bool HasApparatus)
+    {
+        /// <summary>An empty pane offers nothing, rather than everything.</summary>
+        internal static ReaderPaneCapabilities Empty => new(false, false);
+
+        /// <summary>
+        /// Decided from counts so the rule is testable without a library.
+        ///
+        /// A null or blank language means no lexicon even where lemma rows
+        /// exist, because a lookup has to know which language it is looking
+        /// a word up in - WordStudyForm takes the language, and an English
+        /// translation and a Latin original are both written in the Latin
+        /// alphabet, so the word itself cannot say.
+        /// </summary>
+        internal static ReaderPaneCapabilities For(string? language, int lemmaCount, int apparatusCount) =>
+            new(HasLexicon: !string.IsNullOrWhiteSpace(language) && lemmaCount > 0,
+                HasApparatus: apparatusCount > 0);
+    }
+
+    private readonly Dictionary<SyncListView, ReaderPaneCapabilities> _paneCapabilities = new();
+
+    /// <summary>
+    /// What the pane under the cursor supports. Unknown panes report nothing
+    /// rather than everything, so a menu opened before a pane has ever been
+    /// filled offers no tool that would fail.
+    /// </summary>
+    private ReaderPaneCapabilities CapabilitiesOf(SyncListView pane) =>
+        _paneCapabilities.TryGetValue(pane, out var capabilities)
+            ? capabilities
+            : ReaderPaneCapabilities.Empty;
+
+    /// <summary>
+    /// The edition a pane is currently showing.
+    ///
+    /// Read from what was last loaded into the pane rather than from the
+    /// combo's selection, which is the same answer in every ordinary case and
+    /// the right one while a selection is mid-change.
+    /// </summary>
+    private Edition? EditionForPane(SyncListView pane) =>
+        _paneSource.TryGetValue(pane, out var source) ? source.Edition : null;
 
     private (string CitationRef, string Text)? GetPrefaceMatch(SyncListView pane) =>
         ReferenceEquals(pane, _originalPane) ? _originalPrefaceMatch : _translationPrefaceMatch;
