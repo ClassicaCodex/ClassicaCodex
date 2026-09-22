@@ -3343,6 +3343,56 @@ public partial class MainForm : ScaledForm
         || edition.CtsUrn.Contains(".ai-", StringComparison.OrdinalIgnoreCase);
 
     /// <summary>
+    /// Which editions belong in which pane's dropdown.
+    ///
+    /// Everything that is not the original goes in the second pane's
+    /// dropdown, including an edition whose Kind ingest could not settle.
+    ///
+    /// Asking for Translation exactly meant an Unknown edition appeared in
+    /// neither dropdown and so could not be opened at all, while its text
+    /// sat in the database being returned by searches - a result you could
+    /// read in the results list and not in the reader. Whatever we failed
+    /// to classify, it is still a text of this work, and the second pane is
+    /// where a text that is not the original belongs.
+    ///
+    /// AND WHEN THERE IS NOTHING ELSE, THE OTHER ORIGINALS GO THERE. A work
+    /// can have two originals and no translation, and then the second pane
+    /// sat empty while both texts queued up in the first dropdown - the one
+    /// arrangement where a reader cannot do the thing two panes exist for.
+    ///
+    /// Cuneiform is what surfaced it. Oracc gives every text twice, once in
+    /// the signs and once in the transliteration Assyriology reads it by,
+    /// and both are the original: a transliteration renders the script, it
+    /// does not translate the language. Filing one as a Translation to make
+    /// the panes fill would be the app claiming an English text it does not
+    /// have.
+    ///
+    /// So this is the same principle as the paragraph above it, from the
+    /// other side: the second pane holds the text you want BESIDE this one.
+    /// A work carrying two recensions of one Greek text gains the same way.
+    ///
+    /// Pure and static so it can be tested without a form, a database or a
+    /// message loop.
+    /// </summary>
+    internal static (List<Edition> Left, List<Edition> Right) SplitEditionsBetweenPanes(
+        IReadOnlyList<Edition> editions)
+    {
+        var originals = editions.Where(ed => ed.Kind == EditionKind.Original).ToList();
+        var others = editions.Where(ed => ed.Kind != EditionKind.Original).ToList();
+
+        if (others.Count == 0 && originals.Count > 1)
+        {
+            // The first stays on the left, which for an Oracc work is the
+            // transliteration - the side a reader reads - leaving the signs
+            // to the right. That falls out of ingest order rather than being
+            // asserted here, and either way round is legible.
+            return (originals.Take(1).ToList(), originals.Skip(1).ToList());
+        }
+
+        return (originals, others);
+    }
+
+    /// <summary>
     /// Loads every edition of a work into the two combos and, via their
     /// SelectedIndexChanged handlers, populates both panes with whichever
     /// edition ends up selected in each (always the first of its kind, for
@@ -3352,17 +3402,8 @@ public partial class MainForm : ScaledForm
     {
         var editions = await _editionRepo.GetByWorkAsync(workId);
 
-        // Everything that is not the original goes in the second pane's
-        // dropdown, including an edition whose Kind ingest could not settle.
-        //
-        // Asking for Translation exactly meant an Unknown edition appeared in
-        // neither dropdown and so could not be opened at all, while its text
-        // sat in the database being returned by searches - a result you could
-        // read in the results list and not in the reader. Whatever we failed
-        // to classify, it is still a text of this work, and the second pane is
-        // where a text that is not the original belongs.
-        var originals = editions.Where(ed => ed.Kind == EditionKind.Original).ToList();
-        var translations = editions.Where(ed => ed.Kind != EditionKind.Original).ToList();
+        // Which pane each edition belongs to, and why, is in the method.
+        var (originals, translations) = SplitEditionsBetweenPanes(editions);
 
         // The library tree already holds both names - the work on its node,
         // the author on that node's parent - so no extra query is needed.
