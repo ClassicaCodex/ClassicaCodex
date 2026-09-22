@@ -537,7 +537,23 @@ public static class SetupDataSourceCatalog
                 RunIngest = async (root, progress, ct) =>
                 {
                     var service = new OraccIngestService();
-                    return await service.InstallStarterProjectsAsync(root, progress, ct);
+                    var outcome = await service.InstallStarterProjectsAsync(root, progress, ct);
+
+                    // Marked complete rather than stamped, because these
+                    // editions already carry their collection from ingest and
+                    // their SourcePath is the text's address on oracc.org
+                    // rather than the folder it was downloaded to - so the
+                    // folder-matching half of StampCollectionAsync would
+                    // match nothing. See MarkCollectionCompleteAsync.
+                    //
+                    // Guarded on something having actually gone in. A run
+                    // where every download failed must not leave a green tick
+                    // over an empty collection, which is the one state this
+                    // whole mechanism exists to prevent.
+                    if (outcome.InstalledCount > 0)
+                        await editionRepo.MarkCollectionCompleteAsync(CollectionKeys.Oracc, ct);
+
+                    return outcome;
                 },
 
                 CheckComplete = async () =>

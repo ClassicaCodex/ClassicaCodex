@@ -577,6 +577,13 @@ public partial class MainForm : ScaledForm
         _originalPane = CreateReaderList(new Font("Palatino Linotype", ReadingFontSettings.SourceSize));
         _translationPane = CreateReaderList(new Font("Georgia", ReadingFontSettings.TranslationSize));
 
+        // Read back from the fonts just set rather than repeating their names,
+        // so the reading font is named once. Remembered because a pane that
+        // has shown cuneiform in the historic-script font has to return to its
+        // own when it next shows Greek - see ReaderScriptFont.
+        _paneDefaultFontFamily[_originalPane] = _originalPane.Font.FontFamily.Name;
+        _paneDefaultFontFamily[_translationPane] = _translationPane.Font.FontFamily.Name;
+
         _originalPane.TopItemChanged += (_, _) => SyncScroll(_originalPane, _translationPane);
         _translationPane.TopItemChanged += (_, _) => SyncScroll(_translationPane, _originalPane);
         _originalPane.MouseClick += (_, e) => SyncSelectionFromClick(_originalPane, _translationPane, e);
@@ -2907,6 +2914,12 @@ public partial class MainForm : ScaledForm
             // After the kind filter, so nothing is cut up that will not be
             // shown. The marks no longer need to be set first: they are drawn
             // after a passage's last row rather than folded into its text.
+            // Before the rows are measured, never after: heights are measured
+            // with the pane's font and stored in one byte each, so a font
+            // swapped in afterwards would leave every row sized for glyphs it
+            // is no longer drawing.
+            ApplyScriptFont(pane, bodyNodes);
+
             await pane.SetPassagesAsync(
                 bodyNodes,
                 () => _paneFillGeneration[pane] == generation,
@@ -2981,6 +2994,31 @@ public partial class MainForm : ScaledForm
     }
 
     private readonly Dictionary<SyncListView, ReaderPaneCapabilities> _paneCapabilities = new();
+
+    /// <summary>
+    /// Each pane's own reading font, so a pane can be given a font that can
+    /// draw cuneiform and then given its own back. Keyed by pane because the
+    /// two do not share one.
+    /// </summary>
+    private readonly Dictionary<SyncListView, string> _paneDefaultFontFamily = new();
+
+    /// <summary>
+    /// Gives a pane a font that can draw what is about to go in it.
+    ///
+    /// MUST run before the rows are measured. Row heights are measured with
+    /// the pane's font, and the reader stores each height in one byte - see
+    /// ReaderRowHeight - so changing the font after measuring would leave
+    /// every row sized for the wrong glyphs.
+    /// </summary>
+    private void ApplyScriptFont(SyncListView pane, IReadOnlyList<TextNode> nodes)
+    {
+        if (!_paneDefaultFontFamily.TryGetValue(pane, out var preferred)) return;
+
+        var family = ReaderScriptFont.FamilyFor(preferred, nodes);
+        if (string.Equals(pane.Font.FontFamily.Name, family, StringComparison.Ordinal)) return;
+
+        pane.Font = new Font(family, pane.Font.Size);
+    }
 
     /// <summary>
     /// What the pane under the cursor supports. Unknown panes report nothing
