@@ -1,6 +1,7 @@
 using ClassicaCodex.Core.Models;
 using ClassicaCodex.Data.Repositories;
 using ClassicaCodex.Ingestion;
+using ClassicaCodex.Ingestion.ReM;
 
 namespace ClassicaCodex.UI;
 
@@ -68,6 +69,13 @@ public static class SetupDataSourceCatalog
         public const string PoliticalTheory = "pdl-politics";
         public const string Renaissance = "renaissance";
         public const string Menota = "menota";
+
+        /// <summary>
+        /// The Reference Corpus of Middle High German. Taken from the ingest
+        /// service rather than repeated here, so the key the editions are
+        /// stamped with and the key the filters ask for cannot drift apart.
+        /// </summary>
+        public const string ReM = ReMIngestService.CollectionKey;
     }
 
     /// <summary>
@@ -86,6 +94,7 @@ public static class SetupDataSourceCatalog
         CollectionKeys.PoliticalTheory => "Political Theory (Bodin)",
         CollectionKeys.Renaissance => "English Literature (Renaissance)",
         CollectionKeys.Menota => "Medieval Nordic (Menota)",
+        CollectionKeys.ReM => "Middle High German (ReM)",
         _ => key
     };
 
@@ -670,6 +679,65 @@ public static class SetupDataSourceCatalog
                     await editionRepo.IsCollectionCompleteAsync(CollectionKeys.Menota),
                 CheckHasSomeContent = async () =>
                     await editionRepo.CountByCollectionAsync(CollectionKeys.Menota) > 0
+            },
+
+            new SetupDataSource
+            {
+                Title = "Middle High German Texts (ReM)",
+                RepoUrl = ReMIngestService.ArchiveUrl,
+                DisplayNote = "one 27 MB download; 406 texts, 1050-1350",
+                DefaultDestination = Path.Combine(dataRoot, "rem"),
+
+                // DirectDownload, unlike Menota next door: ReM publishes the
+                // whole corpus as one archive on Zenodo, with no login and no
+                // form, so there is nothing for a reader to do by hand.
+                FetchMode = SetupFetchMode.DirectDownload,
+                DownloadFileName = ReMIngestService.ArchiveFileName,
+
+                Links =
+                {
+                    new SetupLink
+                    {
+                        Text = "About the Reference Corpus of Middle High German",
+                        Url = "https://linguistics.rub.de/rem/"
+                    }
+                },
+
+                PlainLanguageDescription =
+                    "German as it was written between 1050 and 1350, transcribed from the manuscripts "
+                    + "themselves - the Nibelungenlied, Wolfram's Parzival, Hartmann's Iwein, Gottfried's "
+                    + "Tristan, sermons, charters, charms and saints' lives, 406 texts in all. Each one "
+                    + "arrives twice: once spelled as the scribe wrote it, and once in the normalised "
+                    + "form a printed edition would use. The reader switches between them in the edition "
+                    + "dropdown, so you can read the text and see the manuscript behind it. "
+                    + "Most of these texts are anonymous, and are filed that way; the citation is the "
+                    + "manuscript's own folio and line, or the editor's line numbers where the corpus "
+                    + "cites by those instead.",
+
+                RunIngest = async (root, progress, ct) =>
+                {
+                    var service = new ReMIngestService();
+                    var outcome = await service.IngestAsync(root, progress, ct);
+
+                    progress.Report(
+                        $"{service.TextsInstalled:N0} texts installed, {service.LinesInstalled:N0} lines, "
+                        + "each in two readings.");
+
+                    // Guarded on something having actually arrived. Stamping
+                    // records the collection as FINISHED, and a run where every
+                    // text failed must not leave a green tick over an empty
+                    // collection - which is the one state the completion table
+                    // exists to prevent.
+                    if (service.TextsInstalled > 0)
+                        await editionRepo.StampCollectionAsync(root, CollectionKeys.ReM, ct);
+
+                    return outcome;
+                },
+
+                CheckComplete = async () =>
+                    await editionRepo.IsCollectionCompleteAsync(CollectionKeys.ReM),
+                CheckHasSomeContent = async () =>
+                    await editionRepo.CountByCollectionAsync(CollectionKeys.ReM) > 0
             },
 
             new SetupDataSource

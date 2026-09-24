@@ -34,12 +34,37 @@ public static class EditionLabels
     {
         if (edition.Kind == EditionKind.Original)
         {
-            return edition.Language?.ToUpperInvariant() switch
+            var language = edition.Language?.ToUpperInvariant() switch
             {
-                "GRC" => "Greek (original)",
-                "LAT" => "Latin (original)",
-                not null => $"{edition.Language} (original)",
-                null => "Original"
+                "GRC" => "Greek",
+                "LAT" => "Latin",
+                "GMH" => "Middle High German",
+                not null => edition.Language,
+                null => null
+            };
+
+            // A manuscript corpus can hold the same text twice over, differing
+            // only in how its words are spelled: what the scribe wrote, and the
+            // normalised reading a modern edition would print. Both are
+            // originals in the same language, so without this they arrive in
+            // the dropdown as two identical entries and the reader has no way
+            // to tell which is which - or that there are two.
+            //
+            // Menota's editions carry the same distinction and gain the same
+            // label; it was always in the data and was never shown.
+            var spelling = edition.Orthography?.Trim().ToLowerInvariant() switch
+            {
+                "diplomatic" => "manuscript spelling",
+                "normalised" or "normalized" => "normalised",
+                _ => null
+            };
+
+            return (language, spelling) switch
+            {
+                (null, null) => "Original",
+                (null, not null) => $"Original, {spelling}",
+                (not null, null) => $"{language} (original)",
+                _ => $"{language} ({spelling})"
             };
         }
 

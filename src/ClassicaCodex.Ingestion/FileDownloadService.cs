@@ -12,6 +12,13 @@ namespace ClassicaCodex.Ingestion;
 /// </summary>
 public class FileDownloadService
 {
+    /// <summary>
+    /// What this application calls itself to the hosts it downloads from. The
+    /// version is deliberately not in it: it would have to be kept in step with
+    /// the release, and nothing on the other end does anything with it.
+    /// </summary>
+    public const string UserAgent = "ClassicaCodex (+https://github.com/ClassicaCodex/ClassicaCodex)";
+
     public async Task DownloadAsync(
         string url,
         string destinationFilePath,
@@ -24,6 +31,18 @@ public class FileDownloadService
         try
         {
             using var http = new HttpClient();
+
+            // .NET sends no User-Agent unless one is set, and some hosts refuse
+            // a request without one. Zenodo, which publishes the Middle High
+            // German corpus, answers 403 to a headerless request and 200 to the
+            // same request with any non-empty agent - so this is the difference
+            // between a download step that works and one that fails with a
+            // permissions error nobody could act on.
+            //
+            // Named rather than generic, because a host that starts refusing
+            // this application should be able to tell who it is refusing.
+            http.DefaultRequestHeaders.UserAgent.ParseAdd(UserAgent);
+
             using var response = await http.GetAsync(
                 url, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
             response.EnsureSuccessStatusCode();
