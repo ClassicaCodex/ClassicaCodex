@@ -89,6 +89,25 @@ public class LemmaRepository
     }
 
     /// <summary>
+    /// Clears one language's mappings, leaving the others alone.
+    ///
+    /// A lemma step re-run has to be able to replace what it loaded last time,
+    /// and the whole-table clear cannot be what does it: the Greek, Latin and
+    /// English mappings are separate multi-minute downloads, and re-running one
+    /// of them must not throw away the other two.
+    /// </summary>
+    public async Task<int> ClearByLanguageAsync(
+        string language, CancellationToken cancellationToken = default)
+    {
+        await using var conn = await DbConnectionFactory.OpenConnectionAsync(cancellationToken);
+        await using var cmd = conn.CreateCommand();
+        cmd.CommandText = "DELETE FROM Lemmas WHERE Language = @Language;";
+        cmd.Parameters.AddWithValue("@Language", language);
+        cmd.CommandTimeout = 300;
+        return await cmd.ExecuteNonQueryAsync(cancellationToken);
+    }
+
+    /// <summary>
     /// Falls back to guessing the corpus from the word's script when the
     /// caller doesn't know it. Reliable only for Greek, which has its own
     /// alphabet - English and Latin share one, so callers that can tell

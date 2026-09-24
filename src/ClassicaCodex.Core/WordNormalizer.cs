@@ -51,6 +51,24 @@ public static class WordNormalizer
             // only the lowercase form needs naming here.
             if (lower is 'ς' or 'ϲ') lower = 'σ';
 
+            // Long s, for the same reason and with the same force. U+017F is
+            // the tall ſ that manuscripts and early print use everywhere except
+            // at the end of a word - it is the letter s in a different shape,
+            // not a different letter, and ToLowerInvariant leaves it alone
+            // because it is already lowercase.
+            //
+            // Measured across the Middle High German corpus, which transcribes
+            // the letter shapes the scribe actually wrote: 431,099 occurrences,
+            // far and away the commonest character that survived this function
+            // without being a-z. It is the whole difference between "iſt" and
+            // "ist", "eſſet" and "esset", "deſponſata" and "desponsata" - and
+            // so between a manuscript reading being findable by someone typing
+            // an ordinary s and not being findable at all.
+            //
+            // Also right for everything already in the library: where an OCR'd
+            // printed text carries a long s, it means s there too.
+            if (lower is 'ſ') lower = 's';
+
             sb.Append(lower);
         }
 

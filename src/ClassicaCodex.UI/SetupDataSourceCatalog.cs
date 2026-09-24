@@ -810,6 +810,54 @@ public static class SetupDataSourceCatalog
 
             new SetupDataSource
             {
+                Title = "Middle High German Lemma Data",
+                RepoUrl = ReMLemmaIngestService.ArchiveUrl,
+                DisplayNote = "158 MB; ReM's own annotation, read straight from the archive",
+                DefaultDestination = Path.Combine(dataRoot, "rem-lemmas"),
+                FetchMode = SetupFetchMode.DirectDownload,
+                DownloadFileName = ReMLemmaIngestService.ArchiveFileName,
+
+                PlainLanguageDescription =
+                    "What turns the Middle High German texts from something to read into something to "
+                    + "study: every word mapped to its dictionary headword, with its part of speech and "
+                    + "its grammar. Click a word and you get the headword, every attested spelling of "
+                    + "it, and everywhere else it occurs - the same thing Word Study does for Greek and "
+                    + "Latin. "
+                    + "This is the one collection that brings its own: the mappings were made by the "
+                    + "same project, over the same manuscripts, so they cover the texts completely "
+                    + "rather than approximately. Install the Middle High German texts first - on their "
+                    + "own these mappings have nothing to attach to.",
+
+                RunIngest = async (root, progress, ct) =>
+                {
+                    var service = new ReMLemmaIngestService();
+
+                    var wrapped = new Progress<ReMLemmaProgress>(p => progress.Report(
+                        $"{p.CurrentFile} ({p.FilesProcessed}/{p.TotalFiles} texts, {p.MappingsLoaded:N0} mappings)"));
+
+                    await service.IngestAsync(root, wrapped, ct);
+
+                    // Two different things counted two different ways, and said
+                    // so: the mappings are deduplicated across the corpus, the
+                    // dictionary coverage is a share of the words in it.
+                    var covered = service.TokensRead == 0
+                        ? 0
+                        : service.WithDictionaryId * 100.0 / service.TokensRead;
+
+                    progress.Report(
+                        $"{service.MappingsLoaded:N0} word-form mappings loaded from "
+                        + $"{service.TokensRead:N0} annotated words, {covered:F0}% of which are keyed "
+                        + "to the Mittelhochdeutsches Wörterbuch.");
+
+                    return IngestOutcome.Clean;
+                },
+
+                CheckComplete = async () =>
+                    await lemmaRepo.CountByLanguageAsync(ReMIngestService.Language) > 0
+            },
+
+            new SetupDataSource
+            {
                 Title = "English Lemma Data & Dictionary (WordNet)",
                 RepoUrl = "https://wordnet.princeton.edu",
                 DisplayNote = "(Princeton WordNet - free for any use)",

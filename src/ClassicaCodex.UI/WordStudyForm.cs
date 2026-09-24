@@ -698,17 +698,36 @@ public class WordStudyForm : ScaledForm
     }
 
     /// <summary>
-    /// Guesses the language from the script - a headword containing Greek
-    /// letters is Greek, anything else is treated as Latin. The lemma tables
-    /// do record a language, but a headword arrives here without it, and
-    /// script is an unambiguous signal for these two languages.
+    /// Which dictionary to look a headword up in: the language of the edition
+    /// it came from, falling back to the script only when the edition does not
+    /// say.
+    ///
+    /// The fallback is what this method used to be, in full - Greek letters
+    /// meant Greek and everything else meant Latin, on the reasoning that
+    /// script is an unambiguous signal "for these two languages". It was, for
+    /// two.
     /// </summary>
-    private static string DetectLanguage(string headword)
+    private string DetectLanguage(string headword)
     {
+        // The edition's own language, whenever there is one. Guessing from the
+        // script is only ever a fallback, and it had to stop being the first
+        // answer the moment a third language written in Latin letters arrived:
+        // every Middle High German headword would have been looked up in the
+        // Latin dictionary, and "an", "in", "a" and "her" are all real Lewis
+        // and Short headwords - so the pane would not have come back empty, it
+        // would have come back confidently wrong, with a Latin entry under a
+        // German word.
+        //
+        // The form and occurrence lookups on this form were always scoped by
+        // _language. This one line was out of step with them, and was latent
+        // for as long as the only Latin-script lemma data was Latin.
+        if (!string.IsNullOrWhiteSpace(_language)) return _language;
+
         foreach (var c in headword)
         {
             if ((c >= '\u0370' && c <= '\u03FF') || (c >= '\u1F00' && c <= '\u1FFF')) return "grc";
         }
+
         return "lat";
     }
 
