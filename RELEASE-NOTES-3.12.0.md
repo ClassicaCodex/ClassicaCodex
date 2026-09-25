@@ -110,3 +110,9 @@ answers 403 to a headerless request, which surfaced as a permissions error
 nobody could act on. Every direct-download source gains it.
 
 1,565 tests, zero warnings.
+
+The download is not code-signed, so if you would rather check it than trust it:
+
+```
+SHA-256  710B6795239DE3F71FB72C7179015388FA92D728C367CA3396B9A5EC376417E1
+```
