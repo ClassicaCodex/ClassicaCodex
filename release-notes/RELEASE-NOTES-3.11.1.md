@@ -1,3 +1,9 @@
+> **Historical.** These are the notes for Classica Codex 3.11.1, which is no longer
+available for download. Only the current release is published; get it from
+[the releases page](https://github.com/ClassicaCodex/ClassicaCodex/releases/latest).
+> Any download link or SHA-256 below refers to the 3.11.1 ZIP, not to the current
+> one, so do not check a current download against a checksum printed here.
+
 # Classica Codex 3.11.1
 
 Some passages had a gap in the middle of a word. Around 86,000 of them, which
