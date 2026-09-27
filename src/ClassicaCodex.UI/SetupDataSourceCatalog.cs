@@ -1,6 +1,8 @@
+using ClassicaCodex.Core.Catmus;
 using ClassicaCodex.Core.Models;
 using ClassicaCodex.Data.Repositories;
 using ClassicaCodex.Ingestion;
+using ClassicaCodex.Ingestion.Catmus;
 using ClassicaCodex.Ingestion.ReM;
 
 namespace ClassicaCodex.UI;
@@ -100,8 +102,15 @@ public static class SetupDataSourceCatalog
 
     public static List<SetupDataSource> Build(
         AuthorRepository authorRepo, LemmaRepository lemmaRepo, DefinitionRepository definitionRepo,
-        ArtifactRepository artifactRepo, EditionRepository editionRepo)
+        ArtifactRepository artifactRepo, EditionRepository editionRepo,
+        CatmusRepository? catmusRepo = null)
     {
+        // Optional so the three callers that predate it keep compiling, and
+        // defaulted rather than left null so the step is always built - a
+        // setup list that silently loses a step depending on which overload
+        // was called would be worse than a repository allocated for nothing.
+        catmusRepo ??= new CatmusRepository();
+
         var dataRoot = DataRoot;
 
         // Named once, so the step's download location and its "is this
@@ -973,6 +982,55 @@ public static class SetupDataSourceCatalog
                     return IngestOutcome.Clean;
                 },
                 CheckComplete = async () => await artifactRepo.HasDataAsync()
+            },
+
+            new SetupDataSource
+            {
+                Title = "Medieval Manuscript Hands (CATMuS)",
+                RepoUrl = CatmusCatalogue.DatasetUrl,
+                DisplayNote = "transcriptions only - a few megabytes, not the 24.7 GB of photographs",
+                DefaultDestination = Path.Combine(dataRoot, CatmusImageDownloadService.ImagesFolder),
+                FetchMode = SetupFetchMode.SelfManaged,
+                ActionButtonText = "Download Transcriptions",
+                PlainLanguageDescription =
+                    $"Every other collection here arrives already transcribed, with the step where " +
+                    $"somebody looked at a manuscript and decided what it said left out. This is that " +
+                    $"step: {CatmusCatalogue.TotalLines:N0} lines from {CatmusCatalogue.Manuscripts.Count} " +
+                    "medieval manuscripts, seventh to sixteenth century, each one photographed and " +
+                    "transcribed beside itself - Latin, French, Castilian, Middle Dutch, Italian and six " +
+                    "more, in Caroline, Textualis, Cursiva and nine other hands. It opens in Medieval " +
+                    "Hands on the toolbar, not in the reader, because CATMuS shuffles its lines and " +
+                    "records no page numbers, so a manuscript here is a collection of specimens rather " +
+                    "than something to read through.\r\n\r\n" +
+                    "This step fetches the transcriptions only: about eight megabytes, five to ten " +
+                    "minutes, and nothing saved to the download folder. The line photographs are the " +
+                    "other 24.7 GB, so they are fetched one manuscript at a time from inside the window, " +
+                    "where each one's size is shown before you agree to it.",
+                Links =
+                {
+                    new SetupLink { Text = "CATMuS-Medieval on HuggingFace", Url = CatmusCatalogue.DatasetUrl }
+                },
+                RunIngest = async (_, progress, ct) =>
+                {
+                    var service = new CatmusIngestService(catmusRepo);
+                    await service.IngestAsync(CatmusCatalogue.Shards, progress, ct);
+
+                    if (service.FailedShards.Count > 0)
+                    {
+                        progress.Report(
+                            $"{service.FailedShards.Count} of {CatmusCatalogue.Shards.Count} files could not " +
+                            "be read. Running this step again retries only those.");
+                    }
+
+                    return IngestOutcome.From(service.FailedShards, attempted: CatmusCatalogue.Shards.Count);
+                },
+
+                // Complete means every file, not merely some - an interrupted
+                // run leaves a library that works and is missing manuscripts,
+                // and calling that finished would hide the ones it lost.
+                CheckComplete = async () =>
+                    (await catmusRepo.GetIngestedShardsAsync()).Count >= CatmusCatalogue.Shards.Count,
+                CheckHasSomeContent = async () => await catmusRepo.HasDataAsync()
             }
         };
     }

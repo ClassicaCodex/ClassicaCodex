@@ -2383,6 +2383,64 @@ public static class SchemaInitializer
             CONSTRAINT PK_ArtifactImages PRIMARY KEY (ArtifactId, ImageId)
         );",
 
-        @"CREATE INDEX IF NOT EXISTS IX_ArtifactImages_ArtifactId ON ArtifactImages (ArtifactId);"
+        @"CREATE INDEX IF NOT EXISTS IX_ArtifactImages_ArtifactId ON ArtifactImages (ArtifactId);",
+
+        // CATMuS-Medieval: 313 medieval manuscripts as line photographs with
+        // diplomatic transcriptions, for the Palaeography window.
+        //
+        // Deliberately NOT Authors/Works/Editions/TextNodes, which is where
+        // every other collection goes. CATMuS rows are shuffled and carry no
+        // page or line number, so the lines of a manuscript cannot be put
+        // back into reading order - loading them as an edition would produce
+        // a text whose every line is genuine and whose order is invented, and
+        // it would then be searched, bookmarked and cited as though the order
+        // meant something. These are specimens of scribal hands, and they get
+        // tables that can only be read as specimens.
+        @"CREATE TABLE IF NOT EXISTS CatmusManuscripts (
+            ManuscriptId INTEGER PRIMARY KEY,
+            Shelfmark    TEXT NOT NULL UNIQUE,
+            Language     TEXT NULL,
+            Century      INTEGER NULL,
+            ScriptType   TEXT NULL,
+            Genre        TEXT NULL,
+            Verse        TEXT NULL,
+            Project      TEXT NULL,
+            LineCount    INTEGER NOT NULL,
+            ImagePack    TEXT NULL
+        );",
+
+        // One line of one manuscript: what the scribe wrote, and where the
+        // photograph of it is.
+        //
+        // ImageOffset/ImageLength address the manuscript's image pack - a
+        // plain concatenation of the PNGs, written when the reader chooses to
+        // download the photographs. Both null until then, which is the normal
+        // state: the transcriptions are 0.1% of the dataset and the pictures
+        // are the rest, so most libraries will hold every line of text and the
+        // photographs of none of it.
+        //
+        // The pack exists rather than reading the images back out of the
+        // Parquet file because a Parquet data page is the smallest unit that
+        // decodes, and these pages hold about ten photographs each - so
+        // showing one line would read and decompress 1.5 MB. A seek and a
+        // read of 150 KB is the same picture.
+        @"CREATE TABLE IF NOT EXISTS CatmusLines (
+            LineId         INTEGER PRIMARY KEY,
+            ManuscriptId   INTEGER NOT NULL,
+            ShardFile      TEXT NOT NULL,
+            RowIndex       INTEGER NOT NULL,
+            Text           TEXT NOT NULL,
+            NormalizedText TEXT NOT NULL,
+            Region         TEXT NULL,
+            LineType       TEXT NULL,
+            ImageOffset    INTEGER NULL,
+            ImageLength    INTEGER NULL
+        );",
+
+        @"CREATE INDEX IF NOT EXISTS IX_CatmusLines_ManuscriptId ON CatmusLines (ManuscriptId);",
+
+        // Re-ingesting one shard has to replace exactly its own rows, and
+        // (shard, row) is what identifies a line in the dataset.
+        @"CREATE UNIQUE INDEX IF NOT EXISTS IX_CatmusLines_Shard ON CatmusLines (ShardFile, RowIndex);"
     };
 }

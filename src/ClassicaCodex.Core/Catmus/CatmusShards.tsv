@@ -1,0 +1,346 @@
+dev	L-Cas.C-14.S-Hyb.Paris__BnF__esp__33.H-ebbcb.Part-0.parquet	16359478	489	Paris, BnF, esp. 33	Castilian	14	Hybrida	Treatises	prose	HTRogène
+dev	L-Cas.C-14.S-Hyb.Paris__BnF__esp__440.H-38997.Part-0.parquet	42575853	355	Paris, BnF, esp. 440	Castilian	14	Hybrida	Treatises	prose	HTRomance
+dev	L-Cas.C-14.S-Sem.Valladolid__Biblioteca_de_Santa_Cruz__ms__251.H-5cede.Part-0.parquet	154253718	2560	Valladolid, Biblioteca de Santa Cruz, ms. 251	Castilian	14	Semitextualis	Treatises	prose	Towards General Castilian HTR
+dev	L-Cas.C-14.S-Sem.Valladolid__Biblioteca_de_Santa_Cruz__ms__251.H-5cede.Part-1.parquet	86493682	1455	Valladolid, Biblioteca de Santa Cruz, ms. 251	Castilian	14	Semitextualis	Treatises	prose	Towards General Castilian HTR
+dev	L-Cas.C-14.S-Sem.Valladolid__Biblioteca_de_Santa_Cruz__ms__251.H-9a594.Part-0.parquet	24291321	378	Valladolid, Biblioteca de Santa Cruz, ms. 251	Castilian	14	Semitextualis	Treatises	prose	Towards General Castilian HTR
+dev	L-Cas.C-14.S-Sem.Valladolid__Biblioteca_de_Santa_Cruz__ms__251.H-aa883.Part-0.parquet	150081117	2560	Valladolid, Biblioteca de Santa Cruz, ms. 251	Castilian	14	Semitextualis	Treatises	prose	Towards General Castilian HTR
+dev	L-Cas.C-14.S-Sem.Valladolid__Biblioteca_de_Santa_Cruz__ms__251.H-aa883.Part-1.parquet	78969307	1343	Valladolid, Biblioteca de Santa Cruz, ms. 251	Castilian	14	Semitextualis	Treatises	prose	Towards General Castilian HTR
+dev	L-Cas.C-14.S-Sem.Valladolid__Biblioteca_de_Santa_Cruz__ms__251.H-abb1d.Part-0.parquet	37788488	652	Valladolid, Biblioteca de Santa Cruz, ms. 251	Castilian	14	Semitextualis	Treatises	prose	Towards General Castilian HTR
+dev	L-Cas.C-14.S-Tex.San_Lorenzo_de_El_Escorial__RBME__Z_I_12.H-67211.Part-0.parquet	4404458	117	San Lorenzo de El Escorial, RBME, Z-I-12	Castilian	14	Textualis	Treatises	prose	Towards General Castilian HTR
+dev	L-Cas.C-15.S-Hyb.Madrid__Biblioteca_Real__ms__II_215.H-a403c.Part-0.parquet	96178588	408	Madrid, Biblioteca Real, ms. II/215	Castilian	15	Hybrida	Treatises	prose	Towards General Castilian HTR
+dev	L-Cat.C-14.S-Sem.Paris__BnF__esp__44.H-6f671.Part-0.parquet	67207100	433	Paris, BnF, esp. 44	Catalan	14	Semitextualis	Narratives	prose	HTRomance
+dev	L-Fre.C-13.S-Tex.Paris__BnF__NAF_10039.H-e5fdf.Part-0.parquet	30639185	116	Paris, BnF, NAF 10039	French	13	Textualis	Narratives	verse	HTRomance
+dev	L-Fre.C-13.S-Tex.Paris__BnF__fr__1669.H-770e7.Part-0.parquet	20026047	483	Paris, BnF, fr. 1669	French	13	Textualis	Narratives	verse	HTRomance
+dev	L-Fre.C-13.S-Tex.Paris__BnF__fr__2168.H-c4792.Part-0.parquet	97830792	370	Paris, BnF, fr. 2168	French	13	Textualis	Poetry	verse	HTRomance
+dev	L-Fre.C-15.S-Cur.Paris__BnF__Arsenal__3350.H-55b3b.Part-0.parquet	37191983	271	Paris, BnF, Arsenal, 3350	French	15	Cursiva	Narratives	prose	HTRomance
+dev	L-Fre.C-15.S-Cur.Paris__BnF__fr__12575.H-34eca.Part-0.parquet	20539335	263	Paris, BnF, fr. 12575	French	15	Cursiva	Narratives	verse	HTRogène
+dev	L-Fre.C-15.S-Cur.Paris__BnF__fr__1357.H-8d4ed.Part-0.parquet	38660799	318	Paris, BnF, fr. 1357	French	15	Cursiva	Treatises	prose	HTRomance
+dev	L-Fre.C-15.S-Cur.Paris__BnF__fr__1419.H-95a6b.Part-0.parquet	24909337	286	Paris, BnF, fr. 1419	French	15	Cursiva	Narratives	prose	Gallicorpora
+dev	L-Fre.C-15.S-Pri.Paris__BnF__Velins_360.H-13011.Part-0.parquet	84865941	321	Paris, BnF, Velins 360	French	15	Print	Narratives	verse	Gallicorpora
+dev	L-Fre.C-15.S-Sem.Paris__BnF__Arsenal__3346.H-a13ef.Part-0.parquet	50442029	284	Paris, BnF, Arsenal, 3346	French	15	Semihybrida	Narratives	prose	HTRomance
+dev	L-Ita.C-14.S-Cur.Florence__Biblioteca_Medicea_Laurenziana__Laur__Plut__40_25.H-419ce.Part-0.parquet	48710839	438	Florence, Biblioteca Medicea Laurenziana, Laur. Plut. 40.25	Italian	14	Cursiva	Narratives	verse	eDante
+dev	L-Ita.C-14.S-Tex.Paris__BnF__ita__590.H-734d8.Part-0.parquet	47694899	444	Paris, BnF, ita. 590	Italian	14	Textualis	Narratives	prose	HTRomance
+dev	L-Ita.C-15.S-Hum.Rouen__Bibliotheque_Municipale__Ms__Leber_1158.H-6274e.Part-0.parquet	19992693	250	Rouen, Bibliothèque Municipale, Ms. Leber 1158	Italian	15	Humanistica	Treatises	prose	HTRogène
+dev	L-Ita.C-15.S-Hyb.Florence__BNCF__Palatino_343.H-d8469.Part-0.parquet	6986703	393	Florence, BNCF, Palatino 343	Italian	15	Hybrida	Narratives	verse	HTRogène
+dev	L-Ita.C-16.S-Per.Paris__BnF__ita__1729.H-bc14e.Part-0.parquet	28703707	595	Paris, BnF, ita. 1729	Italian	16	Personal	Espistolary	prose	HTRogène
+dev	L-Lat.C-12.S-Car.Paris__BnF__lat__12270.H-befca.Part-0.parquet	19818463	517	Paris, BnF, lat. 12270	Latin	12	Caroline	Treatises	prose	HTRomance
+dev	L-Lat.C-12.S-Car.Paris__BnF__lat__12449.H-ec8fe.Part-0.parquet	11327254	511	Paris, BnF, lat. 12449	Latin	12	Caroline	Treatises	prose	HTRomance
+dev	L-Lat.C-12.S-Got_Doc_Scr.London__British_Library__Egerton_ms__3031.H-c4580.Part-0.parquet	123062911	195	London, British Library, Egerton ms. 3031	Latin	12	Gothic Documentary Script	Documents of practice	prose	DEEDS
+dev	L-Lat.C-12.S-Pra.Archives_departementales_des_Yvelines__45H8_17.H-e6801.Part-0.parquet	2822884	35	Archives départementales des Yvelines, 45H8 17	Latin	12	Praegothica	Documents of practice	prose	HTRogène
+dev	L-Lat.C-12.S-Pra.London__British_Library__Egerton_821.H-719f8.Part-0.parquet	78376564	114	London, British Library, Egerton 821	Latin	12	Praegothica	Treatises	prose	CREMMA
+dev	L-Lat.C-13.S-Got_Doc_Scr.Nice__AM__AA_1_04.H-e8dd1.Part-0.parquet	6967213	9	Nice, AM, AA 1/04	Latin	13	Gothic Documentary Script	Documents of practice	prose	HTRogène
+dev	L-Lat.C-13.S-Sem.Paris__BnF__lat__16085.H-fee1a.Part-0.parquet	69722506	391	Paris, BnF, lat. 16085	Latin	13	Semitextualis	Treatises	prose	HTRomance
+dev	L-Lat.C-14.S-Cur.Cambridge__University_Library__MS_Ff_1_28.H-31684.Part-0.parquet	3400813	84	Cambridge, University Library, MS Ff.1.28	Latin	14	Cursiva	Narratives	prose	DEEDS
+dev	L-Lat.C-14.S-Cur.Paris__Archives_nationales__LL_108A.H-e0dc4.Part-0.parquet	64596335	557	Paris, Archives nationales, LL 108A	Latin	14	Cursiva	Documents of practice	prose	HTRogène
+dev	L-Lat.C-15.S-Cur.Paris__Archives_nationales__LL_125.H-d8e12.Part-0.parquet	65532636	435	Paris, Archives nationales, LL 125	Latin	15	Cursiva	Documents of practice	prose	HTRogène
+dev	L-Lat.C-15.S-Hum.Paris__BnF__Smith_Lesouef_12.H-02ac6.Part-0.parquet	14033912	117	Paris, BnF, Smith-Lesouëf 12	Latin	15	Humanistica	Poetry	prose	HTRomance
+dev	L-Lat.C-15.S-Hum.Toronto__Thomas_Fisher_Rare_Book_Library__MSS_03043.H-eb669.Part-0.parquet	8978075	50	Toronto, Thomas Fisher Rare Book Library, MSS 03043	Latin	15	Humanistica	Treatises	prose	DEEDS
+dev	L-Lat.C-15.S-Sem.Toronto__Thomas_Fisher_Rare_Book_Library__MSS_01114.H-ba403.Part-0.parquet	14167642	173	Toronto, Thomas Fisher Rare Book Library, MSS 01114	Latin	15	Semitextualis	Poetry	prose	DEEDS
+dev	L-Lat.C-15.S-Sem.Toronto__Thomas_Fisher_Rare_Book_Library__MSS_05288.H-06fe4.Part-0.parquet	20603359	100	Toronto, Thomas Fisher Rare Book Library, MSS 05288	Latin	15	Semihybrida	Narratives	prose	DEEDS
+dev	L-Lat.C-16.S-Hum.Paris__BnF__NAL_1909.H-19098.Part-0.parquet	62078311	220	Paris, BnF, NAL 1909	Latin	16	Humanistica	Poetry	verse	HTRomance
+dev	L-Lat.C-16.S-Hum.Paris__BnF__lat__6337.H-415be.Part-0.parquet	9993698	259	Paris, BnF, lat. 6337	Latin	16	Humanistica	Narratives	prose	HTRomance
+dev	L-Lat.C-9.S-Car.Munich__Bayerische_Staatsbibliothek__Clm_29302.H-664f5.Part-0.parquet	7923821	21	Munich, Bayerische Staatsbibliothek, Clm 29302	Latin	9	Caroline	Narratives	prose	Rescribe x CATMuS
+dev	L-Occ.C-14.S-Tex.London__British_Library__Harley_MS_3041.H-5be93.Part-0.parquet	6237865	32	London, British Library, Harley MS 3041	Occitan	14	Textualis	Narratives	prose	HTRogène
+test	L-Cas.C-14.S-Hyb.Paris__BnF__esp__36.H-16033.Part-0.parquet	17294600	74	Paris, BnF, esp. 36	Castilian	14	Hybrida	Narratives	prose	Towards General Castilian HTR
+test	L-Cas.C-14.S-Hyb.Paris__BnF__esp__36.H-71c8c.Part-0.parquet	117722117	467	Paris, BnF, esp. 36	Castilian	14	Hybrida	Narratives	prose	HTRomance
+test	L-Cas.C-15.S-Hyb.Paris__BnF__esp__458.H-b9626.Part-0.parquet	25253092	331	Paris, BnF, esp. 458	Castilian	15	Hybrida	Treatises	prose	HTRogène
+test	L-Cas.C-15.S-Sem.Madrid__BNE__MSS__3995.H-2efa2.Part-0.parquet	20996884	154	Madrid, BNE, MSS. 3995	Castilian	15	Semihybrida	Treatises	prose	CATMuS
+test	L-Cas.C-16.S-Hum.Paris__BnF__esp__368.H-ef7a5.Part-0.parquet	9225288	156	Paris, BnF, esp. 368	Castilian	16	Humanistica	Treatises	prose	HTRomance
+test	L-Cat.C-15.S-Hum.Paris__BnF__esp__305.H-365ee.Part-0.parquet	14561128	298	Paris, BnF, esp. 305	Catalan	15	Humanistica	Poetry	mixed	HTRogène
+test	L-Fre.C-12.S-Pra.Paris__BnF__NAF_4503.H-da997.Part-0.parquet	43420289	291	Paris, BnF, NAF 4503	French	12	Praegothica	Narratives	verse	HTRogène
+test	L-Fre.C-13.S-Tex.Paris__BnF__fr__13496.H-21978.Part-0.parquet	6185909	159	Paris, BnF, fr. 13496	French	13	Textualis	Narratives	prose	CREMMA
+test	L-Fre.C-13.S-Tex.Paris__BnF__fr__23117.H-c275f.Part-0.parquet	33335962	736	Paris, BnF, fr. 23117	French	13	Textualis	Narratives	prose	HTRomance
+test	L-Fre.C-13.S-Tex.Paris__BnF__fr__6447.H-8addb.Part-0.parquet	26602541	383	Paris, BnF, fr. 6447	French	13	Textualis	Narratives	prose	HTRomance
+test	L-Fre.C-13.S-Tex.Paris__BnF__fr__747.H-32240.Part-0.parquet	11227253	91	Paris, BnF, fr. 747	French	13	Textualis	Narratives	prose	HTRomance
+test	L-Fre.C-14.S-Tex.Paris__BnF__fr__574.H-9ad67.Part-0.parquet	37430813	116	Paris, BnF, fr. 574	French	14	Textualis	Treatises	prose	HTRomance
+test	L-Fre.C-15.S-Cur.Paris__BnF__fr__12563.H-5da36.Part-0.parquet	11423940	271	Paris, BnF, fr. 12563	French	15	Cursiva	Narratives	verse	HTRogène
+test	L-Fre.C-15.S-Cur.Paris__BnF__fr__413.H-d8268.Part-0.parquet	43239866	860	Paris, BnF, fr. 413	French	15	Cursiva	Narratives	prose	Gallicorpora
+test	L-Fre.C-15.S-Cur.Paris__BnF__fr__604.H-b6ecb.Part-0.parquet	51853957	343	Paris, BnF, fr. 604	French	15	Cursiva	Narratives	verse	Gallicorpora
+test	L-Fre.C-15.S-Sem.Paris__BnF__fr__2701.H-d0214.Part-0.parquet	26765852	275	Paris, BnF, fr. 2701	French	15	Semihybrida	Treatises	prose	HTRomance
+test	L-Fre.C-16.S-Cur.Paris__BnF__fr__1881.H-3bca8.Part-0.parquet	10874320	194	Paris, BnF, fr. 1881	French	16	Cursiva	Narratives	verse	HTRomance
+test	L-Fre.C-16.S-Pri.Paris__BnF__Res__YE_1325.H-b82af.Part-0.parquet	52370436	416	Paris, BnF, Rés. YE-1325	French	16	Print	Narratives	prose	Gallicorpora
+test	L-Ita.C-14.S-Cur.Florence__BNCF__Conventi_Soppressi_C_III_1262.H-a81b3.Part-0.parquet	71087997	644	Florence, BNCF, Conventi Soppressi C.III.1262	Italian	14	Cursiva	Narratives	verse	eDante
+test	L-Ita.C-14.S-Hum.Paris__BnF__ita__481.H-674bc.Part-0.parquet	77652493	502	Paris, BnF, ita. 481	Italian	14	Humanistica	Narratives	prose	HTRomance
+test	L-Ita.C-15.S-Hum.Oxford__Bodleian_Library__MS__Digby_94.H-69027.Part-0.parquet	23514307	275	Oxford, Bodleian Library, MS. Digby 94	Italian	15	Humanistica	Narratives	verse	HTRogène
+test	L-Ita.C-15.S-Hum.Strasbourg__Bibliotheque_nationale_et_universitaire__Ms_1_808.H-249f1.Part-0.parquet	3847100	129	Strasbourg, Bibliothèque nationale et universitaire, Ms.1.808	Italian	15	Humanistica	Narratives	verse	HTRogène
+test	L-Lat.C-10.S-Car.Paris__BnF__lat__7499.H-77d2b.Part-0.parquet	140208680	2560	Paris, BnF, lat. 7499	Latin	10	Caroline	Treatises	prose	Eutyches
+test	L-Lat.C-10.S-Car.Paris__BnF__lat__7499.H-77d2b.Part-1.parquet	165460974	2560	Paris, BnF, lat. 7499	Latin	10	Caroline	Treatises	prose	Eutyches
+test	L-Lat.C-10.S-Car.Paris__BnF__lat__7499.H-77d2b.Part-2.parquet	50809600	966	Paris, BnF, lat. 7499	Latin	10	Caroline	Treatises	prose	Eutyches
+test	L-Lat.C-11.S-Car.Semur_en_Auxois__Bibliotheque_municipale__Ms__1.H-cb7d0.Part-0.parquet	43821067	227	Semur-en-Auxois, Bibliothèque municipale, Ms. 1	Latin	11	Caroline	Narratives	prose	HTRogène
+test	L-Lat.C-11.S-Sem.Angers__Archives_departementales_de_Maine_et_Loire___H_039__2_n__176_177.H-b9257.Part-0.parquet	27338101	37	Angers, Archives départementales de Maine-et-Loire - H(039) 2 n° 176-177	Latin	11	Semitextualis	Documents of practice	prose	HTRogène
+test	L-Lat.C-12.S-Car.Paris__BnF__lat__130.H-9ac57.Part-0.parquet	40493796	198	Paris, BnF, lat. 130	Latin	12	Caroline	Treatises	prose	HTRomance
+test	L-Lat.C-12.S-Got_Doc_Scr.Liege__Archives_de_l_Etat__T51_13.H-f60ec.Part-0.parquet	2234845	25	Liege, Archives de l'État, T51.13	Latin	12	Gothic Documentary Script	Documents of practice	prose	HTRogène
+test	L-Lat.C-12.S-Pra.Montpellier__Bibliotheque_universitaire_Historique_de_Medecine__H318.H-8f0f7.Part-0.parquet	26148520	427	Montpellier, Bibliothèque universitaire Historique de Médecine, H318	Latin	12	Praegothica	Treatises	prose	CREMMA
+test	L-Lat.C-13.S-Car.Paris__BnF__lat__8001.H-4017e.Part-0.parquet	47538620	504	Paris, BnF, lat. 8001	Latin	13	Caroline	Poetry	verse	HTRomance
+test	L-Lat.C-13.S-Got_Doc_Scr.Auxerre__Archives_departementales_de_l_Yonne___H_2404.H-73de4.Part-0.parquet	1901239	13	Auxerre, Archives départementales de l'Yonne - H 2404	Latin	13	Gothic Documentary Script	Documents of practice	prose	HTRogène
+test	L-Lat.C-13.S-Got_Doc_Scr.Paris__BnF__lat__10996.H-e4e63.Part-0.parquet	12021075	106	Paris, BnF, lat. 10996	Latin	13	Gothic Documentary Script	Documents of practice	prose	HTRomance
+test	L-Lat.C-13.S-Pra.Cambridge__Corpus_Christi_College__MS_29.H-c94e3.Part-0.parquet	40612448	1401	Cambridge, Corpus Christi College, MS 29	Latin	13	Praegothica	Narratives	prose	HTRogène
+test	L-Lat.C-13.S-Pra.Paris__BnF__lat__17903.H-05922.Part-0.parquet	70340603	440	Paris, BnF, lat. 17903	Latin	13	Praegothica	Poetry	verse	HTRomance
+test	L-Lat.C-14.S-Cur.Paris__Archives_nationales__LL_108B.H-ac4de.Part-0.parquet	47899810	372	Paris, Archives nationales, LL 108B	Latin	14	Cursiva	Documents of practice	prose	HTRogène
+test	L-Lat.C-14.S-Cur.Paris__Bibliotheque_inter_universitaire_de_la_Sorbonne__193.H-e83ad.Part-0.parquet	59254705	669	Paris, Bibliothèque inter-universitaire de la Sorbonne, 193	Latin	14	Cursiva	Treatises	prose	CREMMA
+test	L-Lat.C-14.S-Sem.Paris__BnF__lat__14137.H-2ef79.Part-0.parquet	13518049	193	Paris, BnF, lat. 14137	Latin	14	Semitextualis	Poetry	verse	HTRomance
+test	L-Lat.C-14.S-Tex.Paris__BnF__NAL_730.H-ac465.Part-0.parquet	18423762	284	Paris, BnF, NAL 730	Latin	14	Textualis	Treatises	prose	HTRomance
+test	L-Lat.C-15.S-Cur.Paris__BnF__lat__14650.H-79d19.Part-0.parquet	5052561	172	Paris, BnF, lat. 14650	Latin	15	Cursiva	Narratives	prose	HTRomance
+test	L-Lat.C-15.S-Hum.Florence__Biblioteca_Medicea_Laurenziana__Laur__Plut__39_34.H-6cb00.Part-0.parquet	11312057	135	Florence, Biblioteca Medicea Laurenziana, Laur. Plut. 39.34	Latin	15	Humanistica	Poetry	verse	CREMMA
+test	L-Lat.C-15.S-Sem.Paris__BIU_Sante__Medecine__5119.H-39d42.Part-0.parquet	51129470	323	Paris, BIU Santé, Médecine, 5119	Latin	15	Semihybrida	Treatises	prose	HTRogène
+test	L-Lat.C-16.S-Cur.Oxford__Bodleian_Library__MS__Rawl__B__499.H-52242.Part-0.parquet	12367119	71	Oxford, Bodleian Library, MS. Rawl. B. 499	Latin	16	Cursiva	Documents of practice	prose	DEEDS
+test	L-Lat.C-16.S-Cur.Paris__BnF__Smith_Lesouef_35.H-5afc1.Part-0.parquet	8702046	127	Paris, BnF, Smith-Lesouëf 35	Latin	16	Cursiva	Treatises	prose	HTRogène
+test	L-Lat.C-16.S-Hum.Paris__BnF__Smith_Lesouef_16.H-37e5e.Part-0.parquet	3359382	138	Paris, BnF, Smith-Lesouëf 16	Latin	16	Humanistica	Documents of practice	prose	HTRomance
+test	L-Lat.C-16.S-Hyb.Ghent__UL__HS_0011.H-bdbf8.Part-0.parquet	38416565	1127	Ghent, UL, HS.0011	Latin	16	Hybrida	Treatises	prose	HTRogène
+test	L-Lat.C-9.S-Unc.Saint_Omer__BM_764.H-f211f.Part-0.parquet	31973506	249	Saint-Omer, BM 764	Latin	9	Uncial	Narratives	prose	HTRogène
+test	L-Mid_Dut.C-14.S-Tex.Vienna__ONB__12_905.H-d1b98.Part-0.parquet	245166556	1047	Vienna, ÖNB, 12.905	Middle Dutch	14	Textualis	Treatises	prose	Carthusian Monastery of Herne
+test	L-Nav.C-14.S-Tex.Paris__BnF__esp__65.H-eaa18.Part-0.parquet	23382620	737	Paris, BnF, esp. 65	Navarrese	14	Textualis	Treatises	prose	HTRomance
+test	L-Occ.C-14.S-Tex.London__British_Library__Harley_MS_7403_.H-b428f.Part-0.parquet	34890432	170	London, British Library, Harley MS 7403	Occitan	14	Textualis	Poetry	verse	HTRogène
+test	L-Ven.C-14.S-Tex.Paris__BnF__ita__783.H-8b044.Part-0.parquet	82690329	147	Paris, BnF, ita. 783	Venitian	14	Textualis	Narratives	prose	HTRomance
+train	L-Cas.C-13.S-Sem.Paris__BnF__esp__480.H-84129.Part-0.parquet	35503947	80	Paris, BnF, esp. 480	Castilian	13	Semihybrida	Documents of practice	prose	HTRomance
+train	L-Cas.C-13.S-Tex.Paris__BnF__esp__256.H-f2543.Part-0.parquet	47676332	257	Paris, BnF, esp. 256	Castilian	13	Textualis	Treatises	prose	HTRomance
+train	L-Cas.C-14.S-Cur.Salamanca__Biblioteca_Historica_USAL__2011.H-84a56.Part-0.parquet	11072343	56	Salamanca, Biblioteca Histórica USAL, 2011	Castilian	14	Cursiva	Treatises	prose	Towards General Castilian HTR
+train	L-Cas.C-14.S-Hyb.Madrid__BNE__MSS__12732.H-035c7.Part-0.parquet	2025401	73	Madrid, BNE, MSS. 12732	Castilian	14	Hybrida	Treatises	prose	CATMuS
+train	L-Cas.C-14.S-Hyb.Madrid__BNE__MSS__6406.H-5113f.Part-0.parquet	8845743	26	Madrid, BNE, MSS. 6406	Castilian	14	Hybrida	Treatises	prose	CATMuS
+train	L-Cas.C-14.S-Sem.Paris__BnF__esp__43.H-a6b5d.Part-0.parquet	21332397	284	Paris, BnF, esp. 43	Castilian	14	Semitextualis	Treatises	verse	HTRogène
+train	L-Cas.C-14.S-Tex.Salamanca__Biblioteca_Historica_USAL__2673.H-59681.Part-0.parquet	15809090	138	Salamanca, Biblioteca Histórica USAL, 2673	Castilian	14	Textualis	Treatises	prose	Towards General Castilian HTR
+train	L-Cas.C-14.S-Tex.San_Lorenzo_de_El_Escorial__RBME__Z_III_9.H-c839e.Part-0.parquet	5229185	133	San Lorenzo de El Escorial, RBME, Z-III-9	Castilian	14	Textualis	Treatises	prose	Towards General Castilian HTR
+train	L-Cas.C-15.S-Cur.San_Lorenzo_de_El_Escorial__RBME__K_I_5.H-4543d.Part-0.parquet	22818824	244	San Lorenzo de El Escorial, RBME, K.I.5	Castilian	15	Cursiva	Treatises	prose	Towards General Castilian HTR
+train	L-Cas.C-15.S-Hyb.Madrid__BNE__ms__4183.H-295f9.Part-0.parquet	5638996	70	Madrid, BNE, ms. 4183	Castilian	15	Hybrida	Treatises	prose	Towards General Castilian HTR
+train	L-Cas.C-15.S-Hyb.Madrid__Instituto_Valencia_de_don_Juan__2_6_I_5.H-7ea10.Part-0.parquet	58436710	415	Madrid, Instituto Valencia de don Juan, 2.6.I.5	Castilian	15	Hybrida	Treatises	prose	Towards General Castilian HTR
+train	L-Cas.C-15.S-Hyb.Oxford__Bodleian_Library__MS__Span__d__1.H-5056f.Part-0.parquet	5256225	25	Oxford, Bodleian Library, MS. Span. d. 1	Castilian	15	Hybrida	Treatises	prose	Towards General Castilian HTR
+train	L-Cas.C-15.S-Hyb.Oxford__Bodleian_Library__MS__Span__d__2_1.H-4665b.Part-0.parquet	7014831	28	Oxford, Bodleian Library, MS. Span. d. 2/1	Castilian	15	Hybrida	Documents of practice	prose	Towards General Castilian HTR
+train	L-Cas.C-15.S-Hyb.Paris__BnF__esp__12.H-144b3.Part-0.parquet	32678958	165	Paris, BnF, esp. 12	Castilian	15	Hybrida	Narratives	prose	Towards General Castilian HTR
+train	L-Cas.C-15.S-Hyb.Paris__BnF__esp__12.H-1ce67.Part-0.parquet	30125346	177	Paris, BnF, esp. 12	Castilian	15	Hybrida	Narratives	prose	Towards General Castilian HTR
+train	L-Cas.C-15.S-Hyb.Paris__BnF__esp__218.H-8c5e6.Part-0.parquet	9192781	34	Paris, BnF, esp. 218	Castilian	15	Hybrida	Narratives	prose	Towards General Castilian HTR
+train	L-Cas.C-15.S-Hyb.Paris__BnF__esp__286.H-820b4.Part-0.parquet	27769032	178	Paris, BnF, esp. 286	Castilian	15	Hybrida	Treatises	prose	HTRogène
+train	L-Cas.C-15.S-Hyb.Paris__BnF__esp__533.H-e52e7.Part-0.parquet	26467543	226	Paris, BnF, esp. 533	Castilian	15	Hybrida	Espistolary	prose	HTRomance
+train	L-Cas.C-15.S-Hyb.Salamanca__Biblioteca_Historica_USAL__2097.H-4449b.Part-0.parquet	45305627	403	Salamanca, Biblioteca Histórica USAL, 2097	Castilian	15	Hybrida	Treatises	prose	Towards General Castilian HTR
+train	L-Cas.C-15.S-Hyb.Salamanca__Biblioteca_Historica_USAL__2654.H-4f6d5.Part-0.parquet	9073906	58	Salamanca, Biblioteca Histórica USAL, 2654	Castilian	15	Hybrida	Narratives	prose	Towards General Castilian HTR
+train	L-Cas.C-15.S-Hyb.Salamanca__Biblioteca_Historica_USAL__2709.H-9e83d.Part-0.parquet	205227546	2560	Salamanca, Biblioteca Histórica USAL, 2709	Castilian	15	Hybrida	Treatises	prose	Towards General Castilian HTR
+train	L-Cas.C-15.S-Hyb.Salamanca__Biblioteca_Historica_USAL__2709.H-9e83d.Part-1.parquet	110918539	1397	Salamanca, Biblioteca Histórica USAL, 2709	Castilian	15	Hybrida	Treatises	prose	Towards General Castilian HTR
+train	L-Cas.C-15.S-Hyb.San_Lorenzo_de_El_Escorial__RBME__T_III_5.H-f3d0a.Part-0.parquet	4593254	48	San Lorenzo de El Escorial, RBME, T-III-5	Castilian	15	Hybrida	Treatises	prose	Towards General Castilian HTR
+train	L-Cas.C-15.S-Hyb.San_Lorenzo_de_El_Escorial__RBME__X_III_4.H-6bb0b.Part-0.parquet	3206344	31	San Lorenzo de El Escorial, RBME, X-III-4	Castilian	15	Hybrida	Narratives	prose	Towards General Castilian HTR
+train	L-Cas.C-15.S-Hyb.San_Lorenzo_de_El_Escorial__RBME__a_II_17.H-8f554.Part-0.parquet	5894817	60	San Lorenzo de El Escorial, RBME, a-II-17	Castilian	15	Hybrida	Treatises	prose	Towards General Castilian HTR
+train	L-Cas.C-15.S-Hyb.San_Lorenzo_de_El_Escorial__RBME__b_IV_15.H-d8217.Part-0.parquet	2681357	48	San Lorenzo de El Escorial, RBME, b-IV-15	Castilian	15	Hybrida	Treatises	prose	Towards General Castilian HTR
+train	L-Cas.C-15.S-Hyb.San_Lorenzo_de_El_Escorial__RBME__b_IV_21.H-b2fdf.Part-0.parquet	2704495	68	San Lorenzo de El Escorial, RBME, b-IV-21	Castilian	15	Hybrida	Poetry	verse	Towards General Castilian HTR
+train	L-Cas.C-15.S-Hyb.San_Lorenzo_de_El_Escorial__RBME__h_III_9.H-eb57f.Part-0.parquet	2122197	28	San Lorenzo de El Escorial, RBME, h-III-9	Castilian	15	Hybrida	Narratives	prose	Towards General Castilian HTR
+train	L-Cas.C-15.S-Hyb.Sevilla__Biblioteca_Universitaria__ms__332_131.H-f18bd.Part-0.parquet	15337769	316	Sevilla, Biblioteca Universitaria, ms. 332/131	Castilian	15	Hybrida	Treatises	prose	Towards General Castilian HTR
+train	L-Cas.C-15.S-Pri.Madrid__BNE__Inc__901.H-b2ea1.Part-0.parquet	990989423	2560	Madrid, BNE, Inc. 901	Castilian	15	Print	Treatises	prose	Towards General Castilian HTR
+train	L-Cas.C-15.S-Pri.Madrid__BNE__Inc__901.H-b2ea1.Part-1.parquet	944530946	2560	Madrid, BNE, Inc. 901	Castilian	15	Print	Treatises	prose	Towards General Castilian HTR
+train	L-Cas.C-15.S-Pri.Madrid__BNE__Inc__901.H-b2ea1.Part-2.parquet	168160721	432	Madrid, BNE, Inc. 901	Castilian	15	Print	Treatises	prose	Towards General Castilian HTR
+train	L-Cas.C-15.S-Sem.Paris__BnF__esp__110.H-499a4.Part-0.parquet	66758691	180	Paris, BnF, esp. 110	Castilian	15	Semihybrida	Narratives	prose	HTRomance
+train	L-Cas.C-15.S-Sem.Paris__BnF__esp__229.H-30397.Part-0.parquet	50922513	444	Paris, BnF, esp. 229	Castilian	15	Semitextualis	Poetry	mixed	HTRomance
+train	L-Cas.C-15.S-Sem.Paris__BnF__esp__285.H-0cb1f.Part-0.parquet	9534669	296	Paris, BnF, esp. 285	Castilian	15	Semihybrida	Narratives	prose	HTRomance
+train	L-Cas.C-15.S-Sem.Philadelphia__Rosenbach_Foundation__ms__482_2.H-b1680.Part-0.parquet	205749279	277	Philadelphia, Rosenbach Foundation, ms. 482/2	Castilian	15	Semitextualis	Treatises	prose	Towards General Castilian HTR
+train	L-Cas.C-15.S-Sem.Salamanca__Biblioteca_Historica_USAL__2086.H-9381d.Part-0.parquet	4477517	57	Salamanca, Biblioteca Histórica USAL, 2086	Castilian	15	Semihybrida	Treatises	prose	Towards General Castilian HTR
+train	L-Cas.C-15.S-Sem.San_Lorenzo_de_El_Escorial__RBME__b_II_11.H-429bd.Part-0.parquet	2977752	72	San Lorenzo de El Escorial, RBME, b-II-11	Castilian	15	Semitextualis	Treatises	prose	Towards General Castilian HTR
+train	L-Cas.C-15.S-Tex.Madrid__Fundacion_Lazaro_Galdiano__mss_289.H-2766f.Part-0.parquet	23973605	227	Madrid, Fundación Lázaro Galdiano, mss 289	Castilian	15	Textualis	Treatises	prose	Towards General Castilian HTR
+train	L-Cas.C-15.S-Tex.Madrid__Fundacion_Lazaro_Galdiano__mss_289.H-65896.Part-0.parquet	210009816	2560	Madrid, Fundación Lázaro Galdiano, mss 289	Castilian	15	Textualis	Treatises	prose	Towards General Castilian HTR
+train	L-Cas.C-15.S-Tex.Madrid__Fundacion_Lazaro_Galdiano__mss_289.H-65896.Part-1.parquet	212118654	2560	Madrid, Fundación Lázaro Galdiano, mss 289	Castilian	15	Textualis	Treatises	prose	Towards General Castilian HTR
+train	L-Cas.C-15.S-Tex.Madrid__Fundacion_Lazaro_Galdiano__mss_289.H-65896.Part-2.parquet	137414898	1649	Madrid, Fundación Lázaro Galdiano, mss 289	Castilian	15	Textualis	Treatises	prose	Towards General Castilian HTR
+train	L-Cas.C-16.S-Hum.Paris__BnF__esp__161.H-40af4.Part-0.parquet	4128265	467	Paris, BnF, esp. 161	Castilian	16	Humanistica	Espistolary	prose	HTRogène
+train	L-Cas.C-16.S-Hum.Paris__BnF__esp__325.H-27d82.Part-0.parquet	49637685	279	Paris, BnF, esp. 325	Castilian	16	Humanistica	Espistolary	prose	HTRogène
+train	L-Cat.C-14.S-Cur.Paris__BnF__esp__563.H-4f80d.Part-0.parquet	34202118	238	Paris, BnF, esp. 563	Catalan	14	Cursiva	Treatises	prose	HTRomance
+train	L-Cat.C-15.S-Cur.Paris__BnF__esp__98.H-21341.Part-0.parquet	36285033	244	Paris, BnF, esp. 98	Catalan	15	Cursiva	Treatises	prose	HTRomance
+train	L-Cat.C-16.S-Hyb.Paris__BnF__esp__225.H-54072.Part-0.parquet	37440484	196	Paris, BnF, esp. 225	Catalan	16	Hybrida	Poetry	verse	HTRomance
+train	L-Cat.C-16.S-Sem.Paris__BnF__esp__548.H-6c918.Part-0.parquet	23677341	184	Paris, BnF, esp. 548	Catalan	16	Semihybrida	Documents of practice	prose	HTRomance
+train	L-Eng.C-11.S-Car.Cambridge__Corpus_Christi_College__MS_041.H-5ddcf.Part-0.parquet	332635498	538	Cambridge, Corpus Christi College, MS 041	English	11	Caroline	Treatises	prose	CATMuS
+train	L-Fre.C-13.S-Sem.Paris__BnF__fr__12581.H-211cf.Part-0.parquet	26653918	306	Paris, BnF, fr. 12581	French	13	Semitextualis	Poetry	verse	HTRomance
+train	L-Fre.C-13.S-Sem.Paris__BnF__fr__1443.H-cb61b.Part-0.parquet	60553831	416	Paris, BnF, fr. 1443	French	13	Semitextualis	Narratives	verse	HTRomance
+train	L-Fre.C-13.S-Tex.Cologne__Bodmer__168.H-5fb6b.Part-0.parquet	470418609	1919	Cologne, Bodmer, 168	French	13	Textualis	Narratives	verse	CREMMA
+train	L-Fre.C-13.S-Tex.Paris__BnF__Arsenal__3516.H-13ffc.Part-0.parquet	94174820	2009	Paris, BnF, Arsenal, 3516	French	13	Textualis	Treatises	prose	CREMMA
+train	L-Fre.C-13.S-Tex.Paris__BnF__NAF_23686.H-67dec.Part-0.parquet	67897029	423	Paris, BnF, NAF 23686	French	13	Textualis	Narratives	prose	HTRomance
+train	L-Fre.C-13.S-Tex.Paris__BnF__fr__104.H-c366d.Part-0.parquet	35740271	376	Paris, BnF, fr. 104	French	13	Textualis	Narratives	prose	HTRomance
+train	L-Fre.C-13.S-Tex.Paris__BnF__fr__12558.H-ad5d5.Part-0.parquet	67381954	440	Paris, BnF, fr. 12558	French	13	Textualis	Narratives	verse	HTRomance
+train	L-Fre.C-13.S-Tex.Paris__BnF__fr__12603.H-f86a2.Part-0.parquet	89813202	442	Paris, BnF, fr. 12603	French	13	Textualis	Narratives	verse	HTRomance
+train	L-Fre.C-13.S-Tex.Paris__BnF__fr__12615.H-8f9e5.Part-0.parquet	12545275	65	Paris, BnF, fr. 12615	French	13	Textualis	Poetry	verse	HTRomance
+train	L-Fre.C-13.S-Tex.Paris__BnF__fr__1450.H-358f7.Part-0.parquet	48265580	711	Paris, BnF, fr. 1450	French	13	Textualis	Narratives	verse	HTRomance
+train	L-Fre.C-13.S-Tex.Paris__BnF__fr__1553.H-cf4ca.Part-0.parquet	52588023	506	Paris, BnF, fr. 1553	French	13	Textualis	Narratives	verse	HTRomance
+train	L-Fre.C-13.S-Tex.Paris__BnF__fr__1593.H-09727.Part-0.parquet	7351212	405	Paris, BnF, fr. 1593	French	13	Textualis	Narratives	verse	Biblissima+ Fabliaux
+train	L-Fre.C-13.S-Tex.Paris__BnF__fr__1635.H-1dfaf.Part-0.parquet	21696770	217	Paris, BnF, fr. 1635	French	13	Textualis	Narratives	verse	HTRomance
+train	L-Fre.C-13.S-Tex.Paris__BnF__fr__17229.H-66c60.Part-0.parquet	7119982	161	Paris, BnF, fr. 17229	French	13	Textualis	Narratives	prose	CREMMA
+train	L-Fre.C-13.S-Tex.Paris__BnF__fr__17229.H-e4ca4.Part-0.parquet	22884906	479	Paris, BnF, fr. 17229	French	13	Textualis	Narratives	prose	HTRomance
+train	L-Fre.C-13.S-Tex.Paris__BnF__fr__19152.H-5064c.Part-0.parquet	71174622	529	Paris, BnF, fr. 19152	French	13	Textualis	Narratives	verse	HTRomance
+train	L-Fre.C-13.S-Tex.Paris__BnF__fr__20050.H-36d81.Part-0.parquet	10243150	84	Paris, BnF, fr. 20050	French	13	Textualis	Narratives	verse	HTRomance
+train	L-Fre.C-13.S-Tex.Paris__BnF__fr__2173.H-851ad.Part-0.parquet	22019290	240	Paris, BnF, fr. 2173	French	13	Textualis	Narratives	verse	HTRomance
+train	L-Fre.C-13.S-Tex.Paris__BnF__fr__24428.H-c8f3d.Part-0.parquet	204732094	1297	Paris, BnF, fr. 24428	French	13	Textualis	Treatises	prose	CREMMA
+train	L-Fre.C-13.S-Tex.Paris__BnF__fr__412.H-ddd8a.Part-0.parquet	355378140	2560	Paris, BnF, fr. 412	French	13	Textualis	Narratives	verse	CREMMA
+train	L-Fre.C-13.S-Tex.Paris__BnF__fr__412.H-ddd8a.Part-1.parquet	357822830	2560	Paris, BnF, fr. 412	French	13	Textualis	Narratives	verse	CREMMA
+train	L-Fre.C-13.S-Tex.Paris__BnF__fr__412.H-ddd8a.Part-2.parquet	148057455	1068	Paris, BnF, fr. 412	French	13	Textualis	Narratives	verse	CREMMA
+train	L-Fre.C-13.S-Tex.Paris__BnF__fr__837.H-160fc.Part-0.parquet	7454382	499	Paris, BnF, fr. 837	French	13	Textualis	Narratives	verse	Biblissima+ Fabliaux
+train	L-Fre.C-13.S-Tex.Paris__BnF__fr__844.H-09d13.Part-0.parquet	114684601	1020	Paris, BnF, fr. 844	French	13	Textualis	Poetry	verse	CREMMA
+train	L-Fre.C-13.S-Tex.Paris__Mazarine__1553.H-be348.Part-0.parquet	52533659	506	Paris, Mazarine, 1553	French	13	Textualis	Narratives	verse	Biblissima+ Fabliaux
+train	L-Fre.C-14.S-Cur.Paris__BnF__fr__12554.H-4be38.Part-0.parquet	32676698	184	Paris, BnF, fr. 12554	French	14	Cursiva	Narratives	prose	HTRomance
+train	L-Fre.C-14.S-Cur.Paris__BnF__fr__146.H-c1122.Part-0.parquet	13001078	413	Paris, BnF, fr. 146	French	14	Cursiva	Narratives	verse	HTRogène
+train	L-Fre.C-14.S-Cur.Paris__BnF__fr__840.H-269a6.Part-0.parquet	38837983	256	Paris, BnF, fr. 840	French	14	Cursiva	Poetry	verse	HTRomance
+train	L-Fre.C-14.S-Cur.Philadelphia__University_of_Pennsylvania__Codex_660.H-5eed3.Part-0.parquet	89418275	316	Philadelphia, University of Pennsylvania, Codex 660	French	14	Cursiva	Narratives	prose	CREMMA
+train	L-Fre.C-14.S-Tex.Bern__Burgerbibliothek__354.H-2e1bd.Part-0.parquet	82800684	238	Bern, Burgerbibliothek, 354	French	14	Textualis	Narratives	verse	Biblissima+ Fabliaux
+train	L-Fre.C-14.S-Tex.Paris__BnF__Arsenal__3525.H-97ea4.Part-0.parquet	25001407	185	Paris, BnF, Arsenal, 3525	French	14	Textualis	Narratives	verse	HTRomance
+train	L-Fre.C-14.S-Tex.Paris__BnF__NAF_27401.H-2d630.Part-0.parquet	168980719	1009	Paris, BnF, NAF 27401	French	14	Textualis	Narratives	prose	ANR LIBER
+train	L-Fre.C-14.S-Tex.Paris__BnF__fr__13568.H-b7006.Part-0.parquet	19385445	199	Paris, BnF, fr. 13568	French	14	Textualis	Narratives	prose	HTRomance
+train	L-Fre.C-14.S-Tex.Paris__BnF__fr__1376.H-72721.Part-0.parquet	72594830	710	Paris, BnF, fr. 1376	French	14	Textualis	Narratives	verse	Gallicorpora
+train	L-Fre.C-14.S-Tex.Paris__BnF__fr__1728.H-37f82.Part-0.parquet	57662945	620	Paris, BnF, fr. 1728	French	14	Textualis	Treatises	prose	CREMMA
+train	L-Fre.C-14.S-Tex.Paris__BnF__fr__22549.H-83759.Part-0.parquet	484172091	2560	Paris, BnF, fr. 22549	French	14	Textualis	Narratives	prose	CREMMA
+train	L-Fre.C-14.S-Tex.Paris__BnF__fr__22549.H-83759.Part-1.parquet	11486206	55	Paris, BnF, fr. 22549	French	14	Textualis	Narratives	prose	CREMMA
+train	L-Fre.C-14.S-Tex.Paris__BnF__fr__25545.H-8fead.Part-0.parquet	25729090	362	Paris, BnF, fr. 25545	French	14	Textualis	Narratives	verse	Biblissima+ Fabliaux
+train	L-Fre.C-14.S-Tex.Paris__BnF__fr__411.H-b234a.Part-0.parquet	16043750	153	Paris, BnF, fr. 411	French	14	Textualis	Narratives	prose	CREMMA
+train	L-Fre.C-14.S-Tex.Paris__BnF__fr__619.H-ad6bd.Part-0.parquet	43456139	356	Paris, BnF, fr. 619	French	14	Textualis	Treatises	prose	HTRomance
+train	L-Fre.C-14.S-Tex.Vatican__Biblioteca_Apostolica_Vaticana__Reg_lat__1616.H-d88a7.Part-0.parquet	14569687	1723	Vatican, Biblioteca Apostolica Vaticana, Reg.lat. 1616	French	14	Textualis	Narratives	verse	CREMMA
+train	L-Fre.C-15.S-Cur.Bruxelles__KBR__9232.H-b6d10.Part-0.parquet	310836276	1358	Bruxelles, KBR, 9232	French	15	Cursiva	Treatises	prose	CREMMA
+train	L-Fre.C-15.S-Cur.Paris__BnF__Arsenal__5070.H-b4070.Part-0.parquet	141780809	750	Paris, BnF, Arsenal, 5070	French	15	Cursiva	Treatises	prose	PSL - Chartes Students
+train	L-Fre.C-15.S-Cur.Paris__BnF__Arsenal__5103.H-e8350.Part-0.parquet	119539145	574	Paris, BnF, Arsenal, 5103	French	15	Cursiva	Treatises	prose	Gallicorpora
+train	L-Fre.C-15.S-Cur.Paris__BnF__fr__11610.H-131e7.Part-0.parquet	36342798	163	Paris, BnF, fr. 11610	French	15	Cursiva	Narratives	prose	HTRomance
+train	L-Fre.C-15.S-Cur.Paris__BnF__fr__12551.H-1e58b.Part-0.parquet	24749374	244	Paris, BnF, fr. 12551	French	15	Cursiva	Narratives	prose	Gallicorpora
+train	L-Fre.C-15.S-Cur.Paris__BnF__fr__12779.H-4c409.Part-0.parquet	31756621	280	Paris, BnF, fr. 12779	French	15	Cursiva	Poetry	verse	Gallicorpora
+train	L-Fre.C-15.S-Cur.Paris__BnF__fr__1984.H-1ab2c.Part-0.parquet	44720431	616	Paris, BnF, fr. 1984	French	15	Cursiva	Narratives	prose	Gallicorpora
+train	L-Fre.C-15.S-Cur.Paris__BnF__fr__777.H-1180d.Part-0.parquet	28660659	206	Paris, BnF, fr. 777	French	15	Cursiva	Narratives	prose	Gallicorpora
+train	L-Fre.C-15.S-Cur.Philadelphia__University_of_Pennsylvania__Codex_909.H-b826a.Part-0.parquet	700952136	2509	Philadelphia, University of Pennsylvania, Codex 909	French	15	Cursiva	Narratives	verse	CREMMA
+train	L-Fre.C-15.S-Hyb.Paris__BnF__NAF_6213.H-9fdf8.Part-0.parquet	22998598	271	Paris, BnF, NAF 6213	French	15	Hybrida	Narratives	prose	Gallicorpora
+train	L-Fre.C-15.S-Pri.Paris__BnF__Res__J_845.H-2c224.Part-0.parquet	67991233	1735	Paris, BnF, Rés. J-845	French	15	Print	Narratives	prose	PSL - Chartes Students
+train	L-Fre.C-15.S-Pri.Paris__BnF__Res__Y2_364.H-6eceb.Part-0.parquet	68229706	132	Paris, BnF, Rés. Y2-364	French	15	Print	Narratives	prose	Gallicorpora
+train	L-Fre.C-15.S-Pri.Paris__BnF__Res__Y2_82.H-eec5d.Part-0.parquet	45899430	321	Paris, BnF, Rés. Y2-82	French	15	Print	Narratives	prose	Gallicorpora
+train	L-Fre.C-15.S-Pri.Paris__BnF__Res__Y2_930.H-38cc1.Part-0.parquet	138783333	1375	Paris, BnF, Rés. Y2-930	French	15	Print	Narratives	verse	Gallicorpora
+train	L-Fre.C-15.S-Pri.Paris__BnF__Res__YE_281.H-28f1b.Part-0.parquet	30864121	241	Paris, BnF, Rés. YE-281	French	15	Print	Poetry	verse	Gallicorpora
+train	L-Fre.C-15.S-Pri.Paris__BnF__Velins_1159.H-9c73d.Part-0.parquet	69002190	215	Paris, BnF, Velins 1159	French	15	Print	Narratives	prose	Gallicorpora
+train	L-Fre.C-15.S-Pri.Paris__BnF__Velins_488.H-a4d5f.Part-0.parquet	159965143	819	Paris, BnF, Velins 488	French	15	Print	Treatises	mixed	Gallicorpora
+train	L-Fre.C-15.S-Pri.Paris__BnF__Velins_611.H-8bf4a.Part-0.parquet	89880842	506	Paris, BnF, Velins 611	French	15	Print	Poetry	verse	Gallicorpora
+train	L-Fre.C-15.S-Pri.Paris__BnF__Velins_690.H-0e481.Part-0.parquet	149971022	902	Paris, BnF, Velins 690	French	15	Print	Narratives	prose	Gallicorpora
+train	L-Fre.C-15.S-Pri.Paris__BnF__Velins_906.H-5d323.Part-0.parquet	86915951	590	Paris, BnF, Velins 906	French	15	Print	Treatises	prose	Gallicorpora
+train	L-Fre.C-15.S-Sem.Paris__BnF__fr__5024.H-f7b81.Part-0.parquet	30736334	202	Paris, BnF, fr. 5024	French	15	Semihybrida	Treatises	prose	HTRomance
+train	L-Fre.C-15.S-Tex.Paris__BnF__fr__185.H-51131.Part-0.parquet	214947183	1422	Paris, BnF, fr. 185	French	15	Textualis	Narratives	prose	Gallicorpora
+train	L-Fre.C-15.S-Tex.Paris__BnF__fr__263.H-3919c.Part-0.parquet	63471026	1042	Paris, BnF, fr. 263	French	15	Textualis	Narratives	prose	ANR LIBER
+train	L-Fre.C-16.S-Pri.Paris__BnF__Res__Y2_674.H-f1a5e.Part-0.parquet	178586247	1554	Paris, BnF, Rés. Y2-674	French	16	Print	Narratives	prose	Gallicorpora
+train	L-Fre.C-16.S-Pri.Paris__BnF__Res__Y2_733.H-e6f11.Part-0.parquet	54404692	370	Paris, BnF, Rés. Y2-733	French	16	Print	Treatises	prose	Gallicorpora
+train	L-Fre.C-16.S-Pri.Paris__BnF__Res__YE_1395.H-dea3d.Part-0.parquet	52192036	375	Paris, BnF, Rés. YE-1395	French	16	Print	Narratives	prose	Gallicorpora
+train	L-Fre.C-16.S-Pri.Paris__BnF__Res__Z_2442.H-df2f3.Part-0.parquet	55645326	567	Paris, BnF, Rés. Z-2442	French	16	Print	Treatises	prose	Gallicorpora
+train	L-Fre.C-16.S-Pri.Paris__BnF__Velins_1103.H-f06bc.Part-0.parquet	183037119	1285	Paris, BnF, Velins 1103	French	16	Print	Narratives	verse	Gallicorpora
+train	L-Gal.C-16.S-Hyb.Paris__BnF__esp__37.H-6be45.Part-0.parquet	28043486	545	Paris, BnF, esp. 37	Gallician	16	Hybrida	Poetry	verse	HTRogène
+train	L-Ita.C-14.S-Cur.Cologny_Geneve__Fondation_Martin_Bodmer__Cod__Bodmer_55.H-55c92.Part-0.parquet	58777138	363	Cologny-Geneve, Fondation Martin Bodmer, Cod. Bodmer 55	Italian	14	Cursiva	Narratives	verse	DivaHisDB x CATMuS
+train	L-Ita.C-14.S-Cur.Milano__BT__Triv__1080.H-74062.Part-0.parquet	37630301	428	Milano, BT, Triv. 1080	Italian	14	Cursiva	Narratives	verse	eDante
+train	L-Ita.C-14.S-Cur.Paris__BnF__ita__434.H-fde40.Part-0.parquet	47095539	175	Paris, BnF, ita. 434	Italian	14	Cursiva	Narratives	prose	HTRomance
+train	L-Ita.C-14.S-Cur.Paris__BnF__ita__79.H-94e10.Part-0.parquet	65962873	420	Paris, BnF, ita. 79	Italian	14	Cursiva	Narratives	verse	HTRomance
+train	L-Ita.C-14.S-Cur.Venise__Biblioteca_nazionale_Marciana__MS_it__Z__50.H-f568e.Part-0.parquet	36066860	181	Venise. Biblioteca nazionale Marciana, MS it. Z. 50	Italian	14	Cursiva	Narratives	verse	eDante
+train	L-Ita.C-14.S-Hyb.Vatican__Biblioteca_Apostolica_Vaticana__Ott__lat__2373.H-105ae.Part-0.parquet	23812243	447	Vatican, Biblioteca Apostolica Vaticana, Ott. lat. 2373	Italian	14	Hybrida	Narratives	verse	eDante
+train	L-Ita.C-15.S-Cur.Oxford__Bodleian_Library__MS__Canon__Ital__160.H-a88ae.Part-0.parquet	8151348	188	Oxford, Bodleian Library, MS. Canon. Ital. 160	Italian	15	Cursiva	Poetry	verse	HTRogène
+train	L-Ita.C-15.S-Hum.Cambridge__Harvard_University_Library__MS_Typ_316.H-a9a1e.Part-0.parquet	15114690	173	Cambridge. Harvard University Library, MS Typ 316	Italian	15	Humanistica	Treatises	prose	HTRogène
+train	L-Ita.C-15.S-Hum.Oxford__Bodleian_Library__MS__Canon__Ital__260.H-9f67e.Part-0.parquet	31546308	340	Oxford, Bodleian Library, MS. Canon. Ital. 260	Italian	15	Humanistica	Treatises	prose	HTRogène
+train	L-Ita.C-15.S-Hum.Paris__BnF__ita__1019.H-d8188.Part-0.parquet	15191829	260	Paris, BnF, ita. 1019	Italian	15	Humanistica	Poetry	verse	HTRogène
+train	L-Ita.C-15.S-Hum.Paris__BnF__ita__583.H-e91c4.Part-0.parquet	38989168	368	Paris, BnF, ita. 583	Italian	15	Humanistica	Narratives	verse	HTRomance
+train	L-Ita.C-15.S-Hum.Paris__BnF__ita__70.H-bc728.Part-0.parquet	40975608	255	Paris, BnF, ita. 70	Italian	15	Humanistica	Narratives	verse	HTRomance
+train	L-Ita.C-15.S-Hyb.Paris__BnF__ita__594.H-60e73.Part-0.parquet	24467341	184	Paris, BnF, ita. 594	Italian	15	Hybrida	Drama	verse	HTRomance
+train	L-Ita.C-15.S-Sem.Oxford__Bodleian_Library__MS__Canon__Ital__49.H-60a49.Part-0.parquet	10905539	246	Oxford, Bodleian Library, MS. Canon. Ital. 49	Italian	15	Semihybrida	Narratives	verse	HTRogène
+train	L-Ita.C-16.S-Hum.Paris__BnF__ita__1534.H-9d1ac.Part-0.parquet	15474788	182	Paris, BnF, ita. 1534	Italian	16	Humanistica	Poetry	verse	HTRomance
+train	L-Ita.C-16.S-Hum.Paris__BnF__ita__820.H-f31a7.Part-0.parquet	28298331	125	Paris, BnF, ita. 820	Italian	16	Humanistica	Narratives	prose	HTRomance
+train	L-Lat.C-10.S-Car.Munich__Bayerische_Staatsbibliothek__Clm_6412.H-9ea19.Part-0.parquet	7267951	23	Munich, Bayerische Staatsbibliothek, Clm 6412	Latin	10	Caroline	Poetry	verse	Rescribe x CATMuS
+train	L-Lat.C-10.S-Car.Munich__Bayerische_Staatsbibliothek__Clm_6417.H-65e13.Part-0.parquet	9610067	26	Munich, Bayerische Staatsbibliothek, Clm 6417	Latin	10	Caroline	Treatises	prose	Rescribe x CATMuS
+train	L-Lat.C-10.S-Car.Munich__Bayerische_Staatsbibliothek__Clm_6431.H-0f040.Part-0.parquet	9103259	20	Munich, Bayerische Staatsbibliothek, Clm 6431	Latin	10	Caroline	Treatises	prose	Rescribe x CATMuS
+train	L-Lat.C-10.S-Car.Paris__BnF__lat__9768.H-064f0.Part-0.parquet	21371772	329	Paris, BnF, lat. 9768	Latin	10	Caroline	Narratives	prose	HTRomance
+train	L-Lat.C-10.S-Car.St__Gallen__Stiftsbibliothek__Cod__Sang__18.H-ecbd8.Part-0.parquet	19189944	445	St. Gallen, Stiftsbibliothek, Cod. Sang. 18	Latin	10	Caroline	Narratives	prose	DivaHisDB x CATMuS
+train	L-Lat.C-11.S-Car.Le_Havre__Bm_332.H-d15de.Part-0.parquet	71436919	313	Le Havre, Bm 332	Latin	11	Caroline	Narratives	prose	HTRogène
+train	L-Lat.C-11.S-Car.Munich__Bayerische_Staatsbibliothek__Clm_12104.H-1f899.Part-0.parquet	7495735	30	Munich, Bayerische Staatsbibliothek, Clm 12104	Latin	11	Caroline	Narratives	prose	Rescribe x CATMuS
+train	L-Lat.C-11.S-Car.Munich__Bayerische_Staatsbibliothek__Clm_14370.H-843ba.Part-0.parquet	8871044	29	Munich, Bayerische Staatsbibliothek, Clm 14370	Latin	11	Caroline	Narratives	prose	Rescribe x CATMuS
+train	L-Lat.C-11.S-Car.Munich__Bayerische_Staatsbibliothek__Clm_14404.H-f33ad.Part-0.parquet	8080985	31	Munich, Bayerische Staatsbibliothek, Clm 14404	Latin	11	Caroline	Narratives	prose	Rescribe x CATMuS
+train	L-Lat.C-11.S-Car.Munich__Bayerische_Staatsbibliothek__Clm_23251.H-18564.Part-0.parquet	5920424	22	Munich, Bayerische Staatsbibliothek, Clm 23251	Latin	11	Caroline	Narratives	prose	Rescribe x CATMuS
+train	L-Lat.C-11.S-Car.Paris__BnF__lat__15176.H-91be9.Part-0.parquet	20110159	542	Paris, BnF, lat. 15176	Latin	11	Caroline	Narratives	prose	HTRomance
+train	L-Lat.C-11.S-Car.Paris__BnF__lat__17901.H-024ff.Part-0.parquet	24364778	467	Paris, BnF, lat. 17901	Latin	11	Caroline	Narratives	verse	HTRomance
+train	L-Lat.C-11.S-Car.St__Gallen__Stiftsbibliothek__Cod__Sang__863.H-c5263.Part-0.parquet	37351205	460	St. Gallen, Stiftsbibliothek, Cod. Sang. 863	Latin	11	Caroline	Narratives	verse	DivaHisDB x CATMuS
+train	L-Lat.C-11.S-Got_Doc_Scr.Angers__Archives_departementales_de_Maine_et_Loire___H_045__1_n__4.H-c47d8.Part-0.parquet	28275240	52	Angers, Archives départementales de Maine-et-Loire - H(045) 1 n° 4	Latin	11	Gothic Documentary Script	Documents of practice	prose	HTRogène
+train	L-Lat.C-11.S-Pra.Cambridge__Corpus_Christi_College__MS_111.H-3fc47.Part-0.parquet	90787675	89	Cambridge, Corpus Christi College, MS 111	Latin	11	Praegothica	Documents of practice	prose	DEEDS
+train	L-Lat.C-12.S-Car.Munich__Bayerische_Staatsbibliothek__Clm_14515.H-0517c.Part-0.parquet	4762723	27	Munich, Bayerische Staatsbibliothek, Clm 14515	Latin	12	Caroline	Treatises	prose	Rescribe x CATMuS
+train	L-Lat.C-12.S-Car.Munich__Bayerische_Staatsbibliothek__Clm_23343.H-a0a32.Part-0.parquet	7643680	26	Munich, Bayerische Staatsbibliothek, Clm 23343	Latin	12	Caroline	Narratives	prose	Rescribe x CATMuS
+train	L-Lat.C-12.S-Got_Doc_Scr.Archives_departementales_des_Yvelines__45H8_8.H-ca897.Part-0.parquet	1783952	7	Archives départementales des Yvelines, 45H8 8	Latin	12	Gothic Documentary Script	Documents of practice	prose	HTRogène
+train	L-Lat.C-12.S-Got_Doc_Scr.Besancon__Bibliotheque_diocesaine___Par__03.H-6c462.Part-0.parquet	14084614	23	Besançon, Bibliothèque diocésaine - Par. 03	Latin	12	Gothic Documentary Script	Documents of practice	prose	HTRogène
+train	L-Lat.C-12.S-Got_Doc_Scr.Liege__Archives_de_l_Etat__T51_12.H-e4404.Part-0.parquet	881499	5	Liege, Archives de l'État, T51.12	Latin	12	Gothic Documentary Script	Documents of practice	prose	HTRogène
+train	L-Lat.C-12.S-Got_Doc_Scr.Liege__Archives_de_l_Etat__T51_14.H-a1852.Part-0.parquet	3621105	11	Liege, Archives de l'État, T51.14	Latin	12	Gothic Documentary Script	Documents of practice	prose	HTRogène
+train	L-Lat.C-12.S-Got_Doc_Scr.Oxford__Christ_Church_Library__341.H-ad574.Part-0.parquet	54476307	198	Oxford, Christ Church Library, 341	Latin	12	Gothic Documentary Script	Documents of practice	prose	DEEDS
+train	L-Lat.C-12.S-Pra.Avranches__Bibliotheque_municipale__0210.H-51012.Part-0.parquet	63030851	200	Avranches, Bibliothèque municipale, 0210	Latin	12	Praegothica	Documents of practice	prose	DEEDS
+train	L-Lat.C-12.S-Pra.Bruges__Bibliotheque_publique__Ms__403.H-7b784.Part-0.parquet	43693689	443	Bruges. Bibliothèque publique, Ms. 403	Latin	12	Praegothica	Narratives	prose	HTRogène
+train	L-Lat.C-12.S-Pra.Cambridge__Trinity_College__O_2_1.H-c980f.Part-0.parquet	11228516	30	Cambridge, Trinity College, O.2.1	Latin	12	Praegothica	Treatises	prose	DEEDS
+train	L-Lat.C-12.S-Pra.Laval__Archives_de_la_Mayenne__H_154.H-04cac.Part-0.parquet	10937133	324	Laval, Archives de la Mayenne, H 154	Latin	12	Praegothica	Documents of practice	prose	HTRogène
+train	L-Lat.C-12.S-Pra.Toronto__Thomas_Fisher_Rare_Book_Library__MSS_05321.H-c76df.Part-0.parquet	4620016	86	Toronto, Thomas Fisher Rare Book Library, MSS 05321	Latin	12	Praegothica	Narratives	prose	DEEDS
+train	L-Lat.C-13.S-Cur.York__University_of_York__York_Registers_Abp_Reg_2.H-1d1bc.Part-0.parquet	30758490	60	York, University of York, York Registers Abp Reg 2	Latin	13	Cursiva	Documents of practice	prose	DEEDS
+train	L-Lat.C-13.S-Got_Doc_Scr.Paris__BnF__lat__5657.H-10e4f.Part-0.parquet	18390653	152	Paris, BnF, lat. 5657	Latin	13	Gothic Documentary Script	Documents of practice	prose	HTRomance
+train	L-Lat.C-13.S-Pra.Dublin__Library_of_Trinity_College_Dublin__ms__524.H-8bf84.Part-0.parquet	246022441	156	Dublin, Library of Trinity College Dublin, ms. 524	Latin	13	Praegothica	Documents of practice	prose	DEEDS
+train	L-Lat.C-13.S-Pra.Macon__Archives_de_Saone_et_Loire__G_443.H-82109.Part-0.parquet	31943492	272	Mâcon, Archives de Saône et Loire, G 443	Latin	13	Praegothica	Documents of practice	prose	DEEDS
+train	L-Lat.C-13.S-Pra.Saint_Omer__BM_716__Tome_7.H-08b02.Part-0.parquet	78396134	443	Saint-Omer, BM 716, Tome 7	Latin	13	Praegothica	Narratives	prose	HTRogène
+train	L-Lat.C-13.S-Pra.Toronto__Thomas_Fisher_Rare_Book_Library__MSS_01125.H-0d8ea.Part-0.parquet	5620626	82	Toronto, Thomas Fisher Rare Book Library, MSS 01125	Latin	13	Praegothica	Treatises	prose	DEEDS
+train	L-Lat.C-13.S-Sem.Graz__Universitatsbibliothek__Ms__1265.H-4bb98.Part-0.parquet	41990303	863	Graz, Universitätsbibliothek, Ms. 1265	Latin	13	Semitextualis	Treatises	prose	HTRogène
+train	L-Lat.C-13.S-Tex.Aarau__Aargauer_Kantonsbibliothek__MsWettF_15.H-83bd7.Part-0.parquet	96908027	455	Aarau, Aargauer Kantonsbibliothek, MsWettF 15	Latin	13	Textualis	Treatises	prose	CREMMA
+train	L-Lat.C-13.S-Tex.Cambridge__Corpus_Christi_College__MS_236.H-96c98.Part-0.parquet	104472607	192	Cambridge, Corpus Christi College, MS 236	Latin	13	Textualis	Poetry	verse	CREMMA
+train	L-Lat.C-13.S-Tex.Munich__Bayerische_Staatsbibliothek__CLM_13027.H-bd779.Part-0.parquet	99497716	616	Munich, Bayerische Staatsbibliothek, CLM 13027	Latin	13	Textualis	Treatises	prose	CREMMA
+train	L-Lat.C-13.S-Tex.Paris__BnF__lat__16195.H-4da58.Part-0.parquet	15703427	434	Paris, BnF, lat. 16195	Latin	13	Textualis	Treatises	prose	CREMMA
+train	L-Lat.C-13.S-Tex.Paris__BnF__lat__16204.H-91150.Part-0.parquet	62552992	462	Paris, BnF, lat. 16204	Latin	13	Textualis	Treatises	prose	HTRomance
+train	L-Lat.C-13.S-Tex.Paris__BnF__lat__16657.H-a9b15.Part-0.parquet	23182472	197	Paris, BnF, lat. 16657	Latin	13	Textualis	Treatises	prose	HTRomance
+train	L-Lat.C-14.S-Cur.Oxford__Christ_Church_Archives__D_C_VI_1.H-2d6f3.Part-0.parquet	71137836	266	Oxford, Christ Church Archives, D&C VI.1	Latin	14	Cursiva	Documents of practice	prose	DEEDS
+train	L-Lat.C-14.S-Cur.Paris__Archives_nationales__LL_106B.H-5b909.Part-0.parquet	22625981	170	Paris, Archives nationales, LL 106B	Latin	14	Cursiva	Documents of practice	prose	HTRogène
+train	L-Lat.C-14.S-Cur.Philadelphia__College_of_Physicians__10a_135.H-58004.Part-0.parquet	101073905	142	Philadelphia, College of Physicians, 10a 135	Latin	14	Cursiva	Treatises	prose	CREMMA
+train	L-Lat.C-14.S-Cur.Toronto__Thomas_Fisher_Rare_Book_Library__MSS_01053.H-9ce61.Part-0.parquet	86281772	282	Toronto, Thomas Fisher Rare Book Library, MSS 01053	Latin	14	Cursiva	Documents of practice	prose	DEEDS
+train	L-Lat.C-14.S-Got_Doc_Scr.Edimburgh__National_Library_of_Scotland__Adv__ms__34_5_3.H-2643e.Part-0.parquet	65099463	193	Edimburgh, National Library of Scotland, Adv. ms. 34.5.3	Latin	14	Gothic Documentary Script	Documents of practice	prose	DEEDS
+train	L-Lat.C-14.S-Hyb.Paris__BnF__lat__15168.H-5a0f4.Part-0.parquet	16010060	886	Paris, BnF, lat. 15168	Latin	14	Hybrida	Treatises	prose	HTRogène
+train	L-Lat.C-14.S-Sem.Paris__BnF__lat__6395.H-92e5c.Part-0.parquet	63286034	679	Paris, BnF, lat. 6395	Latin	14	Semitextualis	Drama	verse	CREMMA
+train	L-Lat.C-14.S-Tex.Arras__Mediatheque_de_l_Abbaye_Saint_Vaast___315__CGM_861_.H-dc732.Part-0.parquet	132523253	358	Arras, Médiathèque de l'Abbaye Saint-Vaast - 315 (CGM 861)	Latin	14	Textualis	Espistolary	prose	CREMMA
+train	L-Lat.C-14.S-Tex.Cambridge__University_Library__ms__Add__3020.H-82456.Part-0.parquet	5698605	120	Cambridge, University Library, ms. Add. 3020	Latin	14	Textualis	Documents of practice	prose	DEEDS
+train	L-Lat.C-14.S-Tex.Florence__Biblioteca_Medicea_Laurenziana__Laur__Plut__33_31.H-66ced.Part-0.parquet	8437298	204	Florence, Biblioteca Medicea Laurenziana, Laur. Plut. 33.31	Latin	14	Textualis	Poetry	verse	CREMMA
+train	L-Lat.C-14.S-Tex.Leipzig__Universitats_Bibliothek_Leipzig__Ms_758.H-f0ed3.Part-0.parquet	202017644	477	Leipzig, Universitäts Bibliothek Leipzig, Ms 758	Latin	14	Textualis	Treatises	prose	CREMMA
+train	L-Lat.C-14.S-Tex.Paris__BnF__NAL_775.H-572c5.Part-0.parquet	45236775	491	Paris, BnF, NAL 775	Latin	14	Textualis	Narratives	prose	HTRomance
+train	L-Lat.C-14.S-Tex.Paris__BnF__lat__14354.H-eecd4.Part-0.parquet	39984932	539	Paris, BnF, lat. 14354	Latin	14	Textualis	Narratives	prose	HTRomance
+train	L-Lat.C-14.S-Tex.Paris__BnF__lat__7720.H-d0988.Part-0.parquet	83782633	575	Paris, BnF, lat. 7720	Latin	14	Textualis	Treatises	prose	HTRomance
+train	L-Lat.C-14.S-Tex.Paris__Mazarine__ms__915.H-f482f.Part-0.parquet	66977903	441	Paris, Mazarine, ms. 915	Latin	14	Textualis	Treatises	prose	CREMMA
+train	L-Lat.C-15.S-Cur.London__British_Library__Nero_E_VI.H-9cf14.Part-0.parquet	134131949	794	London, British Library, Nero E VI	Latin	15	Cursiva	Documents of practice	prose	DEEDS
+train	L-Lat.C-15.S-Cur.Paris__Archives_nationales__LL_110.H-254c1.Part-0.parquet	36544174	303	Paris, Archives nationales, LL 110	Latin	15	Cursiva	Documents of practice	prose	HTRogène
+train	L-Lat.C-15.S-Hum.Florence__Biblioteca_Medicea_Laurenziana__Laur__Plut__53_09.H-ef8e1.Part-0.parquet	9433135	126	Florence, Biblioteca Medicea Laurenziana, Laur. Plut. 53.09	Latin	15	Humanistica	Treatises	prose	CREMMA
+train	L-Lat.C-15.S-Hum.Paris__BnF__Arsenal__1046.H-a26e8.Part-0.parquet	22245407	396	Paris, BnF, Arsenal, 1046	Latin	15	Humanistica	Poetry	verse	HTRomance
+train	L-Lat.C-15.S-Hum.Paris__BnF__NAL_632.H-c0f91.Part-0.parquet	15190630	194	Paris, BnF, NAL 632	Latin	15	Humanistica	Treatises	prose	HTRomance
+train	L-Lat.C-15.S-Hum.Paris__BnF__Smith_Lesouef_11.H-886ab.Part-0.parquet	7406416	194	Paris, BnF, Smith-Lesouëf 11	Latin	15	Humanistica	Poetry	prose	HTRomance
+train	L-Lat.C-15.S-Hum.Paris__BnF__lat__8236.H-ef07c.Part-0.parquet	14364259	213	Paris, BnF, lat. 8236	Latin	15	Humanistica	Poetry	verse	CREMMA
+train	L-Lat.C-15.S-Hum.Toronto__Thomas_Fisher_Rare_Book_Library__MSS_01237.H-ca0e6.Part-0.parquet	12061931	130	Toronto, Thomas Fisher Rare Book Library, MSS 01237	Latin	15	Humanistica	Narratives	mixed	DEEDS
+train	L-Lat.C-15.S-Hyb.Berlin__Staatsbibliothek__Germ__Oct__511.H-91296.Part-0.parquet	2964176	56	Berlin, Staatsbibliothek, Germ. Oct. 511	Latin	15	Hybrida	Poetry	verse	CREMMA
+train	L-Lat.C-15.S-Hyb.Lisboa__Bibi__nac___mss_illum___135.H-43823.Part-0.parquet	61881428	1128	Lisboa, Bibi. nac., mss illum., 135	Latin	15	Hybrida	Narratives	prose	ANR LIBER
+train	L-Lat.C-15.S-Hyb.Vatican__Biblioteca_Apostolica_Vaticana__Pal__lat__373.H-65c42.Part-0.parquet	16242210	435	Vatican, Biblioteca Apostolica Vaticana, Pal. lat. 373	Latin	15	Hybrida	Treatises	prose	CREMMA
+train	L-Lat.C-15.S-Pri.Paris__Mazarine__Inc__59.H-b3e2e.Part-0.parquet	265245237	1880	Paris, Mazarine, Inc. 59	Latin	15	Print	Narratives	prose	PSL - Chartes Students
+train	L-Lat.C-15.S-Sem.Lisboa__Bibi__nac___mss_illum___134.H-7520c.Part-0.parquet	32680846	605	Lisboa, Bibi. nac., mss illum., 134	Latin	15	Semihybrida	Narratives	prose	ANR LIBER
+train	L-Lat.C-15.S-Tex.Berlin__Staatsbibliothek__Hdschr__25.H-8de75.Part-0.parquet	9690027	236	Berlin, Staatsbibliothek, Hdschr. 25	Latin	15	Textualis	Speeches	prose	CREMMA
+train	L-Lat.C-15.S-Tex.Florence__Biblioteca_Medicea_Laurenziana__Laur__Plut__53_08.H-a4de6.Part-0.parquet	20898343	245	Florence, Biblioteca Medicea Laurenziana, Laur. Plut. 53.08	Latin	15	Textualis	Treatises	prose	CREMMA
+train	L-Lat.C-16.S-Cur.Oxford__Bodleian_Library__MS__Top__Glouc__d__2.H-a1b3d.Part-0.parquet	48955406	198	Oxford, Bodleian Library, MS. Top. Glouc. d. 2	Latin	16	Cursiva	Documents of practice	prose	DEEDS
+train	L-Lat.C-16.S-Per.Cambridge__Corpus_Christi_College__MS_165.H-93ce7.Part-0.parquet	72961776	151	Cambridge, Corpus Christi College, MS 165	Latin	16	Personal	Treatises	prose	CREMMA
+train	L-Lat.C-7.S-Unc.Paris__BnF__lat__17226.H-e32cc.Part-0.parquet	36447236	585	Paris, BnF, lat. 17226	Latin	7	Uncial	Narratives	prose	HTRogène
+train	L-Lat.C-8.S-Car.Munich__Bayerische_Staatsbibliothek__Clm_29404.H-ad5a2.Part-0.parquet	12107425	53	Munich, Bayerische Staatsbibliothek, Clm 29404	Latin	8	Caroline	Treatises	prose	Rescribe x CATMuS
+train	L-Lat.C-8.S-Car.Munich__Bayerische_Staatsbibliothek__Clm_6434.H-e754c.Part-0.parquet	8521358	18	Munich, Bayerische Staatsbibliothek, Clm 6434	Latin	8	Caroline	Treatises	prose	Rescribe x CATMuS
+train	L-Lat.C-9.S-Car.Bamberg__Staatsbibliothek__MS_Class__30.H-5cf9a.Part-0.parquet	783892347	2560	Bamberg, Staatsbibliothek, MS Class. 30	Latin	9	Caroline	Treatises	prose	Eutyches
+train	L-Lat.C-9.S-Car.Bamberg__Staatsbibliothek__MS_Class__30.H-5cf9a.Part-1.parquet	159967917	556	Bamberg, Staatsbibliothek, MS Class. 30	Latin	9	Caroline	Treatises	prose	Eutyches
+train	L-Lat.C-9.S-Car.Leiden__Bibliotheek_der_Rijksuniversiteit__Voss__Lat__O_41.H-36685.Part-0.parquet	395523502	2560	Leiden, Bibliotheek der Rijksuniversiteit, Voss. Lat. O 41	Latin	9	Caroline	Treatises	prose	Eutyches
+train	L-Lat.C-9.S-Car.Leiden__Bibliotheek_der_Rijksuniversiteit__Voss__Lat__O_41.H-36685.Part-1.parquet	29893127	172	Leiden, Bibliotheek der Rijksuniversiteit, Voss. Lat. O 41	Latin	9	Caroline	Treatises	prose	Eutyches
+train	L-Lat.C-9.S-Car.Munich__Bayerische_Staatsbibliothek__Clm_14510.H-35e6b.Part-0.parquet	4770129	23	Munich, Bayerische Staatsbibliothek, Clm 14510	Latin	9	Caroline	Speeches	prose	Rescribe x CATMuS
+train	L-Lat.C-9.S-Car.Munich__Bayerische_Staatsbibliothek__Clm_14517.H-b7a17.Part-0.parquet	6628321	23	Munich, Bayerische Staatsbibliothek, Clm 14517	Latin	9	Caroline	Treatises	prose	Rescribe x CATMuS
+train	L-Lat.C-9.S-Car.Munich__Bayerische_Staatsbibliothek__Clm_17059.H-8ff75.Part-0.parquet	3837651	21	Munich, Bayerische Staatsbibliothek, Clm 17059	Latin	9	Caroline	Treatises	prose	Rescribe x CATMuS
+train	L-Lat.C-9.S-Car.Munich__Bayerische_Staatsbibliothek__Clm_210.H-5b4bf.Part-0.parquet	10310315	27	Munich, Bayerische Staatsbibliothek, Clm 210	Latin	9	Caroline	Treatises	prose	Rescribe x CATMuS
+train	L-Lat.C-9.S-Car.Munich__Bayerische_Staatsbibliothek__Clm_6375.H-60d1e.Part-0.parquet	15238123	27	Munich, Bayerische Staatsbibliothek, Clm 6375	Latin	9	Caroline	Narratives	prose	Rescribe x CATMuS
+train	L-Lat.C-9.S-Car.Paris__BnF__lat__13388.H-c9add.Part-0.parquet	16635413	181	Paris, BnF, lat. 13388	Latin	9	Caroline	Treatises	prose	HTRomance
+train	L-Lat.C-9.S-Car.Paris__BnF__lat__14087.H-1dee0.Part-0.parquet	21255786	82	Paris, BnF, lat. 14087	Latin	9	Caroline	Treatises	prose	Eutyches
+train	L-Mid_Dut.C-14.S-Tex.Brussels__KBR__1805.H-66772.Part-0.parquet	344348734	1520	Brussels, KBR, 1805	Middle Dutch	14	Textualis	Narratives	prose	Carthusian Monastery of Herne
+train	L-Mid_Dut.C-14.S-Tex.Brussels__KBR__2485.H-95e90.Part-0.parquet	387338285	2560	Brussels, KBR, 2485	Middle Dutch	14	Textualis	Treatises	prose	Carthusian Monastery of Herne
+train	L-Mid_Dut.C-14.S-Tex.Brussels__KBR__2485.H-95e90.Part-1.parquet	59124564	378	Brussels, KBR, 2485	Middle Dutch	14	Textualis	Treatises	prose	Carthusian Monastery of Herne
+train	L-Mid_Dut.C-14.S-Tex.Brussels__KBR__2849_51.H-0fd05.Part-0.parquet	524533879	2560	Brussels, KBR, 2849-51	Middle Dutch	14	Textualis	Narratives	prose	Carthusian Monastery of Herne
+train	L-Mid_Dut.C-14.S-Tex.Brussels__KBR__2849_51.H-0fd05.Part-1.parquet	82355969	400	Brussels, KBR, 2849-51	Middle Dutch	14	Textualis	Narratives	prose	Carthusian Monastery of Herne
+train	L-Mid_Dut.C-14.S-Tex.Brussels__KBR__2877_78.H-46451.Part-0.parquet	233916652	2560	Brussels, KBR, 2877-78	Middle Dutch	14	Textualis	Narratives	prose	Carthusian Monastery of Herne
+train	L-Mid_Dut.C-14.S-Tex.Brussels__KBR__2877_78.H-46451.Part-1.parquet	234614566	2560	Brussels, KBR, 2877-78	Middle Dutch	14	Textualis	Narratives	prose	Carthusian Monastery of Herne
+train	L-Mid_Dut.C-14.S-Tex.Brussels__KBR__2877_78.H-46451.Part-2.parquet	170885042	1869	Brussels, KBR, 2877-78	Middle Dutch	14	Textualis	Narratives	prose	Carthusian Monastery of Herne
+train	L-Mid_Dut.C-14.S-Tex.Brussels__KBR__2879_80.H-464ec.Part-0.parquet	204119928	2560	Brussels, KBR, 2879-80	Middle Dutch	14	Textualis	Narratives	prose	Carthusian Monastery of Herne
+train	L-Mid_Dut.C-14.S-Tex.Brussels__KBR__2879_80.H-464ec.Part-1.parquet	205341778	2560	Brussels, KBR, 2879-80	Middle Dutch	14	Textualis	Narratives	prose	Carthusian Monastery of Herne
+train	L-Mid_Dut.C-14.S-Tex.Brussels__KBR__2879_80.H-464ec.Part-2.parquet	127249326	1545	Brussels, KBR, 2879-80	Middle Dutch	14	Textualis	Narratives	prose	Carthusian Monastery of Herne
+train	L-Mid_Dut.C-14.S-Tex.Brussels__KBR__2905.H-8c5a2.Part-0.parquet	314595891	433	Brussels, KBR, 2905	Middle Dutch	14	Textualis	Narratives	prose	Carthusian Monastery of Herne
+train	L-Mid_Dut.C-14.S-Tex.Brussels__KBR__2979.H-b009f.Part-0.parquet	1921036	25	Brussels, KBR, 2979	Middle Dutch	14	Textualis	Narratives	prose	Carthusian Monastery of Herne
+train	L-Mid_Dut.C-14.S-Tex.Brussels__KBR__3091.H-f597c.Part-0.parquet	53096762	297	Brussels, KBR, 3091	Middle Dutch	14	Textualis	Narratives	prose	Carthusian Monastery of Herne
+train	L-Mid_Dut.C-14.S-Tex.Brussels__KBR__3093_95.H-44d33.Part-0.parquet	97295000	2560	Brussels, KBR, 3093-95	Middle Dutch	14	Textualis	Narratives	prose	Carthusian Monastery of Herne
+train	L-Mid_Dut.C-14.S-Tex.Brussels__KBR__3093_95.H-44d33.Part-1.parquet	100268195	2560	Brussels, KBR, 3093-95	Middle Dutch	14	Textualis	Narratives	prose	Carthusian Monastery of Herne
+train	L-Mid_Dut.C-14.S-Tex.Brussels__KBR__3093_95.H-44d33.Part-2.parquet	43205879	1064	Brussels, KBR, 3093-95	Middle Dutch	14	Textualis	Narratives	prose	Carthusian Monastery of Herne
+train	L-Mid_Dut.C-14.S-Tex.Brussels__KBR__394_98.H-5f66c.Part-0.parquet	222649252	791	Brussels, KBR, 394-98	Middle Dutch	14	Textualis	Treatises	prose	Carthusian Monastery of Herne
+train	L-Mid_Dut.C-14.S-Tex.Ghent__UL__1374.H-af7fd.Part-0.parquet	356628115	2560	Ghent, UL, 1374	Middle Dutch	14	Textualis	Narratives	prose	Carthusian Monastery of Herne
+train	L-Mid_Dut.C-14.S-Tex.Ghent__UL__1374.H-af7fd.Part-1.parquet	356548273	2560	Ghent, UL, 1374	Middle Dutch	14	Textualis	Narratives	prose	Carthusian Monastery of Herne
+train	L-Mid_Dut.C-14.S-Tex.Ghent__UL__1374.H-af7fd.Part-2.parquet	360917798	2560	Ghent, UL, 1374	Middle Dutch	14	Textualis	Narratives	prose	Carthusian Monastery of Herne
+train	L-Mid_Dut.C-14.S-Tex.Ghent__UL__1374.H-af7fd.Part-3.parquet	75794083	534	Ghent, UL, 1374	Middle Dutch	14	Textualis	Narratives	prose	Carthusian Monastery of Herne
+train	L-Mid_Dut.C-14.S-Tex.Ghent__UL__941.H-4c7ad.Part-0.parquet	165512167	2510	Ghent, UL, 941	Middle Dutch	14	Textualis	Narratives	prose	Carthusian Monastery of Herne
+train	L-Mid_Dut.C-14.S-Tex.Paris__Mazarine__920.H-94b4f.Part-0.parquet	232077195	1349	Paris, Mazarine, 920	Middle Dutch	14	Textualis	Treatises	prose	Carthusian Monastery of Herne
+train	L-Mid_Dut.C-14.S-Tex.Saint_Petersburg__BAN__O_256.H-46e7d.Part-0.parquet	207328530	664	Saint Petersburg, BAN, O 256	Middle Dutch	14	Textualis	Narratives	prose	Carthusian Monastery of Herne
+train	L-Mid_Dut.C-14.S-Tex.Vienna__ONB__12_857.H-25e3e.Part-0.parquet	3095417	24	Vienna, ÖNB, 12.857	Middle Dutch	14	Textualis	Narratives	prose	Carthusian Monastery of Herne
+train	L-Mid_Dut.C-14.S-Tex.Vienna__ONB__13_708.H-01f6b.Part-0.parquet	561127480	2560	Vienna, ÖNB, 13.708	Middle Dutch	14	Textualis	Narratives	prose	Carthusian Monastery of Herne
+train	L-Mid_Dut.C-14.S-Tex.Vienna__ONB__13_708.H-01f6b.Part-1.parquet	346937777	1566	Vienna, ÖNB, 13.708	Middle Dutch	14	Textualis	Narratives	prose	Carthusian Monastery of Herne
+train	L-Mid_Dut.C-14.S-Tex.Vienna__ONB__65.H-8e374.Part-0.parquet	25081856	310	Vienna, ÖNB, 65	Middle Dutch	14	Textualis	Treatises	prose	Carthusian Monastery of Herne
+train	L-Occ.C-14.S-Tex.Paris__BnF__fr__13509.H-a99f7.Part-0.parquet	12288841	349	Paris, BnF, fr. 13509	Occitan	14	Textualis	Narratives	verse	HTRogène
+train	L-Ven.C-14.S-Hum.Paris__BnF__ita__912.H-520d6.Part-0.parquet	3055957	104	Paris, BnF, ita. 912	Venitian	14	Humanistica	Documents of practice	prose	HTRomance

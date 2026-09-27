@@ -584,6 +584,32 @@ One file, several works
    A manuscript is a physical object that happens to contain whatever was bound into it, not a book with one author. The import shows what it found in each file and lets you merge divisions into a single work, split them, retitle them, or leave them out, before anything is written. Those decisions are saved beside the manuscript and reused next time.
 """),
 
+        ("Medieval Hands", """
+The lens over a line of script on the main toolbar. Every other collection in this library arrives already transcribed, with the step where somebody looked at a manuscript and decided what it said left out. This window is that step: 194,808 lines from 313 medieval manuscripts, each one photographed and set beside a transcription of it.
+
+What is in it
+   Seventh to sixteenth century, in Latin, French, Castilian, Middle Dutch, Italian, Catalan, Occitan and four more; in Caroline, Textualis, Cursiva, Hybrida, Semitextualis, Praegothica, Humanistica, Uncial and four others. Charters, treatises, narratives, poetry. It comes from CATMuS-Medieval, which gathered it from about forty transcription projects.
+
+   The transcriptions are diplomatic: abbreviations stay as the scribe wrote them, so a line reads "ꝯcessisse" and not "concessisse", and "nr̃e" and not "nostre". That is the point of having it.
+
+Why it is not in the reader
+   CATMuS shuffles its lines and records no page or line number, so the lines of a manuscript cannot be put back into the order they were written in. Loading them as an edition would produce a text whose every line was genuine and whose order was invented - and it would then be read, searched, cited and bookmarked as though the order meant something. Here they are specimens of a hand, which is what they are.
+
+The two downloads
+   Transcriptions are a few megabytes for the whole corpus and come from the setup wizard's Medieval Manuscript Hands step. Nothing is saved to your download folder; the text goes straight into the library.
+
+   Photographs are the other 24.7 GB, so they are fetched one manuscript at a time from inside the window, which shows each one's size before you agree to it. A manuscript is 30 MB on average, the smallest under a megabyte and the largest 1.15 GB. Once fetched they are on your computer and the window needs no connection at all.
+
+Searching
+   Type a word and the search folds it the way the rest of the app folds words, so "nre" finds a line the scribe wrote as "nr̃e", and "stet" finds "ſtet". Tick "Exactly as written" to search the transcription character for character instead, which is how to ask where a particular abbreviation sign appears - the Tironian et, ꝯ for con-, ꝑ for per-.
+
+Zoom
+   A CATMuS photograph is one line cut from a page: about 4,772 pixels wide and 170 tall. Fit the height is the default and scrolls sideways, which is how a line is read. Fit the width shows the whole line at once. 200% magnifies without smoothing, so what you see is the pixels the ink landed on.
+
+Terms
+   Most of the transcriptions are CC-BY 4.0. The manuscripts from the Towards General Castilian HTR project are CC-BY-NC-SA 4.0 instead, and the window says which is which beneath the manuscript you have selected. The photographs are a separate matter again: they remain under the terms of the library that holds the manuscript, and those vary by library and are not recorded in the dataset. Check with the holding library before republishing one.
+"""),
+
         ("The Antikythera Mechanism", """
 The bronze dial on the main toolbar, third from the end. It opens a card describing the Antikythera mechanism - a Greek astronomical calculator built around 100 BC and pulled off a shipwreck in 1901 - and a button on that card opens a working simulation of it in your browser.
 

@@ -46,6 +46,19 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- What CATMuS-Medieval contains: 346 files, 313 manuscripts, eight
+         centuries. Embedded so the Palaeography window can show the whole
+         catalogue before anything has been downloaded, and rebuilt by
+         tools/CatmusCatalogue when the dataset gains manuscripts.
+
+         The transcriptions are deliberately not here. Part of that corpus is
+         share-alike and non-commercial, and shipping someone else's text
+         inside the executable is redistribution whatever the intent - see
+         CatmusLicence. This file is a list of what exists and how big it is. -->
+    <EmbeddedResource Include="Catmus\CatmusShards.tsv" />
+  </ItemGroup>
+
+  <ItemGroup>
     <!-- Reconcile() is the fix for Create Translation silently saving an
          empty edition. It's an internal detail of how a model's reply is
          matched back to real passages, not public API - but it's exactly the
