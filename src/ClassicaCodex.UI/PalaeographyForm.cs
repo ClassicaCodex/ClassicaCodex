@@ -39,12 +39,13 @@ public class PalaeographyForm : ScaledForm
 
     private readonly ListView _manuscriptList = new();
     private readonly ListView _lineList = new();
-    private readonly LineImagePanel _specimen = new();
+    private readonly ManuscriptImagePanel _specimen = new();
     private readonly Label _transcription = new();
     private readonly Label _licenceLabel = new();
     private readonly Label _statusLabel = new();
     private readonly Button _getTextButton = new();
     private readonly Button _getImagesButton = new();
+    private readonly Button _pagesButton = new();
     private readonly ComboBox _zoom = new();
 
     private List<CatmusManuscript> _shown = new();
@@ -282,11 +283,11 @@ public class PalaeographyForm : ScaledForm
         {
             _specimen.Zoom = _zoom.SelectedIndex switch
             {
-                0 => LineImageZoom.FitHeight,
-                1 => LineImageZoom.FitWidth,
-                2 => LineImageZoom.Half,
-                3 => LineImageZoom.Actual,
-                _ => LineImageZoom.Double
+                0 => ManuscriptImageZoom.FitHeight,
+                1 => ManuscriptImageZoom.FitWidth,
+                2 => ManuscriptImageZoom.Half,
+                3 => ManuscriptImageZoom.Actual,
+                _ => ManuscriptImageZoom.Double
             };
         };
 
@@ -324,13 +325,22 @@ public class PalaeographyForm : ScaledForm
         _getImagesButton.Height = 28;
         _getImagesButton.Click += async (_, _) => await DownloadImagesAsync();
 
+        // The page a line was cut out of, from the library that holds the
+        // book - the decorated initials, the rubrics, the marginalia, the
+        // illumination. Nothing is downloaded: see ManuscriptPagesForm.
+        _pagesButton.Text = "See the pages";
+        _pagesButton.Width = 110;
+        _pagesButton.Height = 28;
+        _pagesButton.Click += (_, _) => ShowPages();
+
         var buttons = new FlowLayoutPanel
         {
             Dock = DockStyle.Right,
-            Width = 348,
+            Width = 470,
             FlowDirection = FlowDirection.RightToLeft,
             WrapContents = false
         };
+        buttons.Controls.Add(_pagesButton);
         buttons.Controls.Add(_getImagesButton);
         buttons.Controls.Add(_getTextButton);
 
@@ -465,12 +475,20 @@ public class PalaeographyForm : ScaledForm
                 ? "Transcriptions and photographs are on this computer."
                 : "Transcriptions are on this computer; photographs are not.";
 
+        // Said here rather than left to a greyed-out button, because only
+        // about a third of these manuscripts can be shown as pages and a
+        // reader clicking through the list deserves to know which without
+        // having to notice a disabled control.
+        var pages = CatmusManifests.Has(manuscript.Shelfmark)
+            ? "Its pages can be seen."
+            : "Its pages are not published anywhere this can reach.";
+
         // The photographs' own terms are deliberately not here. They run to
         // three lines, they are the same sentence for every manuscript, and
         // this panel has room for two - so they are said where they are
-        // actually needed, in the confirmation before a download, and again
-        // in Help.
-        return $"{facts}\r\n{state}  {CatmusLicence.Describe(manuscript.Project)}";
+        // actually needed, in the confirmation before a download, in the
+        // window that shows the pages, and again in Help.
+        return $"{facts}\r\n{state}  {pages}  {CatmusLicence.Describe(manuscript.Project)}";
     }
 
     private void ShowLines(string? emptyMessage)
@@ -545,6 +563,22 @@ public class PalaeographyForm : ScaledForm
         _getImagesButton.Enabled = manuscript != null && !busy &&
                                    _held.TryGetValue(manuscript.Shelfmark, out var holding) && !holding.HasImages;
 
+        // Independent of whether anything has been downloaded: the pages come
+        // from the library, not from this library. It needs nothing but a
+        // connection.
+        _pagesButton.Enabled = manuscript != null && CatmusManifests.Has(manuscript.Shelfmark);
+    }
+
+    private void ShowPages()
+    {
+        var manuscript = SelectedManuscript;
+        if (manuscript == null) return;
+
+        var manifest = CatmusManifests.For(manuscript.Shelfmark);
+        if (manifest == null) return;
+
+        using var pages = new ManuscriptPagesForm(manuscript.Shelfmark, manifest);
+        pages.ShowDialog(this);
     }
 
     private async Task DownloadTextAsync()

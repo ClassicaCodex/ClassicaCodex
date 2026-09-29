@@ -16,16 +16,16 @@ namespace ClassicaCodex.UI.Tests;
 /// are what says so.
 /// </summary>
 
-public class LineImagePanelTests
+public class ManuscriptImagePanelTests
 {
     /// <summary>The real proportions, from the Liege charter shard.</summary>
     private const int LineWidth = 4772;
     private const int LineHeight = 170;
 
-    private static void WithPanel(Action<LineImagePanel, Image> body) =>
+    private static void WithPanel(Action<ManuscriptImagePanel, Image> body) =>
         StaHarness.Run(host =>
         {
-            var panel = new LineImagePanel { Bounds = new Rectangle(0, 0, 700, 200) };
+            var panel = new ManuscriptImagePanel { Bounds = new Rectangle(0, 0, 700, 200) };
             host.Controls.Add(panel);
             _ = panel.Handle;
 
@@ -45,7 +45,7 @@ public class LineImagePanelTests
     {
         WithPanel((panel, _) =>
         {
-            panel.Zoom = LineImageZoom.FitHeight;
+            panel.Zoom = ManuscriptImageZoom.FitHeight;
 
             Assert.Equal(panel.ClientSize.Height, panel.AutoScrollMinSize.Height);
 
@@ -66,7 +66,7 @@ public class LineImagePanelTests
     {
         WithPanel((panel, _) =>
         {
-            panel.Zoom = LineImageZoom.FitWidth;
+            panel.Zoom = ManuscriptImageZoom.FitWidth;
 
             Assert.Equal(panel.ClientSize.Width, panel.AutoScrollMinSize.Width);
             Assert.True(panel.AutoScrollMinSize.Height < 40,
@@ -74,11 +74,43 @@ public class LineImagePanelTests
         });
     }
 
+    /// <summary>
+    /// Fitting the whole image is what a leaf wants - a page from the holding
+    /// library is 2,857 by 4,096, taller than it is wide, and the point of
+    /// looking at one is seeing the page entire.
+    /// </summary>
+    [Fact]
+    public void FittingTheWholeImageFitsAPageShapedLeaf()
+    {
+        StaHarness.Run(host =>
+        {
+            var panel = new ManuscriptImagePanel { Bounds = new Rectangle(0, 0, 700, 500) };
+            host.Controls.Add(panel);
+            _ = panel.Handle;
+
+            using var leaf = new Bitmap(2857, 4096);
+            panel.Show((Image)leaf.Clone(), null);
+            panel.Zoom = ManuscriptImageZoom.FitAll;
+
+            // Inside the panel both ways, and touching one edge - anything
+            // smaller is not fitting, anything larger needs a scrollbar.
+            Assert.True(panel.AutoScrollMinSize.Width <= panel.ClientSize.Width);
+            Assert.True(panel.AutoScrollMinSize.Height <= panel.ClientSize.Height);
+            Assert.Equal(panel.ClientSize.Height, panel.AutoScrollMinSize.Height);
+
+            // Proportions kept: a squashed leaf is worse than a small one.
+            var ratio = (double)panel.AutoScrollMinSize.Width / panel.AutoScrollMinSize.Height;
+            Assert.Equal(2857.0 / 4096.0, ratio, 2);
+
+            return Task.CompletedTask;
+        });
+    }
+
     [Theory]
-    [InlineData(LineImageZoom.Half, LineWidth / 2)]
-    [InlineData(LineImageZoom.Actual, LineWidth)]
-    [InlineData(LineImageZoom.Double, LineWidth * 2)]
-    public void TheFixedZoomsAreTheirOwnMultiples(LineImageZoom zoom, int expectedWidth)
+    [InlineData(ManuscriptImageZoom.Half, LineWidth / 2)]
+    [InlineData(ManuscriptImageZoom.Actual, LineWidth)]
+    [InlineData(ManuscriptImageZoom.Double, LineWidth * 2)]
+    public void TheFixedZoomsAreTheirOwnMultiples(ManuscriptImageZoom zoom, int expectedWidth)
     {
         WithPanel((panel, _) =>
         {
@@ -97,7 +129,7 @@ public class LineImagePanelTests
     {
         WithPanel((panel, _) =>
         {
-            panel.Zoom = LineImageZoom.FitHeight;
+            panel.Zoom = ManuscriptImageZoom.FitHeight;
             var before = panel.AutoScrollMinSize.Width;
 
             panel.Height *= 2;
@@ -117,7 +149,7 @@ public class LineImagePanelTests
     {
         StaHarness.Run(host =>
         {
-            var panel = new LineImagePanel { Bounds = new Rectangle(0, 0, 700, 200) };
+            var panel = new ManuscriptImagePanel { Bounds = new Rectangle(0, 0, 700, 200) };
             host.Controls.Add(panel);
             _ = panel.Handle;
 

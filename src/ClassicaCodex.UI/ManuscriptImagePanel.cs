@@ -2,13 +2,23 @@ using System.Drawing.Drawing2D;
 
 namespace ClassicaCodex.UI;
 
-public enum LineImageZoom
+public enum ManuscriptImageZoom
 {
-    /// <summary>As tall as the panel, scrolling sideways. The default, and the one that reads.</summary>
+    /// <summary>
+    /// As tall as the panel, scrolling sideways. The default for a line, and
+    /// the one that reads.
+    /// </summary>
     FitHeight,
 
-    /// <summary>The whole line at once, however small that makes it - for seeing the shape of a line.</summary>
+    /// <summary>The whole width at once, however small that makes it - for seeing the shape of a line.</summary>
     FitWidth,
+
+    /// <summary>
+    /// The whole image inside the panel, both ways. Right for a leaf, which
+    /// is a page-shaped thing that wants to be seen entire; wrong for a line,
+    /// where it is the same as fitting the width.
+    /// </summary>
+    FitAll,
 
     Half,
     Actual,
@@ -16,30 +26,33 @@ public enum LineImageZoom
 }
 
 /// <summary>
-/// Shows one line of a manuscript.
+/// Shows one image from a manuscript: a line, or a whole leaf.
 ///
-/// <b>These are not pictures of pages.</b> A CATMuS image is a single line
-/// cropped out of a page - about 4,772 by 170 pixels, a strip 28 times wider
-/// than it is tall. Scaled to fit a 700-pixel panel it would be 25 pixels
-/// high, which is a smudge; shown at its own size it is five screens wide. So
-/// the default fits its height to the panel and scrolls sideways, which is
-/// how a palaeographer reads a line anyway, and the other zooms are there for
-/// when the question is a different one - Fit the width answers "how long is
-/// this line", 200% answers "what exactly is that mark".
+/// <b>The two are shaped nothing alike, which is why the zoom matters.</b> A
+/// CATMuS image is a single line cropped out of a page - about 4,772 by 170
+/// pixels, a strip 28 times wider than it is tall. Scaled to fit a 700-pixel
+/// panel it would be 25 pixels high, which is a smudge; shown at its own size
+/// it is five screens wide. So a line defaults to fitting its height and
+/// scrolling sideways, which is how a palaeographer reads one anyway.
+///
+/// A leaf from the holding library's IIIF service is the opposite - 2,857 by
+/// 4,096, taller than it is wide - and wants fitting entire, which is what
+/// FitAll is for. The remaining zooms answer different questions again: Fit
+/// the width says how long a line is, and 200% says what exactly that mark is.
 /// </summary>
-public class LineImagePanel : Panel
+public class ManuscriptImagePanel : Panel
 {
     private Image? _image;
     private string? _message;
-    private LineImageZoom _zoom = LineImageZoom.FitHeight;
+    private ManuscriptImageZoom _zoom = ManuscriptImageZoom.FitHeight;
 
-    public LineImagePanel()
+    public ManuscriptImagePanel()
     {
         AutoScroll = true;
         DoubleBuffered = true;
     }
 
-    public LineImageZoom Zoom
+    public ManuscriptImageZoom Zoom
     {
         get => _zoom;
         set
@@ -76,7 +89,7 @@ public class LineImagePanel : Panel
 
         // Both fitting modes depend on the panel's size, so a resize changes
         // the scrollable area as well as the painting.
-        if (_zoom is LineImageZoom.FitHeight or LineImageZoom.FitWidth) Relayout();
+        if (_zoom is ManuscriptImageZoom.FitHeight or ManuscriptImageZoom.FitWidth or ManuscriptImageZoom.FitAll) Relayout();
         else Invalidate();
     }
 
@@ -94,10 +107,11 @@ public class LineImagePanel : Panel
 
         var factor = _zoom switch
         {
-            LineImageZoom.FitHeight => (double)height / image.Height,
-            LineImageZoom.FitWidth => (double)width / image.Width,
-            LineImageZoom.Half => 0.5,
-            LineImageZoom.Actual => 1.0,
+            ManuscriptImageZoom.FitHeight => (double)height / image.Height,
+            ManuscriptImageZoom.FitWidth => (double)width / image.Width,
+            ManuscriptImageZoom.FitAll => Math.Min((double)width / image.Width, (double)height / image.Height),
+            ManuscriptImageZoom.Half => 0.5,
+            ManuscriptImageZoom.Actual => 1.0,
             _ => 2.0
         };
 

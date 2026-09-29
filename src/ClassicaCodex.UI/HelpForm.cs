@@ -606,6 +606,13 @@ Searching
 Zoom
    A CATMuS photograph is one line cut from a page: about 4,772 pixels wide and 170 tall. Fit the height is the default and scrolls sideways, which is how a line is read. Fit the width shows the whole line at once. 200% magnifies without smoothing, so what you see is the pixels the ink landed on.
 
+See the pages
+   CATMuS holds lines, not pages, and no pictures at all beyond them - every one of its images is a strip of text. The pages themselves belong to the library that holds the book, and where that library publishes them, this button shows them: the ruling, the columns, the rubrics, the decorated initials, the marginalia, and whatever illumination the manuscript has.
+
+   Nothing is downloaded. Each leaf is fetched from the library's own server as you look at it and kept only while it is on screen, the same way the Places Map handles Perseus's photographs. The credit and the conditions of use shown at the bottom of that window are read from the library's own record, not assumed, because they differ from library to library.
+
+   It works for 121 of the 313 manuscripts, and the panel under the list says which. That is not a limit of the idea but of what can be looked up: the Bibliothèque nationale de France holds half of CATMuS and its search has to be asked by shelfmark and then checked, which is done once and shipped rather than guessed at while you wait. Munich, Oxford, the British Library, KBR, the Escorial and Vienna all publish their manuscripts too, and none of them can be asked for one by shelfmark yet.
+
 Terms
    Most of the transcriptions are CC-BY 4.0. The manuscripts from the Towards General Castilian HTR project are CC-BY-NC-SA 4.0 instead, and the window says which is which beneath the manuscript you have selected. The photographs are a separate matter again: they remain under the terms of the library that holds the manuscript, and those vary by library and are not recorded in the dataset. Check with the holding library before republishing one.
 """),

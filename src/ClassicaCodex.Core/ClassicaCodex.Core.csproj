@@ -56,6 +56,12 @@
          inside the executable is redistribution whatever the intent - see
          CatmusLicence. This file is a list of what exists and how big it is. -->
     <EmbeddedResource Include="Catmus\CatmusShards.tsv" />
+
+    <!-- Which of those manuscripts can be looked at as pages, and where.
+         Built by tools/CatmusManifests, which confirms every answer against
+         the library record's own shelfmark before writing it down - see
+         CatmusManifests for why that verification is the whole point. -->
+    <EmbeddedResource Include="Catmus\CatmusManifests.tsv" />
   </ItemGroup>
 
   <ItemGroup>
