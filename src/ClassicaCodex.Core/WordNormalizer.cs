@@ -69,6 +69,47 @@ public static class WordNormalizer
             // printed text carries a long s, it means s there too.
             if (lower is 'ſ') lower = 's';
 
+            // The rest of the scribal letter shapes, on the same principle: a
+            // different glyph for a letter the alphabet already has. Measured
+            // over the Old French chansons de geste, which transcribe at the
+            // level of the letterform:
+            //
+            //   ı  U+0131 dotless i        11,159
+            //   ꝺ  U+A77A insular d         2,862
+            //   ɑ  U+0251 latin alpha       1,888   a
+            //   ꝛ  U+A75B r rotunda         1,391
+            //   ɼ  U+027C r with long leg       47
+            //   ȷ  U+0237 dotless j            20
+            //
+            // NOT folded, deliberately, and the distinction is the whole point:
+            // ꝯ (con, 332), ꝑ (per/par, 252) and ꝓ (pro, 24) are abbreviation
+            // SIGNS, not letter shapes. Each stands for a sequence of letters,
+            // and folding one to a single letter would assert something false
+            // about the word. Where a corpus records the expansion - Geste does,
+            // in <choice><abbr>/<expan> - the normalised reading resolves them
+            // properly and the diplomatic reading keeps the sign, which is the
+            // honest arrangement.
+            //
+            // Nor are þ, ð, æ, œ, ø, ȝ or ʒ folded: those are letters in their
+            // own right, not shapes of a-z.
+            lower = lower switch
+            {
+                'ı' => 'i',
+                'ȷ' => 'j',
+                'ꝺ' => 'd',
+                'ɑ' => 'a',
+                'ꝛ' or 'ɼ' => 'r',
+                _ => lower
+            };
+
+            // The two ligatures are one codepoint for two letters, so they are
+            // the one case that cannot be a character-for-character swap.
+            if (lower is 'ﬀ' or 'ﬁ')
+            {
+                sb.Append(lower == 'ﬀ' ? "ff" : "fi");
+                continue;
+            }
+
             sb.Append(lower);
         }
 

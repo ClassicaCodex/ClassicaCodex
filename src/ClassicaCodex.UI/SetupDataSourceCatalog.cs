@@ -1,6 +1,7 @@
 using ClassicaCodex.Core.Models;
 using ClassicaCodex.Data.Repositories;
 using ClassicaCodex.Ingestion;
+using ClassicaCodex.Ingestion.Geste;
 using ClassicaCodex.Ingestion.ReM;
 
 namespace ClassicaCodex.UI;
@@ -76,6 +77,9 @@ public static class SetupDataSourceCatalog
         /// stamped with and the key the filters ask for cannot drift apart.
         /// </summary>
         public const string ReM = ReMIngestService.CollectionKey;
+
+        /// <summary>Old French chansons de geste, from the Geste corpus.</summary>
+        public const string Geste = GesteIngestService.CollectionKey;
     }
 
     /// <summary>
@@ -95,6 +99,7 @@ public static class SetupDataSourceCatalog
         CollectionKeys.Renaissance => "English Literature (Renaissance)",
         CollectionKeys.Menota => "Medieval Nordic (Menota)",
         CollectionKeys.ReM => "Middle High German (ReM)",
+        CollectionKeys.Geste => "Old French chansons de geste (Geste)",
         _ => key
     };
 
@@ -738,6 +743,60 @@ public static class SetupDataSourceCatalog
                     await editionRepo.IsCollectionCompleteAsync(CollectionKeys.ReM),
                 CheckHasSomeContent = async () =>
                     await editionRepo.CountByCollectionAsync(CollectionKeys.ReM) > 0
+            },
+
+            new SetupDataSource
+            {
+                Title = "Old French Texts (Geste)",
+                RepoUrl = GesteIngestService.ArchiveUrl,
+                DisplayNote = "one 6 MB download; 33 texts, annotated, with their manuscripts' spelling",
+                DefaultDestination = Path.Combine(dataRoot, "geste"),
+                FetchMode = SetupFetchMode.DirectDownload,
+                DownloadFileName = GesteIngestService.ArchiveFileName,
+
+                Links =
+                {
+                    new SetupLink
+                    {
+                        Text = "About Geste, a corpus of chansons de geste",
+                        Url = "https://github.com/Jean-Baptiste-Camps/Geste"
+                    }
+                },
+
+                PlainLanguageDescription =
+                    "The Old French epics - Floovant, Otinel in five manuscripts, Garin le Lorrain in "
+                    + "ten, Aspremont, Fierabras, Huon de Bordeaux, Girart de Vienne - transcribed from "
+                    + "the manuscripts at the École nationale des chartes. 33 texts in Old French, "
+                    + "Anglo-Norman and Walloon. "
+                    + "Nineteen of them arrive twice: once letter for letter as the scribe wrote it, "
+                    + "abbreviations and all, and once in the reading a modern edition prints. The "
+                    + "edition dropdown switches between them. "
+                    + "Every word is also mapped to its dictionary headword with its grammar, so Word "
+                    + "Study works on this collection the moment it finishes - there is no second "
+                    + "download for it, because the corpus annotated its own text. "
+                    + "The poems are anonymous, as chansons de geste almost always are, and are filed "
+                    + "that way; the citation is the edition's verse number, or the line's position "
+                    + "where the corpus gives no number.",
+
+                RunIngest = async (root, progress, ct) =>
+                {
+                    var service = new GesteIngestService();
+                    var outcome = await service.IngestAsync(root, progress, ct);
+
+                    progress.Report(
+                        $"{service.TextsInstalled:N0} texts installed, {service.LinesInstalled:N0} verse "
+                        + $"lines, {service.MappingsLoaded:N0} word-form mappings.");
+
+                    if (service.TextsInstalled > 0)
+                        await editionRepo.StampCollectionAsync(root, CollectionKeys.Geste, ct);
+
+                    return outcome;
+                },
+
+                CheckComplete = async () =>
+                    await editionRepo.IsCollectionCompleteAsync(CollectionKeys.Geste),
+                CheckHasSomeContent = async () =>
+                    await editionRepo.CountByCollectionAsync(CollectionKeys.Geste) > 0
             },
 
             new SetupDataSource
