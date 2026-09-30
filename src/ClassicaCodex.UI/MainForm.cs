@@ -315,6 +315,22 @@ public partial class MainForm : ScaledForm
             morphologyForm.ShowDialog(this);
         };
 
+        // The step every other collection in this library arrives with
+        // already taken: someone looking at a manuscript and deciding what it
+        // says. 313 medieval manuscripts, each line photographed and
+        // transcribed beside itself.
+        //
+        // Its own window rather than the reader because its lines have no
+        // order - see PalaeographyForm, which explains at length why loading
+        // them as an edition would be a lie the rest of the application would
+        // then believe.
+        var palaeographyButton = new IconButton();
+        palaeographyButton.Click += (_, _) =>
+        {
+            using var palaeographyForm = new PalaeographyForm();
+            palaeographyForm.ShowDialog(this);
+        };
+
         // No Left/Top/Width/Height: the toolbar loop below assigns all four.
         // This one opens a card rather than the thing itself - the card says
         // what the mechanism is and how much of it is reconstruction, and
@@ -737,6 +753,7 @@ public partial class MainForm : ScaledForm
         Controls.Add(collateButton);
         Controls.Add(placesMapButton);
         Controls.Add(morphologyButton);
+        Controls.Add(palaeographyButton);
         Controls.Add(antikytheraButton);
         Controls.Add(almagestButton);
         Controls.Add(harmonicsButton);
@@ -784,6 +801,7 @@ public partial class MainForm : ScaledForm
             (collateButton, "Collate Editions", "Collate"),
             (placesMapButton, "Places Map", "PlaceMap"),
             (morphologyButton, "Morphology", "Morphology"),
+            (palaeographyButton, "Medieval Hands", "Palaeography"),
             (antikytheraButton, "The Antikythera Mechanism", "Antikythera"),
             (almagestButton, "Ptolemy's Cosmos", "Almagest"),
             (harmonicsButton, "Ptolemy's Harmony  (makes sound)", "Harmonics")
