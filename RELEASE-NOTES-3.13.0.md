@@ -139,5 +139,5 @@ The toolbar gained an eighteenth icon and still fits its window.
 The download is not code-signed, so if you would rather check it than trust it:
 
 ```
-SHA-256  PENDING
+SHA-256  DA1B9296FC05D7E59C32DCB8C161DE1ED899BA0C89B8C63C728E7A85D4455C25
 ```
