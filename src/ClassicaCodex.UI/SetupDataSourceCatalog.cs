@@ -1,6 +1,7 @@
 using ClassicaCodex.Core.Models;
 using ClassicaCodex.Data.Repositories;
 using ClassicaCodex.Ingestion;
+using ClassicaCodex.Ingestion.Dante;
 using ClassicaCodex.Ingestion.Geste;
 using ClassicaCodex.Ingestion.ReM;
 
@@ -80,6 +81,9 @@ public static class SetupDataSourceCatalog
 
         /// <summary>Old French chansons de geste, from the Geste corpus.</summary>
         public const string Geste = GesteIngestService.CollectionKey;
+
+        /// <summary>Dante's Commedia, annotated - a critical edition, not a manuscript.</summary>
+        public const string Dante = DanteIngestService.CollectionKey;
     }
 
     /// <summary>
@@ -100,6 +104,7 @@ public static class SetupDataSourceCatalog
         CollectionKeys.Menota => "Medieval Nordic (Menota)",
         CollectionKeys.ReM => "Middle High German (ReM)",
         CollectionKeys.Geste => "Old French chansons de geste (Geste)",
+        CollectionKeys.Dante => "Dante, Commedia (annotated)",
         _ => key
     };
 
@@ -797,6 +802,58 @@ public static class SetupDataSourceCatalog
                     await editionRepo.IsCollectionCompleteAsync(CollectionKeys.Geste),
                 CheckHasSomeContent = async () =>
                     await editionRepo.CountByCollectionAsync(CollectionKeys.Geste) > 0
+            },
+
+            new SetupDataSource
+            {
+                Title = "Dante's Commedia, annotated",
+                RepoUrl = DanteIngestService.ArchiveUrl,
+                DisplayNote = "2.4 MB; a critical edition, not a manuscript transcription",
+                DefaultDestination = Path.Combine(dataRoot, "dante"),
+                FetchMode = SetupFetchMode.DirectDownload,
+                DownloadFileName = DanteIngestService.ArchiveFileName,
+
+                Links =
+                {
+                    new SetupLink
+                    {
+                        Text = "About the Universal Dependencies Old Italian treebank",
+                        Url = "https://github.com/UniversalDependencies/UD_Italian-Old"
+                    }
+                },
+
+                PlainLanguageDescription =
+                    "The whole Commedia - Inferno, Purgatorio, Paradiso, 14,233 lines - with every one "
+                    + "of its 122,000 words mapped to its dictionary headword and parsed. Click a word "
+                    + "and Word Study answers, with no second download: the annotation comes in the "
+                    + "same file as the text. Lines are cited as Dante has been cited for seven "
+                    + "centuries, by canto and verse, so Inf. 5.142 here is Inf. 5.142 in any printed "
+                    + "edition. "
+                    + "Be clear about what this is: Petrocchi's critical edition, not a transcription "
+                    + "of a manuscript. It has no scribe's spelling and no second reading to switch to, "
+                    + "unlike the Norse, Middle High German and Old French collections. It is also one "
+                    + "poem rather than a corpus - the large Old Italian corpora exist but none of them "
+                    + "can be downloaded at all, so this is the whole of what is openly available.",
+
+                RunIngest = async (root, progress, ct) =>
+                {
+                    var service = new DanteIngestService();
+                    var outcome = await service.IngestAsync(root, progress, ct);
+
+                    progress.Report(
+                        $"{service.VersesInstalled:N0} verses installed across three canticles, "
+                        + $"{service.MappingsLoaded:N0} word-form mappings.");
+
+                    if (service.VersesInstalled > 0)
+                        await editionRepo.StampCollectionAsync(root, CollectionKeys.Dante, ct);
+
+                    return outcome;
+                },
+
+                CheckComplete = async () =>
+                    await editionRepo.IsCollectionCompleteAsync(CollectionKeys.Dante),
+                CheckHasSomeContent = async () =>
+                    await editionRepo.CountByCollectionAsync(CollectionKeys.Dante) > 0
             },
 
             new SetupDataSource
