@@ -3,6 +3,8 @@ using ClassicaCodex.Core.Models;
 using ClassicaCodex.Data.Repositories;
 using ClassicaCodex.Ingestion;
 using ClassicaCodex.Ingestion.Catmus;
+using ClassicaCodex.Ingestion.Dante;
+using ClassicaCodex.Ingestion.Geste;
 using ClassicaCodex.Ingestion.ReM;
 
 namespace ClassicaCodex.UI;
@@ -78,6 +80,12 @@ public static class SetupDataSourceCatalog
         /// stamped with and the key the filters ask for cannot drift apart.
         /// </summary>
         public const string ReM = ReMIngestService.CollectionKey;
+
+        /// <summary>Old French chansons de geste, from the Geste corpus.</summary>
+        public const string Geste = GesteIngestService.CollectionKey;
+
+        /// <summary>Dante's Commedia, annotated - a critical edition, not a manuscript.</summary>
+        public const string Dante = DanteIngestService.CollectionKey;
     }
 
     /// <summary>
@@ -97,6 +105,8 @@ public static class SetupDataSourceCatalog
         CollectionKeys.Renaissance => "English Literature (Renaissance)",
         CollectionKeys.Menota => "Medieval Nordic (Menota)",
         CollectionKeys.ReM => "Middle High German (ReM)",
+        CollectionKeys.Geste => "Old French chansons de geste (Geste)",
+        CollectionKeys.Dante => "Dante, Commedia (annotated)",
         _ => key
     };
 
@@ -747,6 +757,112 @@ public static class SetupDataSourceCatalog
                     await editionRepo.IsCollectionCompleteAsync(CollectionKeys.ReM),
                 CheckHasSomeContent = async () =>
                     await editionRepo.CountByCollectionAsync(CollectionKeys.ReM) > 0
+            },
+
+            new SetupDataSource
+            {
+                Title = "Old French Texts (Geste)",
+                RepoUrl = GesteIngestService.ArchiveUrl,
+                DisplayNote = "one 6 MB download; 33 texts, annotated, with their manuscripts' spelling",
+                DefaultDestination = Path.Combine(dataRoot, "geste"),
+                FetchMode = SetupFetchMode.DirectDownload,
+                DownloadFileName = GesteIngestService.ArchiveFileName,
+
+                Links =
+                {
+                    new SetupLink
+                    {
+                        Text = "About Geste, a corpus of chansons de geste",
+                        Url = "https://github.com/Jean-Baptiste-Camps/Geste"
+                    }
+                },
+
+                PlainLanguageDescription =
+                    "The Old French epics - Floovant, Otinel in five manuscripts, Garin le Lorrain in "
+                    + "ten, Aspremont, Fierabras, Huon de Bordeaux, Girart de Vienne - transcribed from "
+                    + "the manuscripts at the École nationale des chartes. 33 texts in Old French, "
+                    + "Anglo-Norman and Walloon. "
+                    + "Nineteen of them arrive twice: once letter for letter as the scribe wrote it, "
+                    + "abbreviations and all, and once in the reading a modern edition prints. The "
+                    + "edition dropdown switches between them. "
+                    + "Every word is also mapped to its dictionary headword with its grammar, so Word "
+                    + "Study works on this collection the moment it finishes - there is no second "
+                    + "download for it, because the corpus annotated its own text. "
+                    + "The poems are anonymous, as chansons de geste almost always are, and are filed "
+                    + "that way; the citation is the edition's verse number, or the line's position "
+                    + "where the corpus gives no number.",
+
+                RunIngest = async (root, progress, ct) =>
+                {
+                    var service = new GesteIngestService();
+                    var outcome = await service.IngestAsync(root, progress, ct);
+
+                    progress.Report(
+                        $"{service.TextsInstalled:N0} texts installed, {service.LinesInstalled:N0} verse "
+                        + $"lines, {service.MappingsLoaded:N0} word-form mappings.");
+
+                    if (service.TextsInstalled > 0)
+                        await editionRepo.StampCollectionAsync(root, CollectionKeys.Geste, ct);
+
+                    return outcome;
+                },
+
+                CheckComplete = async () =>
+                    await editionRepo.IsCollectionCompleteAsync(CollectionKeys.Geste),
+                CheckHasSomeContent = async () =>
+                    await editionRepo.CountByCollectionAsync(CollectionKeys.Geste) > 0
+            },
+
+            new SetupDataSource
+            {
+                Title = "Dante's Commedia, annotated",
+                RepoUrl = DanteIngestService.ArchiveUrl,
+                DisplayNote = "2.4 MB; a critical edition, not a manuscript transcription",
+                DefaultDestination = Path.Combine(dataRoot, "dante"),
+                FetchMode = SetupFetchMode.DirectDownload,
+                DownloadFileName = DanteIngestService.ArchiveFileName,
+
+                Links =
+                {
+                    new SetupLink
+                    {
+                        Text = "About the Universal Dependencies Old Italian treebank",
+                        Url = "https://github.com/UniversalDependencies/UD_Italian-Old"
+                    }
+                },
+
+                PlainLanguageDescription =
+                    "The whole Commedia - Inferno, Purgatorio, Paradiso, 14,233 lines - with every one "
+                    + "of its 122,000 words mapped to its dictionary headword and parsed. Click a word "
+                    + "and Word Study answers, with no second download: the annotation comes in the "
+                    + "same file as the text. Lines are cited as Dante has been cited for seven "
+                    + "centuries, by canto and verse, so Inf. 5.142 here is Inf. 5.142 in any printed "
+                    + "edition. "
+                    + "Be clear about what this is: Petrocchi's critical edition, not a transcription "
+                    + "of a manuscript. It has no scribe's spelling and no second reading to switch to, "
+                    + "unlike the Norse, Middle High German and Old French collections. It is also one "
+                    + "poem rather than a corpus - the large Old Italian corpora exist but none of them "
+                    + "can be downloaded at all, so this is the whole of what is openly available.",
+
+                RunIngest = async (root, progress, ct) =>
+                {
+                    var service = new DanteIngestService();
+                    var outcome = await service.IngestAsync(root, progress, ct);
+
+                    progress.Report(
+                        $"{service.VersesInstalled:N0} verses installed across three canticles, "
+                        + $"{service.MappingsLoaded:N0} word-form mappings.");
+
+                    if (service.VersesInstalled > 0)
+                        await editionRepo.StampCollectionAsync(root, CollectionKeys.Dante, ct);
+
+                    return outcome;
+                },
+
+                CheckComplete = async () =>
+                    await editionRepo.IsCollectionCompleteAsync(CollectionKeys.Dante),
+                CheckHasSomeContent = async () =>
+                    await editionRepo.CountByCollectionAsync(CollectionKeys.Dante) > 0
             },
 
             new SetupDataSource
