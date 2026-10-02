@@ -1,7 +1,9 @@
+using ClassicaCodex.Core.Bfm;
 using ClassicaCodex.Core.Catmus;
 using ClassicaCodex.Core.Models;
 using ClassicaCodex.Data.Repositories;
 using ClassicaCodex.Ingestion;
+using ClassicaCodex.Ingestion.Bfm;
 using ClassicaCodex.Ingestion.Catmus;
 using ClassicaCodex.Ingestion.Dante;
 using ClassicaCodex.Ingestion.Geste;
@@ -84,6 +86,9 @@ public static class SetupDataSourceCatalog
         /// <summary>Old French chansons de geste, from the Geste corpus.</summary>
         public const string Geste = GesteIngestService.CollectionKey;
 
+        /// <summary>The Base de Français Médiéval - Old and Middle French, 9th to 15th century.</summary>
+        public const string Bfm = BfmIngestService.CollectionKey;
+
         /// <summary>Dante's Commedia, annotated - a critical edition, not a manuscript.</summary>
         public const string Dante = DanteIngestService.CollectionKey;
     }
@@ -106,6 +111,7 @@ public static class SetupDataSourceCatalog
         CollectionKeys.Menota => "Medieval Nordic (Menota)",
         CollectionKeys.ReM => "Middle High German (ReM)",
         CollectionKeys.Geste => "Old French chansons de geste (Geste)",
+        CollectionKeys.Bfm => "Medieval French (BFM)",
         CollectionKeys.Dante => "Dante, Commedia (annotated)",
         _ => key
     };
@@ -811,6 +817,62 @@ public static class SetupDataSourceCatalog
                     await editionRepo.IsCollectionCompleteAsync(CollectionKeys.Geste),
                 CheckHasSomeContent = async () =>
                     await editionRepo.CountByCollectionAsync(CollectionKeys.Geste) > 0
+            },
+
+            new SetupDataSource
+            {
+                Title = "Medieval French Texts (BFM)",
+                RepoUrl = BfmCatalogue.HomeUrl,
+                DisplayNote = $"{BfmCatalogue.Count} texts, {BfmCatalogue.TotalBytes / 1048576.0:F0} MB over " +
+                              "many small downloads",
+                DefaultDestination = Path.Combine(dataRoot, "bfm"),
+                FetchMode = SetupFetchMode.SelfManaged,
+
+                Links =
+                {
+                    new SetupLink
+                    {
+                        Text = "About the Base de Français Médiéval",
+                        Url = BfmCatalogue.HomeUrl
+                    }
+                },
+
+                PlainLanguageDescription =
+                    "French as it was written between the ninth century and the fifteenth - the Chanson "
+                    + "de Roland, all four of Chrétien de Troyes's romances, Aucassin et Nicolette, the "
+                    + "Queste del saint Graal, the Roman de Renart, Marie de France, Rutebeuf, Villon, "
+                    + "and 281 fabliaux. 500 texts from the Base de Français Médiéval at the ENS de "
+                    + "Lyon, about 220 MB, fetched one text at a time because that is how they are "
+                    + "published. "
+                    + "Most of them arrive twice: once letter for letter as the scribe wrote it, "
+                    + "abbreviations unexpanded and words run together where the manuscript runs them "
+                    + "together, and once in the reading a modern editor prints. The edition dropdown "
+                    + "switches between them. "
+                    + "Verse is cited by line and prose by section. Twenty-three of the texts carry "
+                    + "their own word-by-word annotation, so Word Study answers on those with no "
+                    + "further download. "
+                    + "Six texts are marked by the corpus as not redistributable and are skipped; the "
+                    + "step says how many when it finishes. The licences differ by text - most are "
+                    + "Licence Ouverte, the fabliaux and a few others are non-commercial share-alike - "
+                    + "and the README lists which.",
+
+                RunIngest = async (root, progress, ct) =>
+                {
+                    var service = new BfmIngestService();
+                    var outcome = await service.IngestAsync(root, progress, ct);
+
+                    if (service.TextsInstalled > 0)
+                    {
+                        await editionRepo.StampCollectionAsync(root, CollectionKeys.Bfm, ct);
+                    }
+
+                    return outcome;
+                },
+
+                CheckComplete = async () =>
+                    await editionRepo.IsCollectionCompleteAsync(CollectionKeys.Bfm),
+                CheckHasSomeContent = async () =>
+                    await editionRepo.CountByCollectionAsync(CollectionKeys.Bfm) > 0
             },
 
             new SetupDataSource

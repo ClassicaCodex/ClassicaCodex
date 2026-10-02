@@ -584,6 +584,31 @@ One file, several works
    A manuscript is a physical object that happens to contain whatever was bound into it, not a book with one author. The import shows what it found in each file and lets you merge divisions into a single work, split them, retitle them, or leave them out, before anything is written. Those decisions are saved beside the manuscript and reused next time.
 """),
 
+        ("Medieval French", """
+Five hundred texts of French as it was written between the ninth century and the fifteenth, from the Base de Français Médiéval at the ENS de Lyon. The *Chanson de Roland*, all four of Chrétien de Troyes's romances, *Aucassin et Nicolette*, the *Queste del saint Graal*, the *Roman de Renart*, Marie de France, Rutebeuf, Villon, and 281 fabliaux. Install it from the setup wizard; it is about 220 MB and arrives one text at a time, because that is how the corpus is published.
+
+Two readings
+   Most of these texts arrive twice, and the edition dropdown switches between them.
+
+   The scribe's reading is what is on the parchment: abbreviations left unexpanded, and words run together where the manuscript runs them together — the opening of the fabliau *Aloul* is "Leflabeld'aloul", because that is how it is written. The editor's reading is "Le flabel d'Aloul".
+
+   This matters for Stylometry for the same reason it matters in the Nordic and German collections: comparing a scribe's reading with an editor's measures the transcription, not the writing.
+
+Citations
+   Verse is cited by line and prose by section, which is how these texts are cited in print. A few of the prose texts number nothing, and those passages are numbered in order and shown in brackets so the number is visibly ours rather than the edition's.
+
+Word Study
+   Twenty-three of the texts carry their own word-by-word annotation — headword and part of speech for every word — so Word Study answers on those with no further download. The rest have no lemma data and Word Study will say so. There is no separate Old French lemma project to install.
+
+   The headwords are the corpus's own, including its convention of marking a reconstructed form with an asterisk.
+
+What is not here
+   Six texts are marked by the corpus itself as not redistributable, and the import skips them and says how many. They are downloaded first, because the marking is inside the file and there is no way to know before reading it.
+
+Terms
+   Not one licence. 211 texts are Licence Ouverte 2.0, which asks only for attribution. The 281 fabliaux and 8 others are CC BY-NC-SA, which is noncommercial and share-alike — and among those 8 are the *Serments de Strasbourg* and the *Séquence de sainte Eulalie*, the two oldest texts in the French language. The README lists which is which.
+"""),
+
         ("Medieval Hands", """
 The lens over a line of script on the main toolbar. Every other collection in this library arrives already transcribed, with the step where somebody looked at a manuscript and decided what it said left out. This window is that step: 194,808 lines from 313 medieval manuscripts, each one photographed and set beside a transcription of it.
 

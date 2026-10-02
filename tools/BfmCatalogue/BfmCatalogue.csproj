@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>ClassicaCodex.Tools.BfmCatalogue</RootNamespace>
+    <IsPackable>false</IsPackable>
+    <!-- Never part of a release: it rebuilds a file that ships inside the
+         application, and running it is a deliberate act by whoever is
+         updating to a newer release of the corpus. -->
+    <IsPublishable>false</IsPublishable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\ClassicaCodex.Ingestion\ClassicaCodex.Ingestion.csproj" />
+  </ItemGroup>
+
+</Project>
