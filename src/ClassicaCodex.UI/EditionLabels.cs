@@ -39,6 +39,9 @@ public static class EditionLabels
                 "GRC" => "Greek",
                 "LAT" => "Latin",
                 "GMH" => "Middle High German",
+                "FRO" => "Old French",
+                "EGY" => "Egyptian",
+                "ITA" => "Italian",
                 not null => edition.Language,
                 null => null
             };
@@ -52,10 +55,18 @@ public static class EditionLabels
             //
             // Menota's editions carry the same distinction and gain the same
             // label; it was always in the data and was never shown.
+            // The Pyramid Texts differ by script rather than by spelling: the
+            // signs on the wall against the Egyptological transliteration of
+            // them. Both are egy/Original, so without a word here they arrive
+            // as two entries reading "Egyptian (original)" and the reader
+            // cannot tell which is which, or that the signs are available at
+            // all.
             var spelling = edition.Orthography?.Trim().ToLowerInvariant() switch
             {
                 "diplomatic" => "manuscript spelling",
                 "normalised" or "normalized" => "normalised",
+                "hieroglyphs" => "hieroglyphs",
+                "transliteration" => "transliteration",
                 _ => null
             };
 
