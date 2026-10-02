@@ -129,3 +129,9 @@ that the shipped list of what the corpus contains has not arrived truncated —
 which would leave the step with nothing to download and no error to show.
 
 1,684 tests, zero warnings.
+
+The download is not code-signed, so if you would rather check it than trust it:
+
+```
+SHA-256  FA6CB6691BDCB294262A1165003FF02128FF47338E1EE09E1800721D5D44A9A1
+```
