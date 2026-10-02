@@ -62,5 +62,5 @@ That is exactly the state that shipped.
 The download is not code-signed, so if you would rather check it than trust it:
 
 ```
-SHA-256  PENDING
+SHA-256  C83F0B950E0ACBB5D4DF4A3DC53057A373ED8DA11F3415024F6194A428FE99A8
 ```
