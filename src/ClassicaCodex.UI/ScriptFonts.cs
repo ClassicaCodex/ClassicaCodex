@@ -21,11 +21,31 @@ namespace ClassicaCodex.UI;
 /// <c>akk</c> and <c>Original</c> - the language is identical and the script is
 /// not. Asking the language which font to use would therefore give the same
 /// answer for both and be wrong for one of them. Asking the characters cannot.
+/// The Pyramid Texts arrive the same way, in hieroglyphs and in
+/// transliteration, both <c>egy</c> and both Original.
 /// </summary>
 internal static class ScriptFonts
 {
     /// <summary>
-    /// Fonts that carry the cuneiform block, best first.
+    /// A script that needs a font of its own, the codepoints that identify it,
+    /// and the fonts that can draw it, best first.
+    /// </summary>
+    private sealed record Script(string Name, (int First, int Last)[] Ranges, string[] Families)
+    {
+        public bool Contains(int codepoint)
+        {
+            foreach (var (first, last) in Ranges)
+            {
+                if (codepoint >= first && codepoint <= last) return true;
+            }
+
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// The cuneiform range: the signs themselves, their numbers and
+    /// punctuation, and the Early Dynastic additions.
     ///
     /// Segoe UI Historic ships with Windows 10 and 11, so on a normal machine
     /// the first entry is the answer and nothing has to be installed. The rest
@@ -33,31 +53,41 @@ internal static class ScriptFonts
     /// An installation with none of them keeps the reading font and the circles
     /// - which is no worse than before, and better than an exception.
     /// </summary>
-    private static readonly string[] CuneiformFamilies =
-    {
-        "Segoe UI Historic",
-        "Noto Sans Cuneiform",
-        "Akkadian",
-        "CuneiformComposite",
-        "Santakku"
-    };
+    private static readonly Script Cuneiform = new(
+        "cuneiform",
+        new[] { (0x12000, 0x1254F) },
+        new[] { "Segoe UI Historic", "Noto Sans Cuneiform", "Akkadian", "CuneiformComposite", "Santakku" });
 
     /// <summary>
-    /// The cuneiform range: the signs themselves, their numbers and
-    /// punctuation, and the Early Dynastic additions. One contiguous span, so
-    /// one comparison.
-    /// </summary>
-    private const int CuneiformFirst = 0x12000;
-    private const int CuneiformLast = 0x1254F;
-
-    /// <summary>
-    /// How much of an edition is examined before concluding it is not
-    /// cuneiform.
+    /// Egyptian hieroglyphs: the original block, the format controls that mark
+    /// quadrat layout, and Extended-A.
     ///
-    /// A cuneiform edition is cuneiform on every line, so the answer is
-    /// settled by the first passage that has any text in it. The cap is there
-    /// for the other case: Migne is 286,531 lines, and reading all of them to
-    /// find out it is Latin would be a measurable pause on every work opened.
+    /// <b>Segoe UI Historic does not cover all of this, and cannot be made
+    /// to.</b> It carries 1,071 of the 1,072 signs in the original block and
+    /// none of the 4,000 in Extended-A, which Unicode added in 15.1 and no
+    /// font shipped with Windows has caught up with. In the Pyramid Texts that
+    /// is 1.35% of the signs - but they are scattered, so one passage in five
+    /// shows a box where a sign should be. The later families here are what
+    /// someone who works with these texts may have installed; none of them is
+    /// required, and none is shipped, because this application redistributes no
+    /// fonts.
+    /// </summary>
+    private static readonly Script EgyptianHieroglyphs = new(
+        "Egyptian hieroglyphs",
+        new[] { (0x13000, 0x1345F), (0x13460, 0x143FF) },
+        new[] { "Segoe UI Historic", "Noto Sans Egyptian Hieroglyphs", "NewGardiner", "Aegyptus", "JSeshFont" });
+
+    private static readonly Script[] Scripts = { Cuneiform, EgyptianHieroglyphs };
+
+    /// <summary>
+    /// How much of an edition is examined before concluding it needs no
+    /// special font.
+    ///
+    /// An edition in one of these scripts is in it on every line, so the
+    /// answer is settled by the first passage that has any text in it. The cap
+    /// is there for the other case: Migne is 286,531 lines, and reading all of
+    /// them to find out it is Latin would be a measurable pause on every work
+    /// opened.
     ///
     /// The cost of the cap is a passage of cuneiform quoted inside a long work
     /// in another script, which would keep the reading font and the circles.
@@ -72,10 +102,30 @@ internal static class ScriptFonts
     /// </summary>
     internal static string? FamilyFor(IReadOnlyList<TextNode> nodes)
     {
-        return NeedsCuneiform(nodes) ? FirstInstalled(CuneiformFamilies) : null;
+        var script = ScriptOf(nodes);
+        return script == null ? null : FirstInstalled(script.Families);
     }
 
-    internal static bool NeedsCuneiform(IReadOnlyList<TextNode> nodes)
+    internal static bool NeedsCuneiform(IReadOnlyList<TextNode> nodes) =>
+        ReferenceEquals(ScriptOf(nodes), Cuneiform);
+
+    internal static bool NeedsEgyptian(IReadOnlyList<TextNode> nodes) =>
+        ReferenceEquals(ScriptOf(nodes), EgyptianHieroglyphs);
+
+    internal static bool ContainsCuneiform(string text) =>
+        ReferenceEquals(ScriptOf(text), Cuneiform);
+
+    internal static bool ContainsEgyptian(string text) =>
+        ReferenceEquals(ScriptOf(text), EgyptianHieroglyphs);
+
+    /// <summary>
+    /// The script these passages are in, or null for one the reading font can
+    /// already draw.
+    ///
+    /// All the scripts are looked for in the same pass. Asking once per script
+    /// would read Migne through twice to establish it is Latin both times.
+    /// </summary>
+    private static Script? ScriptOf(IReadOnlyList<TextNode> nodes)
     {
         var examined = 0;
 
@@ -84,31 +134,39 @@ internal static class ScriptFonts
             var text = node.Text;
             if (string.IsNullOrEmpty(text)) continue;
 
-            if (ContainsCuneiform(text)) return true;
+            var script = ScriptOf(text);
+            if (script != null) return script;
 
             examined += text.Length;
-            if (examined >= CharactersExamined) return false;
+            if (examined >= CharactersExamined) return null;
         }
 
-        return false;
+        return null;
     }
 
     /// <summary>
-    /// Whether a string has a cuneiform sign in it.
+    /// The script a string is in, or null.
     ///
     /// Over runes rather than chars: every one of these codepoints is above
     /// U+FFFF and therefore arrives as a surrogate pair, and a loop over chars
     /// would compare two halves that are each in the D800 range and find
-    /// nothing.
+    /// nothing. The cheap rejection on the Basic Multilingual Plane is what
+    /// keeps this off the critical path for the Greek and Latin that is most
+    /// of the library.
     /// </summary>
-    internal static bool ContainsCuneiform(string text)
+    private static Script? ScriptOf(string text)
     {
         foreach (var rune in text.EnumerateRunes())
         {
-            if (rune.Value >= CuneiformFirst && rune.Value <= CuneiformLast) return true;
+            if (rune.Value <= 0xFFFF) continue;
+
+            foreach (var script in Scripts)
+            {
+                if (script.Contains(rune.Value)) return script;
+            }
         }
 
-        return false;
+        return null;
     }
 
     /// <summary>

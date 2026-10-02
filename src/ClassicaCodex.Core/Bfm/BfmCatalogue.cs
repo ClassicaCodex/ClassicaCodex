@@ -38,7 +38,7 @@ public sealed class BfmTextEntry
     /// The author where there is one, and null where the corpus says
     /// "anonyme".
     ///
-    /// <b>Not the raw field.</b> 292 of the 500 texts record their author as
+    /// <b>Not the raw field.</b> 294 of the 500 texts record their author as
     /// the word "anonyme", and taking that at face value files more than half
     /// the corpus under a French adjective as though it were a person - which
     /// is what the first run of the ingest did, giving a library tree with a

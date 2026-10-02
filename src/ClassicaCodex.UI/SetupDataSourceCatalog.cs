@@ -6,6 +6,7 @@ using ClassicaCodex.Ingestion;
 using ClassicaCodex.Ingestion.Bfm;
 using ClassicaCodex.Ingestion.Catmus;
 using ClassicaCodex.Ingestion.Dante;
+using ClassicaCodex.Ingestion.Egyptian;
 using ClassicaCodex.Ingestion.Geste;
 using ClassicaCodex.Ingestion.ReM;
 
@@ -91,6 +92,9 @@ public static class SetupDataSourceCatalog
 
         /// <summary>Dante's Commedia, annotated - a critical edition, not a manuscript.</summary>
         public const string Dante = DanteIngestService.CollectionKey;
+
+        /// <summary>The Pyramid Texts - Old Egyptian, in hieroglyphs and transliteration.</summary>
+        public const string PyramidTexts = PyramidTextsIngestService.CollectionKey;
     }
 
     /// <summary>
@@ -113,6 +117,7 @@ public static class SetupDataSourceCatalog
         CollectionKeys.Geste => "Old French chansons de geste (Geste)",
         CollectionKeys.Bfm => "Medieval French (BFM)",
         CollectionKeys.Dante => "Dante, Commedia (annotated)",
+        CollectionKeys.PyramidTexts => "Pyramid Texts (Old Egyptian)",
         _ => key
     };
 
@@ -925,6 +930,58 @@ public static class SetupDataSourceCatalog
                     await editionRepo.IsCollectionCompleteAsync(CollectionKeys.Dante),
                 CheckHasSomeContent = async () =>
                     await editionRepo.CountByCollectionAsync(CollectionKeys.Dante) > 0
+            },
+
+            new SetupDataSource
+            {
+                Title = "The Pyramid Texts (Old Egyptian)",
+                RepoUrl = PyramidTextsIngestService.ArchiveUrl,
+                DisplayNote = "1 MB; hieroglyphs and transliteration, but no translation",
+                DefaultDestination = Path.Combine(dataRoot, "pyramid-texts"),
+                FetchMode = SetupFetchMode.DirectDownload,
+                DownloadFileName = PyramidTextsIngestService.ArchiveFileName,
+
+                Links =
+                {
+                    new SetupLink
+                    {
+                        Text = "About the Universal Dependencies Egyptian treebank",
+                        Url = "https://github.com/UniversalDependencies/UD_Egyptian-PC"
+                    }
+                },
+
+                PlainLanguageDescription =
+                    "The oldest religious literature that survives anywhere: spells carved into the "
+                    + "burial chambers of six pyramids at Saqqara between about 2350 and 2200 BC, so "
+                    + "that the dead king might eat, breathe, rise and cross the sky. 519 spells in "
+                    + "3,089 passages, from Unas - whose pyramid is the first with any writing in it "
+                    + "at all - through Teti, Pepi I, Merenre and Pepi II to Queen Neith. "
+                    + "Each pyramid arrives twice: once in hieroglyphs and once in the transliteration "
+                    + "Egyptologists read them in, and the edition dropdown switches between them. "
+                    + "Every word is parsed and carries its dictionary headword, so Word Study answers "
+                    + "with no second download. Passages are cited by spell and section, which is how "
+                    + "these are cited - Pyr. 23.16a. "
+                    + "Two things to know before you take it. There is no translation: the treebank "
+                    + "has none, and the standard English translations are in copyright, so you get "
+                    + "the signs, the transliteration and the grammar but not the sense. And about one "
+                    + "passage in five shows a small empty box for a sign, because Unicode added four "
+                    + "thousand hieroglyphs in 2023 and no font that ships with Windows has them yet.",
+
+                RunIngest = async (root, progress, ct) =>
+                {
+                    var service = new PyramidTextsIngestService();
+                    var outcome = await service.IngestAsync(root, progress, ct);
+
+                    if (service.UtterancesInstalled > 0)
+                        await editionRepo.StampCollectionAsync(root, CollectionKeys.PyramidTexts, ct);
+
+                    return outcome;
+                },
+
+                CheckComplete = async () =>
+                    await editionRepo.IsCollectionCompleteAsync(CollectionKeys.PyramidTexts),
+                CheckHasSomeContent = async () =>
+                    await editionRepo.CountByCollectionAsync(CollectionKeys.PyramidTexts) > 0
             },
 
             new SetupDataSource

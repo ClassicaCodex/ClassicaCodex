@@ -609,6 +609,30 @@ Terms
    Not one licence. 211 texts are Licence Ouverte 2.0, which asks only for attribution. The 281 fabliaux and 8 others are CC BY-NC-SA, which is noncommercial and share-alike — and among those 8 are the *Serments de Strasbourg* and the *Séquence de sainte Eulalie*, the two oldest texts in the French language. The README lists which is which.
 """),
 
+        ("The Pyramid Texts", """
+The oldest religious literature that survives anywhere: spells carved into the burial chambers of six pyramids at Saqqara between about 2350 and 2200 BC, so that the dead king might eat, breathe, rise and cross the sky. 519 spells in 3,089 passages, from Unas — whose pyramid is the first with any writing in it at all — through Teti, Pepi I, Merenre and Pepi II to Queen Neith. Install it from the setup wizard; it is a 1 MB download.
+
+Two scripts, not two spellings
+   Each pyramid arrives twice, and the edition dropdown switches between them: "Egyptian (hieroglyphs)" is the signs on the wall, "Egyptian (transliteration)" is the Latin-letter convention Egyptologists read them in.
+
+   This is a different thing from the two readings in the French, German and Nordic collections, which are two spellings of one script. Neither of these is a normalisation of the other, and you want both — the signs cannot be searched for, and the transliteration cannot be looked at.
+
+Six pyramids, not six books
+   These monuments share spells: §16a is in Unas and in Teti and in Pepi. Each is filed as its own work because each is a monument with its own selection and arrangement, which is how Egyptology cites them. It also means they are not independent texts, which is why neither reading is offered to Stylometry — a distance between Unas and Teti would measure how many spells the two pyramids have in common and report it as a distance between authors.
+
+Citations
+   By spell and section, which is how these are cited: Pyr. 23.16a. The numbering is Sethe's, and the spells Sethe did not number carry Allen's. Where one section holds more than one sentence a position is added, so 23.16b.1 and 23.16b.2 are the two halves of §16b.
+
+Word Study
+   Every word is parsed and carries its dictionary headword, so Word Study answers with no second download. The headwords are the treebank's own, in the Tübingen transliteration.
+
+There is no translation
+   The treebank carries the signs, the transliteration and a complete grammatical parse, and no rendering into any modern language. Faulkner's translation and Allen's are both in copyright and there is no free one to pair with this, so if you do not read Egyptian you get the apparatus and not the sense.
+
+Boxes where a sign should be
+   About one passage in five shows a small empty box. Unicode added four thousand more hieroglyphs in 2023, 1.35% of the signs here are among them, and no font that ships with Windows has caught up. Nothing is wrong with the text — installing a font with wider coverage, such as Aegyptus or NewGardiner, fills them in.
+"""),
+
         ("Medieval Hands", """
 The lens over a line of script on the main toolbar. Every other collection in this library arrives already transcribed, with the step where somebody looked at a manuscript and decided what it said left out. This window is that step: 194,808 lines from 313 medieval manuscripts, each one photographed and set beside a transcription of it.
 
