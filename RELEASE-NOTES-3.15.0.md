@@ -138,3 +138,9 @@ sentences instead of 3,089, with duplicates in them and no error anywhere to
 say so.
 
 1,707 tests, zero warnings.
+
+The download is not code-signed, so if you would rather check it than trust it:
+
+```
+SHA-256  B9DC1BDFC0CAFC41D67454531859E1BAB9C1B0BA68A2A978169EB8E98D52841B
+```
