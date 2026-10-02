@@ -734,6 +734,11 @@ public class SyncListView : ListBox
     public async Task SetPassagesAsync(
         IReadOnlyList<TextNode> nodes, Func<bool>? isStillWanted = null, int? editionId = null)
     {
+        // Before the fill, not inside it. Everything downstream - the cut, the
+        // row heights, the layout cache key, the drawing - reads this pane's
+        // Font, so the font has to be settled before any of them look.
+        ApplyScriptFont(nodes);
+
         _fillsInFlight++;
 
         try
@@ -758,6 +763,43 @@ public class SyncListView : ListBox
     /// UI thread only, like everything else here, so a plain int is enough.
     /// </summary>
     private int _fillsInFlight;
+
+    /// <summary>
+    /// The family this pane reads in when the text needs no particular script -
+    /// Palatino Linotype on the source side, Georgia on the translation side.
+    ///
+    /// Captured the first time a script font is considered, and never updated,
+    /// because by then the pane's own font may be the cuneiform one and asking
+    /// it would make that the new default. The reading-size dialog keeps
+    /// whichever family is in play and changes only the size, so this stays
+    /// the answer for going back.
+    /// </summary>
+    private string? _readingFamily;
+
+    /// <summary>
+    /// Gives the pane a font that can draw what it is about to show.
+    ///
+    /// Per edition rather than per row, deliberately. Every height in here is
+    /// measured against the pane's Font and several fast paths are written in
+    /// terms of Font.Height; a font chosen per row would have to be threaded
+    /// through all of them, and a row measured in one font and drawn in
+    /// another is text in the wrong place rather than merely the wrong shape.
+    ///
+    /// Assigning Font raises OnFontChanged, which queues a relayout. That is
+    /// harmless: it is debounced, it is skipped while a fill is in flight, and
+    /// by the time it could run the font already matches the text, so it cuts
+    /// to the same rows. It only happens at all when moving between a
+    /// cuneiform edition and an ordinary one.
+    /// </summary>
+    private void ApplyScriptFont(IReadOnlyList<TextNode> nodes)
+    {
+        _readingFamily ??= Font.FontFamily.Name;
+
+        var wanted = ScriptFonts.FamilyFor(nodes) ?? _readingFamily;
+        if (string.Equals(wanted, Font.FontFamily.Name, StringComparison.OrdinalIgnoreCase)) return;
+
+        Font = new Font(wanted, Font.Size, Font.Style, Font.Unit);
+    }
 
     private async Task FillPassagesAsync(
         IReadOnlyList<TextNode> nodes, Func<bool>? isStillWanted, int? editionId)
