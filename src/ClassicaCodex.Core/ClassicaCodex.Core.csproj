@@ -65,6 +65,14 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- What the Base de Français Médiéval contains: 500 texts, each its own
+         Nakala deposit with its own DOI, checksum and licence. Built by
+         tools/BfmCatalogue. The texts are not here - 222 MB, and 289 of them
+         share-alike - only the list of what to fetch and under what terms. -->
+    <EmbeddedResource Include="Bfm\BfmTexts.tsv" />
+  </ItemGroup>
+
+  <ItemGroup>
     <!-- Reconcile() is the fix for Create Translation silently saving an
          empty edition. It's an internal detail of how a model's reply is
          matched back to real passages, not public API - but it's exactly the
