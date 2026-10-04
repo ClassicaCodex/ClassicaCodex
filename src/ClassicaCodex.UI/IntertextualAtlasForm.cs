@@ -62,7 +62,9 @@ public sealed class IntertextualAtlasForm : ScaledForm
         _connections.Columns.Add(new DataGridViewTextBoxColumn { DataPropertyName = "Source", HeaderText = "Source", Width = 170 });
         _connections.Columns.Add(new DataGridViewTextBoxColumn { DataPropertyName = "Target", HeaderText = "Target", Width = 170 });
         _connections.Columns.Add(new DataGridViewTextBoxColumn { DataPropertyName = "Motifs", HeaderText = "Motifs", AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill });
-        _connections.CellDoubleClick += async (_, _) => await OpenStudioAsync();
+        // A row, not the header: double-clicking a column header to size it opened
+        // the studio on whichever row happened to be current.
+        _connections.CellDoubleClick += async (_, e) => { if (e.RowIndex >= 0) await OpenStudioAsync(); };
         var bottom = new FlowLayoutPanel { Dock = DockStyle.Bottom, Height = 45, Padding = new Padding(6) };
         var studio = Button("Open Parallel Studio", 150); studio.Click += async (_, _) => await OpenStudioAsync();
         var investigate = Button("Investigate selected…", 150); investigate.Click += (_, _) => OpenInvestigator();

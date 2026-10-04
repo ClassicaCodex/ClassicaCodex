@@ -29,7 +29,7 @@ public sealed class ResearchEchoInvestigationsForm : ScaledForm
     {
         _project = project; _work = work; _authorName = authorName;
         Text = $"Echo investigations — {project.Name}";
-        Width = 1280; Height = 760; MinimumSize = new Size(980, 600); StartPosition = FormStartPosition.CenterParent;
+        Width = 1280; Height = 760; MinimumSize = new Size(1210, 600); // list 320 + splitter + review pane 870 StartPosition = FormStartPosition.CenterParent;
         AppIcons.ApplyWindowIcon(this, "SimilarWorks");
 
         var split = new SplitContainer { Dock = DockStyle.Fill, FixedPanel = FixedPanel.Panel1 };
@@ -53,7 +53,9 @@ public sealed class ResearchEchoInvestigationsForm : ScaledForm
         _results.Columns.Add(new DataGridViewTextBoxColumn { DataPropertyName = "MotifTags", HeaderText = "Motifs", Width = 150 });
         _results.Columns.Add(new DataGridViewTextBoxColumn { DataPropertyName = "Rationale", HeaderText = "Rationale", Width = 230 });
         _results.SelectionChanged += (_, _) => ShowResult();
-        _results.CellDoubleClick += async (_, _) => await OpenStudioAsync();
+        // A row, not the header: double-clicking a column header to size it opened
+        // the studio on whichever row happened to be current.
+        _results.CellDoubleClick += async (_, e) => { if (e.RowIndex >= 0) await OpenStudioAsync(); };
 
         var review = new Panel { Dock = DockStyle.Bottom, Height = 128, Width = ClientSize.Width, Padding = new Padding(8) };
         var dispositionLabel = new Label { Text = "Human review", Left = 8, Top = 9, Width = 100 };
@@ -63,7 +65,10 @@ public sealed class ResearchEchoInvestigationsForm : ScaledForm
         var source = Button("Open source", 515, 5, 100); source.Click += async (_, _) => await OpenSourceAsync();
         var target = Button("Open target", 625, 5, 100); target.Click += async (_, _) => await OpenTargetAsync();
         var studio = Button("Parallel studio", 735, 5, 115); studio.Click += async (_, _) => await OpenStudioAsync();
-        _note.SetBounds(8, 40, 900, 76); _note.Anchor = AnchorStyles.Left | AnchorStyles.Top | AnchorStyles.Right | AnchorStyles.Bottom;
+        _note.SetBounds(8, 40, 900, 76); _note.Anchor = AnchorStyles.Left | AnchorStyles.Top | AnchorStyles.Bottom;
+        // Sized to the panel, not anchored to it: the panel sits in a split pane that has
+        // no real width yet, so a Right anchor measured from the wrong edge.
+        review.ClientSizeChanged += (_, _) => _note.Width = Math.Max(200, review.ClientSize.Width - _note.Left - review.Padding.Right);
         _note.PlaceholderText = "Why you accepted or rejected this candidate; parallels, differences, chronology, bibliography to check…";
         review.Controls.AddRange([dispositionLabel, _disposition, save, promote, source, target, studio, _note]);
 
@@ -73,8 +78,10 @@ public sealed class ResearchEchoInvestigationsForm : ScaledForm
         WindowShortcuts.CloseOnEscape(this);
         Shown += async (_, _) =>
         {
-            var maximum = split.ClientSize.Width - 700 - split.SplitterWidth;
-            if (maximum >= 240) { split.SplitterDistance = Math.Clamp(320, 240, maximum); split.Panel1MinSize = 240; split.Panel2MinSize = 700; }
+            // Wide enough for the row of review buttons, which ends at 858: at 700 the
+            // window could be narrowed until Parallel studio was off its edge.
+            var maximum = split.ClientSize.Width - 870 - split.SplitterWidth;
+            if (maximum >= 240) { split.SplitterDistance = Math.Clamp(320, 240, maximum); split.Panel1MinSize = 240; split.Panel2MinSize = 870; }
             await LoadInvestigationsAsync();
         };
     }

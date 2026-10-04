@@ -68,7 +68,13 @@ public sealed class ResearchEchoCaptureForm : ScaledForm
 
     private async Task LoadProjectsAsync()
     {
-        var projects = await _research.GetProjectsForWorkAsync(_capture.Source.WorkId);
+        // The project this search was started from is offered even if it is archived:
+        // the Atlas can investigate archived projects, and leaving it out made the form
+        // preselect some other project without saying so, or refuse to save at all.
+        var projects = (await _research.GetProjectsForWorkAsync(
+                _capture.Source.WorkId, includeArchived: true, workCtsUrn: _capture.Source.WorkCtsUrn))
+            .Where(p => p.Status != ResearchProjectStatus.Archived || p.ResearchProjectId == _defaultProjectId)
+            .ToList();
         _project.DataSource = projects;
         if (_defaultProjectId is { } id)
         {

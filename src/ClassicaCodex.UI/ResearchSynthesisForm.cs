@@ -241,13 +241,14 @@ public sealed class ResearchSynthesisForm : ScaledForm
         }).ToList();
     }
 
-    private async Task SaveAsync()
+    /// <summary>Saves the finding and its links; false when it could not be saved.</summary>
+    private async Task<bool> SaveAsync()
     {
-        if (_editing == null) return;
+        if (_editing == null) return false;
         if (string.IsNullOrWhiteSpace(_title.Text) || string.IsNullOrWhiteSpace(_statement.Text))
         {
             MessageBox.Show(this, "A finding needs a short title and a proposition to assess.", "Save finding");
-            return;
+            return false;
         }
         _evidence.EndEdit();
         _editing.Title = _title.Text.Trim();
@@ -267,6 +268,7 @@ public sealed class ResearchSynthesisForm : ScaledForm
         await _findingsRepo.SaveLinksAsync(_editing.ResearchFindingId, links);
         await LoadWorkspaceAsync(_editing.ResearchFindingId);
         _statusLine.Text = $"Saved finding with {links.Count} explicit evidence link(s).";
+        return true;
     }
 
     private async Task RemoveAsync()
@@ -285,7 +287,10 @@ public sealed class ResearchSynthesisForm : ScaledForm
             MessageBox.Show(this, "Save the finding and its evidence links before requesting a synthesis.");
             return;
         }
-        await SaveAsync();
+        // Stop if the save did not happen. It used to warn and carry on, sending Gemini
+        // the old saved proposition beside links that had never been saved - and then
+        // reloading over the edits the warning had been about.
+        if (!await SaveAsync()) return;
         var rows = (_evidence.DataSource as IEnumerable<EvidenceLinkRow> ?? []).Where(row => row.Linked).ToList();
         if (rows.Count == 0)
         {
@@ -379,7 +384,19 @@ public sealed class ResearchSynthesisForm : ScaledForm
             await _research.GetResearchLogAsync(_project.ResearchProjectId), hypotheses, hypothesisLinks,
             await hypothesisRepo.GetSourcesAsync(_project.ResearchProjectId),
             await hypothesisRepo.GetExperimentsAsync(_project.ResearchProjectId));
-        await File.WriteAllTextAsync(dialog.FileName, ResearchDossierExport.ToMarkdown(dossier));
+        // Reported rather than thrown, as the bibliography export already does: a
+        // read-only folder or a file open elsewhere put up the crash dialog here. The
+        // log records the export only once the file exists.
+        try
+        {
+            await File.WriteAllTextAsync(dialog.FileName, ResearchDossierExport.ToMarkdown(dossier));
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show(this, $"Could not write the file.{Environment.NewLine}{Environment.NewLine}{ex.Message}",
+                "Export failed", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            return;
+        }
         await _research.AddSystemResearchLogEntryAsync(new ResearchLogEntry
         {
             ResearchProjectId = _project.ResearchProjectId,

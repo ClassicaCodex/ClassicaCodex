@@ -37,7 +37,7 @@ public sealed class AiProjectSuggestionForm : ScaledForm
                 catch(Exception ex){_leads=[];crossrefWarning=" Crossref was unavailable, so these proposals use only the local corpus: "+ex.Message;}
             }
             else _leads=[];
-            var corpus=await BuildCorpusSampleAsync();var projects=await _research.GetProjectsForWorkAsync(_work.WorkId);
+            var corpus=await BuildCorpusSampleAsync();var projects=await _research.GetProjectsForWorkAsync(_work.WorkId,workCtsUrn:_work.CtsUrn);
             _status.Text="Gemini is proposing grounded projects…";
             var attribution=$"Attribution: {_work.AttributionStatus}; note: {_work.AttributionNote??"none"}";
             _result=await GeminiTranslationService.SuggestResearchProjectsAsync($"{_author}, {_work.Title}; CTS {_work.CtsUrn}; {attribution}",projects.Count==0?"(none)":string.Join("\n",projects.Select(p=>"- "+p.Name)),corpus,_leads,TranslationSettings.GeminiApiKey!);
