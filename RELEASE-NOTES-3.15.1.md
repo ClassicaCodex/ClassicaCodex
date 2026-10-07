@@ -81,3 +81,9 @@ and puts it back.
 - Crossref leads with no publication date no longer read "Author ()".
 
 1,734 tests, zero warnings.
+
+The download is not code-signed, so if you would rather check it than trust it:
+
+```
+SHA-256  A09435A45D6ABDE8ABDED9A93B5D77C9DB9FBEB8B3502B11634F223435E28A5A
+```
