@@ -38,6 +38,24 @@ public class ResearchProjectAuditTests
     }
 
     [Fact]
+    public void AQuestionWhoseEvidenceWasAllRejectedIsStillUncovered()
+    {
+        var question = new ResearchQuestion { ResearchQuestionId = 11, Text = "Does the meter differ?" };
+        var rejected = new EvidenceItem
+        {
+            EvidenceItemId = 22, ResearchQuestionId = 11, Title = "A misread line",
+            Judgment = EvidenceJudgment.Rejected, Relationship = EvidenceRelationship.Supports,
+            StableIdentifier = "urn:test:22", Provenance = "Verified local edition", Excerpt = "Observed text"
+        };
+
+        var report = ResearchProjectAudit.Evaluate([question], [rejected]);
+
+        var finding = Assert.Single(report.Findings);
+        Assert.Equal("Coverage", finding.Category);
+        Assert.Equal(11, finding.ResearchQuestionId);
+    }
+
+    [Fact]
     public void CompleteOpposingEvidenceProducesNoFindings()
     {
         var question = new ResearchQuestion { ResearchQuestionId = 11, Text = "Does the meter differ?" };

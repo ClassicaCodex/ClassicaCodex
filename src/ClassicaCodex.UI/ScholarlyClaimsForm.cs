@@ -25,6 +25,7 @@ public sealed class ScholarlyClaimsForm : ScaledForm
     private readonly TextBox _notes = new();
     private readonly Label _status = new();
     private readonly SplitContainer _split = new();
+    private readonly List<Control> _stretched = new();
 
     private List<ResearchQuestion> _questions = new();
     private List<EvidenceItem> _sources = new();
@@ -39,7 +40,10 @@ public sealed class ScholarlyClaimsForm : ScaledForm
         Text = $"Scholarly Claims Matrix — {project.Name}";
         Width = 1220;
         Height = 780;
-        MinimumSize = new Size(900, 620);
+        // Tall enough for both panes' minimums (250 + 255) under the header and status
+        // line. At 620 they did not fit, and the split stopped laying its panes out at
+        // all - they kept their old width, cut off at the right of the narrowed window.
+        MinimumSize = new Size(900, 640);
         StartPosition = FormStartPosition.CenterParent;
         AppIcons.ApplyWindowIcon(this, "WordStudy");
 
@@ -121,6 +125,23 @@ public sealed class ScholarlyClaimsForm : ScaledForm
         AddCombo(scroll, "Human verification", _judgment, ref y);
         _judgment.DataSource = Enum.GetValues<EvidenceJudgment>();
         AddArea(scroll, "Researcher note / qualification", _notes, 58, ref y);
+        _stretched.AddRange(new Control[] { _claimant, _claimText, _locator, _question, _source, _relationship, _judgment, _notes });
+        // Sized to the pane rather than anchored to it. This pane is built inside a
+        // SplitContainer that is still at its default size, so a Right anchor recorded
+        // its distance from an edge that was not there yet, and every field ran 160 to
+        // 240 pixels past the right of the window at any size - drop-down arrows and
+        // scroll bars included - with no horizontal scroll bar to reach them.
+        //
+        // From the pane's outer width, always leaving room for the vertical scroll bar.
+        // Sized from the client width instead, the fields were laid out once before
+        // that bar appeared, ran under it, and left a horizontal bar behind that the
+        // pane never took away again.
+        scroll.SizeChanged += (_, _) =>
+        {
+            var available = scroll.Width - scroll.Padding.Right - SystemInformation.VerticalScrollBarWidth;
+            foreach (var control in _stretched)
+                control.Width = Math.Max(200, available - control.Left);
+        };
 
         var create = Button("New claim", 10, y + 4, 100);
         var save = Button("Save claim", 118, y + 4, 100);
@@ -132,7 +153,10 @@ public sealed class ScholarlyClaimsForm : ScaledForm
         host.Controls.Add(scroll);
     }
 
-    private ClaimRow? CurrentRow => _grid.CurrentRow?.DataBoundItem as ClaimRow;
+    // The selection, not CurrentRow: the two disagree while a selection change is in
+    // flight, and the editor must describe the highlighted claim. See the Bench.
+    private ClaimRow? CurrentRow =>
+        (_grid.SelectedRows.Count > 0 ? _grid.SelectedRows[0] : _grid.CurrentRow)?.DataBoundItem as ClaimRow;
 
     private async Task ReloadAsync(long selectId = 0, long? revealQuestionId = null)
     {
@@ -189,8 +213,13 @@ public sealed class ScholarlyClaimsForm : ScaledForm
             foreach (DataGridViewRow row in _grid.Rows)
             {
                 if (row.DataBoundItem is not ClaimRow item || item.Claim.ScholarlyClaimId != selectId) continue;
-                row.Selected = true;
+                // Current cell first, then the selection, then the editor explicitly.
+                // Selecting first raised SelectionChanged while the first row was
+                // still current, so the editor showed the first claim beside a
+                // highlighted other one - and Save wrote to the claim on screen.
                 _grid.CurrentCell = row.Cells[0];
+                row.Selected = true;
+                ShowClaim(item.Claim);
                 break;
             }
         }
@@ -248,7 +277,12 @@ public sealed class ScholarlyClaimsForm : ScaledForm
         claim.Judgment = (EvidenceJudgment)_judgment.SelectedItem!;
         claim.Notes = Empty(_notes.Text);
         await _repo.SaveScholarlyClaimAsync(claim);
-        await ReloadAsync(claim.ScholarlyClaimId, claim.ResearchQuestionId ?? 0);
+        // Move the filter only if it would now hide the claim. Revealing its question
+        // unconditionally took "All questions" to "General / unlinked claims" every
+        // time an unlinked claim was saved.
+        var filter = (_filter.SelectedItem as FilterChoice)?.Id ?? -1;
+        var claimFilter = claim.ResearchQuestionId ?? 0;
+        await ReloadAsync(claim.ScholarlyClaimId, filter == -1 || filter == claimFilter ? null : claimFilter);
         _status.Text = "Claim saved. Source wording, stance, and human verification remain separate.";
     }
 
@@ -270,21 +304,19 @@ public sealed class ScholarlyClaimsForm : ScaledForm
     private static void AddField(Control host, string label, TextBox box, ref int y)
     {
         host.Controls.Add(new Label { Text = label, Left = 10, Top = y, Width = 520, Height = 20 }); y += 20;
-        box.SetBounds(10, y, 760, 26); box.Anchor = AnchorStyles.Left | AnchorStyles.Top | AnchorStyles.Right;
+        box.SetBounds(10, y, 760, 26);
         host.Controls.Add(box); y += 35;
     }
     private static void AddArea(Control host, string label, TextBox box, int height, ref int y)
     {
         host.Controls.Add(new Label { Text = label, Left = 10, Top = y, Width = 600, Height = 20 }); y += 20;
         box.SetBounds(10, y, 760, height); box.Multiline = true; box.ScrollBars = ScrollBars.Vertical;
-        box.Anchor = AnchorStyles.Left | AnchorStyles.Top | AnchorStyles.Right;
         host.Controls.Add(box); y += height + 9;
     }
     private static void AddCombo(Control host, string label, ComboBox box, ref int y)
     {
         host.Controls.Add(new Label { Text = label, Left = 10, Top = y, Width = 520, Height = 20 }); y += 20;
         box.SetBounds(10, y, 760, 26); box.DropDownStyle = ComboBoxStyle.DropDownList;
-        box.Anchor = AnchorStyles.Left | AnchorStyles.Top | AnchorStyles.Right;
         host.Controls.Add(box); y += 35;
     }
     private static string? Empty(string value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();

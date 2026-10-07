@@ -72,7 +72,12 @@ public sealed class ResearchCorpusSnapshotsForm : ScaledForm
         await RunAsync(async token=>
         {
             var progress=new Progress<CorpusSnapshotProgress>(p=>_status.Text=p.Total==0?"Reading corpus…":$"Fingerprinting {p.Completed:N0}/{p.Total:N0}: {p.CurrentWork}");
-            var snapshot=await _repo.CaptureAsync(_project.ResearchProjectId,_name.Text,scope,Application.ProductVersion,_notes.Text,progress,token);
+            // On a worker thread. SQLite's async calls complete synchronously, so awaited
+            // here the whole fingerprinting ran on the UI thread: the window froze,
+            // Cancel could not be pressed, and every queued progress line ran after the
+            // summary and overwrote it. The control values are read here, not there.
+            var (name,notes,version)=(_name.Text,_notes.Text,Application.ProductVersion);
+            var snapshot=await Task.Run(()=>_repo.CaptureAsync(_project.ResearchProjectId,name,scope,version,notes,progress,token),token);
             await ReloadAsync(snapshot.ResearchCorpusSnapshotId);_name.Text=$"Corpus state {DateTime.Now:yyyy-MM-dd HHmm}";_notes.Clear();
             _status.Text=$"Captured {snapshot.WorkCount} works, {snapshot.EditionCount} editions, and {snapshot.TextNodeCount:N0} ordered text nodes.";
         });
@@ -82,7 +87,7 @@ public sealed class ResearchCorpusSnapshotsForm : ScaledForm
         var snapshot=Current;if(snapshot==null)return;await RunAsync(async token=>
         {
             var progress=new Progress<CorpusSnapshotProgress>(p=>_status.Text=p.Total==0?"Reading corpus…":$"Comparing {p.Completed:N0}/{p.Total:N0}: {p.CurrentWork}");
-            var result=await _repo.CompareAsync(snapshot,progress,token);
+            var result=await Task.Run(()=>_repo.CompareAsync(snapshot,progress,token),token);
             _details.DataSource=result.Differences.Select(d=>new DisplayRow(d.Status,d.Work,d.Edition,d.Details)).ToList();
             _status.Text=result.Differences.Count==0?$"Exact match: {result.Unchanged} frozen entries are unchanged.":$"Compared: {result.Unchanged} unchanged, {result.Changed} changed, {result.Added} added, {result.Missing} missing.";
         });

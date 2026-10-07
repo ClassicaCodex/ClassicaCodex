@@ -24,7 +24,7 @@ public sealed class EvidenceSourcesForm : ScaledForm
     public EvidenceSourcesForm(EvidenceItem evidence)
     {
         _evidence=evidence; Text=$"Source Files & Page Notes — {evidence.Title}"; Width=1050; Height=760;
-        MinimumSize=new Size(800,600); StartPosition=FormStartPosition.CenterParent; AppIcons.ApplyWindowIcon(this,"WordStudy");
+        MinimumSize=new Size(980,600); // the file buttons end at 934 StartPosition=FormStartPosition.CenterParent; AppIcons.ApplyWindowIcon(this,"WordStudy");
         var top=new Panel{Dock=DockStyle.Top,Height=150,Width=ClientSize.Width,Padding=new Padding(10)};
         _files.SetBounds(10,10,500,96); _files.SelectedIndexChanged+=async(_,_)=>await FileChangedAsync();
         var attach=Btn("Attach PDF…",525,10,105); attach.Click+=async(_,_)=>await AttachAsync();

@@ -130,6 +130,60 @@ public class WorkUrnWhitespaceTests
     }
 
     /// <summary>
+    /// A research project on the spaced row has to follow the text too. The merge
+    /// deletes that row with foreign keys off - they must be, for the table
+    /// rebuilds - so ON DELETE SET NULL never fired and the project kept the id
+    /// of a work that no longer existed. Re-adoption only looks for a NULL, so the
+    /// Bench never listed it again.
+    /// </summary>
+    [Fact]
+    public async Task UpgradingMovesAResearchProjectOntoTheSurvivingRow()
+    {
+        using var db = await TempDatabase.CreateAsync();
+        await PlantSplitAsync(db, withTwin: true);
+        // WorkCtsUrn as migration 31 back-filled it: copied from the spaced row.
+        await db.ExecuteAsync($@"
+            INSERT INTO ResearchProjects (WorkId, WorkCtsUrn, Name, Status, CreatedUtc, UpdatedUtc)
+            VALUES ((SELECT WorkId FROM Works WHERE CtsUrn = '{Urn} '), '{Urn} ', 'Who wrote it?', 'active',
+                    '2026-01-01T00:00:00.0000000Z', '2026-01-01T00:00:00.0000000Z');");
+
+        await SchemaInitializer.EnsureSchemaAsync();
+
+        var survivor = await db.ScalarAsync<int>("SELECT WorkId FROM Works;");
+        Assert.Equal(survivor, await db.ScalarAsync<int>("SELECT WorkId FROM ResearchProjects;"));
+        Assert.Equal(Urn, await db.ScalarStringAsync("SELECT WorkCtsUrn FROM ResearchProjects;"));
+        Assert.Equal(0, await db.ScalarAsync<long>("SELECT COUNT(*) FROM pragma_foreign_key_check('ResearchProjects');"));
+
+        var projects = await new ResearchRepository().GetProjectsForWorkAsync(survivor, workCtsUrn: Urn);
+        Assert.Equal("Who wrote it?", Assert.Single(projects).Name);
+    }
+
+    /// <summary>
+    /// A library that already ran the merge holds the dangling id now. The repair
+    /// moves it to the work with the same identity where there is one, and to NULL
+    /// otherwise - which is what the delete should have done, and what lets the
+    /// project reattach by URN when the work comes back.
+    /// </summary>
+    [Fact]
+    public async Task UpgradingRepairsAProjectLeftPointingAtADeletedWork()
+    {
+        using var db = await TempDatabase.CreateAsync();
+        var authorId = await AuthorAsync();
+        var workId = await new WorkRepository().UpsertAsync(new Work { AuthorId = authorId, CtsUrn = Urn, Title = "Carmina" });
+        await db.ExecuteUnenforcedAsync($@"
+            INSERT INTO ResearchProjects (WorkId, WorkCtsUrn, Name, Status, CreatedUtc, UpdatedUtc) VALUES
+              (9001, '{Urn} ', 'Followed its text', 'active', '2026-01-01T00:00:00Z', '2026-01-01T00:00:00Z'),
+              (9002, 'urn:cts:latinLit:gone.gone001', 'Work not installed', 'active', '2026-01-01T00:00:00Z', '2026-01-01T00:00:00Z');");
+        await db.ExecuteAsync("PRAGMA user_version = 39;");
+
+        await SchemaInitializer.EnsureSchemaAsync();
+
+        Assert.Equal(workId, await db.ScalarAsync<int>("SELECT WorkId FROM ResearchProjects WHERE Name = 'Followed its text';"));
+        Assert.Null(await db.ScalarStringAsync("SELECT WorkId FROM ResearchProjects WHERE Name = 'Work not installed';"));
+        Assert.Equal(0, await db.ScalarAsync<long>("SELECT COUNT(*) FROM pragma_foreign_key_check('ResearchProjects');"));
+    }
+
+    /// <summary>
     /// The fourth of the four had no twin - nothing to merge onto, so it is
     /// trimmed where it stands and keeps its edition.
     /// </summary>

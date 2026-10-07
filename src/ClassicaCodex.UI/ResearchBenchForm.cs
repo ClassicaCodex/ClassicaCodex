@@ -136,6 +136,13 @@ public class ResearchBenchForm : ScaledForm
         _projectNotes.SetBounds(10, 72, 1251, 30);
         _projectNotes.PlaceholderText = "Project-level notes, scope, or current judgment";
         _projectNotes.Anchor = AnchorStyles.Left | AnchorStyles.Top | AnchorStyles.Right;
+        // The buttons keep to the right edge and the theory gives way, as the notes
+        // box below it already did. Fixed, they ran off the window at its minimum
+        // width, taking the AI suggestion button with them. Safe to anchor here,
+        // unlike the panels below: this one is given the form's width as it is built.
+        _theory.Anchor = AnchorStyles.Left | AnchorStyles.Top | AnchorStyles.Right;
+        foreach (var button in new[] { save, create, archive, suggest })
+            button.Anchor = AnchorStyles.Top | AnchorStyles.Right;
         panel.Controls.AddRange(new Control[] { workLabel, _theory, save, create, archive, suggest, _projectNotes });
         return panel;
     }
@@ -300,9 +307,9 @@ public class ResearchBenchForm : ScaledForm
         projectMenu.Items.Add("Bibliography & Zotero export…", null, (_, _) => OpenBibliography());
         projectMenu.Items.Add("Corpus snapshots…", null, (_, _) => OpenCorpusSnapshots());
         projectMenu.Items.Add("Reading queue & passage notebook…", null, async (_, _) => await OpenReadingQueueAsync());
-        projectMenu.Items.Add("Echo investigations…", null, (_, _) => OpenEchoInvestigations());
+        projectMenu.Items.Add("Echo investigations…", null, async (_, _) => await OpenEchoInvestigationsAsync());
         projectMenu.Items.Add("Intertextual Atlas…", null, (_, _) => OpenIntertextualAtlas());
-        projectMenu.Items.Add("Hypothesis Lab…", null, (_, _) => OpenHypothesisLab());
+        projectMenu.Items.Add("Hypothesis Lab…", null, async (_, _) => await OpenHypothesisLabAsync());
         projectMenu.Items.Add("Synthesis & findings…", null, (_, _) => OpenSynthesis());
         projectMenu.Items.Add(new ToolStripSeparator());
         // Archive has a button of its own because it is the common case. On hold and
@@ -539,12 +546,7 @@ public class ResearchBenchForm : ScaledForm
 
     private void OpenResearchLog()
     {
-        var project = CurrentProject;
-        if (project == null)
-        {
-            MessageBox.Show(this, "Open or create a research project first.");
-            return;
-        }
+        if (RequireProject() is not { } project) return;
 
         using var log = new ResearchLogForm(project);
         log.ShowDialog(this);
@@ -552,12 +554,7 @@ public class ResearchBenchForm : ScaledForm
 
     private void OpenScholarlyClaims()
     {
-        var project = CurrentProject;
-        if (project == null)
-        {
-            MessageBox.Show(this, "Open or create a research project first.");
-            return;
-        }
+        if (RequireProject() is not { } project) return;
 
         using var claims = new ScholarlyClaimsForm(project);
         claims.ShowDialog(this);
@@ -565,12 +562,7 @@ public class ResearchBenchForm : ScaledForm
 
     private async Task OpenBibliographyImportAsync()
     {
-        var project = CurrentProject;
-        if (project == null)
-        {
-            MessageBox.Show(this, "Open or create a research project first.");
-            return;
-        }
+        if (RequireProject() is not { } project) return;
 
         using var import = new BibliographyImportForm(project);
         import.ShowDialog(this);
@@ -583,32 +575,21 @@ public class ResearchBenchForm : ScaledForm
 
     private void OpenBibliography()
     {
-        var project = CurrentProject;
-        if (project == null)
-        {
-            MessageBox.Show(this, "Select or create a research project first.");
-            return;
-        }
+        if (RequireProject() is not { } project) return;
         using var form = new ResearchBibliographyForm(project);
         form.ShowDialog(this);
     }
 
     private void OpenCorpusSnapshots()
     {
-        var project = CurrentProject;
-        if (project == null)
-        {
-            MessageBox.Show(this, "Select or create a research project first.");
-            return;
-        }
+        if (RequireProject() is not { } project) return;
         using var form = new ResearchCorpusSnapshotsForm(project);
         form.ShowDialog(this);
     }
 
     private async Task OpenProjectAuditAsync()
     {
-        var project = CurrentProject;
-        if (project == null) return;
+        if (RequireProject() is not { } project) return;
         var questions = await _repo.GetQuestionsAsync(project.ResearchProjectId);
         var evidence = await _repo.GetEvidenceAsync(project.ResearchProjectId);
         var claims = await _repo.GetScholarlyClaimsAsync(project.ResearchProjectId);
@@ -642,8 +623,7 @@ public class ResearchBenchForm : ScaledForm
 
     private async Task AttachStylometryRunAsync()
     {
-        var project = CurrentProject;
-        if (project == null) return;
+        if (RequireProject() is not { } project) return;
         var runRepo = new StylometryRunRepository();
         var runs = (await runRepo.GetAllRunsAsync())
             .Where(r => r.TargetWorkId == _work.WorkId)
@@ -709,8 +689,7 @@ public class ResearchBenchForm : ScaledForm
 
     private async Task GatherCorpusEvidenceAsync(bool challengeTheory)
     {
-        var project = CurrentProject;
-        if (project == null) return;
+        if (RequireProject() is not { } project) return;
         if (string.IsNullOrWhiteSpace(TranslationSettings.GeminiApiKey))
         {
             using var settings = new TranslateApiSettingsForm();
@@ -728,8 +707,8 @@ public class ResearchBenchForm : ScaledForm
             return;
         }
 
-        var nodes = await new TextNodeRepository().GetByEditionAsync(edition.EditionId, readingLinesOnly: true);
-        var (taggedCorpus, truncatedAtRef) = BuildTaggedCorpus(nodes);
+        var allNodes = await new TextNodeRepository().GetByEditionAsync(edition.EditionId, readingLinesOnly: true);
+        var (taggedCorpus, truncatedAtRef, nodes) = BuildTaggedCorpus(allNodes);
         if (string.IsNullOrWhiteSpace(taggedCorpus))
         {
             MessageBox.Show(this, "The selected edition contains no searchable reading text.");
@@ -769,6 +748,11 @@ public class ResearchBenchForm : ScaledForm
                 _authorName, _work.Title, edition.Language, edition.CtsUrn, hash, truncatedAtRef,
                 taggedCorpus, challengeTheory, TranslationSettings.GeminiApiKey!);
 
+            // Only the passages that were sent. The edition is cut off at the
+            // character budget, and a citation past the cut resolved against the
+            // full edition all the same - a line the model never saw, recalled from
+            // training, saved as "verified against local edition" beside a note
+            // saying the search had stopped before it.
             var textByRef = nodes
                 .Where(n => !string.IsNullOrWhiteSpace(n.CitationRef))
                 .GroupBy(n => n.CitationRef, StringComparer.OrdinalIgnoreCase)
@@ -869,10 +853,11 @@ public class ResearchBenchForm : ScaledForm
         }
     }
 
-    private static (string Text, string? TruncatedAtRef) BuildTaggedCorpus(IEnumerable<TextNode> nodes)
+    internal static (string Text, string? TruncatedAtRef, List<TextNode> Sent) BuildTaggedCorpus(
+        IEnumerable<TextNode> nodes, int maxCharacters = 220_000)
     {
-        const int maxCharacters = 220_000;
         var builder = new System.Text.StringBuilder();
+        var sent = new List<TextNode>();
         string? lastRef = null;
         foreach (var node in nodes)
         {
@@ -881,11 +866,12 @@ public class ResearchBenchForm : ScaledForm
             // passages by this reference. See CrossLanguageEchoForm.
             var line = $"[{node.CitationRef}] {node.Text}\n";
             if (builder.Length + line.Length > maxCharacters)
-                return (builder.ToString(), lastRef);
+                return (builder.ToString(), lastRef, sent);
             builder.Append(line);
+            sent.Add(node);
             lastRef = node.CitationRef;
         }
-        return (builder.ToString(), null);
+        return (builder.ToString(), null, sent);
     }
 
     private async Task AddQuestionAsync()
@@ -1035,8 +1021,7 @@ public class ResearchBenchForm : ScaledForm
 
     private async Task OpenReadingQueueAsync()
     {
-        var project = CurrentProject;
-        if (project == null) return;
+        if (RequireProject() is not { } project) return;
         using var form = new ResearchReadingQueueForm(project, _work);
         form.ShowDialog(this);
         if (form.NavigationTarget is { } target)
@@ -1051,36 +1036,63 @@ public class ResearchBenchForm : ScaledForm
 
     private void OpenSynthesis()
     {
-        if (CurrentProject is not { } project) return;
+        if (RequireProject() is not { } project) return;
         using var form = new ResearchSynthesisForm(project, _work, _authorName);
         form.ShowDialog(this);
     }
 
-    private void OpenHypothesisLab()
+    private async Task OpenHypothesisLabAsync()
     {
-        if (_projects.SelectedItem is not ResearchProject project) return;
+        if (RequireProject() is not { } project) return;
         using var form = new HypothesisLabForm(project, _work, _authorName);
         form.ShowDialog(this);
+        await FollowOrRefreshAsync(project, form.NavigationTarget);
     }
 
-    private void OpenEchoInvestigations()
+    private async Task OpenEchoInvestigationsAsync()
     {
-        var project = CurrentProject;
-        if (project == null) { MessageBox.Show(this, "Select or create a research project first."); return; }
+        if (RequireProject() is not { } project) return;
         using var form = new ResearchEchoInvestigationsForm(project, _work, _authorName);
         form.ShowDialog(this);
-        if (form.NavigationTarget is { } target)
+        await FollowOrRefreshAsync(project, form.NavigationTarget);
+    }
+
+    /// <summary>
+    /// After a window that can open a passage or add evidence: go to the passage if one
+    /// was asked for, and otherwise show the evidence as it now stands. Promoting an
+    /// echo, or a reading from the queue a Hypothesis Lab experiment opens, saved the
+    /// record - and the grid behind it went on showing the list from before, as if
+    /// nothing had been kept, until another project was opened and this one reopened.
+    /// </summary>
+    private async Task FollowOrRefreshAsync(ResearchProject project, (int WorkId, long TextNodeId)? target)
+    {
+        if (target is { } passage)
         {
-            NavigationTarget = target;
+            NavigationTarget = passage;
             DialogResult = DialogResult.OK;
             Close();
+            return;
         }
+        if (CurrentProject?.ResearchProjectId == project.ResearchProjectId)
+            await LoadEvidenceAsync(project.ResearchProjectId, CurrentEvidence?.EvidenceItemId ?? 0);
+    }
+
+    /// <summary>
+    /// The open project, or null once the researcher has been told one is needed.
+    /// Six of the Project and Gather menu items used to do nothing at all without
+    /// one, while their neighbours said why.
+    /// </summary>
+    private ResearchProject? RequireProject()
+    {
+        if (CurrentProject is { } project) return project;
+        MessageBox.Show(this, "Open or create a research project first.", "Research Bench",
+            MessageBoxButtons.OK, MessageBoxIcon.Information);
+        return null;
     }
 
     private void OpenIntertextualAtlas()
     {
-        var project = CurrentProject;
-        if (project == null) { MessageBox.Show(this, "Select or create a research project first."); return; }
+        if (RequireProject() is not { } project) return;
         using var form = new IntertextualAtlasForm(project);
         form.ShowDialog(this);
         if (form.NavigationTarget is { } target)

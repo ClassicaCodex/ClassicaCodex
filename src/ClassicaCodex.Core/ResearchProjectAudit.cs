@@ -67,6 +67,19 @@ public static class ResearchProjectAudit
                 continue;
             }
 
+            // Rejected evidence is a record of what was ruled out, not coverage. A
+            // question whose every item had been rejected used to pass the audit in
+            // silence: it had linked evidence, none of it uncertain, and nothing
+            // accepted to be one-sided about.
+            if (linked.All(e => e.Judgment == EvidenceJudgment.Rejected))
+            {
+                findings.Add(new ResearchAuditFinding(
+                    ResearchAuditSeverity.Warning, "Coverage", question.Text,
+                    "Every linked item has been rejected, so nothing still bears on this question.",
+                    question.ResearchQuestionId));
+                continue;
+            }
+
             if (linked.All(e => e.Judgment == EvidenceJudgment.Uncertain))
             {
                 findings.Add(new ResearchAuditFinding(

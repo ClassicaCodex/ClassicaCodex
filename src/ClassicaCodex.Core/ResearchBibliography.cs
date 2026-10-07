@@ -63,11 +63,11 @@ public static partial class BibliographyExport
             if (containerField != null) Field(output, containerField, record.ContainerTitle);
             Field(output, "volume", record.Volume);
             Field(output, "number", record.Issue);
-            Field(output, "pages", record.Pages?.Replace("-", "--"));
+            Field(output, "pages", record.Pages is null ? null : PageDash().Replace(record.Pages.Trim(), "--"));
             Field(output, "publisher", record.Publisher);
-            Field(output, "doi", BibliographyImport.NormalizeDoi(record.Doi));
-            Field(output, "url", record.Url);
-            Field(output, "isbn", record.Isbn);
+            Verbatim(output, "doi", BibliographyImport.NormalizeDoi(record.Doi));
+            Verbatim(output, "url", record.Url);
+            Verbatim(output, "isbn", record.Isbn);
             Field(output, "abstract", record.Abstract);
             Field(output, "keywords", record.Keywords.Count == 0 ? null : string.Join(", ", record.Keywords));
             var comma = output.Length - Environment.NewLine.Length - 1;
@@ -137,23 +137,61 @@ public static partial class BibliographyExport
         if (string.IsNullOrWhiteSpace(value)) return;
         output.Append("  ").Append(name).Append(" = {").Append(Escape(value.Trim())).AppendLine("},");
     }
+    /// <summary>
+    /// A DOI, URL or ISBN, written as it is: a percent sign in a URL is
+    /// percent-encoding, not a LaTeX comment, and escaping it would break the link.
+    /// </summary>
+    private static void Verbatim(StringBuilder output, string name, string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value)) return;
+        output.Append("  ").Append(name).Append(" = {")
+            .Append(value.Trim().Replace("{", string.Empty).Replace("}", string.Empty)).AppendLine("},");
+    }
     private static void Ris(StringBuilder output, string tag, string? value)
     {
         if (!string.IsNullOrWhiteSpace(value)) output.Append(tag).Append("  - ").AppendLine(value.Trim());
     }
-    private static string Escape(string value) => value.Replace("\\", "\\\\").Replace("{", "\\{").Replace("}", "\\}");
+
+    /// <summary>
+    /// Text as LaTeX will read it. A backslash used to go out doubled - which LaTeX
+    /// reads as a line break - and an ampersand, percent sign, hash or underscore not
+    /// escaped at all, so a title such as "Gods &amp; Heroes: 50% of #1" stopped a
+    /// document from building. The importer reads every one of these back.
+    /// </summary>
+    private static string Escape(string value)
+    {
+        var builder = new StringBuilder(value.Length);
+        foreach (var c in value)
+        {
+            switch (c)
+            {
+                case '\\': builder.Append(@"\textbackslash{}"); break;
+                case '{' or '}' or '&' or '%' or '#' or '_' or '$': builder.Append('\\').Append(c); break;
+                default: builder.Append(c); break;
+            }
+        }
+        return builder.ToString();
+    }
     private static string BibType(string type) => type.ToUpperInvariant() switch
     {
-        "JOUR" or "JOURNAL" or "ARTICLE" => "article", "BOOK" => "book",
-        "CHAP" or "CHAPTER" or "INBOOK" => "incollection", "CONF" or "CPAPER" or "INPROCEEDINGS" => "inproceedings",
-        "THES" or "THESIS" or "PHDTHESIS" => "phdthesis", _ => "misc"
+        "JOUR" or "JOURNAL" or "ARTICLE" => "article",
+        "BOOK" or "EBOOK" or "EDBOOK" or "MVBOOK" or "COLLECTION" => "book",
+        // INCOLLECTION is what the importer produces from BibTeX and what Zotero
+        // writes for a book section; it used to fall through to misc and lose its
+        // booktitle on the way out.
+        "CHAP" or "CHAPTER" or "INBOOK" or "INCOLLECTION" => "incollection",
+        "CONF" or "CPAPER" or "INPROCEEDINGS" or "CONFERENCE" => "inproceedings",
+        "THES" or "THESIS" or "PHDTHESIS" => "phdthesis", "MASTERSTHESIS" => "mastersthesis",
+        "RPRT" or "REPORT" or "TECHREPORT" => "techreport", _ => "misc"
     };
     private static string RisType(string type) => BibType(type) switch
     {
         "article" => "JOUR", "book" => "BOOK", "incollection" => "CHAP",
-        "inproceedings" => "CPAPER", "phdthesis" => "THES", _ => "GEN"
+        "inproceedings" => "CPAPER", "phdthesis" or "mastersthesis" => "THES", "techreport" => "RPRT", _ => "GEN"
     };
 
+    [GeneratedRegex(@"\s*[-‐-―]+\s*")]
+    private static partial Regex PageDash();
     [GeneratedRegex(@"[\p{L}\p{N}]+")]
     private static partial Regex Words();
     [GeneratedRegex(@"[^\p{L}\p{N}_:.+\-]")]

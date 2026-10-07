@@ -318,38 +318,26 @@ public static class GeminiTranslationService
     /// checks for); a response that isn't valid JSON at all surfaces as a
     /// clear error instead of a confusing empty result list.
     /// </summary>
-    private static List<EchoCandidate> ParseEchoCandidates(string rawResponse)
+    internal static List<EchoCandidate> ParseEchoCandidates(string rawResponse)
     {
-        var cleaned = rawResponse.Trim();
-        if (cleaned.StartsWith("```"))
-        {
-            var firstNewline = cleaned.IndexOf('\n');
-            if (firstNewline >= 0) cleaned = cleaned[(firstNewline + 1)..];
-            if (cleaned.EndsWith("```")) cleaned = cleaned[..^3];
-            cleaned = cleaned.Trim();
-        }
-
         try
         {
-            using var doc = JsonDocument.Parse(cleaned);
+            using var doc = GeminiJson.Parse(rawResponse);
             var results = new List<EchoCandidate>();
 
-            foreach (var item in doc.RootElement.EnumerateArray())
+            foreach (var item in GeminiJson.Items(doc))
             {
-                var citationRef = item.TryGetProperty("citationRef", out var refProp) ? refProp.GetString() : null;
+                var citationRef = GeminiJson.Text(item, "citationRef");
                 if (string.IsNullOrWhiteSpace(citationRef)) continue;
 
-                var confidence = item.TryGetProperty("confidence", out var confProp)
-                    ? confProp.GetString() ?? "unspecified" : "unspecified";
-                var rationale = item.TryGetProperty("rationale", out var ratProp)
-                    ? ratProp.GetString() ?? string.Empty : string.Empty;
-
-                results.Add(new EchoCandidate(citationRef, confidence, rationale));
+                var confidence = GeminiJson.Text(item, "confidence");
+                results.Add(new EchoCandidate(citationRef,
+                    confidence.Length == 0 ? "unspecified" : confidence, GeminiJson.Text(item, "rationale")));
             }
 
             return results;
         }
-        catch (JsonException ex)
+        catch (Exception ex) when (ex is JsonException or InvalidOperationException)
         {
             throw new InvalidOperationException(
                 $"Gemini's response wasn't in the expected format, so no candidates could be read from it. ({ex.Message})");
@@ -605,22 +593,13 @@ public static class GeminiTranslationService
 
     internal static List<CorpusInvestigationCandidate> ParseCorpusInvestigationCandidates(string rawResponse)
     {
-        var cleaned = rawResponse.Trim();
-        if (cleaned.StartsWith("```"))
-        {
-            var firstNewline = cleaned.IndexOf('\n');
-            if (firstNewline >= 0) cleaned = cleaned[(firstNewline + 1)..];
-            if (cleaned.EndsWith("```")) cleaned = cleaned[..^3];
-            cleaned = cleaned.Trim();
-        }
         try
         {
-            using var doc = JsonDocument.Parse(cleaned);
+            using var doc = GeminiJson.Parse(rawResponse);
             var results = new List<CorpusInvestigationCandidate>();
-            foreach (var item in doc.RootElement.EnumerateArray())
+            foreach (var item in GeminiJson.Items(doc))
             {
-                string Field(string name) => item.TryGetProperty(name, out var value)
-                    ? value.GetString()?.Trim() ?? string.Empty : string.Empty;
+                string Field(string name) => GeminiJson.Text(item, name);
                 var key = Field("candidateKey");
                 if (string.IsNullOrWhiteSpace(key)) continue;
                 var role = Field("role").ToLowerInvariant() switch
@@ -694,18 +673,12 @@ public static class GeminiTranslationService
 
     internal static List<HypothesisChallengeProposal> ParseHypothesisChallengeProposals(string rawResponse)
     {
-        var cleaned = rawResponse.Trim();
-        if (cleaned.StartsWith("```"))
-        {
-            var firstNewline = cleaned.IndexOf('\n'); if (firstNewline >= 0) cleaned = cleaned[(firstNewline + 1)..];
-            if (cleaned.EndsWith("```")) cleaned = cleaned[..^3]; cleaned = cleaned.Trim();
-        }
         try
         {
-            using var doc = JsonDocument.Parse(cleaned); var results = new List<HypothesisChallengeProposal>();
-            foreach (var item in doc.RootElement.EnumerateArray())
+            using var doc = GeminiJson.Parse(rawResponse); var results = new List<HypothesisChallengeProposal>();
+            foreach (var item in GeminiJson.Items(doc))
             {
-                string Field(string name) => item.TryGetProperty(name, out var value) ? value.GetString()?.Trim() ?? "" : "";
+                string Field(string name) => GeminiJson.Text(item, name);
                 var kind = Field("kind").ToLowerInvariant() switch
                 {
                     "rivalhypothesis" => "rivalHypothesis",
@@ -774,10 +747,9 @@ public static class GeminiTranslationService
 
     internal static List<AiResearchProjectSuggestion> ParseProjectSuggestions(string raw)
     {
-        var cleaned=raw.Trim();if(cleaned.StartsWith("```")){var n=cleaned.IndexOf('\n');if(n>=0)cleaned=cleaned[(n+1)..];if(cleaned.EndsWith("```"))cleaned=cleaned[..^3];cleaned=cleaned.Trim();}
-        try{using var doc=JsonDocument.Parse(cleaned);var result=new List<AiResearchProjectSuggestion>();foreach(var item in doc.RootElement.EnumerateArray())
-        {string F(string n)=>item.TryGetProperty(n,out var v)&&v.ValueKind==JsonValueKind.String?v.GetString()?.Trim()??"":"";List<string> A(string n)=>item.TryGetProperty(n,out var v)&&v.ValueKind==JsonValueKind.Array?v.EnumerateArray().Where(x=>x.ValueKind==JsonValueKind.String).Select(x=>x.GetString()?.Trim()??"").Where(x=>x.Length>0).ToList():[];
-        var title=F("title");var question=F("centralQuestion");if(title.Length==0||question.Length==0)continue;var hypotheses=new List<SuggestedHypothesis>();if(item.TryGetProperty("hypotheses",out var hs)&&hs.ValueKind==JsonValueKind.Array)foreach(var h in hs.EnumerateArray()){string HF(string n)=>h.TryGetProperty(n,out var v)?v.GetString()?.Trim()??"":"";if(HF("title").Length>0&&HF("statement").Length>0)hypotheses.Add(new(HF("title"),HF("statement")));}var experiments=new List<SuggestedExperiment>();if(item.TryGetProperty("experiments",out var es)&&es.ValueKind==JsonValueKind.Array)foreach(var e in es.EnumerateArray()){string EF(string n)=>e.TryGetProperty(n,out var v)?v.GetString()?.Trim()??"":"";if(EF("title").Length>0)experiments.Add(new(EF("title"),EF("method"),EF("predictedOutcome"),EF("falsificationCriterion")));}
+        try{using var doc=GeminiJson.Parse(raw);var result=new List<AiResearchProjectSuggestion>();foreach(var item in GeminiJson.Items(doc))
+        {string F(string n)=>GeminiJson.Text(item,n);List<string> A(string n)=>GeminiJson.List(item,n);
+        var title=F("title");var question=F("centralQuestion");if(title.Length==0||question.Length==0)continue;var hypotheses=new List<SuggestedHypothesis>();if(item.TryGetProperty("hypotheses",out var hs)&&hs.ValueKind==JsonValueKind.Array)foreach(var h in hs.EnumerateArray()){string HF(string n)=>GeminiJson.Text(h,n);if(HF("title").Length>0&&HF("statement").Length>0)hypotheses.Add(new(HF("title"),HF("statement")));}var experiments=new List<SuggestedExperiment>();if(item.TryGetProperty("experiments",out var es)&&es.ValueKind==JsonValueKind.Array)foreach(var e in es.EnumerateArray()){string EF(string n)=>GeminiJson.Text(e,n);if(EF("title").Length>0)experiments.Add(new(EF("title"),EF("method"),EF("predictedOutcome"),EF("falsificationCriterion")));}
         result.Add(new(F("category"),title,question,F("rationale"),F("grounding"),A("researchQuestions"),hypotheses,experiments,A("readingLeadKeys"),A("passageKeys")));}return result;}
         catch(Exception ex)when(ex is JsonException or InvalidOperationException){throw new InvalidOperationException($"Gemini's project suggestions weren't valid proposal JSON. ({ex.Message})");}
     }
@@ -836,25 +808,13 @@ public static class GeminiTranslationService
 
     internal static List<PassageInquirySuggestion> ParsePassageInquirySuggestions(string rawResponse)
     {
-        var cleaned = rawResponse.Trim();
-        if (cleaned.StartsWith("```"))
-        {
-            var firstNewline = cleaned.IndexOf('\n');
-            if (firstNewline >= 0) cleaned = cleaned[(firstNewline + 1)..];
-            if (cleaned.EndsWith("```")) cleaned = cleaned[..^3];
-            cleaned = cleaned.Trim();
-        }
-
         try
         {
-            using var doc = JsonDocument.Parse(cleaned);
+            using var doc = GeminiJson.Parse(rawResponse);
             var results = new List<PassageInquirySuggestion>();
-            foreach (var item in doc.RootElement.EnumerateArray())
+            foreach (var item in GeminiJson.Items(doc))
             {
-                string Field(string name) => item.TryGetProperty(name, out var value) &&
-                    value.ValueKind == JsonValueKind.String
-                    ? value.GetString()?.Trim() ?? string.Empty
-                    : string.Empty;
+                string Field(string name) => GeminiJson.Text(item, name);
                 var angle = Field("angle");
                 var question = Field("question");
                 if (angle.Length == 0 || question.Length == 0) continue;
@@ -872,19 +832,16 @@ public static class GeminiTranslationService
 
     internal static GeminiParallelAnalysisResult ParseParallelAnalysis(string rawResponse, string model, string prompt)
     {
-        var cleaned = rawResponse.Trim();
-        if (cleaned.StartsWith("```"))
-        {
-            var firstNewline = cleaned.IndexOf('\n');
-            if (firstNewline >= 0) cleaned = cleaned[(firstNewline + 1)..];
-            if (cleaned.EndsWith("```")) cleaned = cleaned[..^3];
-            cleaned = cleaned.Trim();
-        }
         try
         {
-            using var doc = JsonDocument.Parse(cleaned);
-            string Field(string name) => doc.RootElement.TryGetProperty(name, out var value)
-                ? value.GetString()?.Trim() ?? string.Empty : string.Empty;
+            using var doc = GeminiJson.Parse(rawResponse);
+            // One analysis object - or, from a model that wrapped it, the first in a list.
+            var root = doc.RootElement.ValueKind == JsonValueKind.Array
+                ? doc.RootElement.EnumerateArray().FirstOrDefault(e => e.ValueKind == JsonValueKind.Object)
+                : doc.RootElement;
+            if (root.ValueKind != JsonValueKind.Object)
+                throw new InvalidOperationException("The reply held no analysis object.");
+            string Field(string name) => GeminiJson.Text(root, name);
             return new GeminiParallelAnalysisResult(model, prompt, Field("summary"), Field("sharedFeatures"),
                 Field("importantDifferences"), Field("lexicalObservations"), Field("alternativeExplanations"),
                 Field("verificationTasks"), Field("suggestedMotifs"), Field("suggestedConnectionType"),
@@ -898,44 +855,29 @@ public static class GeminiTranslationService
 
     internal static List<ResearchEvidenceCandidate> ParseResearchEvidenceCandidates(string rawResponse)
     {
-        var cleaned = rawResponse.Trim();
-        if (cleaned.StartsWith("```"))
-        {
-            var firstNewline = cleaned.IndexOf('\n');
-            if (firstNewline >= 0) cleaned = cleaned[(firstNewline + 1)..];
-            if (cleaned.EndsWith("```")) cleaned = cleaned[..^3];
-            cleaned = cleaned.Trim();
-        }
-
         try
         {
-            using var doc = JsonDocument.Parse(cleaned);
+            using var doc = GeminiJson.Parse(rawResponse);
             var results = new List<ResearchEvidenceCandidate>();
-            foreach (var item in doc.RootElement.EnumerateArray())
+            foreach (var item in GeminiJson.Items(doc))
             {
-                var citation = item.TryGetProperty("citationRef", out var refProp) ? refProp.GetString() : null;
+                var citation = GeminiJson.Text(item, "citationRef");
                 if (string.IsNullOrWhiteSpace(citation)) continue;
-                var title = item.TryGetProperty("title", out var titleProp) ? titleProp.GetString() : null;
-                var relationship = item.TryGetProperty("relationship", out var relProp) ? relProp.GetString() : null;
-                var confidence = item.TryGetProperty("confidence", out var confidenceProp) ? confidenceProp.GetString() : null;
-                var rationale = item.TryGetProperty("rationale", out var rationaleProp) ? rationaleProp.GetString() : null;
-                int? questionIndex = null;
-                if (item.TryGetProperty("questionIndex", out var questionProp)
-                    && questionProp.ValueKind == JsonValueKind.Number
-                    && questionProp.TryGetInt32(out var parsedIndex))
-                    questionIndex = parsedIndex;
+                var title = GeminiJson.Text(item, "title");
+                var relationship = GeminiJson.Text(item, "relationship");
+                var confidence = GeminiJson.Text(item, "confidence");
 
                 results.Add(new ResearchEvidenceCandidate(
-                    citation.Trim(),
-                    string.IsNullOrWhiteSpace(title) ? $"Corpus passage {citation.Trim()}" : title.Trim(),
-                    questionIndex,
-                    relationship?.Trim() ?? "contextualizes",
-                    confidence?.Trim() ?? "unspecified",
-                    rationale?.Trim() ?? string.Empty));
+                    citation,
+                    title.Length == 0 ? $"Corpus passage {citation}" : title,
+                    GeminiJson.Int(item, "questionIndex"),
+                    relationship.Length == 0 ? "contextualizes" : relationship,
+                    confidence.Length == 0 ? "unspecified" : confidence,
+                    GeminiJson.Text(item, "rationale")));
             }
             return results;
         }
-        catch (JsonException ex)
+        catch (Exception ex) when (ex is JsonException or InvalidOperationException)
         {
             throw new InvalidOperationException(
                 $"Gemini's research response wasn't valid candidate JSON. ({ex.Message})");

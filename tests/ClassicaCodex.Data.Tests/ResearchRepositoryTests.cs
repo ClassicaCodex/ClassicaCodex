@@ -1206,6 +1206,65 @@ public class ResearchRepositoryTests
     }
 
     [Fact]
+    public async Task RemovingAQuestionKeepsTheOrderTheResearcherChose()
+    {
+        using var db = await TempDatabase.CreateAsync();
+        await db.SeedEditionAsync("rhesus");
+        var repo = new ResearchRepository();
+        var project = new ResearchProject { WorkId = await db.WorkIdForAsync("rhesus"), Name = "Ordering" };
+        await repo.SaveProjectAsync(project);
+
+        var ids = new List<long>();
+        foreach (var (text, sort) in new[] { ("A", 0), ("B", 1), ("C", 2) })
+        {
+            var question = new ResearchQuestion
+            {
+                ResearchProjectId = project.ResearchProjectId, Text = text, SortOrder = sort
+            };
+            await repo.SaveQuestionAsync(question);
+            ids.Add(question.ResearchQuestionId);
+        }
+
+        // Move C up: A, C, B. The sort order no longer follows the ids, which is the
+        // only case the renumbering could get wrong - it used to count rows it had
+        // already renumbered, so B and C both came out at 1 and tied back to id order.
+        await repo.ReorderQuestionsAsync([ids[0], ids[2], ids[1]]);
+        await repo.DeleteQuestionAsync(ids[0]);
+
+        var survivors = await repo.GetQuestionsAsync(project.ResearchProjectId);
+        Assert.Equal(["C", "B"], survivors.Select(q => q.Text));
+        Assert.Equal([0, 1], survivors.Select(q => q.SortOrder));
+    }
+
+    [Fact]
+    public async Task RemovingEvidenceFromAReorderedListLeavesNoTies()
+    {
+        using var db = await TempDatabase.CreateAsync();
+        await db.SeedEditionAsync("rhesus");
+        var repo = new ResearchRepository();
+        var project = new ResearchProject { WorkId = await db.WorkIdForAsync("rhesus"), Name = "Ordering" };
+        await repo.SaveProjectAsync(project);
+
+        // Saved in id order E1..E4 but sorted E1, E2, E4, E3.
+        var items = new List<EvidenceItem>();
+        foreach (var (title, sort) in new[] { ("E1", 0), ("E2", 1), ("E3", 3), ("E4", 2) })
+        {
+            var item = new EvidenceItem
+            {
+                ResearchProjectId = project.ResearchProjectId, Title = title, SortOrder = sort
+            };
+            await repo.SaveEvidenceAsync(item);
+            items.Add(item);
+        }
+
+        await repo.DeleteEvidenceAsync(items[0].EvidenceItemId);
+
+        var survivors = await repo.GetEvidenceAsync(project.ResearchProjectId);
+        Assert.Equal(["E2", "E4", "E3"], survivors.Select(e => e.Title));
+        Assert.Equal([0, 1, 2], survivors.Select(e => e.SortOrder));
+    }
+
+    [Fact]
     public async Task DeletingAWorkDetachesItsProjectsRatherThanFailing()
     {
         using var db = await TempDatabase.CreateAsync();

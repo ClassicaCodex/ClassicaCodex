@@ -27,15 +27,24 @@ internal static class SortOrderCompaction
     public static async Task RenumberAsync(SqliteConnection conn, string table, string idColumn,
         long projectId, CancellationToken cancellationToken)
     {
+        // Ranked first, written second. This used to be one UPDATE whose subquery
+        // counted the peers ahead of each row - but SQLite writes the rows one at a
+        // time and the subquery sees the ones it has already rewritten, so any list
+        // whose order no longer followed its ids came out tied. Move C above B, delete
+        // A, and B and C both landed on 1: the tie went back to id order and the move
+        // was silently undone. The window function is evaluated over the rows as they
+        // stood before any of them changed.
         await using var cmd = conn.CreateCommand();
         cmd.CommandText = $@"
-            UPDATE {table} SET SortOrder = (
-                SELECT COUNT(*) FROM {table} peer
-                WHERE peer.ResearchProjectId = {table}.ResearchProjectId
-                  AND (peer.SortOrder < {table}.SortOrder
-                       OR (peer.SortOrder = {table}.SortOrder
-                           AND peer.{idColumn} < {table}.{idColumn})))
-            WHERE ResearchProjectId = @ProjectId;";
+            WITH ranked AS (
+                SELECT {idColumn} AS RowId,
+                       ROW_NUMBER() OVER (ORDER BY SortOrder, {idColumn}) - 1 AS NewOrder
+                FROM {table}
+                WHERE ResearchProjectId = @ProjectId)
+            UPDATE {table} SET SortOrder = ranked.NewOrder
+            FROM ranked
+            WHERE {table}.{idColumn} = ranked.RowId
+              AND {table}.SortOrder <> ranked.NewOrder;";
         cmd.Parameters.AddWithValue("@ProjectId", projectId);
         await cmd.ExecuteNonQueryAsync(cancellationToken);
     }

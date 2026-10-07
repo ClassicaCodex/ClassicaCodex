@@ -76,7 +76,7 @@ public static class SchemaInitializer
     /// 7 to 13 until version 3 was cut, at which point they all failed at
     /// once and said nothing about what had actually broken.
     /// </summary>
-    public const int TargetSchemaVersion = 39;
+    public const int TargetSchemaVersion = 40;
 
     public static async Task EnsureSchemaAsync(CancellationToken cancellationToken = default)
     {
@@ -1388,6 +1388,30 @@ public static class SchemaInitializer
         // steps as unfinished on first launch of this version would be a
         // worse lie than the one being fixed, and would send them to re-run
         // a ninety-minute download they do not need.
+        // Research projects pointing at a work that is no longer there.
+        //
+        // Migration 37 merged each trailing-space duplicate work onto its twin and
+        // deleted it - with foreign keys off, as every migration runs, so the
+        // ON DELETE SET NULL that would have detached a project on that row never
+        // fired. The project kept a dead WorkId, and since re-adoption only looks
+        // for a NULL, the Research Bench never listed it again; a later work given
+        // the same id would have inherited it. Migration 31 had also copied the
+        // spaced URN into WorkCtsUrn, so the identity it would reattach by was the
+        // one that no longer existed either.
+        //
+        // Repaired by identity, not by guessing: trim the URN, then move a dangling
+        // project to the work that carries it, or to NULL where none does, so it
+        // reattaches when that work is installed. Both statements are idempotent.
+        [40] = new[]
+        {
+            "UPDATE ResearchProjects SET WorkCtsUrn = TRIM(WorkCtsUrn) WHERE WorkCtsUrn <> TRIM(WorkCtsUrn);",
+
+            @"UPDATE ResearchProjects
+                 SET WorkId = (SELECT w.WorkId FROM Works w WHERE w.CtsUrn = ResearchProjects.WorkCtsUrn)
+               WHERE WorkId IS NOT NULL
+                 AND NOT EXISTS (SELECT 1 FROM Works w WHERE w.WorkId = ResearchProjects.WorkId);"
+        },
+
         [39] = new[]
         {
             @"CREATE TABLE IF NOT EXISTS CollectionCompletions (

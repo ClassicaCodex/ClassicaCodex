@@ -17,7 +17,7 @@ public static partial class CrossrefDiscoveryService
         var url = "https://api.crossref.org/works?query.bibliographic=" + Uri.EscapeDataString(query.Trim()) +
                   $"&rows={rows}&select=DOI,title,author,published,container-title,publisher,URL,abstract";
         using var request = new HttpRequestMessage(HttpMethod.Get, url);
-        request.Headers.UserAgent.ParseAdd("ClassicaCodex/3.1 (research-metadata-discovery)");
+        request.Headers.UserAgent.ParseAdd(UserAgent);
         using var response = await Client.SendAsync(request, cancellationToken);
         response.EnsureSuccessStatusCode();
         await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
@@ -39,8 +39,11 @@ public static partial class CrossrefDiscoveryService
             string? year = null;
             if (item.TryGetProperty("published", out var published) && published.TryGetProperty("date-parts", out var parts)
                 && parts.ValueKind == JsonValueKind.Array && parts.GetArrayLength() > 0
-                && parts[0].ValueKind == JsonValueKind.Array && parts[0].GetArrayLength() > 0)
-                year = parts[0][0].ToString();
+                && parts[0].ValueKind == JsonValueKind.Array && parts[0].GetArrayLength() > 0
+                // Crossref writes an undated work as [[null]], which ToString turned
+                // into an empty year, and the lead into "Author ()".
+                && parts[0][0].ValueKind == JsonValueKind.Number)
+                year = parts[0][0].GetRawText();
             var abstractText = String(item, "abstract");
             if (abstractText != null) abstractText = WebUtility.HtmlDecode(Tags().Replace(abstractText, " ")).Trim();
             if (abstractText?.Length > 3_000) abstractText = abstractText[..3_000] + "…";
@@ -53,6 +56,21 @@ public static partial class CrossrefDiscoveryService
     private static string? String(JsonElement item, string name) => item.TryGetProperty(name, out var value)
         && value.ValueKind == JsonValueKind.String ? value.GetString()?.Trim() : null;
     private static string? First(JsonElement item, string name) => item.TryGetProperty(name, out var value)
-        && value.ValueKind == JsonValueKind.Array && value.GetArrayLength() > 0 ? value[0].GetString()?.Trim() : null;
+        && value.ValueKind == JsonValueKind.Array && value.GetArrayLength() > 0
+        && value[0].ValueKind == JsonValueKind.String ? value[0].GetString()?.Trim() : null;
+
+    /// <summary>
+    /// Who is asking, as Crossref's etiquette asks to be told: the application's real
+    /// version - this said 3.1 for a dozen releases - and where to find it.
+    /// </summary>
+    private static string UserAgent
+    {
+        get
+        {
+            var version = System.Reflection.Assembly.GetEntryAssembly()?.GetName().Version;
+            var number = version == null ? "unknown" : $"{version.Major}.{version.Minor}.{Math.Max(0, version.Build)}";
+            return $"ClassicaCodex/{number} (+https://github.com/ClassicaCodex/ClassicaCodex; research-metadata-discovery)";
+        }
+    }
     [GeneratedRegex("<[^>]+>")] private static partial Regex Tags();
 }
