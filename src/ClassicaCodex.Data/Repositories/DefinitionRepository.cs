@@ -84,6 +84,21 @@ public class DefinitionRepository
         return results;
     }
 
+    /// <summary>
+    /// Removes one dictionary's entries and no other's, so a collection that
+    /// brings its own glossary can replace it on a re-run without touching
+    /// LSJ or Lewis and Short.
+    /// </summary>
+    public async Task<int> ClearBySourceAsync(string source, CancellationToken cancellationToken = default)
+    {
+        await using var conn = await DbConnectionFactory.OpenConnectionAsync(cancellationToken);
+        await using var cmd = conn.CreateCommand();
+        cmd.CommandText = "DELETE FROM Definitions WHERE Source = @Source;";
+        cmd.Parameters.AddWithValue("@Source", source);
+        cmd.CommandTimeout = 300;
+        return await cmd.ExecuteNonQueryAsync(cancellationToken);
+    }
+
     public async Task ClearAsync(CancellationToken cancellationToken = default)
     {
         await using var conn = await DbConnectionFactory.OpenConnectionAsync(cancellationToken);

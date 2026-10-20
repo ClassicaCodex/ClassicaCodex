@@ -6,6 +6,8 @@ using ClassicaCodex.Ingestion;
 using ClassicaCodex.Ingestion.Bfm;
 using ClassicaCodex.Ingestion.Catmus;
 using ClassicaCodex.Ingestion.Dante;
+using ClassicaCodex.Ingestion.Defixiones;
+using ClassicaCodex.Ingestion.MagicalPapyri;
 using ClassicaCodex.Ingestion.Egyptian;
 using ClassicaCodex.Ingestion.Geste;
 using ClassicaCodex.Ingestion.ReM;
@@ -95,6 +97,15 @@ public static class SetupDataSourceCatalog
 
         /// <summary>The Pyramid Texts - Old Egyptian, in hieroglyphs and transliteration.</summary>
         public const string PyramidTexts = PyramidTextsIngestService.CollectionKey;
+
+        /// <summary>Egyptian texts from the Thesaurus Linguae Aegyptiae - the Book of the Dead, medical papyri, literature.</summary>
+        public const string TlaEgyptian = AedTeiIngestService.CollectionKey;
+
+        /// <summary>Greek and Latin curse tablets - Attica, Sicily and the Roman provinces.</summary>
+        public const string Defixiones = DefixionesIngestService.CollectionKey;
+
+        /// <summary>Greek magical papyri from papyri.info and Coptic spells from Kyprianos.</summary>
+        public const string MagicalPapyri = MagicalPapyriIngestService.CollectionKey;
     }
 
     /// <summary>
@@ -118,6 +129,9 @@ public static class SetupDataSourceCatalog
         CollectionKeys.Bfm => "Medieval French (BFM)",
         CollectionKeys.Dante => "Dante, Commedia (annotated)",
         CollectionKeys.PyramidTexts => "Pyramid Texts (Old Egyptian)",
+        CollectionKeys.TlaEgyptian => "Egyptian texts (Thesaurus Linguae Aegyptiae)",
+        CollectionKeys.Defixiones => "Curse tablets (Greek and Latin)",
+        CollectionKeys.MagicalPapyri => "Magical papyri (Greek and Coptic)",
         _ => key
     };
 
@@ -982,6 +996,150 @@ public static class SetupDataSourceCatalog
                     await editionRepo.IsCollectionCompleteAsync(CollectionKeys.PyramidTexts),
                 CheckHasSomeContent = async () =>
                     await editionRepo.CountByCollectionAsync(CollectionKeys.PyramidTexts) > 0
+            },
+
+            new SetupDataSource
+            {
+                Title = "Egyptian texts: the Book of the Dead, medical papyri and literature",
+                RepoUrl = AedTeiIngestService.ArchiveUrl,
+                DisplayNote = "75 MB; transliteration with German translation, hieroglyphs for some",
+                DefaultDestination = Path.Combine(dataRoot, "tla-egyptian"),
+                FetchMode = SetupFetchMode.DirectDownload,
+                DownloadFileName = AedTeiIngestService.ArchiveFileName,
+
+                Links =
+                {
+                    new SetupLink
+                    {
+                        Text = "About AED-TEI, the Thesaurus Linguae Aegyptiae in TEI",
+                        Url = "https://github.com/simondschweitzer/aed-tei"
+                    }
+                },
+
+                PlainLanguageDescription =
+                    "Egyptian texts from the Thesaurus Linguae Aegyptiae, the Berlin and Leipzig "
+                    + "academies' dictionary of Ancient Egyptian, as it stood in 2018: about 3,400 texts "
+                    + "in 59,000 passages. The Book of the Dead from 24 papyri, the Papyrus of Nu and the "
+                    + "Turin papyrus among them; the medical papyri, Ebers and Edwin Smith, with their "
+                    + "healing spells; the Bremner-Rhind papyrus and the other late funerary and temple "
+                    + "books; the literature, from Sinuhe and the Shipwrecked Sailor to the love songs; "
+                    + "and letters, archives, stelae and rock inscriptions. Every passage is in "
+                    + "Egyptological transliteration with the TLA's German translation beside it, and "
+                    + "the literary, medical and funerary papyri also arrive in hieroglyphs. Book of the "
+                    + "Dead passages are cited by spell, so 125.12 is the twelfth sentence of spell 125, "
+                    + "the Judgement of the Dead. Word Study looks every word up in the TLA dictionary "
+                    + "and gives its German meaning. Two things to know. The translation is German, "
+                    + "because that is the TLA's language. And the tomb inscriptions are not here: the "
+                    + "conversion this comes from keeps which wall a text is on but not whose tomb, so "
+                    + "they could only arrive as hundreds of works called \"West wall\".",
+
+                RunIngest = async (root, progress, ct) =>
+                {
+                    var service = new AedTeiIngestService();
+                    var outcome = await service.IngestAsync(root, progress, ct);
+
+                    if (service.SentencesInstalled > 0)
+                        await editionRepo.StampCollectionAsync(root, CollectionKeys.TlaEgyptian, ct);
+
+                    return outcome;
+                },
+
+                CheckComplete = async () =>
+                    await editionRepo.IsCollectionCompleteAsync(CollectionKeys.TlaEgyptian),
+                CheckHasSomeContent = async () =>
+                    await editionRepo.CountByCollectionAsync(CollectionKeys.TlaEgyptian) > 0
+            },
+
+            new SetupDataSource
+            {
+                Title = "Curse tablets (Greek and Latin)",
+                RepoUrl = "https://telota.bbaw.de/ig/",
+                DisplayNote = "About 870 small downloads; English and German for the Attic tablets",
+                DefaultDestination = Path.Combine(dataRoot, "defixiones"),
+                FetchMode = SetupFetchMode.SelfManaged,
+
+                Links =
+                {
+                    new SetupLink { Text = "Inscriptiones Graecae: Defixiones Atticae", Url = "https://telota.bbaw.de/ig/" },
+                    new SetupLink { Text = "I.Sicily", Url = "https://github.com/ISicily/ISicily" },
+                    new SetupLink { Text = "Epigraphic Database Heidelberg", Url = "https://edh.ub.uni-heidelberg.de/data" }
+                },
+
+                PlainLanguageDescription =
+                    "The lead sheets on which Greeks and Romans bound a rival's tongue, a thief's body or a "
+                    + "charioteer's horses, and buried in graves, dropped in wells or threw into sacred "
+                    + "springs. About 840 of them. Every curse tablet found in Attica - 486, the "
+                    + "Inscriptiones Graecae's own volume - each with an English and a German translation "
+                    + "line for line beside the Greek. The Greek tablets of Sicily, from Selinous, Kamarina "
+                    + "and Gela, from I.Sicily. And the Latin tablets of the Roman provinces from the "
+                    + "Epigraphic Database Heidelberg: Bath and Uley under Britannia, Mainz under Germania "
+                    + "superior, and Spain, Pannonia, Africa and the rest. One work per region; a passage "
+                    + "is a line of a tablet, cited tablet and line, so 125.6 is line 6 of IG II/III3 8, 1, "
+                    + "125. The texts are printed in the brackets epigraphers use - [restored], [- - -] for "
+                    + "a loss, a dot under an uncertain letter. Two things to know. Only the Attic tablets "
+                    + "and a few Sicilian ones have translations; the Heidelberg database has none. And "
+                    + "each source publishes one file per tablet, so this step fetches about 870 small "
+                    + "files and takes a few minutes.",
+
+                RunIngest = async (root, progress, ct) =>
+                {
+                    var service = new DefixionesIngestService();
+                    var outcome = await service.IngestAsync(root, progress, ct);
+
+                    if (service.TabletsInstalled > 0)
+                        await editionRepo.StampCollectionAsync(root, CollectionKeys.Defixiones, ct);
+
+                    return outcome;
+                },
+
+                CheckComplete = async () =>
+                    await editionRepo.IsCollectionCompleteAsync(CollectionKeys.Defixiones),
+                CheckHasSomeContent = async () =>
+                    await editionRepo.CountByCollectionAsync(CollectionKeys.Defixiones) > 0
+            },
+
+            new SetupDataSource
+            {
+                Title = "Magical papyri (Greek and Coptic)",
+                RepoUrl = "https://papyri.info/",
+                DisplayNote = "About 150 small downloads and one 2.4 MB file; English for the Coptic texts",
+                DefaultDestination = Path.Combine(dataRoot, "magical-papyri"),
+                FetchMode = SetupFetchMode.SelfManaged,
+
+                Links =
+                {
+                    new SetupLink { Text = "papyri.info (DCLP and DDbDP)", Url = "https://papyri.info/" },
+                    new SetupLink { Text = "Kyprianos, the Coptic Magical Papyri database", Url = "https://www.coptic-magic.phil.uni-wuerzburg.de/index.php/kyprianos-help-page/" }
+                },
+
+                PlainLanguageDescription =
+                    "The working papers of ancient magicians: handbooks of spells, single spells written out "
+                    + "for a client, and amulets folded small and worn. About 150 Greek papyri from papyri.info "
+                    + "- every one that the Digital Corpus of Literary Papyri or the documentary databank tags as "
+                    + "magic and that has an edited text, among them PGM I complete (the spell for getting a "
+                    + "divine assistant), most of the Supplementum Magicum, the Oxyrhynchus formularies and a "
+                    + "spell to bring down the horses of a chariot race. And about 350 Coptic spells from the "
+                    + "Kyprianos database of the Würzburg Coptic Magical Papyri project - curses, love spells, "
+                    + "healing and protection - each with its English translation beside it line by line. One "
+                    + "work per papyrus or spell, cited column and line. Two things to know. The great "
+                    + "handbooks - PGM IV in Paris, the London and Leiden papyri - have no open digital text "
+                    + "anywhere and are not here. And the Greek papyri have no translations.",
+
+                RunIngest = async (root, progress, ct) =>
+                {
+                    var service = new MagicalPapyriIngestService();
+                    var outcome = await service.IngestAsync(root, progress, ct);
+
+                    if (service.TextsInstalled > 0)
+                        await editionRepo.StampCollectionAsync(root, CollectionKeys.MagicalPapyri, ct);
+
+                    return outcome;
+                },
+
+                CheckComplete = async () =>
+                    await editionRepo.IsCollectionCompleteAsync(CollectionKeys.MagicalPapyri),
+                CheckHasSomeContent = async () =>
+                    await editionRepo.CountByCollectionAsync(CollectionKeys.MagicalPapyri) > 0
             },
 
             new SetupDataSource

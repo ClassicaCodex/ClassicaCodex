@@ -346,6 +346,13 @@ public class EditionRepository
 
         await ExecuteAsync("DELETE FROM TextNodes WHERE EditionId = @EditionId;", "@EditionId", editionId);
         await ExecuteAsync("DELETE FROM ApparatusEntries WHERE EditionId = @EditionId;", "@EditionId", editionId);
+
+        // The stored TEI header and its responsibility lines point at the
+        // edition and do not cascade, so leaving them made the delete fail on a
+        // foreign key for every edition that has a header - a Perseus or Menota
+        // text, an Oracc one - which is most of them.
+        await ExecuteAsync("DELETE FROM EditionResponsibilities WHERE EditionId = @EditionId;", "@EditionId", editionId);
+        await ExecuteAsync("DELETE FROM EditionHeaders WHERE EditionId = @EditionId;", "@EditionId", editionId);
         await ExecuteAsync("DELETE FROM Editions WHERE EditionId = @EditionId;", "@EditionId", editionId);
 
         if (await ScalarAsync(

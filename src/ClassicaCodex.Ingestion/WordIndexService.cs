@@ -158,7 +158,22 @@ public class WordIndexService
     public async Task ReindexEditionAsync(int editionId, CancellationToken cancellationToken = default)
     {
         await _wordIndexRepo.DeleteByEditionAsync(editionId, cancellationToken);
+        await IndexNewEditionAsync(editionId, cancellationToken);
+    }
 
+    /// <summary>
+    /// Indexes an edition that has just been created, without clearing first.
+    ///
+    /// For a new edition there are no rows to clear, and clearing is the
+    /// expensive half of <see cref="ReindexEditionAsync"/>: removing an
+    /// edition's rows is a skip-scan of the whole index, minutes per edition on
+    /// a full library. A collection that adds a few thousand editions - the TLA
+    /// corpus adds about 4,900 - would spend hours deleting nothing. The insert
+    /// is INSERT OR IGNORE, so running this over an edition that is already
+    /// indexed adds nothing twice.
+    /// </summary>
+    public async Task IndexNewEditionAsync(int editionId, CancellationToken cancellationToken = default)
+    {
         var nodes = await _wordIndexRepo.GetTextNodesByEditionAsync(editionId, cancellationToken);
         var pending = new List<(string Word, long TextNodeId)>();
 
