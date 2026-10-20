@@ -146,7 +146,7 @@ public static class OraccProjectReader
                 Optional(entry.Value, "provenience"),
                 Optional(entry.Value, "language"),
                 Optional(entry.Value, "credits"),
-                Optional(entry.Value, "trans"));
+                Languages(entry.Value, "trans"));
         }
 
         return entries;
@@ -247,6 +247,7 @@ public static class OraccProjectReader
         return new OraccWord
         {
             Form = written,
+            IsNormalised = f.ValueKind == JsonValueKind.Object && String(f, "form") == "*",
             Cuneiform = f.ValueKind == JsonValueKind.Object ? ReadSigns(f) : string.Empty,
             Language = f.ValueKind == JsonValueKind.Object ? String(f, "lang") : string.Empty,
             CitationForm = Optional(f, "cf"),
@@ -307,6 +308,28 @@ public static class OraccProjectReader
         && value.ValueKind == JsonValueKind.String
             ? value.GetString() ?? string.Empty
             : string.Empty;
+
+    /// <summary>
+    /// The translation languages a catalogue entry lists. Oracc writes them as
+    /// an array - "trans": ["en"] - which a string read takes for absent, so
+    /// every text looked untranslated; a plain string is accepted too.
+    /// </summary>
+    private static string? Languages(JsonElement element, string name)
+    {
+        if (element.ValueKind != JsonValueKind.Object || !element.TryGetProperty(name, out var value)) return null;
+
+        var languages = value.ValueKind switch
+        {
+            JsonValueKind.Array => string.Join(",", value.EnumerateArray()
+                .Where(v => v.ValueKind == JsonValueKind.String)
+                .Select(v => v.GetString())
+                .Where(v => !string.IsNullOrWhiteSpace(v))),
+            JsonValueKind.String => value.GetString() ?? string.Empty,
+            _ => string.Empty
+        };
+
+        return languages.Length == 0 ? null : languages;
+    }
 
     private static string? Optional(JsonElement element, string name)
     {

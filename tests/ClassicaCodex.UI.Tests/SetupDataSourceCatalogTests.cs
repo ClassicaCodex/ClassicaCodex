@@ -93,8 +93,9 @@ public class SetupDataSourceCatalogTests
         // and this needs eight archives extracted and imported in turn.
         Assert.Equal(SetupFetchMode.SelfManaged, oracc.FetchMode);
 
-        // The reader is told there is no translation before they download,
-        // not after they open a text and find only Akkadian.
+        // The reader is told which texts have a translation and which have
+        // none before they download, not after they open a text and find only
+        // Akkadian.
         Assert.Contains("translation", oracc.PlainLanguageDescription);
 
         Assert.Equal("Cuneiform (Oracc)",

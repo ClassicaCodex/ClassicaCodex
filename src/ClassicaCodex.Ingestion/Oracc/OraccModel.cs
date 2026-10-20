@@ -118,6 +118,23 @@ public sealed class OraccText
     public string? TranslationLanguages { get; init; }
 
     public List<OraccLine> Lines { get; init; } = new();
+
+    /// <summary>
+    /// A normalised composite: an edition's reconstruction of the text from
+    /// all its tablets, written in normalised Akkadian rather than sign by
+    /// sign - Maqlû as Abusch edits it, the CMAwR texts. Oracc marks such a
+    /// word's form "*". Most of its words have no signs at all, and the few
+    /// that do are logograms - EN₂ for "incantation" - so a sign pane would
+    /// be three-quarters blank lines and scattered wedges.
+    /// </summary>
+    public bool IsNormalisedComposite
+    {
+        get
+        {
+            var words = Lines.SelectMany(l => l.Words).ToList();
+            return words.Count > 0 && words.Count(w => w.IsNormalised) * 2 > words.Count;
+        }
+    }
 }
 
 /// <summary>
@@ -177,6 +194,13 @@ public sealed class OraccWord
 {
     /// <summary>The transliterated form as the edition writes it: "bal-til{KI}".</summary>
     public string Form { get; init; } = string.Empty;
+
+    /// <summary>
+    /// True when the edition gives the word only in normalisation - Oracc's
+    /// form "*" - so <see cref="Form"/> is the normalised word, not signs read
+    /// one by one.
+    /// </summary>
+    public bool IsNormalised { get; init; }
 
     /// <summary>
     /// The word in cuneiform signs, or empty where Oracc records none.

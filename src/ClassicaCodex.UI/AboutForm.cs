@@ -229,7 +229,8 @@ public class AboutForm : ScaledForm
             "Cuneiform Texts",
             "Akkadian and Sumerian pressed into clay - the royal inscriptions of Tiglath-pileser III, " +
             "Sennacherib and Esarhaddon, the letters written to Sargon II, scholarly commentaries and " +
-            "bilinguals. Each text is held three ways: in the wedge signs themselves, in the " +
+            "bilinguals, and the magic: Maqlû, the anti-witchcraft rituals, and the tablet libraries of " +
+            "Sultantepe and Uruk with Šurpu among them. Each text is held three ways: in the wedge signs themselves, in the " +
             "transliteration scholars read them by, and as the dictionary meaning of every word in " +
             "order, which opens opposite the signs where a translation would. Gods, kings and places " +
             "are marked as such by Oracc's own editors, which is why a cuneiform word can be looked up " +
@@ -241,11 +242,15 @@ public class AboutForm : ScaledForm
             "obligations, so this app records each text's own credits line - naming its editors and " +
             "stating its licence - alongside the text, and shows it on the edition. Where a project's " +
             "own metadata and its texts disagree, the stricter licence is the one applied. " +
-            "No translation is included. Oracc's open data carries the transliteration, the " +
-            "lemmatisation and an index of the English, but not the translated prose, which stays on " +
-            "Oracc's own site - for some corpora because the translation is a living scholar's " +
-            "published work. Rather than generate English and let it stand where a translation should " +
-            "be, that gap is left open, and each word's dictionary meaning is offered instead.");
+            "Oracc's open data carries the transliteration, the lemmatisation and an index of the " +
+            "English, but not the translated prose, which stays on Oracc's own site - for some corpora " +
+            "because the translation is a living scholar's published work. Where a project's site " +
+            "releases its translations openly, they are fetched from it and installed beside the text, " +
+            "credited: Tzvi Abusch's Maqlû and Abusch and Schwemer's Corpus of Mesopotamian " +
+            "Anti-witchcraft Rituals from CMAwRo, and the Geography of Knowledge project's translations " +
+            "of the Sultantepe and Uruk tablets, all under Creative Commons Attribution-ShareAlike 3.0. " +
+            "For the rest that gap is left open rather than filled with generated English, and each " +
+            "word's dictionary meaning is offered instead.");
 
         AddSourceSection(
             scrollHost, ref y,

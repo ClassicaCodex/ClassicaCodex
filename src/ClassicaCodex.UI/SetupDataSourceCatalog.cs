@@ -516,7 +516,7 @@ public static class SetupDataSourceCatalog
                 RepoUrl = "https://oracc.museum.upenn.edu/",
                 DisplayNote =
                     $"{OraccDownloadService.StarterProjects.Count} projects, about "
-                    + $"{OraccDownloadService.ApproxTotalMegabytes} MB; transliteration and signs, no translation",
+                    + $"{OraccDownloadService.ApproxTotalMegabytes} MB; English for the magical texts, word meanings for the rest",
                 DefaultDestination = Path.Combine(dataRoot, "oracc"),
 
                 // Not DirectDownload: that fetches one file, and this is eight
@@ -527,13 +527,18 @@ public static class SetupDataSourceCatalog
 
                 PlainLanguageDescription =
                     "Akkadian and Sumerian written in cuneiform - the royal inscriptions of the Assyrian " +
-                    "kings, the letters written to Sargon II, scholarly commentaries and bilinguals. " +
-                    "Each text arrives three ways: in the wedge signs, in the transliteration scholars " +
-                    "read them by, and as the dictionary meaning of every word in order - which opens " +
-                    "opposite the signs, where a translation would sit. It is not a translation and is " +
-                    "labelled as one nowhere: Oracc's open data carries no English prose, and rather " +
-                    "than generate some and let it stand in a translation's place, the meanings are " +
-                    "offered for what they are. They get you most of the way through a line.",
+                    "kings, the letters written to Sargon II, scholarly commentaries and bilinguals, and " +
+                    "the magic: Maqlû, the night-long ceremony for burning a witch, all eight tablets; the " +
+                    "anti-witchcraft rituals of Abusch and Schwemer's corpus; and the tablet libraries of " +
+                    "Sultantepe and Uruk, with Šurpu, the Udug-hul demon incantations and the namburbi " +
+                    "rites for averting an omen. Each text arrives in the wedge signs, in the " +
+                    "transliteration scholars read them by, and as the dictionary meaning of every word. " +
+                    "The magical texts also come with their editors' translation, line by line, which " +
+                    "their projects release openly; the others have no translation, only the word " +
+                    "meanings, which are labelled for what they are and get you most of the way through " +
+                    "a line. Maqlû and the " +
+                    "anti-witchcraft rituals are composite texts, rebuilt from many tablets and written " +
+                    "in normalised Akkadian, so they have no sign pane.",
 
                 RunIngest = async (root, progress, ct) =>
                 {

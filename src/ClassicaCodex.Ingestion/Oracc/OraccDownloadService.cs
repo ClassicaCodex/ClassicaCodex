@@ -12,7 +12,14 @@ namespace ClassicaCodex.Ingestion.Oracc;
 /// Rounded size, measured 2026-09-21. Used only to tell a reader what they
 /// are about to spend; nothing checks it.
 /// </param>
-public sealed record OraccProjectChoice(string Id, string Title, double ApproxMegabytes);
+/// <param name="TranslationCredit">
+/// Set only for a project whose website releases its English translations
+/// under an open licence, checked on the project's own pages: then each
+/// translated text's page is fetched and its English goes in beside the
+/// signs, credited with this. Null leaves a project as the download has it -
+/// signs, transliteration and word meanings, no prose.
+/// </param>
+public sealed record OraccProjectChoice(string Id, string Title, double ApproxMegabytes, string? TranslationCredit = null);
 
 /// <summary>
 /// Fetches Oracc project downloads and finds the project inside them.
@@ -60,6 +67,26 @@ public class OraccDownloadService
         new OraccProjectChoice("blms", "Bilinguals in Late Mesopotamian Scholarship", 10.5),
         new OraccProjectChoice("ccpo", "Cuneiform Commentaries", 9.5),
         new OraccProjectChoice("glass", "Glassmaking texts", 1.1),
+
+        // MAGIC. The anti-witchcraft corpus and the scholars' libraries of
+        // Sultantepe and Uruk, whose sites - unlike the RINAP and SAA volumes
+        // above, which are published books - release their translations under
+        // CC BY-SA 3.0: "CC BY-SA The CMAwRo Project, 2014-" on every
+        // CMAwRo page, and each GKAB text's credits line. Maqlû is the
+        // composite text of all eight tablets and the ritual tablet,
+        // normalised rather than transliterated, as Abusch edits it. There is
+        // no composite Šurpu on Oracc; its tablets from Sultantepe and Uruk are
+        // in GKAB, with the Udug-hul, Namburbi and Muššu'u tablets beside them.
+        new OraccProjectChoice("cmawro-maqlu", "Maqlû, the anti-witchcraft ceremony", 3.1,
+            "Tzvi Abusch, The Magical Ceremony Maqlû (Brill 2015), from CMAwRo - CC BY-SA 3.0"),
+        new OraccProjectChoice("cmawro-cmawr1", "Anti-witchcraft rituals, volume 1", 5.5,
+            "Tzvi Abusch and Daniel Schwemer, CMAwR 1 (Brill 2011), from CMAwRo - CC BY-SA 3.0"),
+        new OraccProjectChoice("cmawro-cmawr2", "Anti-witchcraft rituals, volume 2", 5.2,
+            "Tzvi Abusch and Daniel Schwemer, CMAwR 2 (Brill 2016), from CMAwRo - CC BY-SA 3.0"),
+        new OraccProjectChoice("cmawro-cmawr3", "Anti-witchcraft rituals, volume 3", 2.9,
+            "Tzvi Abusch, Daniel Schwemer, Mikko Luukko and Greta Van Buylaere, CMAwR 3 (Brill 2020), from CMAwRo - CC BY-SA 3.0"),
+        new OraccProjectChoice("cams-gkab", "Scholars' libraries of Sultantepe, Nimrud and Uruk (with Šurpu)", 29.3,
+            "the GKAB Project (Philippe Clancier, Eleanor Robson and others) - CC BY-SA 3.0"),
     };
 
     /// <summary>Roughly what the whole step downloads, in megabytes.</summary>

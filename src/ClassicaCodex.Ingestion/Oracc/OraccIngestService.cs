@@ -25,11 +25,14 @@ namespace ClassicaCodex.Ingestion.Oracc;
 /// against each other with synchronised scrolling. No new UI, and both are
 /// indexed, so a search can be by sign or by transliteration.
 ///
-/// NO TRANSLATION GOES IN. Oracc's open data has none - see
+/// NO TRANSLATION FROM THE DOWNLOAD. Oracc's open data has none - see
 /// OraccProjectReader - so a work arrives with two originals and no English.
 /// That gap is real and the library should show it as a gap rather than
 /// filling it with something generated, which would put sentences nobody
-/// wrote into the word index.
+/// wrote into the word index. The exception is a project whose website
+/// releases its translations openly (OraccProjectChoice.TranslationCredit):
+/// then the editors' own English is read from each text's page and goes in
+/// as the translation, credited - see OraccWebTranslation.
 /// </summary>
 public class OraccIngestService
 {
@@ -79,7 +82,10 @@ public class OraccIngestService
             try
             {
                 var directory = await downloads.FetchAsync(choice, destinationRoot, progress, cancellationToken);
-                var outcome = await IngestAsync(directory, progress, cancellationToken);
+                // The pages are kept beside the archive, not in the folder
+                // it extracts to: FetchAsync empties that folder every run.
+                var outcome = await IngestAsync(directory, progress, cancellationToken, choice.TranslationCredit,
+                    Path.Combine(destinationRoot, choice.Id + "-translations"));
 
                 // A project that downloaded cleanly and installed nothing is
                 // not success. Some Oracc projects are portals rather than
@@ -106,11 +112,24 @@ public class OraccIngestService
             : IngestOutcome.Combine(outcomes.ToArray());
     }
 
+    /// <param name="translationCredit">
+    /// Given only for a project whose website licenses its translations openly
+    /// (see <see cref="OraccProjectChoice.TranslationCredit"/>): each
+    /// translated text's page is fetched once, kept beside the download, and
+    /// its English installed as the text's translation with this credit.
+    /// </param>
+    /// <param name="translationPages">
+    /// Where the fetched pages are kept, so a second import reads them from
+    /// disk. Defaults to a folder inside the project.
+    /// </param>
     public async Task<IngestOutcome> IngestAsync(
         string projectDirectory,
         IProgress<string>? progress = null,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default,
+        string? translationCredit = null,
+        string? translationPages = null)
     {
+        translationPages ??= Path.Combine(projectDirectory, "html");
         var project = OraccProjectReader.Read(projectDirectory);
 
         progress?.Report($"{project.Abbreviation}: {project.Texts.Count} texts, {project.License}");
@@ -124,6 +143,7 @@ public class OraccIngestService
         var authorIds = new Dictionary<string, int>(StringComparer.Ordinal);
 
         var attempted = 0;
+        var translationsFetched = 0;
 
         foreach (var text in project.Texts)
         {
@@ -169,11 +189,26 @@ public class OraccIngestService
                     CitationScheme = "line"
                 }, cancellationToken);
 
+                // The website's English, where the project licenses it and
+                // the catalogue says the text has some. Fetched before
+                // anything is cleared, for the reason below; a page that will
+                // not come costs this text its translation and nothing else.
+                Dictionary<string, string>? english = null;
+                if (translationCredit != null && text.TranslationLanguages?.Contains("en", StringComparison.Ordinal) == true)
+                {
+                    english = await ReadWebTranslationAsync(project, text, translationPages, cancellationToken);
+                    if (english == null) Noted.Add((text.TextId, "its translation page could not be fetched"));
+                }
+
+                if (english != null && ++translationsFetched % 50 == 0)
+                    progress?.Report($"{project.Abbreviation}: {translationsFetched} translations read...");
+
                 // EVERYTHING IS BUILT BEFORE ANYTHING IS CLEARED. The clear
                 // and the re-insert are not one transaction - the same reason
                 // PerseusIngestService spells out - so a throw between them
                 // destroys text with nothing to put back.
-                var built = BuildNodes(text);
+                var built = BuildNodes(text, english);
+                var translated = built.Translation.Any(n => n.Text.Length > 0);
 
                 // ORDER IS THE READING ARRANGEMENT. The reader fills its left
                 // pane from the first original and its right from what is not
@@ -186,11 +221,17 @@ public class OraccIngestService
                 // Skipped rather than saved blank when no line has a sign
                 // recorded at all, which happens for texts known only from an
                 // old hand copy.
-                if (built.Cuneiform.Any(n => n.Text.Length > 0))
+                // A normalised composite gets no sign pane at all; see
+                // OraccText.IsNormalisedComposite.
+                if (text.IsNormalisedComposite)
+                {
+                    Noted.Add((text.TextId, "a normalised composite; no sign pane"));
+                }
+                else if (built.Cuneiform.Any(n => n.Text.Length > 0))
                 {
                     await SaveEditionAsync(
                         project, text, workId, "cuneiform", "Cuneiform",
-                        EditionKind.Original, "akk", null, built.Cuneiform, cancellationToken);
+                        EditionKind.Original, "akk", null, built.Cuneiform, cancellationToken, translated: translated);
                 }
                 else
                 {
@@ -198,8 +239,21 @@ public class OraccIngestService
                 }
 
                 await SaveEditionAsync(
-                    project, text, workId, "transliteration", "Transliteration",
-                    EditionKind.Original, "akk", null, built.Transliteration, cancellationToken);
+                    project, text, workId, "transliteration",
+                    text.IsNormalisedComposite ? "Normalised text" : "Transliteration",
+                    EditionKind.Original, "akk", null, built.Transliteration, cancellationToken, translated: translated);
+
+                // Before the gloss, so that for a text that has both, the
+                // English prose is what opens opposite the signs and the word
+                // meanings are the second choice. Written only when the page
+                // gave English for at least one line.
+                if (translated)
+                {
+                    await SaveEditionAsync(
+                        project, text, workId, "translation", "Translation",
+                        EditionKind.Translation, "eng", translationCredit, built.Translation, cancellationToken,
+                        availability: $"Translation: {translationCredit}", translated: true);
+                }
 
                 // The gloss goes in as a translation because that is the pane
                 // it belongs in and the machinery has no third word for it -
@@ -216,7 +270,7 @@ public class OraccIngestService
                         project, text, workId, "gloss", "Word-by-word meanings",
                         EditionKind.Translation, "eng",
                         "Word-by-word dictionary meanings from Oracc's lemmatisation - not a translation",
-                        built.Gloss, cancellationToken);
+                        built.Gloss, cancellationToken, translated: translated);
                 }
                 else
                 {
@@ -252,7 +306,9 @@ public class OraccIngestService
         string urnSuffix, string label,
         EditionKind kind, string language, string? translator,
         List<TextNode> nodes,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        string? availability = null,
+        bool translated = false)
     {
         var editionId = await _editionRepo.UpsertAsync(new Edition
         {
@@ -282,9 +338,9 @@ public class OraccIngestService
             // project's on the collection, the text's here, and where they
             // disagree the stricter one governs. Attribution we did not keep
             // is attribution we cannot give.
-            Availability = text.Credits ?? project.License,
+            Availability = availability ?? text.Credits ?? project.License,
 
-            SourceDescription = Describe(text, project)
+            SourceDescription = Describe(text, project, translated)
         }, cancellationToken);
 
         await _textNodeRepo.BulkInsertAsync(nodes, cancellationToken);
@@ -303,6 +359,13 @@ public class OraccIngestService
 
         /// <summary>Each word's dictionary meaning, in order.</summary>
         public List<TextNode> Gloss { get; } = new();
+
+        /// <summary>
+        /// The website's English, where there is some: a line's translation on
+        /// its row, and a blank row where the translation of an earlier line
+        /// already covers it.
+        /// </summary>
+        public List<TextNode> Translation { get; } = new();
     }
 
     /// <summary>
@@ -330,7 +393,7 @@ public class OraccIngestService
     /// tell apart. SortOrder carries document order separately, since "2'"
     /// and "i 14" do not sort as numbers.
     /// </summary>
-    internal static OraccTextNodes BuildNodes(OraccText text)
+    internal static OraccTextNodes BuildNodes(OraccText text, IReadOnlyDictionary<string, string>? english = null)
     {
         var built = new OraccTextNodes();
         var order = 0;
@@ -350,6 +413,14 @@ public class OraccIngestService
             built.Transliteration.Add(new TextNode { CitationRef = reference, SortOrder = order, Text = written });
             built.Gloss.Add(new TextNode { CitationRef = reference, SortOrder = order, Text = line.Gloss });
 
+            // Parallel like the rest: every line gets a row, blank where the
+            // page put no English on it.
+            if (english != null)
+            {
+                var translated = english.TryGetValue(line.Reference, out var t) ? t : string.Empty;
+                built.Translation.Add(new TextNode { CitationRef = reference, SortOrder = order, Text = translated });
+            }
+
             order++;
         }
 
@@ -357,10 +428,39 @@ public class OraccIngestService
     }
 
     /// <summary>
+    /// A text's English from its page on the website, by line reference; the
+    /// page is kept beside the download, so a second import reads it from disk.
+    /// Null when the page cannot be had.
+    /// </summary>
+    private async Task<Dictionary<string, string>?> ReadWebTranslationAsync(
+        OraccProject project, OraccText text, string pages, CancellationToken cancellationToken)
+    {
+        var path = Path.Combine(pages, text.TextId + ".html");
+        try
+        {
+            if (!File.Exists(path) || new FileInfo(path).Length == 0)
+            {
+                Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+                await _downloads.DownloadAsync(
+                    OraccWebTranslation.PageUrl(project.ProjectPath, text.TextId), path, Silent, cancellationToken);
+            }
+
+            return OraccWebTranslation.ReadLineTranslations(await File.ReadAllTextAsync(path, cancellationToken));
+        }
+        catch (Exception ex) when (ex is HttpRequestException or IOException)
+        {
+            return null;
+        }
+    }
+
+    private readonly FileDownloadService _downloads = new();
+    private static readonly IProgress<string> Silent = new Progress<string>(_ => { });
+
+    /// <summary>
     /// What this object is, for the edition's source description - genre,
     /// period, and where it came out of the ground.
     /// </summary>
-    private static string Describe(OraccText text, OraccProject project)
+    private static string Describe(OraccText text, OraccProject project, bool translated = false)
     {
         var parts = new List<string>(5);
 
@@ -371,7 +471,9 @@ public class OraccIngestService
         // Said out loud, because the reader will look for an English text and
         // not find one, and the catalogue knowing a translation exists is the
         // explanation for that.
-        if (text.TranslationLanguages is { Length: > 0 })
+        if (translated)
+            parts.Add($"the translation is the one on {project.Source}, line by line");
+        else if (text.TranslationLanguages is { Length: > 0 })
             parts.Add($"a translation exists at {project.Source} but is not in the open data");
 
         parts.Add($"imported from {project.Abbreviation}");
