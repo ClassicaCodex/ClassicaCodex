@@ -43,6 +43,11 @@ public static class EditionLabels
                 "EGY" => "Egyptian",
                 "ITA" => "Italian",
                 "HBO" => "Hebrew",
+                "HEB" => "Hebrew",
+
+                // The Talmud's own language code: Babylonian Aramaic, with the
+                // Mishnah it comments on in Hebrew inside the same pages.
+                "ARC" => "Aramaic and Hebrew",
                 not null => edition.Language,
                 null => null
             };

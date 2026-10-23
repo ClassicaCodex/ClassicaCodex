@@ -687,6 +687,22 @@ Terms
    The English translations are in the public domain. The Greek texts are the Online Critical Pseudepigrapha's encodings of public-domain editions, under CC BY 4.0; its other texts, which rest on modern editions, and its recent English versions are not installed.
 """),
 
+        ("Rabbinic texts: Talmud and midrash", """
+The rabbinic texts in which the demons and angels of the Hebrew Bible's readers live. Install it from the setup wizard; it is about 20 MB.
+
+What is in it
+   Five tractates of the Babylonian Talmud — Berakhot, Shabbat, Pesachim, Hagigah and Gittin, which hold most of its demon lore: Lilith, Agrat bat Mahlat, Ashmedai and Solomon, the demons who are like angels in three ways and like men in three. Pirkei de-Rabbi Eliezer, with the fall of Samael. And eight tracts of Eisenstein's Otzar Midrashim (1915): the Alphabet of Ben Sira, where the story of Lilith and the three healing angels is told; Hekhalot; the Metatron texts; the Book of Raziel; Eden and Gehinnom; and the midrashim on King Solomon.
+
+Citations
+   The Talmud by folio, side and segment, as it is cited: Berakhot 6a.10. The midrashim by chapter and paragraph, and the Otzar tracts by part and paragraph.
+
+Translations
+   Lazarus Goldschmidt's German translation of 1929 is beside every tractate. A. Cohen's English of Berakhot (1921) and Sefaria's community English of Hagigah are there too. There is no free English of Shabbat, Pesachim or Gittin: the complete modern English is non-commercial, and this library installs nothing under a non-commercial licence that it can avoid. Pirkei de-Rabbi Eliezer has Friedlander's English of 1916; the Otzar tracts have Sefaria's community English where it has reached them.
+
+Terms
+   The Talmud text is the Vilna edition as transcribed on Hebrew Wikisource, CC BY-SA. Everything else is in the public domain or CC0. Each file's licence is checked as it is read, and a version Sefaria has relicensed is skipped and reported rather than installed.
+"""),
+
         ("Medieval Hands", """
 The lens over a line of script on the main toolbar. Every other collection in this library arrives already transcribed, with the step where somebody looked at a manuscript and decided what it said left out. This window is that step: 194,808 lines from 313 medieval manuscripts, each one photographed and set beside a transcription of it.
 

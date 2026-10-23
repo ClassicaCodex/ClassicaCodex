@@ -11,6 +11,7 @@ using ClassicaCodex.Ingestion.Geste;
 using ClassicaCodex.Ingestion.EarlyEnglish;
 using ClassicaCodex.Ingestion.Hebrew;
 using ClassicaCodex.Ingestion.Pseudepigrapha;
+using ClassicaCodex.Ingestion.Rabbinic;
 using ClassicaCodex.Ingestion.ReM;
 
 namespace ClassicaCodex.UI;
@@ -107,6 +108,9 @@ public static class SetupDataSourceCatalog
 
         /// <summary>1 Enoch, the Testament of Solomon, Jubilees and the other books outside the Bible.</summary>
         public const string Pseudepigrapha = PseudepigraphaIngestService.CollectionKey;
+
+        /// <summary>Talmud tractates, Pirkei de-Rabbi Eliezer and tracts of Otzar Midrashim.</summary>
+        public const string Rabbinic = RabbinicIngestService.CollectionKey;
     }
 
     /// <summary>
@@ -133,6 +137,7 @@ public static class SetupDataSourceCatalog
         CollectionKeys.HebrewBible => "Hebrew Bible (Leningrad Codex)",
         CollectionKeys.EarlyEnglishSpirits => "Early English Books: devils, spirits and angels (EEBO-TCP)",
         CollectionKeys.Pseudepigrapha => "Pseudepigrapha: Enoch, Solomon, Jubilees",
+        CollectionKeys.Rabbinic => "Rabbinic texts: Talmud and midrash",
         _ => key
     };
 
@@ -1156,6 +1161,52 @@ public static class SetupDataSourceCatalog
                     await editionRepo.IsCollectionCompleteAsync(CollectionKeys.Pseudepigrapha),
                 CheckHasSomeContent = async () =>
                     await editionRepo.CountByCollectionAsync(CollectionKeys.Pseudepigrapha) > 0
+            },
+
+            new SetupDataSource
+            {
+                Title = "Rabbinic texts: Talmud and midrash on angels and demons",
+                RepoUrl = "https://www.sefaria.org",
+                DisplayNote = "about 20 MB in 33 downloads",
+                DefaultDestination = Path.Combine(dataRoot, "rabbinic"),
+                FetchMode = SetupFetchMode.SelfManaged,
+
+                Links =
+                {
+                    new SetupLink { Text = "Sefaria", Url = "https://www.sefaria.org" }
+                },
+
+                PlainLanguageDescription =
+                    "Five tractates of the Babylonian Talmud - Berakhot, Shabbat, Pesachim, Hagigah and "
+                    + "Gittin, the ones the demons are in - with Pirkei de-Rabbi Eliezer and eight tracts of "
+                    + "Eisenstein's Otzar Midrashim: the Alphabet of Ben Sira, where Lilith is, Hekhalot, the "
+                    + "Metatron texts, the Book of Raziel, Eden and Gehinnom, and the midrashim on King "
+                    + "Solomon. "
+                    + "The Talmud is the Vilna text as transcribed on Hebrew Wikisource (CC BY-SA), cited by "
+                    + "folio, side and segment (Berakhot 6a.10), with Lazarus Goldschmidt's German "
+                    + "translation of 1929 beside every tractate, A. Cohen's English of Berakhot (1921) and "
+                    + "Sefaria's community English of Hagigah. There is no free English of Shabbat, Pesachim "
+                    + "or Gittin to give you: the complete modern English is non-commercial, and is left "
+                    + "out for that reason. Pirkei de-Rabbi Eliezer comes in Hebrew and in Friedlander's "
+                    + "English of 1916; the Otzar tracts in Hebrew, and in English where Sefaria's "
+                    + "community translation has reached them. Everything is fetched from Sefaria, and each "
+                    + "file's licence is checked as it is read.",
+
+                RunIngest = async (root, progress, ct) =>
+                {
+                    var service = new RabbinicIngestService();
+                    var outcome = await service.IngestAsync(root, progress, ct);
+
+                    if (service.PassagesInstalled > 0)
+                        await editionRepo.StampCollectionAsync(root, CollectionKeys.Rabbinic, ct);
+
+                    return outcome;
+                },
+
+                CheckComplete = async () =>
+                    await editionRepo.IsCollectionCompleteAsync(CollectionKeys.Rabbinic),
+                CheckHasSomeContent = async () =>
+                    await editionRepo.CountByCollectionAsync(CollectionKeys.Rabbinic) > 0
             },
 
             new SetupDataSource
