@@ -724,6 +724,24 @@ Terms
    Tanzil's text is under CC BY 3.0, on condition that it is copied only unaltered and that its copyright notice goes with it. It is installed exactly as published, and the notice is shown under Availability in each sura's Work Details; it asks that anything published from it name the Tanzil Project and link to tanzil.net. Pickthall's translation is in the public domain. It comes from Project Gutenberg's file of three translations side by side; the other two, Yusuf Ali's and Shakir's, are not installed, because neither is clearly free to republish.
 """),
 
+        ("Aquinas: Summa Theologiae, First Part", """
+The First Part of Thomas Aquinas's Summa Theologiae, written between 1265 and 1268, in the English translation by the Fathers of the English Dominican Province. Install it from the setup wizard; it is a 3 MB download.
+
+What is in it
+   All 119 questions and 584 articles: God, the Trinity, creation, the angels, the six days, man, and the government of the world. The treatise on the angels is questions 50 to 64 — their substance, their knowledge, their will, their creation, and in 63 and 64 the sin and punishment of the ones who fell. Questions 106 to 114 are the angels acting on the world: how one enlightens another, their orders and hierarchies, the guardian angels, and the assaults of the demons.
+
+Citations
+   As the Summa is cited everywhere, by question, article and part. Every article argues the same way: objections, "On the contrary", "I answer that", and a reply to each objection. So 50.1.ob1 is the first objection of question 50, article 1; 50.1.sc is On the contrary; 50.1.co is the body of the article, and a second paragraph of it is 50.1.co.2; 50.1.ad1 is the reply to the first objection. A question's own introduction is 50.pr.1, and its title 50.head.
+
+   The Gutenberg text numbers eight articles wrongly in their headings — the ninth article of question 19 is labelled Art. 8 — and the ordinal word beside each, which is always right, is what places them.
+
+English only
+   There is no Latin pane. Aquinas's Latin is in the public domain, but the digital Latin texts of the Summa are not: the standard one reserves all rights, the Latin Wikisource text is a copy of it, and the one openly licensed transcription is unchecked OCR.
+
+Terms
+   Public domain. The translation was first published between 1911 and 1925; this is its revised text in the American printing of 1947, from Project Gutenberg.
+"""),
+
         ("Medieval Hands", """
 The lens over a line of script on the main toolbar. Every other collection in this library arrives already transcribed, with the step where somebody looked at a manuscript and decided what it said left out. This window is that step: 194,808 lines from 313 medieval manuscripts, each one photographed and set beside a transcription of it.
 
