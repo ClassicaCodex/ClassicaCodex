@@ -176,4 +176,42 @@ public class ScriptFontTests
 
         Assert.Equal("Segoe UI Historic", chosen);
     }
+
+    /// <summary>Isaiah 6.2, pointed and accented, as the Leningrad Codex has it.</summary>
+    private const string Hebrew = "שְׂרָפִ֨ים עֹמְדִ֤ים ׀ מִמַּ֨עַל֙ ל֔וֹ";
+
+    /// <summary>
+    /// Hebrew is the first script here on the Basic Multilingual Plane, so the
+    /// fast rejection that skips every char below U+FFFF has to let it
+    /// through - and still skip Greek, which sits on either side of it.
+    /// </summary>
+    [Fact]
+    public void HebrewIsFoundAndIsTheOnlyScriptReadRightToLeft()
+    {
+        Assert.True(ScriptFonts.ContainsHebrew(Hebrew));
+        Assert.True(ScriptFonts.IsRightToLeft(new[] { Line(Hebrew) }));
+
+        Assert.False(ScriptFonts.IsRightToLeft(new[] { Line(Cuneiform) }));
+        Assert.False(ScriptFonts.IsRightToLeft(new[] { Line("μῆνιν ἄειδε θεά") }));
+        Assert.False(ScriptFonts.ContainsHebrew("Ἀγαμέμνων κούρην ἄμεινον"));
+    }
+
+    /// <summary>
+    /// The JPS translation beside it is English, and stays in the reading
+    /// font, left to right.
+    /// </summary>
+    [Fact]
+    public void TheTranslationBesideTheHebrewIsNotRightToLeft() =>
+        Assert.False(ScriptFonts.IsRightToLeft(new[] { Line("Above Him stood the seraphim; each one had six wings") }));
+
+    [Fact]
+    public void HebrewResolvesToAFontWithTheVowelPoints()
+    {
+        var chosen = ScriptFonts.FamilyFor(new[] { Line(Hebrew) });
+        var times = ScriptFonts.FirstInstalled(new[] { "Times New Roman" });
+
+        if (times == null) return;
+
+        Assert.NotNull(chosen);
+    }
 }

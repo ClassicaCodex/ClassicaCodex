@@ -42,6 +42,7 @@ public static class EditionLabels
                 "FRO" => "Old French",
                 "EGY" => "Egyptian",
                 "ITA" => "Italian",
+                "HBO" => "Hebrew",
                 not null => edition.Language,
                 null => null
             };
