@@ -668,6 +668,25 @@ Terms
    Public domain: the transcriptions are released under CC0, free to reuse for any purpose, commercial included. The Partnership asks to be credited, and does not require it.
 """),
 
+        ("Pseudepigrapha: Enoch, Solomon, Jubilees", """
+The books outside the Bible that tell where angels and demons came from. Install it from the setup wizard; it is about 4 MB in some 120 small downloads.
+
+What is in it
+   1 Enoch in R. H. Charles's translation of 1917: the two hundred Watchers who came down on Mount Hermon, the giants they fathered, and the evil spirits that came out of the giants. The Testament of Solomon, in which Solomon binds demon after demon with a ring and makes each tell its name and the angel that defeats it, in McCown's Greek (1922) and Conybeare's English (1898). The Testaments of the Twelve Patriarchs in Greek and in Charles's English, with Beliar and the seven spirits of deceit. Jubilees in Charles's English, with Mastema. The Greek Apocalypse of Moses, and 2 Enoch in Morfill's English.
+
+1 Enoch sits beside the Greek
+   The library already has the Greek fragments of 1 Enoch from First1KGreek. Charles's English is filed as their translation, so chapters 1 to 32, where the Greek survives, read side by side; the rest of the book survives only in Ethiopic and is in English alone.
+
+Two numberings in the Testament of Solomon
+   Conybeare translated a single Paris manuscript and numbered it in 130 sections of his own, which do not match McCown's chapters. His English is cited §1 to §130 so that neither numbering pretends to be the other, and the two panes do not scroll together.
+
+Jubilees has no original-language pane
+   Jubilees was written in Hebrew, but what survives whole is the Ethiopic. The Hebrew in the second pane is Salomo Rubin's retranslation from the Ethiopic, made in 1870, and is filed as a translation for that reason.
+
+Terms
+   The English translations are in the public domain. The Greek texts are the Online Critical Pseudepigrapha's encodings of public-domain editions, under CC BY 4.0; its other texts, which rest on modern editions, and its recent English versions are not installed.
+"""),
+
         ("Medieval Hands", """
 The lens over a line of script on the main toolbar. Every other collection in this library arrives already transcribed, with the step where somebody looked at a manuscript and decided what it said left out. This window is that step: 194,808 lines from 313 medieval manuscripts, each one photographed and set beside a transcription of it.
 
