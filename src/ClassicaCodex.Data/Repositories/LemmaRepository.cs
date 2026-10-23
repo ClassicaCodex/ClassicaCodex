@@ -127,6 +127,10 @@ public class LemmaRepository
             // Hebrew has its own alphabet too, and only the Hebrew Bible
             // writes in it.
             if (c >= '\u05D0' && c <= '\u05EA') return "hbo";
+
+            // And Arabic, which has no lemma data yet: named, so that a word
+            // from the Quran is not looked up among the Latin.
+            if (c >= '\u0621' && c <= '\u064A') return "ara";
         }
 
         return "lat";

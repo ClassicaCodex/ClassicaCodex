@@ -703,6 +703,27 @@ Terms
    The Talmud text is the Vilna edition as transcribed on Hebrew Wikisource, CC BY-SA. Everything else is in the public domain or CC0. Each file's licence is checked as it is read, and a version Sefaria has relicensed is skipped and reported rather than installed.
 """),
 
+        ("The Quran", """
+The Quran in Arabic, all 114 suras and 6,236 verses, with Marmaduke Pickthall's English translation of 1930 beside it. Install it from the setup wizard; it is about 6 MB in three downloads.
+
+What is in it
+   Each sura is a work of its own, listed in order with its name and what the name means: Sura 2: Al-Baqarah (The Cow). Among much else, Iblis who refused to bow to Adam (2, 7, 15, 17, 18, 20, 38), Harut and Marut, the two angels of Babylon (2.102), the jinn who listened to the Quran (72, and 46.29-32), Solomon's jinn (27, 34), and the angels who take souls and keep the record.
+
+Two spellings of the Arabic
+   The Tanzil Project publishes the text twice, and both are here. The Uthmani script is the spelling of the Madina mushaf, the printed Quran most readers use, with every vowel and recitation mark. The other spells the same words as modern Arabic does. The edition list calls them Arabic (Uthmani script) and Arabic (modern spelling). They are the same text, word for word.
+
+   Arabic reads from right to left and is shown that way, in a font with the Quran's marks — Times New Roman, which every Windows has, unless a font made for the Quran such as Amiri Quran or Scheherazade New is installed. The basmala, "In the name of God, the Merciful, the Compassionate", heads every sura but the ninth, as the mushaf prints it; in the first sura it is the first verse.
+
+Search
+   Search ignores the vowel signs and the recitation marks, and treats the forms of alef as one letter and the dotted and undotted final yeh as one. A word typed in modern spelling is always found in the modern-spelling text. Nine words in ten are spelled the same in the Uthmani text once the marks are set aside; the tenth is spelled the Uthmani way, most often with a long a written only as a small alef above the line, so that al-kitab, the book, is al-ktb there, or with the vocative ya written into its noun. To read a verse found that way in the Uthmani script, choose that edition in the edition list.
+
+Citations
+   By sura and verse, as the Quran is cited everywhere: 2.255 is the Throne Verse. Pickthall follows the same numbering.
+
+Terms
+   Tanzil's text is under CC BY 3.0, on condition that it is copied only unaltered and that its copyright notice goes with it. It is installed exactly as published, and the notice is shown under Availability in each sura's Work Details; it asks that anything published from it name the Tanzil Project and link to tanzil.net. Pickthall's translation is in the public domain. It comes from Project Gutenberg's file of three translations side by side; the other two, Yusuf Ali's and Shakir's, are not installed, because neither is clearly free to republish.
+"""),
+
         ("Medieval Hands", """
 The lens over a line of script on the main toolbar. Every other collection in this library arrives already transcribed, with the step where somebody looked at a manuscript and decided what it said left out. This window is that step: 194,808 lines from 313 medieval manuscripts, each one photographed and set beside a transcription of it.
 
