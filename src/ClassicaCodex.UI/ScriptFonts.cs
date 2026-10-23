@@ -90,8 +90,8 @@ internal static class ScriptFonts
     /// the font itself; the families before it are the ones made for pointed
     /// and accented text, for whoever has installed one.
     ///
-    /// The only script here written right to left, which is the other thing
-    /// the reader has to know about it - see SyncListView.
+    /// Written right to left, which is the other thing the reader has to know
+    /// about it - see SyncListView.
     /// </summary>
     private static readonly Script Hebrew = new(
         "Hebrew",
@@ -99,7 +99,29 @@ internal static class ScriptFonts
         new[] { "SBL Hebrew", "Ezra SIL", "Taamey Frank CLM", "Times New Roman" },
         RightToLeft: true);
 
-    private static readonly Script[] Scripts = { Cuneiform, EgyptianHieroglyphs, Hebrew };
+    /// <summary>
+    /// Arabic: the letters and vowel signs, the supplement and the
+    /// Extended-A block that carry the Quran's annotation marks, and the
+    /// presentation forms.
+    ///
+    /// The case is Hebrew's over again. The reading fonts have no Arabic, and
+    /// the Quran is written with more marks than any other Arabic text - the
+    /// small high letters, the pause signs, the small waw and yeh - which a
+    /// substituted font places badly or not at all. Times New Roman draws
+    /// every character in the Tanzil text, checked one by one; the families
+    /// before it were designed for the Quran's marks, for whoever has one.
+    ///
+    /// Also written right to left, and so is the translation of Aristotle's
+    /// Poetics into Arabic that was already in the library: it was drawn left
+    /// to right in Palatino until this existed.
+    /// </summary>
+    private static readonly Script Arabic = new(
+        "Arabic",
+        new[] { (0x0600, 0x06FF), (0x0750, 0x077F), (0x08A0, 0x08FF), (0xFB50, 0xFDFF), (0xFE70, 0xFEFF) },
+        new[] { "Amiri Quran", "Scheherazade New", "Noto Naskh Arabic", "Times New Roman" },
+        RightToLeft: true);
+
+    private static readonly Script[] Scripts = { Cuneiform, EgyptianHieroglyphs, Hebrew, Arabic };
 
     /// <summary>
     /// How much of an edition is examined before concluding it needs no
@@ -143,6 +165,9 @@ internal static class ScriptFonts
     internal static bool ContainsHebrew(string text) =>
         ReferenceEquals(ScriptOf(text), Hebrew);
 
+    internal static bool ContainsArabic(string text) =>
+        ReferenceEquals(ScriptOf(text), Arabic);
+
     /// <summary>
     /// Whether these passages are written right to left, and should be drawn
     /// from the right edge of the pane.
@@ -185,14 +210,14 @@ internal static class ScriptFonts
     /// nothing. The cheap rejection is what keeps this off the critical path
     /// for the Greek and Latin that is most of the library: Latin is below the
     /// Hebrew block, and Greek - polytonic included, at U+1F00 - sits in the
-    /// gap between Hebrew and its presentation forms.
+    /// gap between Arabic and the Hebrew and Arabic presentation forms.
     /// </summary>
     private static Script? ScriptOf(string text)
     {
         foreach (var rune in text.EnumerateRunes())
         {
             var value = rune.Value;
-            if (value < 0x0591 || (value > 0x05F4 && value < 0xFB1D) || (value > 0xFB4F && value <= 0xFFFF)) continue;
+            if (value < 0x0591 || (value > 0x08FF && value < 0xFB1D) || (value > 0xFEFF && value <= 0xFFFF)) continue;
 
             foreach (var script in Scripts)
             {

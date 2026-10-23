@@ -44,6 +44,7 @@ public static class EditionLabels
                 "ITA" => "Italian",
                 "HBO" => "Hebrew",
                 "HEB" => "Hebrew",
+                "ARA" => "Arabic",
 
                 // The Talmud's own language code: Babylonian Aramaic, with the
                 // Mishnah it comments on in Hebrew inside the same pages.
@@ -73,6 +74,11 @@ public static class EditionLabels
                 "normalised" or "normalized" => "normalised",
                 "hieroglyphs" => "hieroglyphs",
                 "transliteration" => "transliteration",
+
+                // The Quran in the two spellings Tanzil publishes it in: the
+                // Madina mushaf's, and modern Arabic's.
+                "uthmani" => "Uthmani script",
+                "simple" => "modern spelling",
                 _ => null
             };
 

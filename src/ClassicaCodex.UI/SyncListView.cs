@@ -777,7 +777,8 @@ public class SyncListView : ListBox
     private string? _readingFamily;
 
     /// <summary>
-    /// Whether the edition on show is written right to left - Hebrew, so far.
+    /// Whether the edition on show is written right to left - Hebrew or
+    /// Arabic.
     ///
     /// GDI shapes a Hebrew run in the right order whatever it is told, so a
     /// line drawn without this still reads correctly word by word. What goes

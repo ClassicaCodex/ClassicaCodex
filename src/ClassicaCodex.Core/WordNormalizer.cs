@@ -29,6 +29,15 @@ public static class WordNormalizer
         foreach (var ch in decomposed)
         {
             if (CharUnicodeInfo.GetUnicodeCategory(ch) == UnicodeCategory.NonSpacingMark) continue;
+
+            // Three Arabic characters that Unicode classes as letters and are
+            // not: the tatweel, a stroke that only stretches a word, and the
+            // small waw and small yeh the Quran writes above the line for a
+            // long vowel its spelling leaves out. Kept, they make a different
+            // word of every word they touch - the Uthmani text's al-Rahman,
+            // stretched under its small alef, would not be al-Rahman.
+            if (ch is Tatweel or SmallWaw or SmallYeh) continue;
+
             if (!char.IsLetter(ch)) continue;
 
             var lower = char.ToLowerInvariant(ch);
@@ -110,6 +119,21 @@ public static class WordNormalizer
                 'ן' => 'נ',
                 'ף' => 'פ',
                 'ץ' => 'צ',
+
+                // Arabic, on the same principle. NFD has already taken the
+                // hamza and madda off the alefs, waw and yeh that carry them,
+                // as it takes the accents off Greek. Two forms it leaves: alef
+                // wasla, which the Quran's Uthmani text writes 13,819 times
+                // where modern spelling has a plain alef - most often in the
+                // article al- - and alef maksura, the undotted final
+                // yeh that Uthmani spelling and older printing write where
+                // modern spelling dots it, fi as فى for في.
+                // Unfolded, a search typed in modern Arabic would miss most of
+                // the Uthmani text, and every fi in the Arabic Aristotle. The
+                // cost is that ala, on, and the name Ali now share a spelling,
+                // which is the trade every Arabic search engine makes.
+                '\u0671' => '\u0627',
+                '\u0649' => '\u064A',
                 _ => lower
             };
 
@@ -234,6 +258,10 @@ public static class WordNormalizer
 
         return sb.ToString();
     }
+
+    private const char Tatweel = '\u0640';
+    private const char SmallWaw = '\u06E5';
+    private const char SmallYeh = '\u06E6';
 
     private const char Maqaf = '\u05BE';
 

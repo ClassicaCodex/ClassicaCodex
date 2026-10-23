@@ -11,6 +11,7 @@ using ClassicaCodex.Ingestion.Geste;
 using ClassicaCodex.Ingestion.EarlyEnglish;
 using ClassicaCodex.Ingestion.Hebrew;
 using ClassicaCodex.Ingestion.Pseudepigrapha;
+using ClassicaCodex.Ingestion.Quran;
 using ClassicaCodex.Ingestion.Rabbinic;
 using ClassicaCodex.Ingestion.ReM;
 
@@ -111,6 +112,9 @@ public static class SetupDataSourceCatalog
 
         /// <summary>Talmud tractates, Pirkei de-Rabbi Eliezer and tracts of Otzar Midrashim.</summary>
         public const string Rabbinic = RabbinicIngestService.CollectionKey;
+
+        /// <summary>The Quran in Arabic, Uthmani and simple, with Pickthall's English.</summary>
+        public const string Quran = QuranIngestService.CollectionKey;
     }
 
     /// <summary>
@@ -138,6 +142,7 @@ public static class SetupDataSourceCatalog
         CollectionKeys.EarlyEnglishSpirits => "Early English Books: devils, spirits and angels (EEBO-TCP)",
         CollectionKeys.Pseudepigrapha => "Pseudepigrapha: Enoch, Solomon, Jubilees",
         CollectionKeys.Rabbinic => "Rabbinic texts: Talmud and midrash",
+        CollectionKeys.Quran => "The Quran (Arabic, with Pickthall's English)",
         _ => key
     };
 
@@ -1207,6 +1212,53 @@ public static class SetupDataSourceCatalog
                     await editionRepo.IsCollectionCompleteAsync(CollectionKeys.Rabbinic),
                 CheckHasSomeContent = async () =>
                     await editionRepo.CountByCollectionAsync(CollectionKeys.Rabbinic) > 0
+            },
+
+            new SetupDataSource
+            {
+                Title = "The Quran, in Arabic and in Pickthall's English",
+                RepoUrl = "https://tanzil.net",
+                DisplayNote = "about 6 MB in three downloads",
+                DefaultDestination = Path.Combine(dataRoot, "quran"),
+                FetchMode = SetupFetchMode.SelfManaged,
+
+                Links =
+                {
+                    new SetupLink { Text = "The Tanzil Project", Url = "https://tanzil.net" },
+                    new SetupLink { Text = "Tanzil's updates to the text", Url = "https://tanzil.net/updates/" }
+                },
+
+                PlainLanguageDescription =
+                    "The Quran in Arabic, all 114 suras, with Marmaduke Pickthall's English translation of "
+                    + "1930 beside it: Iblis who would not bow to Adam, Harut and Marut, the jinn, the angels "
+                    + "who take souls and the angels who record. "
+                    + "The Arabic comes twice, from the Tanzil Project: in the Uthmani script of the Madina "
+                    + "mushaf, with every vowel and recitation mark, and in modern spelling. Both are the "
+                    + "same text, and the edition list calls them Uthmani script and modern spelling. Arabic "
+                    + "reads from right to left and is shown that way, and search ignores the vowel and "
+                    + "recitation marks: a word typed in modern spelling is always found in the modern "
+                    + "text, and in the Uthmani about nine times in ten - the rest it spells its own way, "
+                    + "al-kitab, the book, as al-ktb with the long a as a small mark. Cited by sura and "
+                    + "verse, 2.255. "
+                    + "Tanzil's text is CC BY 3.0 and may be copied only unaltered, with its notice, which is "
+                    + "installed with it and shown with each sura's details. Pickthall's translation is in "
+                    + "the public domain.",
+
+                RunIngest = async (root, progress, ct) =>
+                {
+                    var service = new QuranIngestService();
+                    var outcome = await service.IngestAsync(root, progress, ct);
+
+                    if (service.VersesInstalled > 0)
+                        await editionRepo.StampCollectionAsync(root, CollectionKeys.Quran, ct);
+
+                    return outcome;
+                },
+
+                CheckComplete = async () =>
+                    await editionRepo.IsCollectionCompleteAsync(CollectionKeys.Quran),
+                CheckHasSomeContent = async () =>
+                    await editionRepo.CountByCollectionAsync(CollectionKeys.Quran) > 0
             },
 
             new SetupDataSource

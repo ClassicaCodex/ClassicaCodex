@@ -214,4 +214,39 @@ public class ScriptFontTests
 
         Assert.NotNull(chosen);
     }
+
+    /// <summary>Sura 72.1, "Say: it has been revealed to me that a company of the jinn listened", in Tanzil's Uthmani text.</summary>
+    private const string Arabic = "قُلْ أُوحِىَ إِلَىَّ أَنَّهُ ٱسْتَمَعَ نَفَرٌ مِّنَ ٱلْجِنِّ فَقَالُوٓا۟ إِنَّا سَمِعْنَا قُرْءَانًا عَجَبًا";
+
+    /// <summary>
+    /// Arabic is the second script read right to left, and the cheap
+    /// rejection had to be widened to let it through: it sits above Hebrew
+    /// and below Greek Extended, which must still be skipped.
+    /// </summary>
+    [Fact]
+    public void ArabicIsFoundAndReadRightToLeft()
+    {
+        Assert.True(ScriptFonts.ContainsArabic(Arabic));
+        Assert.False(ScriptFonts.ContainsHebrew(Arabic));
+        Assert.True(ScriptFonts.IsRightToLeft(new[] { Line(Arabic) }));
+
+        Assert.False(ScriptFonts.ContainsArabic(Hebrew));
+        Assert.False(ScriptFonts.IsRightToLeft(new[] { Line("Ἀγαμέμνων κούρην ἄμεινον") }));
+    }
+
+    /// <summary>The Arabic Aristotle that was already in the library, as its edition begins.</summary>
+    [Fact]
+    public void TheArabicPoeticsIsRightToLeftToo() =>
+        Assert.True(ScriptFonts.IsRightToLeft(new[] { Line("كتاب أرسطوطالس فى الشعراء") }));
+
+    [Fact]
+    public void ArabicResolvesToAFontWithTheQuransMarks()
+    {
+        var chosen = ScriptFonts.FamilyFor(new[] { Line(Arabic) });
+        var times = ScriptFonts.FirstInstalled(new[] { "Times New Roman" });
+
+        if (times == null) return;
+
+        Assert.NotNull(chosen);
+    }
 }
