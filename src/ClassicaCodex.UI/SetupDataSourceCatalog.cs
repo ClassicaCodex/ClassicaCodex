@@ -7,6 +7,7 @@ using ClassicaCodex.Ingestion.Aquinas;
 using ClassicaCodex.Ingestion.Bfm;
 using ClassicaCodex.Ingestion.Catmus;
 using ClassicaCodex.Ingestion.Dante;
+using ClassicaCodex.Ingestion.Dionysius;
 using ClassicaCodex.Ingestion.Egyptian;
 using ClassicaCodex.Ingestion.Geste;
 using ClassicaCodex.Ingestion.EarlyEnglish;
@@ -119,6 +120,9 @@ public static class SetupDataSourceCatalog
 
         /// <summary>The First Part of Aquinas's Summa Theologiae, in the English Dominican translation.</summary>
         public const string Aquinas = AquinasIngestService.CollectionKey;
+
+        /// <summary>Pseudo-Dionysius the Areopagite in John Parker's English.</summary>
+        public const string Dionysius = DionysiusIngestService.CollectionKey;
     }
 
     /// <summary>
@@ -148,6 +152,7 @@ public static class SetupDataSourceCatalog
         CollectionKeys.Rabbinic => "Rabbinic texts: Talmud and midrash",
         CollectionKeys.Quran => "The Quran (Arabic, with Pickthall's English)",
         CollectionKeys.Aquinas => "Aquinas, Summa Theologiae, First Part (English)",
+        CollectionKeys.Dionysius => "Pseudo-Dionysius the Areopagite (Parker's English)",
         _ => key
     };
 
@@ -1305,6 +1310,46 @@ public static class SetupDataSourceCatalog
                     await editionRepo.IsCollectionCompleteAsync(CollectionKeys.Aquinas),
                 CheckHasSomeContent = async () =>
                     await editionRepo.CountByCollectionAsync(CollectionKeys.Aquinas) > 0
+            },
+
+            new SetupDataSource
+            {
+                Title = "Pseudo-Dionysius: the Heavenly Hierarchy and the other works",
+                RepoUrl = "https://www.ccel.org/ccel/dionysius/works",
+                DisplayNote = "under 1 MB in one download",
+                DefaultDestination = Path.Combine(dataRoot, "dionysius"),
+                FetchMode = SetupFetchMode.SelfManaged,
+
+                Links =
+                {
+                    new SetupLink { Text = "Parker's translation at the Christian Classics Ethereal Library", Url = "https://www.ccel.org/ccel/dionysius/works" }
+                },
+
+                PlainLanguageDescription =
+                    "The works of the writer who called himself Dionysius the Areopagite, in John Parker's "
+                    + "English of 1897 and 1899: On the Heavenly Hierarchy, which first sets the angels in "
+                    + "nine orders and three triads - seraphim, cherubim and thrones; dominions, powers and "
+                    + "authorities; principalities, archangels and angels - and which the later lists of "
+                    + "the choirs follow; On the Ecclesiastical Hierarchy; On Divine Names; the Mystic "
+                    + "Theology; and the letters. "
+                    + "Cited by chapter and section in Parker's numbering (Heavenly Hierarchy 7.2). English "
+                    + "only, without Parker's footnotes. Public domain.",
+
+                RunIngest = async (root, progress, ct) =>
+                {
+                    var service = new DionysiusIngestService();
+                    var outcome = await service.IngestAsync(root, progress, ct);
+
+                    if (service.PassagesInstalled > 0)
+                        await editionRepo.StampCollectionAsync(root, CollectionKeys.Dionysius, ct);
+
+                    return outcome;
+                },
+
+                CheckComplete = async () =>
+                    await editionRepo.IsCollectionCompleteAsync(CollectionKeys.Dionysius),
+                CheckHasSomeContent = async () =>
+                    await editionRepo.CountByCollectionAsync(CollectionKeys.Dionysius) > 0
             },
 
             new SetupDataSource

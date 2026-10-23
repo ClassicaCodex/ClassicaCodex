@@ -742,6 +742,25 @@ Terms
    Public domain. The translation was first published between 1911 and 1925; this is its revised text in the American printing of 1947, from Project Gutenberg.
 """),
 
+        ("Pseudo-Dionysius the Areopagite", """
+The works of the Greek writer of about 500 AD who wrote as Dionysius the Areopagite, Paul's convert at Athens, in John Parker's English translation (1897 and 1899). Install it from the setup wizard; it is under 1 MB.
+
+What is in it
+   On the Heavenly Hierarchy, the book that first puts the angels in nine orders and three triads — seraphim, cherubim and thrones; dominions, powers and authorities; principalities, archangels and angels. The later lists of the angelic choirs go back to it: Gregory the Great's, Aquinas's in the Summa, Dante's in Paradiso 28. With it On the Ecclesiastical Hierarchy, On Divine Names, the Mystic Theology, and the letters.
+
+Citations
+   By chapter and section, in Parker's numbering, which is the usual one: Heavenly Hierarchy 7.2 is chapter 7, section 2, and a second paragraph of that section is 7.2.2. A chapter or letter Parker did not divide is its own section 1 — the chapter that names the nine orders, Heavenly Hierarchy 6, is a single paragraph, 6.1. The dedication before a chapter's first section is section 0. Each chapter's heading carries the line that says what it is about.
+
+What is left out
+   Parker's footnotes, his introductions to each work, his note on Titus between Letters 8 and 9, and the liturgy he printed with the letters, a later one attributed to Dionysius and not one of these works. Parker believed the author was Paul's convert himself; the library files the works under the name scholars use now.
+
+English only
+   The Greek is not in the library's Greek collections, and the only open text of it is rough OCR of Migne that is missing the Heavenly Hierarchy's first chapter.
+
+Terms
+   Public domain. Transcribed by Roger Pearse for the Christian Classics Ethereal Library, which marks the text public domain.
+"""),
+
         ("Medieval Hands", """
 The lens over a line of script on the main toolbar. Every other collection in this library arrives already transcribed, with the step where somebody looked at a manuscript and decided what it said left out. This window is that step: 194,808 lines from 313 medieval manuscripts, each one photographed and set beside a transcription of it.
 
