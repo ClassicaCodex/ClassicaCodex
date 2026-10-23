@@ -652,6 +652,22 @@ Terms
    The Hebrew text and the 1917 translation are in the public domain. The parsing and the dictionary's encoding are the Open Scriptures Hebrew Bible project's, under CC BY 4.0, which asks for credit and nothing more.
 """),
 
+        ("Early English Books: devils, spirits and angels", """
+Twenty-one English books printed between 1572 and 1681 on devils, spirits, angels, witches and ghosts, transcribed by the Text Creation Partnership from Early English Books Online. Install it from the setup wizard; it is about 20 MB, one book at a time.
+
+What is in it
+   James VI's Daemonologie (1597). Reginald Scot's Discovery of Witchcraft (1665), with the catalogue of the names, shapes and powers of devils that Scot translated from Weyer. Thomas Heywood's Hierarchie of the Blessed Angells (1635), a book for each of the nine orders. Paradise Lost in the ten books of 1667 and the twelve of 1674, and Paradise Regain'd. Marlowe's Doctor Faustus in both its texts, the A-text of 1604 and the B-text of 1616. Agrippa's Three Books of Occult Philosophy and the Fourth Book with the Heptameron and the Arbatel. The record of John Dee's conversations with angels (1659). Burton's Anatomy of Melancholy (1621). Lavater on ghosts, Gifford and Perkins on witches, Glanvill's Saducismus Triumphatus, Henry More, and Thomas Browne's Religio Medici.
+
+As printed
+   Each book is a transcription of one printing, in its own spelling — long s, u for v, i for j — and filed under that printing's date. The two editions of Paradise Lost are two works, because their books are divided differently and a reference to one is not a reference to the other. Where the microfilm could not be read the transcribers wrote a bullet for each lost letter and 〈◊〉 for a lost word, and those stay in the text. Words the printer broke at the end of a line are joined.
+
+Citations
+   Verse by book and line (Paradise Lost 1.1), prose by book, chapter and paragraph, plays by line with the speakers between. The line numbers are counted, not printed, except where the printing numbered its own lines.
+
+Terms
+   Public domain: the transcriptions are released under CC0, free to reuse for any purpose, commercial included. The Partnership asks to be credited, and does not require it.
+"""),
+
         ("Medieval Hands", """
 The lens over a line of script on the main toolbar. Every other collection in this library arrives already transcribed, with the step where somebody looked at a manuscript and decided what it said left out. This window is that step: 194,808 lines from 313 medieval manuscripts, each one photographed and set beside a transcription of it.
 

@@ -8,6 +8,7 @@ using ClassicaCodex.Ingestion.Catmus;
 using ClassicaCodex.Ingestion.Dante;
 using ClassicaCodex.Ingestion.Egyptian;
 using ClassicaCodex.Ingestion.Geste;
+using ClassicaCodex.Ingestion.EarlyEnglish;
 using ClassicaCodex.Ingestion.Hebrew;
 using ClassicaCodex.Ingestion.ReM;
 
@@ -99,6 +100,9 @@ public static class SetupDataSourceCatalog
 
         /// <summary>The Hebrew Bible - the Leningrad Codex, parsed, with the JPS translation of 1917.</summary>
         public const string HebrewBible = HebrewBibleIngestService.CollectionKey;
+
+        /// <summary>Early English books on devils, spirits and angels, from EEBO-TCP.</summary>
+        public const string EarlyEnglishSpirits = EarlyEnglishSpiritsIngestService.CollectionKey;
     }
 
     /// <summary>
@@ -123,6 +127,7 @@ public static class SetupDataSourceCatalog
         CollectionKeys.Dante => "Dante, Commedia (annotated)",
         CollectionKeys.PyramidTexts => "Pyramid Texts (Old Egyptian)",
         CollectionKeys.HebrewBible => "Hebrew Bible (Leningrad Codex)",
+        CollectionKeys.EarlyEnglishSpirits => "Early English Books: devils, spirits and angels (EEBO-TCP)",
         _ => key
     };
 
@@ -1042,6 +1047,56 @@ public static class SetupDataSourceCatalog
                     await editionRepo.IsCollectionCompleteAsync(CollectionKeys.HebrewBible),
                 CheckHasSomeContent = async () =>
                     await editionRepo.CountByCollectionAsync(CollectionKeys.HebrewBible) > 0
+            },
+
+            new SetupDataSource
+            {
+                Title = "Early English Books: devils, spirits and angels",
+                RepoUrl = "https://www.textpartnership.net/pages/eebo-tcp.html",
+                DisplayNote = $"{EarlyEnglishSpiritsIngestService.Books.Count} books, about 20 MB, one download each",
+                DefaultDestination = Path.Combine(dataRoot, "early-english-spirits"),
+                FetchMode = SetupFetchMode.SelfManaged,
+
+                Links =
+                {
+                    new SetupLink
+                    {
+                        Text = "About the Text Creation Partnership's EEBO transcriptions",
+                        Url = "https://www.textpartnership.net/pages/eebo-tcp.html"
+                    }
+                },
+
+                PlainLanguageDescription =
+                    "Twenty-one English books printed between 1572 and 1681 on devils, spirits, angels, "
+                    + "witches and ghosts: James VI's Daemonologie, Reginald Scot's Discovery of Witchcraft "
+                    + "with its catalogue of the names and shapes of devils, Heywood's Hierarchie of the "
+                    + "Blessed Angells, Paradise Lost in its first edition of 1667 and its second of 1674, "
+                    + "Paradise Regain'd, both texts of Marlowe's Doctor Faustus - the 1604 and the 1616 - "
+                    + "Agrippa's Occult Philosophy, the angel conversations of John Dee, Burton's Anatomy of "
+                    + "Melancholy, Lavater on ghosts, Gifford, Perkins, Glanvill, Henry More and Thomas "
+                    + "Browne. "
+                    + "These are transcriptions of particular printings, keyed by the Text Creation "
+                    + "Partnership from Early English Books Online, in the spelling of the page: long s, u "
+                    + "for v, and a bullet where the microfilm could not be read. Verse is cited by book and "
+                    + "line, prose by book, chapter and paragraph, plays by line. "
+                    + "All of it is free to reuse for any purpose, commercial included: the transcriptions "
+                    + "are public domain, released under CC0.",
+
+                RunIngest = async (root, progress, ct) =>
+                {
+                    var service = new EarlyEnglishSpiritsIngestService();
+                    var outcome = await service.IngestAsync(root, progress, ct);
+
+                    if (service.BooksInstalled > 0)
+                        await editionRepo.StampCollectionAsync(root, CollectionKeys.EarlyEnglishSpirits, ct);
+
+                    return outcome;
+                },
+
+                CheckComplete = async () =>
+                    await editionRepo.IsCollectionCompleteAsync(CollectionKeys.EarlyEnglishSpirits),
+                CheckHasSomeContent = async () =>
+                    await editionRepo.CountByCollectionAsync(CollectionKeys.EarlyEnglishSpirits) > 0
             },
 
             new SetupDataSource
