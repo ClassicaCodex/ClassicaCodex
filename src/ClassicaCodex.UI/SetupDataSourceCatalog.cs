@@ -3,6 +3,7 @@ using ClassicaCodex.Core.Catmus;
 using ClassicaCodex.Core.Models;
 using ClassicaCodex.Data.Repositories;
 using ClassicaCodex.Ingestion;
+using ClassicaCodex.Ingestion.Aquinas;
 using ClassicaCodex.Ingestion.Bfm;
 using ClassicaCodex.Ingestion.Catmus;
 using ClassicaCodex.Ingestion.Dante;
@@ -115,6 +116,9 @@ public static class SetupDataSourceCatalog
 
         /// <summary>The Quran in Arabic, Uthmani and simple, with Pickthall's English.</summary>
         public const string Quran = QuranIngestService.CollectionKey;
+
+        /// <summary>The First Part of Aquinas's Summa Theologiae, in the English Dominican translation.</summary>
+        public const string Aquinas = AquinasIngestService.CollectionKey;
     }
 
     /// <summary>
@@ -143,6 +147,7 @@ public static class SetupDataSourceCatalog
         CollectionKeys.Pseudepigrapha => "Pseudepigrapha: Enoch, Solomon, Jubilees",
         CollectionKeys.Rabbinic => "Rabbinic texts: Talmud and midrash",
         CollectionKeys.Quran => "The Quran (Arabic, with Pickthall's English)",
+        CollectionKeys.Aquinas => "Aquinas, Summa Theologiae, First Part (English)",
         _ => key
     };
 
@@ -1259,6 +1264,47 @@ public static class SetupDataSourceCatalog
                     await editionRepo.IsCollectionCompleteAsync(CollectionKeys.Quran),
                 CheckHasSomeContent = async () =>
                     await editionRepo.CountByCollectionAsync(CollectionKeys.Quran) > 0
+            },
+
+            new SetupDataSource
+            {
+                Title = "Aquinas: Summa Theologiae, First Part, in English",
+                RepoUrl = "https://www.gutenberg.org/ebooks/17611",
+                DisplayNote = "about 3 MB in one download",
+                DefaultDestination = Path.Combine(dataRoot, "aquinas"),
+                FetchMode = SetupFetchMode.SelfManaged,
+
+                Links =
+                {
+                    new SetupLink { Text = "The Summa, Part I, at Project Gutenberg", Url = "https://www.gutenberg.org/ebooks/17611" }
+                },
+
+                PlainLanguageDescription =
+                    "The First Part of Thomas Aquinas's Summa Theologiae, all 119 questions, in the English "
+                    + "translation by the Fathers of the English Dominican Province: God, the Trinity, "
+                    + "creation, man, and the treatise on the angels - what they are, how they know and will, "
+                    + "how some of them fell (questions 50 to 64) - with the angels' orders, their "
+                    + "guardianship of men and the demons' assaults on them (106 to 114). "
+                    + "Cited as the Summa is cited, by question, article and part: 63.2.co is the body of "
+                    + "question 63, article 2; ob1 is the first objection, sc On the contrary, ad1 the reply "
+                    + "to the first objection. English only: Aquinas's Latin is free, but no digital Latin "
+                    + "text of it is. Public domain.",
+
+                RunIngest = async (root, progress, ct) =>
+                {
+                    var service = new AquinasIngestService();
+                    var outcome = await service.IngestAsync(root, progress, ct);
+
+                    if (service.PassagesInstalled > 0)
+                        await editionRepo.StampCollectionAsync(root, CollectionKeys.Aquinas, ct);
+
+                    return outcome;
+                },
+
+                CheckComplete = async () =>
+                    await editionRepo.IsCollectionCompleteAsync(CollectionKeys.Aquinas),
+                CheckHasSomeContent = async () =>
+                    await editionRepo.CountByCollectionAsync(CollectionKeys.Aquinas) > 0
             },
 
             new SetupDataSource
