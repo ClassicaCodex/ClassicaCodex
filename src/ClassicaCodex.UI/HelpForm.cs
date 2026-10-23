@@ -761,6 +761,24 @@ Terms
    Public domain. Transcribed by Roger Pearse for the Christian Classics Ethereal Library, which marks the text public domain.
 """),
 
+        ("The Goetia", """
+The Goetia, the first book of the Lesser Key of Solomon, in the edition of S. L. MacGregor Mathers and Aleister Crowley published in 1904. Install it from the setup wizard; it is a single small download.
+
+What is in it
+   The seventy-two spirits King Solomon bound and shut in a vessel of brass, each with its rank, the shape it takes, what it can do and how many legions it commands — Bael, Paimon, Beleth, Asmoday, Belial and the rest. Then the art of calling them: Mathers's definition of magic, the observations on days and hours, the list of the spirits by rank, the circle, the triangle, the hexagram, pentagram and ring of Solomon, the vessel of brass, the conjurations, the constraint, the curses, the welcome and the licence to depart. And Crowley's two additions: his essay "The Initiated Interpretation of Ceremonial Magic", and his mock-archaic English of the conjurations.
+
+   Most of the spirits come from Johann Weyer's catalogue of 1577, which Reginald Scot put into English in the Discovery of Witchcraft. That is in the early English books, and the two can be read side by side, spirit by spirit.
+
+Citations
+   The spirits by number, as they are always cited: Goetia 1 is Bael, 72 is Andromalius. The rest of the art and Crowley's conjurations by section and paragraph, with each section's title as its heading; Crowley's essay by paragraph. A footnote follows the passage its marker was in, cited with .n1, .n2 — 9.n1 is the note on Paimon.
+
+About this text
+   It comes from Wikisource, where it has not yet been checked against the 1904 book. It appears to be a copy of an earlier web transcription, and keeps its habits: the footnotes were gathered at the foot of each page with bare numbers in the text, and those numbers have been matched up and taken out. Four notes whose numbers were lost say so. Wikisource names L. W. de Laurence's reprint of 1916 as its edition. Before quoting it in print, check the passage against the scan of the 1904 book, which is linked from the setup wizard. The seals and figures are pictures in the book and are not included.
+
+Terms
+   Public domain: the book was published in 1904, and Mathers, Crowley and de Laurence all died more than seventy years ago. The earlier transcription this appears to descend from asks that its files be used only non-commercially; for a book that will be sold, quote from the scan.
+"""),
+
         ("Medieval Hands", """
 The lens over a line of script on the main toolbar. Every other collection in this library arrives already transcribed, with the step where somebody looked at a manuscript and decided what it said left out. This window is that step: 194,808 lines from 313 medieval manuscripts, each one photographed and set beside a transcription of it.
 

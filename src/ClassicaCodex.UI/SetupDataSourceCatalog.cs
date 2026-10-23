@@ -10,6 +10,7 @@ using ClassicaCodex.Ingestion.Dante;
 using ClassicaCodex.Ingestion.Dionysius;
 using ClassicaCodex.Ingestion.Egyptian;
 using ClassicaCodex.Ingestion.Geste;
+using ClassicaCodex.Ingestion.Goetia;
 using ClassicaCodex.Ingestion.EarlyEnglish;
 using ClassicaCodex.Ingestion.Hebrew;
 using ClassicaCodex.Ingestion.Pseudepigrapha;
@@ -123,6 +124,9 @@ public static class SetupDataSourceCatalog
 
         /// <summary>Pseudo-Dionysius the Areopagite in John Parker's English.</summary>
         public const string Dionysius = DionysiusIngestService.CollectionKey;
+
+        /// <summary>The Goetia of Mathers and Crowley (1904): the seventy-two spirits and their conjuration.</summary>
+        public const string Goetia = GoetiaIngestService.CollectionKey;
     }
 
     /// <summary>
@@ -153,6 +157,7 @@ public static class SetupDataSourceCatalog
         CollectionKeys.Quran => "The Quran (Arabic, with Pickthall's English)",
         CollectionKeys.Aquinas => "Aquinas, Summa Theologiae, First Part (English)",
         CollectionKeys.Dionysius => "Pseudo-Dionysius the Areopagite (Parker's English)",
+        CollectionKeys.Goetia => "The Goetia (Mathers and Crowley, 1904)",
         _ => key
     };
 
@@ -1350,6 +1355,49 @@ public static class SetupDataSourceCatalog
                     await editionRepo.IsCollectionCompleteAsync(CollectionKeys.Dionysius),
                 CheckHasSomeContent = async () =>
                     await editionRepo.CountByCollectionAsync(CollectionKeys.Dionysius) > 0
+            },
+
+            new SetupDataSource
+            {
+                Title = "The Goetia: the seventy-two spirits of the Lesser Key of Solomon",
+                RepoUrl = "https://en.wikisource.org/wiki/The_Lesser_Key_of_Solomon",
+                DisplayNote = "about 110 KB in one download",
+                DefaultDestination = Path.Combine(dataRoot, "goetia"),
+                FetchMode = SetupFetchMode.SelfManaged,
+
+                Links =
+                {
+                    new SetupLink { Text = "The Lesser Key of Solomon on Wikisource", Url = "https://en.wikisource.org/wiki/The_Lesser_Key_of_Solomon" },
+                    new SetupLink { Text = "The 1904 edition, scanned", Url = "https://en.wikisource.org/wiki/Index:The_Book_of_the_Goetia_(Mathers-Crowley,_1904).djvu" }
+                },
+
+                PlainLanguageDescription =
+                    "The Goetia, the first book of the Lesser Key of Solomon, in the edition of S. L. "
+                    + "MacGregor Mathers and Aleister Crowley (1904): the seventy-two spirits King Solomon shut "
+                    + "in a vessel of brass, each with its rank, its shape, its office and its legions, cited by "
+                    + "number as they always are (Goetia 1 is Bael); the art of calling them, with the circle, "
+                    + "the triangle, the conjurations, the curses and the licence to depart; and Crowley's essay "
+                    + "on what magic is. Read the spirits beside the catalogue in Scot's Discovery of "
+                    + "Witchcraft, from which most of them come. "
+                    + "The text is from Wikisource and has not been proofread there against the 1904 book; "
+                    + "check a quotation against the scan. The seals are pictures and are not included. "
+                    + "Public domain.",
+
+                RunIngest = async (root, progress, ct) =>
+                {
+                    var service = new GoetiaIngestService();
+                    var outcome = await service.IngestAsync(root, progress, ct);
+
+                    if (service.PassagesInstalled > 0)
+                        await editionRepo.StampCollectionAsync(root, CollectionKeys.Goetia, ct);
+
+                    return outcome;
+                },
+
+                CheckComplete = async () =>
+                    await editionRepo.IsCollectionCompleteAsync(CollectionKeys.Goetia),
+                CheckHasSomeContent = async () =>
+                    await editionRepo.CountByCollectionAsync(CollectionKeys.Goetia) > 0
             },
 
             new SetupDataSource
