@@ -10,6 +10,7 @@ using ClassicaCodex.Ingestion.Egyptian;
 using ClassicaCodex.Ingestion.Geste;
 using ClassicaCodex.Ingestion.EarlyEnglish;
 using ClassicaCodex.Ingestion.Hebrew;
+using ClassicaCodex.Ingestion.Pseudepigrapha;
 using ClassicaCodex.Ingestion.ReM;
 
 namespace ClassicaCodex.UI;
@@ -103,6 +104,9 @@ public static class SetupDataSourceCatalog
 
         /// <summary>Early English books on devils, spirits and angels, from EEBO-TCP.</summary>
         public const string EarlyEnglishSpirits = EarlyEnglishSpiritsIngestService.CollectionKey;
+
+        /// <summary>1 Enoch, the Testament of Solomon, Jubilees and the other books outside the Bible.</summary>
+        public const string Pseudepigrapha = PseudepigraphaIngestService.CollectionKey;
     }
 
     /// <summary>
@@ -128,6 +132,7 @@ public static class SetupDataSourceCatalog
         CollectionKeys.PyramidTexts => "Pyramid Texts (Old Egyptian)",
         CollectionKeys.HebrewBible => "Hebrew Bible (Leningrad Codex)",
         CollectionKeys.EarlyEnglishSpirits => "Early English Books: devils, spirits and angels (EEBO-TCP)",
+        CollectionKeys.Pseudepigrapha => "Pseudepigrapha: Enoch, Solomon, Jubilees",
         _ => key
     };
 
@@ -1097,6 +1102,60 @@ public static class SetupDataSourceCatalog
                     await editionRepo.IsCollectionCompleteAsync(CollectionKeys.EarlyEnglishSpirits),
                 CheckHasSomeContent = async () =>
                     await editionRepo.CountByCollectionAsync(CollectionKeys.EarlyEnglishSpirits) > 0
+            },
+
+            new SetupDataSource
+            {
+                Title = "Pseudepigrapha: Enoch, the Testament of Solomon, Jubilees",
+                RepoUrl = "https://github.com/OnlineCriticalPseudepigrapha/Online-Critical-Pseudepigrapha",
+                DisplayNote = "about 4 MB in some 120 small downloads",
+                DefaultDestination = Path.Combine(dataRoot, "pseudepigrapha"),
+                FetchMode = SetupFetchMode.SelfManaged,
+
+                Links =
+                {
+                    new SetupLink
+                    {
+                        Text = "Charles's Book of Enoch on Wikisource",
+                        Url = "https://en.wikisource.org/wiki/The_Book_of_Enoch_(Charles)"
+                    },
+                    new SetupLink
+                    {
+                        Text = "About the Online Critical Pseudepigrapha",
+                        Url = "https://github.com/OnlineCriticalPseudepigrapha/Online-Critical-Pseudepigrapha"
+                    }
+                },
+
+                PlainLanguageDescription =
+                    "The books outside the Bible that tell where angels and demons came from. 1 Enoch in "
+                    + "R. H. Charles's translation of 1917 - the Watchers, the giants, the demons born of "
+                    + "them - filed beside the Greek fragments the library already has, so chapters 1-32 read "
+                    + "side by side. The Testament of Solomon, with its catalogue of the demons Solomon bound "
+                    + "with his ring, in McCown's Greek and Conybeare's English. The Testaments of the Twelve "
+                    + "Patriarchs in Greek and in Charles's English, Jubilees in Charles's English, the Greek "
+                    + "Apocalypse of Moses and 2 Enoch. "
+                    + "Two things to know. Conybeare numbered his translation of the Testament of Solomon in "
+                    + "130 sections of his own, from a different manuscript, so it is cited §1 to §130 and "
+                    + "does not scroll with McCown's chapters. And Jubilees has no original-language pane: "
+                    + "the Hebrew beside the English is a nineteenth-century retranslation from the Ethiopic. "
+                    + "The English translations are in the public domain; the Greek texts are the Online "
+                    + "Critical Pseudepigrapha's, under CC BY 4.0.",
+
+                RunIngest = async (root, progress, ct) =>
+                {
+                    var service = new PseudepigraphaIngestService();
+                    var outcome = await service.IngestAsync(root, progress, ct);
+
+                    if (service.PassagesInstalled > 0)
+                        await editionRepo.StampCollectionAsync(root, CollectionKeys.Pseudepigrapha, ct);
+
+                    return outcome;
+                },
+
+                CheckComplete = async () =>
+                    await editionRepo.IsCollectionCompleteAsync(CollectionKeys.Pseudepigrapha),
+                CheckHasSomeContent = async () =>
+                    await editionRepo.CountByCollectionAsync(CollectionKeys.Pseudepigrapha) > 0
             },
 
             new SetupDataSource
