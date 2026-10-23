@@ -633,6 +633,25 @@ Boxes where a sign should be
    About one passage in five shows a small empty box. Unicode added four thousand more hieroglyphs in 2023, 1.35% of the signs here are among them, and no font that ships with Windows has caught up. Nothing is wrong with the text — installing a font with wider coverage, such as Aegyptus or NewGardiner, fills them in.
 """),
 
+        ("The Hebrew Bible", """
+The whole Hebrew Bible — Torah, Prophets and Writings, 39 books and 23,213 verses — in the text of the Leningrad Codex, the oldest complete manuscript of it, copied in 1008, with the translation the Jewish Publication Society published in 1917 beside it. Install it from the setup wizard; it is about 23 MB in 41 downloads.
+
+Right to left
+   Hebrew is drawn from the right edge of the pane, in a font that has the vowel points and the accents — Times New Roman, which every Windows has, unless a font made for pointed Hebrew such as SBL Hebrew or Ezra SIL is installed. The English pane beside it reads left to right as usual.
+
+What the brackets mean
+   Where the consonants the scribe wrote and the reading the Masoretes marked in the margin differ, both are shown, as printed Bibles show them: the written form in parentheses, unpointed because its vowels belong to the other, and the reading in brackets after it. Both can be looked up.
+
+Citations
+   By chapter and verse, in the Hebrew numbering: the Psalm headings are verse 1, Malachi has three chapters and Joel four. The 1917 translation follows the same numbering, which is why it is the one paired with this. Where it divides a verse differently — the Ten Commandments in Exodus 20 and Deuteronomy 5, and Numbers 25.19 — it is put back on the Hebrew's numbers as it is installed, so both panes say the same thing at the same reference.
+
+Word Study
+   Every word is parsed and carries its entry in Strong's dictionary, which is installed with it. Strong's ends each entry with the words the King James Version uses for the headword, and they are labelled as that. Search folds the final letters into their ordinary forms and treats words joined by a maqaf as two words, so a search typed without final forms or vowels still finds the word.
+
+Terms
+   The Hebrew text and the 1917 translation are in the public domain. The parsing and the dictionary's encoding are the Open Scriptures Hebrew Bible project's, under CC BY 4.0, which asks for credit and nothing more.
+"""),
+
         ("Medieval Hands", """
 The lens over a line of script on the main toolbar. Every other collection in this library arrives already transcribed, with the step where somebody looked at a manuscript and decided what it said left out. This window is that step: 194,808 lines from 313 medieval manuscripts, each one photographed and set beside a transcription of it.
 

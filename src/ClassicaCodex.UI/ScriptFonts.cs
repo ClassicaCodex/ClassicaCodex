@@ -30,7 +30,8 @@ internal static class ScriptFonts
     /// A script that needs a font of its own, the codepoints that identify it,
     /// and the fonts that can draw it, best first.
     /// </summary>
-    private sealed record Script(string Name, (int First, int Last)[] Ranges, string[] Families)
+    private sealed record Script(
+        string Name, (int First, int Last)[] Ranges, string[] Families, bool RightToLeft = false)
     {
         public bool Contains(int codepoint)
         {
@@ -77,7 +78,28 @@ internal static class ScriptFonts
         new[] { (0x13000, 0x1345F), (0x13460, 0x143FF) },
         new[] { "Segoe UI Historic", "Noto Sans Egyptian Hieroglyphs", "NewGardiner", "Aegyptus", "JSeshFont" });
 
-    private static readonly Script[] Scripts = { Cuneiform, EgyptianHieroglyphs };
+    /// <summary>
+    /// Hebrew: the letters, the vowel points and the cantillation marks, and
+    /// the presentation forms some editions use for letters with dagesh.
+    ///
+    /// <b>The reading font cannot draw a single letter of it.</b> Palatino
+    /// Linotype and Georgia have no Hebrew at all, so Windows would substitute
+    /// a font per run and place the points against glyphs they were not
+    /// designed for. Times New Roman ships with every Windows and carries all
+    /// 27 letters, all 13 points and all 30 cantillation marks, measured from
+    /// the font itself; the families before it are the ones made for pointed
+    /// and accented text, for whoever has installed one.
+    ///
+    /// The only script here written right to left, which is the other thing
+    /// the reader has to know about it - see SyncListView.
+    /// </summary>
+    private static readonly Script Hebrew = new(
+        "Hebrew",
+        new[] { (0x0591, 0x05F4), (0xFB1D, 0xFB4F) },
+        new[] { "SBL Hebrew", "Ezra SIL", "Taamey Frank CLM", "Times New Roman" },
+        RightToLeft: true);
+
+    private static readonly Script[] Scripts = { Cuneiform, EgyptianHieroglyphs, Hebrew };
 
     /// <summary>
     /// How much of an edition is examined before concluding it needs no
@@ -118,6 +140,16 @@ internal static class ScriptFonts
     internal static bool ContainsEgyptian(string text) =>
         ReferenceEquals(ScriptOf(text), EgyptianHieroglyphs);
 
+    internal static bool ContainsHebrew(string text) =>
+        ReferenceEquals(ScriptOf(text), Hebrew);
+
+    /// <summary>
+    /// Whether these passages are written right to left, and should be drawn
+    /// from the right edge of the pane.
+    /// </summary>
+    internal static bool IsRightToLeft(IReadOnlyList<TextNode> nodes) =>
+        ScriptOf(nodes)?.RightToLeft == true;
+
     /// <summary>
     /// The script these passages are in, or null for one the reading font can
     /// already draw.
@@ -147,18 +179,20 @@ internal static class ScriptFonts
     /// <summary>
     /// The script a string is in, or null.
     ///
-    /// Over runes rather than chars: every one of these codepoints is above
-    /// U+FFFF and therefore arrives as a surrogate pair, and a loop over chars
+    /// Over runes rather than chars: cuneiform and hieroglyphs are above
+    /// U+FFFF and therefore arrive as surrogate pairs, and a loop over chars
     /// would compare two halves that are each in the D800 range and find
-    /// nothing. The cheap rejection on the Basic Multilingual Plane is what
-    /// keeps this off the critical path for the Greek and Latin that is most
-    /// of the library.
+    /// nothing. The cheap rejection is what keeps this off the critical path
+    /// for the Greek and Latin that is most of the library: Latin is below the
+    /// Hebrew block, and Greek - polytonic included, at U+1F00 - sits in the
+    /// gap between Hebrew and its presentation forms.
     /// </summary>
     private static Script? ScriptOf(string text)
     {
         foreach (var rune in text.EnumerateRunes())
         {
-            if (rune.Value <= 0xFFFF) continue;
+            var value = rune.Value;
+            if (value < 0x0591 || (value > 0x05F4 && value < 0xFB1D) || (value > 0xFB4F && value <= 0xFFFF)) continue;
 
             foreach (var script in Scripts)
             {

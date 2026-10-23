@@ -92,6 +92,12 @@ public static class WordNormalizer
             //
             // Nor are þ, ð, æ, œ, ø, ȝ or ʒ folded: those are letters in their
             // own right, not shapes of a-z.
+            //
+            // Hebrew's five final letters fold for the reason final sigma
+            // does: ך ם ן ף ץ are כ מ נ פ צ in the shape they take at the end
+            // of a word. Unfolded, "מלאכ" - the stem of every plural and
+            // suffixed form of "angel" - could never reach the singular
+            // מלאך, and nor could a search typed without the final forms.
             lower = lower switch
             {
                 'ı' => 'i',
@@ -99,6 +105,11 @@ public static class WordNormalizer
                 'ꝺ' => 'd',
                 'ɑ' => 'a',
                 'ꝛ' or 'ɼ' => 'r',
+                'ך' => 'כ',
+                'ם' => 'מ',
+                'ן' => 'נ',
+                'ף' => 'פ',
+                'ץ' => 'צ',
                 _ => lower
             };
 
@@ -224,6 +235,25 @@ public static class WordNormalizer
         return sb.ToString();
     }
 
+    private const char Maqaf = '\u05BE';
+
+    /// <summary>
+    /// Opens a space at every Hebrew maqaf.
+    ///
+    /// Maqaf joins two words under one accent and is written with no space
+    /// either side: אֶת־הָאָרֶץ is "the land" as the object of a verb, two
+    /// words. Normalize drops the maqaf as punctuation, so left in place it
+    /// would weld them into one index entry, and את and הארץ would each be
+    /// missing from the index wherever they were joined. The Westminster
+    /// Leningrad Codex writes 42,577 of them in 306,785 words, so more than a
+    /// quarter of the words in the Hebrew Bible stand next to one.
+    ///
+    /// Nothing outside Hebrew uses the character, so every other line comes
+    /// back unallocated.
+    /// </summary>
+    public static string SplitAtMaqaf(string text) =>
+        string.IsNullOrEmpty(text) || text.IndexOf(Maqaf) < 0 ? text : text.Replace(Maqaf, ' ');
+
     /// <summary>
     /// The distinct indexable words in one line, exactly as the word index
     /// stores them.
@@ -247,9 +277,12 @@ public static class WordNormalizer
     /// it - see JoinSoftHyphenBreaks. Once the whitespace has done its work
     /// the two halves are separate tokens and nothing downstream can tell
     /// them from two real words.
+    ///
+    /// The maqaf pass is the opposite case: two words written with no space
+    /// between them that are two words. See SplitAtMaqaf.
     /// </summary>
     public static IEnumerable<string> TokenizeLine(string text) =>
-        JoinSoftHyphenBreaks(text)
+        SplitAtMaqaf(JoinSoftHyphenBreaks(text))
             .Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries)
             .Select(Normalize)
             .Where(w => w.Length > 0 && w.Length <= 200)

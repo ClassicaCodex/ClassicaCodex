@@ -123,6 +123,10 @@ public class LemmaRepository
             {
                 return "grc";
             }
+
+            // Hebrew has its own alphabet too, and only the Hebrew Bible
+            // writes in it.
+            if (c >= '\u05D0' && c <= '\u05EA') return "hbo";
         }
 
         return "lat";

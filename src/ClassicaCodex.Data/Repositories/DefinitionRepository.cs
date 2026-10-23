@@ -94,6 +94,23 @@ public class DefinitionRepository
     }
 
     /// <summary>
+    /// Clears one language's entries, leaving the others alone - the same
+    /// reason as LemmaRepository.ClearByLanguageAsync. A collection that brings
+    /// its own dictionary has to be able to replace it on a re-run without
+    /// taking LSJ and Lewis &amp; Short with it.
+    /// </summary>
+    public async Task<int> ClearByLanguageAsync(
+        string language, CancellationToken cancellationToken = default)
+    {
+        await using var conn = await DbConnectionFactory.OpenConnectionAsync(cancellationToken);
+        await using var cmd = conn.CreateCommand();
+        cmd.CommandText = "DELETE FROM Definitions WHERE Language = @Language;";
+        cmd.Parameters.AddWithValue("@Language", language);
+        cmd.CommandTimeout = 300;
+        return await cmd.ExecuteNonQueryAsync(cancellationToken);
+    }
+
+    /// <summary>
     /// Dictionary entries for a headword. Can legitimately return several -
     /// homograph numbering doesn't map cleanly between lemma data and
     /// lexicons, so all candidates are returned rather than guessing.
@@ -119,12 +136,18 @@ public class DefinitionRepository
         // makes this the difference between seeking the index and reading all
         // 423,551 definitions.
         //
+        // The headword as asked for comes first. Normalising strips the vowel
+        // points, so in Hebrew שָׂטָן "adversary" and שָׂטַן "to accuse" share
+        // one key and arrive together - rightly, since a reader may want both -
+        // but sorted by spelling alone the verb came first under a word whose
+        // lemma data had already said it was the noun.
+        //
         // LIMIT goes at the end in SQLite, not TOP (N) at the start.
         const string sql = @"
             SELECT Headword, Entry, Source
             FROM Definitions
             WHERE Language = @Language AND NormalizedHeadword = @Normalized
-            ORDER BY Headword
+            ORDER BY Headword = @Headword DESC, Headword
             LIMIT 10;";
 
         await using var cmd = conn.CreateCommand();
@@ -132,6 +155,7 @@ public class DefinitionRepository
         cmd.CommandTimeout = 60;
         cmd.Parameters.AddWithValue("@Language", language);
         cmd.Parameters.AddWithValue("@Normalized", normalized);
+        cmd.Parameters.AddWithValue("@Headword", headword);
 
         await using var reader = await cmd.ExecuteReaderAsync(cancellationToken);
         while (await reader.ReadAsync(cancellationToken))

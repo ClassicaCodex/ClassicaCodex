@@ -777,6 +777,24 @@ public class SyncListView : ListBox
     private string? _readingFamily;
 
     /// <summary>
+    /// Whether the edition on show is written right to left - Hebrew, so far.
+    ///
+    /// GDI shapes a Hebrew run in the right order whatever it is told, so a
+    /// line drawn without this still reads correctly word by word. What goes
+    /// wrong is the line as a whole: it hangs from the left margin, and the
+    /// neutral characters at its ends - the sof pasuq that closes every verse,
+    /// a bracketed qere - are placed by a left-to-right paragraph and land at
+    /// the wrong end. Measuring is unaffected, which is why only drawing reads
+    /// this.
+    /// </summary>
+    private bool _rightToLeft;
+
+    /// <summary>The flags a passage's text is drawn with.</summary>
+    private TextFormatFlags TextFlags =>
+        TextFormatFlags.WordBreak | TextFormatFlags.NoPadding
+        | (_rightToLeft ? TextFormatFlags.RightToLeft | TextFormatFlags.Right : 0);
+
+    /// <summary>
     /// Gives the pane a font that can draw what it is about to show.
     ///
     /// Per edition rather than per row, deliberately. Every height in here is
@@ -794,6 +812,9 @@ public class SyncListView : ListBox
     private void ApplyScriptFont(IReadOnlyList<TextNode> nodes)
     {
         _readingFamily ??= Font.FontFamily.Name;
+
+        // Decided here, beside the font, for the same per-edition reason.
+        _rightToLeft = ScriptFonts.IsRightToLeft(nodes);
 
         var wanted = ScriptFonts.FamilyFor(nodes) ?? _readingFamily;
         if (string.Equals(wanted, Font.FontFamily.Name, StringComparison.OrdinalIgnoreCase)) return;
@@ -1356,8 +1377,7 @@ public class SyncListView : ListBox
             var gutter = GutterWidth;
             var rect = new Rectangle(e.Bounds.X + 3 + gutter, e.Bounds.Y + 2,
                                      e.Bounds.Width - 6 - gutter, e.Bounds.Height - 4);
-            TextRenderer.DrawText(e.Graphics, text, font, rect, foreColor,
-                TextFormatFlags.WordBreak | TextFormatFlags.NoPadding);
+            TextRenderer.DrawText(e.Graphics, text, font, rect, foreColor, TextFlags);
 
             // The marks go after the passage's last row, not into its text.
             // They are added and removed while the pane is on screen, and a
@@ -1432,6 +1452,11 @@ public class SyncListView : ListBox
         var tucked = afterText + suffixWidth <= textWidth;
         var left = tucked ? afterText : rightAligned;
 
+        // A right-to-left line ends at its left, so the same arithmetic runs
+        // from the other margin: after the text is to the left of its last
+        // word, and the fallback is the left edge.
+        if (_rightToLeft) left = tucked ? textWidth - afterText - suffixWidth : 0;
+
         var rect = new Rectangle(
             e.Bounds.X + 3 + gutter + left,
             // Clamped to the row. A row at the 255px ceiling measures far
@@ -1451,7 +1476,7 @@ public class SyncListView : ListBox
 
         TextRenderer.DrawText(e.Graphics, suffix, font, rect, foreColor,
             TextFormatFlags.NoPadding | TextFormatFlags.SingleLine
-            | (tucked ? TextFormatFlags.Left : TextFormatFlags.Right));
+            | (tucked || _rightToLeft ? TextFormatFlags.Left : TextFormatFlags.Right));
     }
 
     /// <summary>

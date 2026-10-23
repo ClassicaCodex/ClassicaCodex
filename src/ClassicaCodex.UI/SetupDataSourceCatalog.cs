@@ -8,6 +8,7 @@ using ClassicaCodex.Ingestion.Catmus;
 using ClassicaCodex.Ingestion.Dante;
 using ClassicaCodex.Ingestion.Egyptian;
 using ClassicaCodex.Ingestion.Geste;
+using ClassicaCodex.Ingestion.Hebrew;
 using ClassicaCodex.Ingestion.ReM;
 
 namespace ClassicaCodex.UI;
@@ -95,6 +96,9 @@ public static class SetupDataSourceCatalog
 
         /// <summary>The Pyramid Texts - Old Egyptian, in hieroglyphs and transliteration.</summary>
         public const string PyramidTexts = PyramidTextsIngestService.CollectionKey;
+
+        /// <summary>The Hebrew Bible - the Leningrad Codex, parsed, with the JPS translation of 1917.</summary>
+        public const string HebrewBible = HebrewBibleIngestService.CollectionKey;
     }
 
     /// <summary>
@@ -118,6 +122,7 @@ public static class SetupDataSourceCatalog
         CollectionKeys.Bfm => "Medieval French (BFM)",
         CollectionKeys.Dante => "Dante, Commedia (annotated)",
         CollectionKeys.PyramidTexts => "Pyramid Texts (Old Egyptian)",
+        CollectionKeys.HebrewBible => "Hebrew Bible (Leningrad Codex)",
         _ => key
     };
 
@@ -982,6 +987,61 @@ public static class SetupDataSourceCatalog
                     await editionRepo.IsCollectionCompleteAsync(CollectionKeys.PyramidTexts),
                 CheckHasSomeContent = async () =>
                     await editionRepo.CountByCollectionAsync(CollectionKeys.PyramidTexts) > 0
+            },
+
+            new SetupDataSource
+            {
+                Title = "The Hebrew Bible, with the JPS translation",
+                RepoUrl = "https://github.com/openscriptures/morphhb",
+                DisplayNote = "about 23 MB in 41 downloads; Hebrew, English and a Hebrew dictionary",
+                DefaultDestination = Path.Combine(dataRoot, "hebrew-bible"),
+                FetchMode = SetupFetchMode.SelfManaged,
+
+                Links =
+                {
+                    new SetupLink
+                    {
+                        Text = "About the Open Scriptures Hebrew Bible",
+                        Url = "https://github.com/openscriptures/morphhb"
+                    },
+                    new SetupLink
+                    {
+                        Text = "The JPS translation of 1917, on Sefaria",
+                        Url = "https://www.sefaria.org/Genesis.1?ven=The_Holy_Scriptures:_A_New_Translation_(JPS_1917)"
+                    }
+                },
+
+                PlainLanguageDescription =
+                    "The whole Hebrew Bible - Torah, Prophets and Writings, 39 books and 23,213 verses - "
+                    + "in the text of the Leningrad Codex, the oldest complete manuscript of it, copied in "
+                    + "1008. Every word is parsed and keyed to Strong's dictionary, which comes with it, so "
+                    + "Word Study answers on the Hebrew with no further download. "
+                    + "Beside it is the translation the Jewish Publication Society published in 1917, which "
+                    + "numbers its chapters and verses the way the Hebrew does, so the two panes stay "
+                    + "together - unlike the King James, which numbers the Psalms, Joel and Malachi "
+                    + "differently. Where the 1917 translation divides a verse differently - the Ten "
+                    + "Commandments in Exodus 20 and Deuteronomy 5, and Numbers 25.19 - it is put back on "
+                    + "the Hebrew's numbers as it is installed. "
+                    + "Hebrew reads from right to left and is shown that way, in a font with the vowel "
+                    + "points and accents. The text and the 1917 translation are in the public domain; the "
+                    + "parsing and the dictionary's encoding are the Open Scriptures project's, under "
+                    + "CC BY 4.0. The translation is fetched from Sefaria one book at a time.",
+
+                RunIngest = async (root, progress, ct) =>
+                {
+                    var service = new HebrewBibleIngestService();
+                    var outcome = await service.IngestAsync(root, progress, ct);
+
+                    if (service.VersesInstalled > 0)
+                        await editionRepo.StampCollectionAsync(root, CollectionKeys.HebrewBible, ct);
+
+                    return outcome;
+                },
+
+                CheckComplete = async () =>
+                    await editionRepo.IsCollectionCompleteAsync(CollectionKeys.HebrewBible),
+                CheckHasSomeContent = async () =>
+                    await editionRepo.CountByCollectionAsync(CollectionKeys.HebrewBible) > 0
             },
 
             new SetupDataSource
