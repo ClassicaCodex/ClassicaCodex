@@ -270,7 +270,16 @@ public partial class MainWindow : Window, IReaderHost
 
     public int LibraryAuthorCount => Sidebar.AuthorCount;
 
-    public Task ReloadLibraryAsync() => Sidebar.LoadAsync();
+    /// <summary>
+    /// After setup has added to the library: the tree, and the welcome page's
+    /// cards and counts, which otherwise kept offering "Set Up Your Library"
+    /// to a library that had just been set up.
+    /// </summary>
+    public async Task ReloadLibraryAsync()
+    {
+        await Sidebar.LoadAsync();
+        await _welcome.RefreshAsync();
+    }
 
     public async Task ReloadOpenWorkAsync()
     {

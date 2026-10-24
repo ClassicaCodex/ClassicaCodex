@@ -133,7 +133,12 @@ public class SetupTests
         Assert.Equal(StepState.Complete, guided.StateOfStep(Step("Dictionaries")));
         Assert.Equal(StepState.Complete, guided.StateOfStep(Step("Greek Lemma Data")));
         Assert.Equal(StepState.Complete, guided.StateOfStep(Step("Latin Lemma Data")));
-        Assert.Equal(StepState.Pending, guided.StateOfStep(Step("Ancient Greek Texts")));
+        // The sample's Perseus texts are a sparse clone, but the tool that
+        // builds it stamps their collection as setup does once an ingest has
+        // finished - so setup counts the step done, as it would for any
+        // library whose Greek ingest completed. A collection never installed
+        // is still waiting.
+        Assert.Equal(StepState.Complete, guided.StateOfStep(Step("Ancient Greek Texts")));
         Assert.Equal(StepState.Pending, guided.StateOfStep(Step("The Goetia")));
 
         await guided.GoToStepAsync(Step("Dictionaries"));
@@ -160,7 +165,8 @@ public class SetupTests
         await Screens.Settle(10);
         var titles = Enumerable.Range(0, advanced.RowCount).Select(advanced.RowTitle).ToList();
         Assert.Equal(StepState.Complete, advanced.RowState(titles.FindIndex(t => t.StartsWith("Dictionaries", StringComparison.Ordinal))));
-        Assert.Equal(StepState.Pending, advanced.RowState(titles.FindIndex(t => t.StartsWith("Ancient Greek Texts", StringComparison.Ordinal))));
+        Assert.Equal(StepState.Complete, advanced.RowState(titles.FindIndex(t => t.StartsWith("Ancient Greek Texts", StringComparison.Ordinal))));
+        Assert.Equal(StepState.Pending, advanced.RowState(titles.FindIndex(t => t.StartsWith("The Goetia", StringComparison.Ordinal))));
         Screens.Save(advanced, "setup-advanced-sample");
         advanced.GetVisualDescendants().OfType<ScrollViewer>().First().ScrollToEnd();
         await Screens.Settle(3);

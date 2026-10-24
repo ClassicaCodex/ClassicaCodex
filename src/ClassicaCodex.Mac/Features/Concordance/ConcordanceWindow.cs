@@ -12,6 +12,7 @@ using ClassicaCodex.Data.Repositories;
 using ClassicaCodex.Mac.Common;
 using ClassicaCodex.Mac.Features.Search;
 using ClassicaCodex.Mac.Platform;
+using ClassicaCodex.Mac.Features.Export;
 
 namespace ClassicaCodex.Mac.Features.Concordance;
 
@@ -559,8 +560,11 @@ public sealed class ConcordanceWindow : FeatureWindow
     private static string FullText(KwicRow row) =>
         $"{row.Source} [{PassageCitation.Display(row.CitationRef, row.Milestone)}]: {row.FullLine}";
 
-    private async Task ExportPassagesAsync() =>
-        await PassageSetExportWindow.ShowAsync(this, $"Concordance: {_builtFor}", _currentPassages, "the keyword in context");
+    private Task ExportPassagesAsync()
+    {
+        ExportFeature.ExportPassagesFrom(this, $"Concordance: {_builtFor}", _currentPassages, "the keyword in context");
+        return Task.CompletedTask;
+    }
 
     private ContextMenu BuildGridMenu()
     {

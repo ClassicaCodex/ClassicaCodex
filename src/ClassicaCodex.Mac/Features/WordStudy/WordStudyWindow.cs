@@ -12,6 +12,7 @@ using ClassicaCodex.Data.Repositories;
 using ClassicaCodex.Mac.Common;
 using ClassicaCodex.Mac.Platform;
 using Occurrence = (int WorkId, long TextNodeId, string AuthorName, string WorkTitle, string CitationRef, string Text, string? Milestone);
+using ClassicaCodex.Mac.Features.Export;
 
 namespace ClassicaCodex.Mac.Features.WordStudy;
 
@@ -1014,7 +1015,21 @@ public sealed class WordStudyWindow : FeatureWindow
         var copy = new MenuItem { Header = "Copy Passage", Icon = Glyphs.Icon("Copy", 14), InputGesture = new KeyGesture(Key.C, CommandKey) };
         copy.Click += async (_, _) => await CopySelectedAsync();
         menu.Items.Add(copy);
-        menu.Opening += (_, _) => copy.IsEnabled = _occurrenceList.SelectedItem is OccurrenceRow;
+
+        // Every occurrence gathered, as a document to quote from - the
+        // Windows menu's "Export All Passages…", through the one export dialog
+        // every Mac list shares.
+        var exportAll = new MenuItem { Header = "Export All Passages…", Icon = Glyphs.Icon("Export", 14) };
+        exportAll.Click += (_, _) => ExportFeature.ExportPassagesFrom(this,
+            $"Occurrences of {SelectedHeadwordOrDefault()}",
+            _currentOccurrences.Select(o => new ExportPassage(o.WorkId, o.TextNodeId, o.AuthorName, o.WorkTitle, o.CitationRef, o.Text, Milestone: o.Milestone)).ToList());
+        menu.Items.Add(exportAll);
+
+        menu.Opening += (_, _) =>
+        {
+            copy.IsEnabled = _occurrenceList.SelectedItem is OccurrenceRow;
+            exportAll.IsEnabled = _currentOccurrences.Count > 0;
+        };
         _occurrenceList.ContextMenu = menu;
 
         TableExport.Attach(

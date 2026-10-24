@@ -10,6 +10,7 @@ using ClassicaCodex.Core;
 using ClassicaCodex.Mac.Common;
 using ClassicaCodex.Mac.Platform;
 using ClassicaCodex.Mac.Shell;
+using ClassicaCodex.Mac.Features.Export;
 
 namespace ClassicaCodex.Mac.Features.Tags;
 
@@ -292,17 +293,17 @@ internal static class PassageResults
     /// not have one yet, so this says so rather than doing nothing. It is the
     /// one place these windows reach for it.
     /// </summary>
-    public static MenuItem ExportAllItem(Window owner, Func<int> passageCount) =>
+    public static MenuItem ExportAllItem(Window owner, Func<string> title, Func<IReadOnlyList<ExportPassage>> passages) =>
         Item("Export All Passages…", "Export", async () =>
         {
-            if (passageCount() == 0)
+            var set = passages();
+            if (set.Count == 0)
             {
                 await Alert.Info(owner, "Nothing to export", "There are no passages here to export yet.");
                 return;
             }
 
-            if (MainWindow.Current is { } host)
-                Features.ComingSoon.Show(host, "Export All Passages", "export", "Export", "Exporting a set of passages as a document");
+            ExportFeature.ExportPassagesFrom(owner, title(), set);
         });
 
     /// <summary>True when a key event is the command key (Control elsewhere) with <paramref name="key"/>.</summary>

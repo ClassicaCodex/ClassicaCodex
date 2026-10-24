@@ -24,15 +24,14 @@ namespace System.Windows.Forms
 namespace ClassicaCodex.UI
 {
     /// <summary>
-    /// The Mac side of the Menota pre-import review, which on Windows is a
-    /// dialog per manuscript. Here it proceeds with the division proposals as
-    /// they stand: the .plan.json beside each manuscript is still written and
-    /// still the record of what was imported, and still editable before a
-    /// re-import, which is what the review existed to make easier rather than
-    /// what made the import correct.
+    /// The Menota pre-import review the shared catalogue calls before an
+    /// import: on Windows a dialog per manuscript, on the Mac the setup
+    /// feature's review sheet. The catalogue's hook is synchronous, so the
+    /// Mac review waits in a nested frame while the sheet is answered.
     /// </summary>
     public static class MenotaPlanReview
     {
-        public static bool Run(System.Windows.Forms.IWin32Window owner, string folder) => true;
+        public static bool Run(System.Windows.Forms.IWin32Window owner, string folder) =>
+            ClassicaCodex.Mac.Features.Setup.MenotaReview.Run(owner, folder);
     }
 }

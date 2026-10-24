@@ -432,13 +432,16 @@ internal sealed class CompareTranslationsWindow : FeatureWindow
             switch (extension)
             {
                 case ".docx": PassageExportService.ExportDocx(path, title, sourceUrl, chunks, ExportFont); break;
-                case ".pdf": PassageExportService.ExportPdf(path, title, sourceUrl, chunks, ExportFont); break;
+                case ".pdf":
+                    Export.PdfFonts.EnsureInstalled();
+                    PassageExportService.ExportPdf(path, title, sourceUrl, chunks, Export.PdfFonts.FamilyFor(ExportFont));
+                    break;
                 default: PassageExportService.ExportText(path, title, sourceUrl, chunks); break;
             }
         }
         catch (Exception ex)
         {
-            await Alert.Warn(this, "Export failed", PassageSetExportWindow.ExportFailure(ex, extension.TrimStart('.')));
+            await Alert.Warn(this, "Export failed", $"Export failed: {ex.Message}");
         }
     }
 

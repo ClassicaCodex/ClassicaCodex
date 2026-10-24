@@ -7,6 +7,7 @@ using Avalonia.Media;
 using Avalonia.VisualTree;
 using ClassicaCodex.Data.Repositories;
 using ClassicaCodex.Mac.Common;
+using ClassicaCodex.Mac.Features.Export;
 
 namespace ClassicaCodex.Mac.Features.Tags;
 
@@ -112,7 +113,10 @@ internal sealed class AutoTagWindow : FeatureWindow
 
         PassageResults.Menu(_resultsList,
             PassageResults.CopyItem(_resultsList, item => (item as Match)?.Passage.CopyText),
-            PassageResults.ExportAllItem(this, () => _currentResults.Count));
+            PassageResults.ExportAllItem(this, () => $"Auto-Tag matches for {(_nameBox.Text ?? string.Empty).Trim()}", () => _currentResults
+                .Select(m => new ExportPassage(m.Passage.WorkId, m.Passage.TextNodeId, m.Passage.AuthorName, m.Passage.WorkTitle,
+                    m.Passage.CitationRef, m.Passage.Text, Milestone: m.Passage.Milestone))
+                .ToList()));
 
         var checkAll = new Button { Content = "Check All" };
         checkAll.Click += (_, _) => SetAllChecked(true);

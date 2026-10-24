@@ -6,6 +6,7 @@ using Avalonia.Media;
 using ClassicaCodex.Data.Repositories;
 using ClassicaCodex.Mac.Common;
 using ClassicaCodex.Mac.Features.Tags;
+using ClassicaCodex.Mac.Features.Export;
 
 namespace ClassicaCodex.Mac.Features.Bookmarks;
 
@@ -62,7 +63,9 @@ internal sealed class BookmarksWindow : FeatureWindow
                 var full = PassageResults.CopyLine(b.AuthorName, b.WorkTitle, b.CitationRef, b.Milestone, b.Text);
                 return string.IsNullOrEmpty(b.Note) ? full : $"{full}\nNote: {b.Note}";
             }),
-            PassageResults.ExportAllItem(this, () => _currentBookmarks.Count));
+            PassageResults.ExportAllItem(this, () => "Bookmarks", () => _currentBookmarks
+                .Select(b => new ExportPassage(b.WorkId, b.TextNodeId, b.AuthorName, b.WorkTitle, b.CitationRef, b.Text, Milestone: b.Milestone))
+                .ToList()));
 
         // And as rows, alongside the document export rather than instead of
         // it. The passage export writes prose to quote from; this writes the

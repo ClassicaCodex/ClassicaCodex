@@ -10,6 +10,7 @@ using ClassicaCodex.Mac.Features.Concordance;
 using ClassicaCodex.Mac.Features.Search;
 using ClassicaCodex.Mac.Shell;
 using Xunit;
+using ClassicaCodex.Mac.Features.Export;
 
 namespace ClassicaCodex.Mac.Tests.Features;
 
@@ -383,23 +384,23 @@ public class SearchTests
         await Screens.Settle(6);
         Screens.Save(export, "export-01-passages");
 
-        var chunks = export.BuildRenderChunks();
-        Assert.Contains(chunks, c => c.Label == "P. Vergilius Maro (Virgil), Aeneid" && c.Text.Length == 0);
-        Assert.Contains(chunks, c => c.Label == "[1.1]" && c.Text.StartsWith("Arma virumque cano"));
-        Assert.Contains(chunks, c => c.Label == "(the keyword in context)" && c.Text.Contains("⟨Arma⟩"));
+        var preview = export.PreviewText;
+        Assert.Contains("P. Vergilius Maro (Virgil), Aeneid", preview);
+        Assert.Contains("Arma virumque cano", preview);
+        Assert.Contains("⟨Arma⟩", preview);
 
         var folder = Path.Combine(Path.GetTempPath(), "classicacodex-mac-search-tests", Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(folder);
         try
         {
             var txt = Path.Combine(folder, "arma.txt");
-            export.Write(txt, "txt");
+            await export.WriteFileAsync(txt, ExportFormat.Text);
             var written = await File.ReadAllTextAsync(txt);
             Assert.StartsWith("Concordance: arma", written);
             Assert.Contains("[1.1] Arma virumque cano", written);
 
             var docx = Path.Combine(folder, "arma.docx");
-            export.Write(docx, "docx");
+            await export.WriteFileAsync(docx, ExportFormat.Word);
             Assert.True(new FileInfo(docx).Length > 0);
         }
         finally

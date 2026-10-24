@@ -11,6 +11,7 @@ using ClassicaCodex.Core;
 using ClassicaCodex.Core.Models;
 using ClassicaCodex.Mac.Common;
 using ClassicaCodex.Mac.Platform;
+using ClassicaCodex.Mac.Features.Export;
 
 namespace ClassicaCodex.Mac.Features.Echoes;
 
@@ -315,10 +316,12 @@ internal sealed class EchoList : UserControl
         if (Selected is { } hit) await ClipboardText.SetAsync(this, hit.ClipboardText);
     }
 
-    private Task ExportAllAsync() =>
-        TopLevel.GetTopLevel(this) is Window owner
-            ? PassageSetExport.OpenAsync(owner, _exportTitle(), _hits.Select(h => h.ToExport()).ToList())
-            : Task.CompletedTask;
+    private Task ExportAllAsync()
+    {
+        if (TopLevel.GetTopLevel(this) is Window owner)
+            ExportFeature.ExportPassagesFrom(owner, _exportTitle(), _hits.Select(h => h.ToExport()).ToList());
+        return Task.CompletedTask;
+    }
 
     private Control BuildRow(EchoHit hit)
     {

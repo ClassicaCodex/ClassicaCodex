@@ -58,15 +58,26 @@ public static class ExportFeature
     /// whatever extra line the caller attached to each passage.
     /// </summary>
     public static void ExportPassageSet(
-        IReaderHost host, string collectionTitle, IReadOnlyList<ExportPassage> passages, string? detailLabel = null)
+        IReaderHost host, string collectionTitle, IReadOnlyList<ExportPassage> passages, string? detailLabel = null) =>
+        ExportPassagesFrom(host.Window, collectionTitle, passages, detailLabel);
+
+    /// <summary>
+    /// The same, from a tool window: the dialog opens beside the window the
+    /// passages came from, and still jumps the main reader. Every list that
+    /// gathers passages - search, concordance, tags, bookmarks, echoes, the
+    /// map, Word Study, Morphology - comes here, as on Windows they all come to
+    /// PassageSetExportForm, so there is one export dialog and not one each.
+    /// </summary>
+    public static void ExportPassagesFrom(
+        Window owner, string collectionTitle, IReadOnlyList<ExportPassage> passages, string? detailLabel = null)
     {
         var window = new PassageSetExportWindow(collectionTitle, passages, detailLabel)
         {
-            OnNavigate = host.NavigateToPassageAsync,
-            OnOpenWork = host.OpenWorkAsync
+            OnNavigate = MainWindow.Current is { } main ? main.NavigateToPassageAsync : null,
+            OnOpenWork = MainWindow.Current is { } host ? host.OpenWorkAsync : null
         };
 
-        window.Show(host.Window);
+        window.Show(owner);
     }
 
     /// <summary>A reading font's whole fallback list, as the theme declares it.</summary>

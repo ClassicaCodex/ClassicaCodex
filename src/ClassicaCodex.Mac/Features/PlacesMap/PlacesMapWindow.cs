@@ -11,6 +11,7 @@ using ClassicaCodex.Data.Repositories;
 using ClassicaCodex.Mac.Common;
 using ClassicaCodex.Mac.Features.Artifacts;
 using ClassicaCodex.UI;
+using ClassicaCodex.Mac.Features.Export;
 
 namespace ClassicaCodex.Mac.Features.PlacesMap;
 
@@ -562,14 +563,20 @@ public sealed class PlacesMapWindow : FeatureWindow
                 await ClipboardText.SetAsync(this, $"{p.AuthorName}, {p.WorkTitle} [{PassageCitation.Display(p.CitationRef, p.Milestone)}]: {p.Text}");
         };
 
+        var exportAll = new MenuItem { Header = "Export All Passages…", Icon = Glyphs.Icon("Export", 14) };
+        exportAll.Click += (_, _) => ExportFeature.ExportPassagesFrom(this, $"Passages mentioning {_selectedPlaceName}",
+            _currentPassages.Select(p => new ExportPassage(p.WorkId, p.TextNodeId, p.AuthorName, p.WorkTitle, p.CitationRef, p.Text, Milestone: p.Milestone)).ToList());
+
         var menu = new ContextMenu();
         menu.Items.Add(open);
         menu.Items.Add(copy);
+        menu.Items.Add(exportAll);
         menu.Opening += (_, _) =>
         {
             var any = _passageList.SelectedItem is PlacePassage;
             open.IsEnabled = any;
             copy.IsEnabled = any;
+            exportAll.IsEnabled = _currentPassages.Count > 0;
         };
         _passageList.ContextMenu = menu;
 

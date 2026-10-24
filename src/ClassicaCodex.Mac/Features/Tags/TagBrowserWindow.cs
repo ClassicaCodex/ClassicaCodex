@@ -7,6 +7,7 @@ using ClassicaCodex.Core.Models;
 using ClassicaCodex.Data.Repositories;
 using ClassicaCodex.Mac.Common;
 using ClassicaCodex.Mac.Features.Artifacts;
+using ClassicaCodex.Mac.Features.Export;
 
 namespace ClassicaCodex.Mac.Features.Tags;
 
@@ -77,7 +78,11 @@ internal sealed class TagBrowserWindow : FeatureWindow
 
         PassageResults.Menu(_resultsList,
             PassageResults.CopyItem(_resultsList, item => (item as PassageItem)?.CopyText),
-            PassageResults.ExportAllItem(this, () => _currentResults.Count));
+            PassageResults.ExportAllItem(this,
+                () => _tagList.SelectedItem is Tag selected ? $"Passages tagged “{selected.Name}”" : "Tagged passages",
+                () => _currentResults
+                    .Select(r => new ExportPassage(r.WorkId, r.TextNodeId, r.AuthorName, r.WorkTitle, r.CitationRef, r.Text, Milestone: r.Milestone))
+                    .ToList()));
 
         // The same passages as rows, for the questions a document cannot
         // answer - which authors a tag actually spans, how it is distributed

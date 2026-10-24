@@ -31,6 +31,16 @@ public partial class App : Application
                 }
             }
 
+            // The PDF writer's fonts, found once in the background: the shared
+            // writer looks them up in the Windows registry, and the Mac's own
+            // resolver reads a few hundred font files the first time it is
+            // asked. Warmed here so the first PDF export does not wait on it.
+            _ = Task.Run(() =>
+            {
+                try { Features.Export.PdfFonts.EnsureInstalled(); }
+                catch (Exception ex) { CrashLog.Write(ex, "finding fonts for PDF export"); }
+            });
+
             desktop.MainWindow = new MainWindow();
             desktop.ShutdownMode = ShutdownMode.OnMainWindowClose;
         }

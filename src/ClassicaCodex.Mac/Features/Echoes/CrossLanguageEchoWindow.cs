@@ -13,6 +13,7 @@ using ClassicaCodex.Mac.Features.Research;
 using ClassicaCodex.Mac.Features.Settings;
 using ClassicaCodex.Mac.Platform;
 using ClassicaCodex.UI;
+using ClassicaCodex.Mac.Features.Export;
 
 namespace ClassicaCodex.Mac.Features.Echoes;
 
@@ -486,8 +487,9 @@ internal sealed class CrossLanguageEchoWindow : FeatureWindow
         }
     }
 
-    private Task ExportAllAsync() =>
-        PassageSetExport.OpenAsync(this,
+    private Task ExportAllAsync()
+    {
+        ExportFeature.ExportPassagesFrom(this,
             $"Cross-language echoes of [{PassageCitation.Display(_sourceNode.CitationRef, _sourceNode.Milestone)}]",
             _verifiedResults.Select(r => new ExportPassage(
                 _comparisonWorkId,
@@ -499,6 +501,8 @@ internal sealed class CrossLanguageEchoWindow : FeatureWindow
                 $"[{r.Candidate.Confidence}] {r.Candidate.Rationale}",
                 r.Node.Milestone)).ToList(),
             "why each was suggested");
+        return Task.CompletedTask;
+    }
 
     private async Task OnResultActivatedAsync()
     {

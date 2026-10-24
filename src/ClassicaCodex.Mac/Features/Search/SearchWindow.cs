@@ -14,6 +14,7 @@ using ClassicaCodex.Data.Repositories;
 using ClassicaCodex.Mac.Common;
 using ClassicaCodex.Mac.Platform;
 using ClassicaCodex.UI;
+using ClassicaCodex.Mac.Features.Export;
 
 namespace ClassicaCodex.Mac.Features.Search;
 
@@ -1330,7 +1331,8 @@ public sealed class SearchWindow : FeatureWindow
             .Select(r => new ExportPassage(r.WorkId, r.TextNodeId, r.AuthorName, r.WorkTitle, r.CitationRef, r.Text, Milestone: r.Milestone))
             .ToList();
 
-        await PassageSetExportWindow.ShowAsync(this, DescribeSearch(), passages);
+        ExportFeature.ExportPassagesFrom(this, DescribeSearch(), passages);
+        await Task.CompletedTask;
     }
 
     private ContextMenu BuildResultsMenu()

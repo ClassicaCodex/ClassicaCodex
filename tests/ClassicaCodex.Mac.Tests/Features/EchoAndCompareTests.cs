@@ -16,6 +16,7 @@ using ClassicaCodex.Mac.Shell;
 using ClassicaCodex.UI;
 using Microsoft.Data.Sqlite;
 using Xunit;
+using ClassicaCodex.Mac.Features.Export;
 
 namespace ClassicaCodex.Mac.Tests.Features;
 
@@ -343,9 +344,9 @@ public class EchoAndCompareTests
             Directory.CreateDirectory(folder);
             try
             {
-                var chunks = hits.Select(h => ($"[{PassageCitation.Display(h.CitationRef, h.Milestone)}]", h.Text)).ToList();
-                PassageSetExportWindow.Write(Path.Combine(folder, "echoes.txt"), "txt", "Intertextual echoes", chunks);
-                PassageSetExportWindow.Write(Path.Combine(folder, "echoes.docx"), "docx", "Intertextual echoes", chunks);
+                var writer = new PassageSetExportWindow("Intertextual echoes", hits.Select(h => h.ToExport()).ToList(), null);
+                await writer.WriteFileAsync(Path.Combine(folder, "echoes.txt"), ExportFormat.Text);
+                await writer.WriteFileAsync(Path.Combine(folder, "echoes.docx"), ExportFormat.Word);
 
                 var text = await File.ReadAllTextAsync(Path.Combine(folder, "echoes.txt"));
                 Assert.StartsWith("Intertextual echoes", text);

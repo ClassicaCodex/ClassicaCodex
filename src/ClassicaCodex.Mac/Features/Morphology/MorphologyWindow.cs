@@ -10,6 +10,7 @@ using ClassicaCodex.Mac.Common;
 using ClassicaCodex.Mac.Features.WordStudy;
 using ClassicaCodex.Mac.Platform;
 using MorphologyHit = (int WorkId, long TextNodeId, string AuthorName, string WorkTitle, string CitationRef, string Text, string MatchedForm, string Headword, string Tag, string? Milestone);
+using ClassicaCodex.Mac.Features.Export;
 
 namespace ClassicaCodex.Mac.Features.Morphology;
 
@@ -471,7 +472,17 @@ public sealed class MorphologyWindow : FeatureWindow
         var copy = new MenuItem { Header = "Copy Passage", Icon = Glyphs.Icon("Copy", 14), InputGesture = new KeyGesture(Key.C, WordStudyWindow.CommandKey) };
         copy.Click += async (_, _) => await CopySelectedAsync();
         menu.Items.Add(copy);
-        menu.Opening += (_, _) => copy.IsEnabled = _resultsList.SelectedItem is ResultRow;
+
+        var exportAll = new MenuItem { Header = "Export All Passages…", Icon = Glyphs.Icon("Export", 14) };
+        exportAll.Click += (_, _) => ExportFeature.ExportPassagesFrom(this, "Morphology search results",
+            _currentResults.Select(r => new ExportPassage(r.WorkId, r.TextNodeId, r.AuthorName, r.WorkTitle, r.CitationRef, r.Text, Milestone: r.Milestone)).ToList());
+        menu.Items.Add(exportAll);
+
+        menu.Opening += (_, _) =>
+        {
+            copy.IsEnabled = _resultsList.SelectedItem is ResultRow;
+            exportAll.IsEnabled = _currentResults.Count > 0;
+        };
         _resultsList.ContextMenu = menu;
 
         TableExport.Attach(
