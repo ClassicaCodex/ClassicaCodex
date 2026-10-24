@@ -1,18 +1,26 @@
-using ClassicaCodex.Core.Models;
 using ClassicaCodex.Mac.Shell;
 
 namespace ClassicaCodex.Mac.Features.Compare;
 
 /// <summary>
-/// Entry points for this feature, called from the main window's menus,
-/// toolbar and context menus. A stub until the feature is ported: each
-/// opens the coming-soon card.
+/// The two comparisons of one work with itself: its translations side by
+/// side, and its original-language editions collated. Both open beside the
+/// reader, from the Tools menu, the sidebar's Tools list and the gallery.
 /// </summary>
 public static class CompareFeature
 {
-    public static void CompareTranslations(IReaderHost host) =>
-        ComingSoon.Show(host, "Compare Translations", "compare", "CompareTranslations");
+    public static void CompareTranslations(IReaderHost host)
+    {
+        var window = new CompareTranslationsWindow((host.OpenWork ?? host.SelectedLibraryWork)?.WorkId)
+        {
+            OnNavigate = host.NavigateToPassageAsync
+        };
+        window.Show(host.Window);
+    }
 
-    public static void Collate(IReaderHost host) =>
-        ComingSoon.Show(host, "Collate Editions", "collation", "Collate");
+    public static void Collate(IReaderHost host)
+    {
+        var window = new CollationWindow();
+        window.Show(host.Window);
+    }
 }
