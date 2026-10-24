@@ -6,6 +6,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <IsPackable>false</IsPackable>
     <OutputType>Exe</OutputType>
+    <AvaloniaBuildTelemetry>false</AvaloniaBuildTelemetry>
   </PropertyGroup>
 
   <ItemGroup>

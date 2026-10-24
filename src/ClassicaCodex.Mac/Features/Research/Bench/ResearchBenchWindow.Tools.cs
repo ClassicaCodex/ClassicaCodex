@@ -140,11 +140,8 @@ internal sealed partial class ResearchBenchWindow
 
     private void OpenAttachedStylometryRun()
     {
-        if (_openAnalysis.Tag is not long || Host == null) return;
-
-        // The Mac's stylometry window does not yet open on one saved run; the
-        // saved-runs comparison is where that run can be found and read.
-        StylometryFeature.OpenCompareRuns(Host);
+        if (_openAnalysis.Tag is not long runId || Host == null) return;
+        StylometryFeature.OpenCompareRuns(Host, runId);
     }
 
     private void OpenEvidenceSources()

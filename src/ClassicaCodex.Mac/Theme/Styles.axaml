@@ -120,6 +120,10 @@
     <Setter Property="Padding" Value="14,6" />
     <Setter Property="FontWeight" Value="SemiBold" />
   </Style>
+  <!-- Fluent's own .accent sets the text on the template, which would win over the setter above. -->
+  <Style Selector="Button.accent /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Foreground" Value="{DynamicResource Cc.OnAccent}" />
+  </Style>
   <Style Selector="Button.accent:pointerover /template/ ContentPresenter#PART_ContentPresenter">
     <Setter Property="Background" Value="{DynamicResource Cc.AccentStrong}" />
     <Setter Property="Foreground" Value="{DynamicResource Cc.OnAccent}" />
@@ -127,6 +131,10 @@
   <Style Selector="Button.accent:pressed /template/ ContentPresenter#PART_ContentPresenter">
     <Setter Property="Background" Value="{DynamicResource Cc.AccentStrong}" />
     <Setter Property="Foreground" Value="{DynamicResource Cc.OnAccent}" />
+  </Style>
+  <Style Selector="Button.accent:disabled /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource Cc.AccentSoft}" />
+    <Setter Property="Foreground" Value="{DynamicResource Cc.InkFaint}" />
   </Style>
 
   <Style Selector="Button">
