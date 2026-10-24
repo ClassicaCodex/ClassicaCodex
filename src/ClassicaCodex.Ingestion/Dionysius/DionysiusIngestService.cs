@@ -106,8 +106,9 @@ public class DionysiusIngestService
                     : "The Works of Dionysius the Areopagite, Part II: The Heavenly Hierarchy and the Ecclesiastical "
                         + "Hierarchy, now first translated into English from the original Greek by the Rev. John Parker "
                         + "(London: James Parker and Co., 1899)",
-                Availability = "Public domain. Transcribed by Roger Pearse (2004) for the Christian Classics Ethereal "
-                    + "Library, which marks the text public domain. Parker's footnotes are not included."
+                Availability = "Public domain. Transcribed by Roger Pearse (2004), who placed his transcription in the "
+                    + "public domain (\"copy freely\", tertullian.org); the Christian Classics Ethereal Library's copy, "
+                    + "read here, is the same text. Parker's footnotes are not included."
             }, cancellationToken);
 
             WorksInstalled++;

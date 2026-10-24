@@ -1370,14 +1370,14 @@ public static class SetupDataSourceCatalog
             new SetupDataSource
             {
                 Title = "The Goetia: the seventy-two spirits of the Lesser Key of Solomon",
-                RepoUrl = "https://en.wikisource.org/wiki/The_Lesser_Key_of_Solomon",
-                DisplayNote = "about 110 KB in one download",
+                RepoUrl = "https://www.gutenberg.org/ebooks/72679",
+                DisplayNote = "about 160 KB in one download",
                 DefaultDestination = Path.Combine(dataRoot, "goetia"),
                 FetchMode = SetupFetchMode.SelfManaged,
 
                 Links =
                 {
-                    new SetupLink { Text = "The Lesser Key of Solomon on Wikisource", Url = "https://en.wikisource.org/wiki/The_Lesser_Key_of_Solomon" },
+                    new SetupLink { Text = "The Lesser Key of Solomon at Project Gutenberg", Url = "https://www.gutenberg.org/ebooks/72679" },
                     new SetupLink { Text = "The 1904 edition, scanned", Url = "https://en.wikisource.org/wiki/Index:The_Book_of_the_Goetia_(Mathers-Crowley,_1904).djvu" }
                 },
 
@@ -1386,12 +1386,11 @@ public static class SetupDataSourceCatalog
                     + "MacGregor Mathers and Aleister Crowley (1904): the seventy-two spirits King Solomon shut "
                     + "in a vessel of brass, each with its rank, its shape, its office and its legions, cited by "
                     + "number as they always are (Goetia 1 is Bael); the art of calling them, with the circle, "
-                    + "the triangle, the conjurations, the curses and the licence to depart; and Crowley's essay "
-                    + "on what magic is. Read the spirits beside the catalogue in Scot's Discovery of "
-                    + "Witchcraft, from which most of them come. "
-                    + "The text is from Wikisource and has not been proofread there against the 1904 book; "
-                    + "check a quotation against the scan. The seals are pictures and are not included. "
-                    + "Public domain.",
+                    + "the triangle, the conjurations, the curses and the licence to depart; and Crowley's preface, "
+                    + "invocation and essay on what magic is. Read the spirits beside the catalogue in Scot's "
+                    + "Discovery of Witchcraft, from which most of them come. "
+                    + "The text is Project Gutenberg's proofread transcription of de Laurence's 1916 reprint. "
+                    + "The seals are pictures and are not included. Public domain.",
 
                 RunIngest = async (root, progress, ct) =>
                 {

@@ -15,14 +15,19 @@ namespace ClassicaCodex.Ingestion.Goetia;
 /// already in the library in the early English books - so the two can be
 /// read against each other spirit by spirit.
 ///
-/// From English Wikisource, where the text is in the public domain. The
-/// transcription there has not been proofread against the 1904 scan, which
-/// the help and the edition header say; a quotation for print should be
-/// checked against the scan.
+/// From Project Gutenberg's ebook #72679 (2024), L. W. de Laurence's reprint
+/// of 1916, which the Distributed Proofreaders checked against page images.
+/// It replaces the English Wikisource page the library used before, an
+/// unproofread copy of the same reprint that appeared to descend from a
+/// transcription released for non-commercial use only. The works keep their
+/// URNs, so a reference to a spirit still finds it.
 /// </summary>
 public class GoetiaIngestService
 {
     public const string CollectionKey = "goetia";
+
+    /// <summary>The Gutenberg ebook: "The Lesser Key of Solomon: Goetia, the Book of Evil Spirits".</summary>
+    public const int Ebook = 72679;
 
     private readonly AuthorRepository _authorRepo = new();
     private readonly WorkRepository _workRepo = new();
@@ -39,11 +44,11 @@ public class GoetiaIngestService
     {
         Directory.CreateDirectory(root);
 
-        progress.Report("The Goetia: Mathers and Crowley's edition from Wikisource...");
-        var path = Path.Combine(root, "lesser-key-of-solomon.wiki");
+        progress.Report("The Goetia: Mathers and Crowley's edition from Project Gutenberg...");
+        var path = Path.Combine(root, $"{Ebook}-h.htm");
         if (!File.Exists(path))
         {
-            await _downloader.DownloadAsync(WikisourceTextLoader.RawUrl("The Lesser Key of Solomon"), path,
+            await _downloader.DownloadAsync(GutenbergHtml.MirrorUrl(Ebook), path,
                 new Progress<string>(_ => { }), cancellationToken);
         }
 
@@ -75,11 +80,11 @@ public class GoetiaIngestService
                 AuthorId = work.ByCrowley ? crowley : lemegeton,
                 CtsUrn = urn,
                 Title = work.Title,
-                CitationScheme = work.Slug == "spirits" ? "Spirit" : work.Slug == "initiated-interpretation" ? "Paragraph" : "Section.Paragraph"
+                CitationScheme = work.Slug switch { "spirits" => "Spirit", "initiated-interpretation" => "Paragraph", _ => "Section.Paragraph" }
             }, cancellationToken);
 
             // Mathers called his Goetia a translation, and the label says so;
-            // Crowley's essay and his English of the conjurations are his own.
+            // Crowley's preface, essay and English of the conjurations are his own.
             var editionId = await _editionRepo.UpsertAsync(new Edition
             {
                 WorkId = workId,
@@ -97,16 +102,15 @@ public class GoetiaIngestService
             {
                 Title = $"{work.Title}, from The Book of the Goetia of Solomon the King, translated by S. L. MacGregor "
                     + "Mathers, edited by Aleister Crowley",
-                Publisher = "Society for the Propagation of Religious Truth",
-                PublicationPlace = "Boleskine, Foyers, Inverness",
-                PublicationDate = "1904",
-                SourceDescription = "As transcribed on English Wikisource (\"The Lesser Key of Solomon\"). The "
-                    + "transcription is an unproofread copy of an earlier web text, marked there for standardisation, "
-                    + "and Wikisource names L. W. de Laurence's reprint of 1916 as its edition; check a quotation "
-                    + "against the 1904 scan. The seals and figures are not included. Footnotes follow the passage "
-                    + "their marker is in, as Note.",
-                Availability = "Public domain. Published in 1904; Mathers died in 1918, Crowley in 1947, de Laurence "
-                    + "in 1936."
+                Publisher = "Society for the Propagation of Religious Truth (1904); reprinted by de Laurence, Scott & Co. (1916)",
+                PublicationPlace = "Boleskine, Foyers, Inverness; reprinted Chicago",
+                PublicationDate = "1904; reprinted 1916",
+                SourceDescription = $"Project Gutenberg ebook #{Ebook} (2024), L. W. de Laurence's 1916 reprint of the 1904 "
+                    + "edition, proofread by the Distributed Proofreaders against page images. The seals and figures "
+                    + "are not included. Footnotes follow the passage their marker is in, as Note. Small capitals are "
+                    + "typed as ordinary words.",
+                Availability = "Public domain in the United States, where it was published before 1931, and in the "
+                    + "United Kingdom: Mathers died in 1918, de Laurence in 1936 and Crowley in 1947."
             }, cancellationToken);
 
             WorksInstalled++;

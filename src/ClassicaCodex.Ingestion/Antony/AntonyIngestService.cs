@@ -95,7 +95,9 @@ public class AntonyIngestService
                 + "Letters, ed. Archibald Robertson (New York, 1892), as transcribed by the Christian "
                 + "Classics Ethereal Library (npnf204). Cited by the 94 sections; the letter to the monks abroad is "
                 + "the preface. The editor's table of contents gives the headings. Footnotes are not included.",
-            Availability = "Public domain; the CCEL marks the volume public domain."
+            Availability = "Ellershaw's translation (1892) is in the public domain. The transcription is the CCEL's, "
+                + "which asks to be contacted before its texts are republished or used commercially: for a book that "
+                + "will be sold, ask the CCEL or quote from the 1892 printing."
         }, cancellationToken);
 
         PassagesInstalled = passages.Count;

@@ -1,7 +1,6 @@
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Xml.Linq;
-using ClassicaCodex.Core;
 
 namespace ClassicaCodex.Ingestion.Nights;
 
@@ -39,9 +38,6 @@ namespace ClassicaCodex.Ingestion.Nights;
 public static class NightsLoader
 {
     private static readonly Regex Night = new(@"^(?:Now when|When|And when) it w?as the (.+?) Night[,.;:]?$",
-        RegexOptions.Compiled | RegexOptions.IgnoreCase);
-
-    private static readonly Regex Void = new(@"<(br|hr|img|meta|link|wbr|col|input)\b([^>]*?)/?>",
         RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
     private static readonly Regex Whitespace = new(@"\s+", RegexOptions.Compiled);
@@ -156,7 +152,7 @@ public static class NightsLoader
     private static IEnumerable<Block> Blocks(string html)
     {
         var all = new List<Block>();
-        Walk(Body(html), all);
+        Walk(GutenbergHtml.Body(html), all);
 
         var contents = all.FindIndex(b => b.Kind == Kind.Heading && b.Text.StartsWith("CONTENTS OF THE", StringComparison.OrdinalIgnoreCase));
         var start = contents < 0 ? 0 : contents + 1;
@@ -172,18 +168,6 @@ public static class NightsLoader
 
             yield return block;
         }
-    }
-
-    internal static XElement Body(string html)
-    {
-        var open = html.IndexOf("<body", StringComparison.OrdinalIgnoreCase);
-        var close = html.LastIndexOf("</body>", StringComparison.OrdinalIgnoreCase);
-        if (open < 0 || close < 0) throw new InvalidDataException("No body in the HTML");
-
-        // The mirror's copies write &nbsp; where Gutenberg's own write the
-        // character, and XML knows only its five built-in entities.
-        var body = Void.Replace(html[open..(close + "</body>".Length)], "<$1$2/>");
-        return XElement.Parse(XmlEntitySanitizer.Sanitize(body), LoadOptions.None);
     }
 
     private static void Walk(XElement element, List<Block> blocks)
