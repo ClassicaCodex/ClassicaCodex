@@ -30,6 +30,36 @@ public static class Files
         return file?.TryGetLocalPath();
     }
 
+    /// <summary>
+    /// Asks where a new library should go; null if the reader cancelled.
+    ///
+    /// The panel is told no file types. macOS has none of its own for .db,
+    /// .sqlite or .sqlite3, only made-up ones that do not match each other,
+    /// so a panel told the library's types did not see the .db already on
+    /// "classicacodex.db" as one of them and added a second:
+    /// "classicacodex.db.db". Told none, it keeps the name as it stands, and
+    /// a name typed without a library extension is given .db here instead.
+    /// </summary>
+    public static async Task<string?> SaveLibraryAsync(
+        Window owner, string title, string suggestedName, IStorageFolder? startIn, bool showOverwritePrompt)
+    {
+        var file = await owner.StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
+        {
+            Title = title,
+            SuggestedFileName = suggestedName,
+            SuggestedStartLocation = startIn,
+            ShowOverwritePrompt = showOverwritePrompt
+        });
+
+        return file?.TryGetLocalPath() is { } path ? WithLibraryExtension(path) : null;
+    }
+
+    /// <summary>The path as it is if it ends in a library extension, else with .db after it.</summary>
+    internal static string WithLibraryExtension(string path) =>
+        Library.Patterns!.Any(pattern => path.EndsWith(pattern[1..], StringComparison.OrdinalIgnoreCase))
+            ? path
+            : path + ".db";
+
     /// <summary>Asks for one file to open; null if the reader cancelled.</summary>
     public static async Task<string?> OpenAsync(Window owner, string title, params FilePickerFileType[] types)
     {

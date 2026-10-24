@@ -63,19 +63,9 @@ internal static class LibraryFile
     /// asking whether to "replace" it would describe something that is never
     /// going to happen.
     /// </summary>
-    public static async Task<string?> ChooseNewAsync(Window owner, string suggested)
-    {
-        var file = await owner.StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
-        {
-            Title = "Choose Where the Library Goes",
-            SuggestedFileName = Path.GetFileName(suggested),
-            SuggestedStartLocation = await FolderOf(owner, suggested),
-            FileTypeChoices = new[] { Files.Library },
-            ShowOverwritePrompt = false
-        });
-
-        return file?.TryGetLocalPath();
-    }
+    public static async Task<string?> ChooseNewAsync(Window owner, string suggested) =>
+        await Files.SaveLibraryAsync(owner, "Choose Where the Library Goes", Path.GetFileName(suggested),
+            await FolderOf(owner, suggested), showOverwritePrompt: false);
 
     private static async Task<IStorageFolder?> FolderOf(Window owner, string path)
     {

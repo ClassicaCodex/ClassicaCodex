@@ -5,6 +5,7 @@ using Avalonia.VisualTree;
 using ClassicaCodex.Data;
 using ClassicaCodex.Data.Repositories;
 using ClassicaCodex.Ingestion;
+using ClassicaCodex.Mac.Common;
 using ClassicaCodex.Mac.Features.Setup;
 using ClassicaCodex.Mac.Shell;
 using ClassicaCodex.UI;
@@ -495,6 +496,18 @@ public class SetupTests
         advanced.Close();
 
         main.Close();
+    }
+
+    [Fact]
+    public void A_new_library_gets_one_library_extension()
+    {
+        // The save panel is told no file types - told them, macOS added a
+        // second .db to "classicacodex.db" - so the extension is seen to here.
+        Assert.Equal("/Users/reader/classicacodex.db", Files.WithLibraryExtension("/Users/reader/classicacodex.db"));
+        Assert.Equal("/Users/reader/Greek.SQLite", Files.WithLibraryExtension("/Users/reader/Greek.SQLite"));
+        Assert.Equal("/Users/reader/Latin.sqlite3", Files.WithLibraryExtension("/Users/reader/Latin.sqlite3"));
+        Assert.Equal("/Users/reader/classicacodex.db", Files.WithLibraryExtension("/Users/reader/classicacodex"));
+        Assert.Equal("/Users/reader/notes.txt.db", Files.WithLibraryExtension("/Users/reader/notes.txt"));
     }
 
     private static MenotaWorkPlan Work(string title, string basis, string item, int words, string author, params string[] divs) => new()

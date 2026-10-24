@@ -22,7 +22,7 @@ public partial class MainWindow
     /// <summary>Asks where a new, empty library should go, creates it, and offers setup.</summary>
     public async Task CreateLibraryAsync()
     {
-        var path = await Files.SaveAsync(this, "Create a New Library", "classicacodex.db", Files.Library);
+        var path = await Files.SaveLibraryAsync(this, "Create a New Library", "classicacodex.db", startIn: null, showOverwritePrompt: true);
         if (path == null) return;
 
         if (File.Exists(path))
