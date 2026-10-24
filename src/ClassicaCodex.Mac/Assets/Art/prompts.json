@@ -1,0 +1,352 @@
+[
+  {
+    "name": "app-icon-1024.png",
+    "width": 1024,
+    "height": 1024,
+    "transparent": true,
+    "prompt": "Bronze Athena owl on open codex, deep lapis rounded square, inset gold Greek key, transparent margin; 1024x1024 macOS icon."
+  },
+  {
+    "name": "tile-reader.png",
+    "subject": "Open codex, Greek column on the left page, English on the right, shown as ruled lines rather than letters",
+    "width": 512,
+    "height": 512,
+    "transparent": true,
+    "prompt": "Create a single production app feature illustration: Open codex, Greek column on the left page, English on the right, shown as ruled lines rather than letters. Square 512x512 PNG with real alpha transparency, not checkerboard. One centered object grouping filling 80 percent canvas, generous clear margins and soft contact shadow contained inside canvas. Fine painterly realism, softly lit real vellum, aged leather, bronze with subtle verdigris, restrained gold, occasional lapis. Gentle upper-left key light, clear clean silhouette, calm premium classical scholarly Mac app. Readable on cream #FAF7F0 and charcoal #1E1E20: use edge contrast and subtle light rim. No tile background, no frame. No lettering, words or numerals except explicitly requested characters in the subject. For pages use simple ruled strokes, never pseudo writing. No watermark."
+  },
+  {
+    "name": "tile-word-study.png",
+    "subject": "Leather lexicon open, a gold-tipped stylus pointing at one entry; the letters \"\u0391\u03a9\" on the cover",
+    "width": 512,
+    "height": 512,
+    "transparent": true,
+    "prompt": "Create a single production app feature illustration: Leather lexicon open, a gold-tipped stylus pointing at one entry; the letters \"\u0391\u03a9\" on the cover. Square 512x512 PNG with real alpha transparency, not checkerboard. One centered object grouping filling 80 percent canvas, generous clear margins and soft contact shadow contained inside canvas. Fine painterly realism, softly lit real vellum, aged leather, bronze with subtle verdigris, restrained gold, occasional lapis. Gentle upper-left key light, clear clean silhouette, calm premium classical scholarly Mac app. Readable on cream #FAF7F0 and charcoal #1E1E20: use edge contrast and subtle light rim. No tile background, no frame. No lettering, words or numerals except explicitly requested characters in the subject. For pages use simple ruled strokes, never pseudo writing. No watermark."
+  },
+  {
+    "name": "tile-search.png",
+    "subject": "Magnifying glass with a bronze handle over a scroll",
+    "width": 512,
+    "height": 512,
+    "transparent": true,
+    "prompt": "Create a single production app feature illustration: Magnifying glass with a bronze handle over a scroll. Square 512x512 PNG with real alpha transparency, not checkerboard. One centered object grouping filling 80 percent canvas, generous clear margins and soft contact shadow contained inside canvas. Fine painterly realism, softly lit real vellum, aged leather, bronze with subtle verdigris, restrained gold, occasional lapis. Gentle upper-left key light, clear clean silhouette, calm premium classical scholarly Mac app. Readable on cream #FAF7F0 and charcoal #1E1E20: use edge contrast and subtle light rim. No tile background, no frame. No lettering, words or numerals except explicitly requested characters in the subject. For pages use simple ruled strokes, never pseudo writing. No watermark."
+  },
+  {
+    "name": "tile-concordance.png",
+    "subject": "Strips of parchment aligned down a central gold rule, like a printed concordance",
+    "width": 512,
+    "height": 512,
+    "transparent": true,
+    "prompt": "Create a single production app feature illustration: Strips of parchment aligned down a central gold rule, like a printed concordance. Square 512x512 PNG with real alpha transparency, not checkerboard. One centered object grouping filling 80 percent canvas, generous clear margins and soft contact shadow contained inside canvas. Fine painterly realism, softly lit real vellum, aged leather, bronze with subtle verdigris, restrained gold, occasional lapis. Gentle upper-left key light, clear clean silhouette, calm premium classical scholarly Mac app. Readable on cream #FAF7F0 and charcoal #1E1E20: use edge contrast and subtle light rim. No tile background, no frame. No lettering, words or numerals except explicitly requested characters in the subject. For pages use simple ruled strokes, never pseudo writing. No watermark."
+  },
+  {
+    "name": "tile-core-vocabulary.png",
+    "subject": "A stack of wax tablets, the top one with a laurel sprig",
+    "width": 512,
+    "height": 512,
+    "transparent": true,
+    "prompt": "Create a single production app feature illustration: A stack of wax tablets, the top one with a laurel sprig. Square 512x512 PNG with real alpha transparency, not checkerboard. One centered object grouping filling 80 percent canvas, generous clear margins and soft contact shadow contained inside canvas. Fine painterly realism, softly lit real vellum, aged leather, bronze with subtle verdigris, restrained gold, occasional lapis. Gentle upper-left key light, clear clean silhouette, calm premium classical scholarly Mac app. Readable on cream #FAF7F0 and charcoal #1E1E20: use edge contrast and subtle light rim. No tile background, no frame. No lettering, words or numerals except explicitly requested characters in the subject. For pages use simple ruled strokes, never pseudo writing. No watermark."
+  },
+  {
+    "name": "tile-morphology.png",
+    "subject": "A bronze balance weighing small tiles",
+    "width": 512,
+    "height": 512,
+    "transparent": true,
+    "prompt": "Create a single production app feature illustration: A bronze balance weighing small tiles. Square 512x512 PNG with real alpha transparency, not checkerboard. One centered object grouping filling 80 percent canvas, generous clear margins and soft contact shadow contained inside canvas. Fine painterly realism, softly lit real vellum, aged leather, bronze with subtle verdigris, restrained gold, occasional lapis. Gentle upper-left key light, clear clean silhouette, calm premium classical scholarly Mac app. Readable on cream #FAF7F0 and charcoal #1E1E20: use edge contrast and subtle light rim. No tile background, no frame. No lettering, words or numerals except explicitly requested characters in the subject. For pages use simple ruled strokes, never pseudo writing. No watermark."
+  },
+  {
+    "name": "tile-echo-finder.png",
+    "subject": "Two scrolls with a thin gold thread running between matching places on each",
+    "width": 512,
+    "height": 512,
+    "transparent": true,
+    "prompt": "Single premium classical scholarly Mac app illustration: Two scrolls with a thin gold thread running between matching places on each. Exactly 512x512 square RGBA PNG, genuine transparent background. Centered object group filling 80% canvas with clear margins and subtle contact shadow. Fine painted real materials: vellum, aged leather, bronze with verdigris, muted gold, restrained lapis. Gentle upper-left light. Clean silhouette legible on cream and charcoal backgrounds. No frame or background tile. No text or pseudo lettering: on pages only sparse horizontal ruled lines. No watermark. Match the calm painted-object family of the previously generated feature icons."
+  },
+  {
+    "name": "tile-reception.png",
+    "subject": "A scroll handing on to a codex handing on to a printed book, left to right",
+    "width": 512,
+    "height": 512,
+    "transparent": true,
+    "prompt": "Single premium classical scholarly Mac app illustration: A scroll handing on to a codex handing on to a printed book, left to right. Exactly 512x512 square RGBA PNG, genuine transparent background. Centered object group filling 80% canvas with clear margins and subtle contact shadow. Fine painted real materials: vellum, aged leather, bronze with verdigris, muted gold, restrained lapis. Gentle upper-left light. Clean silhouette legible on cream and charcoal backgrounds. No frame or background tile. No text or pseudo lettering: on pages only sparse horizontal ruled lines. No watermark. Match the calm painted-object family of the previously generated feature icons."
+  },
+  {
+    "name": "tile-cross-language.png",
+    "subject": "Two tablets, one marble and one wax, joined by a gold arc",
+    "width": 512,
+    "height": 512,
+    "transparent": true,
+    "prompt": "Single premium classical scholarly Mac app illustration: Two tablets, one marble and one wax, joined by a gold arc. Exactly 512x512 square RGBA PNG, genuine transparent background. Centered object group filling 80% canvas with clear margins and subtle contact shadow. Fine painted real materials: vellum, aged leather, bronze with verdigris, muted gold, restrained lapis. Gentle upper-left light. Clean silhouette legible on cream and charcoal backgrounds. No frame or background tile. No text or pseudo lettering: on pages only sparse horizontal ruled lines. No watermark. Match the calm painted-object family of the previously generated feature icons."
+  },
+  {
+    "name": "tile-compare.png",
+    "subject": "Two parchment leaves overlapping, offset",
+    "width": 512,
+    "height": 512,
+    "transparent": true,
+    "prompt": "Single premium classical scholarly Mac app illustration: Two parchment leaves overlapping, offset. Exactly 512x512 square RGBA PNG, genuine transparent background. Centered object group filling 80% canvas with clear margins and subtle contact shadow. Fine painted real materials: vellum, aged leather, bronze with verdigris, muted gold, restrained lapis. Gentle upper-left light. Clean silhouette legible on cream and charcoal backgrounds. No frame or background tile. No text or pseudo lettering: on pages only sparse horizontal ruled lines. No watermark. Match the calm painted-object family of the previously generated feature icons."
+  },
+  {
+    "name": "tile-collation.png",
+    "subject": "Two printed pages with small bronze markers at the lines where they differ",
+    "width": 512,
+    "height": 512,
+    "transparent": true,
+    "prompt": "Single premium classical scholarly Mac app illustration: Two printed pages with small bronze markers at the lines where they differ. Exactly 512x512 square RGBA PNG, genuine transparent background. Centered object group filling 80% canvas with clear margins and subtle contact shadow. Fine painted real materials: vellum, aged leather, bronze with verdigris, muted gold, restrained lapis. Gentle upper-left light. Clean silhouette legible on cream and charcoal backgrounds. No frame or background tile. No text or pseudo lettering: on pages only sparse horizontal ruled lines. No watermark. Match the calm painted-object family of the previously generated feature icons."
+  },
+  {
+    "name": "tile-tags.png",
+    "subject": "Bronze tags on cords, tied to a scroll's handle",
+    "width": 512,
+    "height": 512,
+    "transparent": true,
+    "prompt": "Single premium classical scholarly Mac app illustration: Bronze tags on cords, tied to a scroll's handle. Exactly 512x512 square RGBA PNG, genuine transparent background. Centered object group filling 80% canvas with clear margins and subtle contact shadow. Fine painted real materials: vellum, aged leather, bronze with verdigris, muted gold, restrained lapis. Gentle upper-left light. Clean silhouette legible on cream and charcoal backgrounds. No frame or background tile. No text or pseudo lettering: on pages only sparse horizontal ruled lines. No watermark. Match the calm painted-object family of the previously generated feature icons."
+  },
+  {
+    "name": "tile-bookmarks.png",
+    "subject": "Silk ribbon markers in red, blue and gold hanging from a closed codex",
+    "width": 512,
+    "height": 512,
+    "transparent": true,
+    "prompt": "Single premium classical scholarly Mac app illustration: Silk ribbon markers in red, blue and gold hanging from a closed codex. Exactly 512x512 square RGBA PNG, genuine transparent background, fully transparent corners. Center object grouping filling 80% canvas, clear margins and subtle contained contact shadow. Fine painted real materials: vellum, aged leather, bronze with verdigris, muted gold, restrained lapis. Gentle upper-left light. Clean silhouette readable on cream and charcoal backgrounds. No frame or background tile. No lettering, words, pseudo text, numbers or watermark. Pages and maps have simple lines without labels. Calm refined painted-object family."
+  },
+  {
+    "name": "tile-myth-network.png",
+    "subject": "Bronze roundels with figure silhouettes, joined by gold threads",
+    "width": 512,
+    "height": 512,
+    "transparent": true,
+    "prompt": "Only five small bronze roundels with simple classical figure silhouettes, connected by thin gold threads as a readable network. NO books, scrolls, maps or extra props. Fine painted bronze with subtle verdigris, gentle upper-left light, clean silhouette. Center in 80% of 512x512 square, genuine alpha transparent background."
+  },
+  {
+    "name": "tile-places-map.png",
+    "subject": "A painted Mediterranean chart on vellum with a bronze pin",
+    "width": 512,
+    "height": 512,
+    "transparent": true,
+    "prompt": "Single premium classical scholarly Mac app illustration: A painted Mediterranean chart on vellum with a bronze pin. Exactly 512x512 square RGBA PNG, genuine transparent background, fully transparent corners. Center object grouping filling 80% canvas, clear margins and subtle contained contact shadow. Fine painted real materials: vellum, aged leather, bronze with verdigris, muted gold, restrained lapis. Gentle upper-left light. Clean silhouette readable on cream and charcoal backgrounds. No frame or background tile. No lettering, words, pseudo text, numbers or watermark. Pages and maps have simple lines without labels. Calm refined painted-object family."
+  },
+  {
+    "name": "tile-timeline.png",
+    "subject": "A marble frieze strip with small medallions along it",
+    "width": 512,
+    "height": 512,
+    "transparent": true,
+    "prompt": "Only one low horizontal white marble frieze strip with five small inset bronze medallions along it, abstract relief silhouettes. NO objects on top, no bust, globe, books, scrolls or plants. A simple architectural strip alone, fine painted marble and bronze, upper left light. Center within 80% square canvas 512x512, real transparent background."
+  },
+  {
+    "name": "tile-stylometry.png",
+    "subject": "A brass instrument measuring two quills, like calipers",
+    "width": 512,
+    "height": 512,
+    "transparent": true,
+    "prompt": "Single premium classical scholarly Mac app illustration: A brass instrument measuring two quills, like calipers. Exactly 512x512 square RGBA PNG, genuine transparent background, fully transparent corners. Center object grouping filling 80% canvas, clear margins and subtle contained contact shadow. Fine painted real materials: vellum, aged leather, bronze with verdigris, muted gold, restrained lapis. Gentle upper-left light. Clean silhouette readable on cream and charcoal backgrounds. No frame or background tile. No lettering, words, pseudo text, numbers or watermark. Pages and maps have simple lines without labels. Calm refined painted-object family."
+  },
+  {
+    "name": "tile-validation.png",
+    "subject": "An apothecary's balance with a set of graduated bronze weights",
+    "width": 512,
+    "height": 512,
+    "transparent": true,
+    "prompt": "Single premium classical scholarly Mac app illustration: An apothecary's balance with a set of graduated bronze weights. Exactly 512x512 square RGBA PNG, genuine transparent background, fully transparent corners. Center object grouping filling 80% canvas, clear margins and subtle contained contact shadow. Fine painted real materials: vellum, aged leather, bronze with verdigris, muted gold, restrained lapis. Gentle upper-left light. Clean silhouette readable on cream and charcoal backgrounds. No frame or background tile. No lettering, words, pseudo text, numbers or watermark. Pages and maps have simple lines without labels. Calm refined painted-object family."
+  },
+  {
+    "name": "tile-workbench.png",
+    "subject": "A writing desk: an open source text, a wax tablet beside it, a stylus",
+    "width": 512,
+    "height": 512,
+    "transparent": true,
+    "prompt": "Single premium classical scholarly Mac app illustration: A writing desk: an open source text, a wax tablet beside it, a stylus. Exactly 512x512 square RGBA PNG, genuine transparent background, fully transparent corners. Center object grouping filling 80% canvas, clear margins and subtle contained contact shadow. Fine painted real materials: vellum, aged leather, bronze with verdigris, muted gold, restrained lapis. Gentle upper-left light. Clean silhouette readable on cream and charcoal backgrounds. No frame or background tile. No lettering, words, pseudo text, numbers or watermark. Pages and maps have simple lines without labels. Calm refined painted-object family."
+  },
+  {
+    "name": "tile-ai-translate.png",
+    "subject": "A codex with a faint, cool light rising from its pages",
+    "width": 512,
+    "height": 512,
+    "transparent": true,
+    "prompt": "Single premium classical scholarly Mac app illustration: A codex with a faint, cool light rising from its pages. Exactly 512x512 square RGBA PNG, genuine transparent background, fully transparent corners. Center object grouping filling 80% canvas, clear margins and subtle contained contact shadow. Fine painted real materials: vellum, aged leather, bronze with verdigris, muted gold, restrained lapis. Gentle upper-left light. Clean silhouette readable on cream and charcoal backgrounds. No frame or background tile. No lettering, words, pseudo text, numbers or watermark. Pages and maps have simple lines without labels. Calm refined painted-object family."
+  },
+  {
+    "name": "tile-reactions.png",
+    "subject": "Theatre masks, comic and tragic, half-turned toward each other as if talking",
+    "width": 512,
+    "height": 512,
+    "transparent": true,
+    "prompt": "Production icon subject ONLY: Theatre masks, comic and tragic, half-turned toward each other as if talking. Single isolated object grouping, no extra props, books, maps, globes or scenery unless explicitly in subject. Square 512x512 PNG with real alpha transparent background. Center object within 80% canvas, generous margins, fine restrained painted realism, bronze with subtle verdigris, vellum and wood as appropriate, soft upper-left light and contained contact shadow. Calm premium scholarly app. Dark objects have light rim; pale objects dark edges to read on both cream and charcoal. No words, lettering, pseudo writing, labels or watermark; manuscript decorated initial should be purely ornamental abstract knot motif, not a letter."
+  },
+  {
+    "name": "tile-antikythera.png",
+    "subject": "The bronze gear train, verdigris in the teeth",
+    "width": 512,
+    "height": 512,
+    "transparent": true,
+    "prompt": "Production icon subject ONLY: The bronze gear train, verdigris in the teeth. Single isolated object grouping, no extra props, books, maps, globes or scenery unless explicitly in subject. Square 512x512 PNG with real alpha transparent background. Center object within 80% canvas, generous margins, fine restrained painted realism, bronze with subtle verdigris, vellum and wood as appropriate, soft upper-left light and contained contact shadow. Calm premium scholarly app. Dark objects have light rim; pale objects dark edges to read on both cream and charcoal. No words, lettering, pseudo writing, labels or watermark; manuscript decorated initial should be purely ornamental abstract knot motif, not a letter."
+  },
+  {
+    "name": "tile-almagest.png",
+    "subject": "An armillary sphere, brass rings, Earth at the centre",
+    "width": 512,
+    "height": 512,
+    "transparent": true,
+    "prompt": "Production icon subject ONLY: An armillary sphere, brass rings, Earth at the centre. Single isolated object grouping, no extra props, books, maps, globes or scenery unless explicitly in subject. Square 512x512 PNG with real alpha transparent background. Center object within 80% canvas, generous margins, fine restrained painted realism, bronze with subtle verdigris, vellum and wood as appropriate, soft upper-left light and contained contact shadow. Calm premium scholarly app. Dark objects have light rim; pale objects dark edges to read on both cream and charcoal. No words, lettering, pseudo writing, labels or watermark; manuscript decorated initial should be purely ornamental abstract knot motif, not a letter."
+  },
+  {
+    "name": "tile-harmonics.png",
+    "subject": "A monochord: one string over a long sounding box with a movable bridge",
+    "width": 512,
+    "height": 512,
+    "transparent": true,
+    "prompt": "Production icon subject ONLY: A monochord: one string over a long sounding box with a movable bridge. Single isolated object grouping, no extra props, books, maps, globes or scenery unless explicitly in subject. Square 512x512 PNG with real alpha transparent background. Center object within 80% canvas, generous margins, fine restrained painted realism, bronze with subtle verdigris, vellum and wood as appropriate, soft upper-left light and contained contact shadow. Calm premium scholarly app. Dark objects have light rim; pale objects dark edges to read on both cream and charcoal. No words, lettering, pseudo writing, labels or watermark; manuscript decorated initial should be purely ornamental abstract knot motif, not a letter."
+  },
+  {
+    "name": "tile-medieval-hands.png",
+    "subject": "A manuscript leaf with a decorated initial and a quill resting on it",
+    "width": 512,
+    "height": 512,
+    "transparent": true,
+    "prompt": "Production icon subject ONLY: A manuscript leaf with a decorated initial and a quill resting on it. Single isolated object grouping, no extra props, books, maps, globes or scenery unless explicitly in subject. Square 512x512 PNG with real alpha transparent background. Center object within 80% canvas, generous margins, fine restrained painted realism, bronze with subtle verdigris, vellum and wood as appropriate, soft upper-left light and contained contact shadow. Calm premium scholarly app. Dark objects have light rim; pale objects dark edges to read on both cream and charcoal. No words, lettering, pseudo writing, labels or watermark; manuscript decorated initial should be purely ornamental abstract knot motif, not a letter."
+  },
+  {
+    "name": "tile-nordic.png",
+    "subject": "A vellum leaf in a carved Norse wooden cover",
+    "width": 512,
+    "height": 512,
+    "transparent": true,
+    "prompt": "Create ONLY an open medieval Nordic manuscript in a carved Norse wooden book cover. The vellum leaf means a RECTANGULAR SHEET OF PAPER, NOT a botanical plant leaf. Two creamy rectangular parchment pages, simple horizontal rules and a small interlaced ornament, no writing, inside thick brown wooden covers carved with restrained Norse interlace. No plants, no botanical shapes, no extra objects. Fine painted real materials, gentle upper-left light, clean silhouette, subtle shadow, centered within 80% of 512x512 square. Genuine alpha transparent background. No text."
+  },
+  {
+    "name": "tile-research.png",
+    "subject": "A cork board with pinned parchment slips joined by red thread",
+    "width": 512,
+    "height": 512,
+    "transparent": true,
+    "prompt": "Production icon subject ONLY: A cork board with pinned parchment slips joined by red thread. Single isolated object grouping, no extra props, books, maps, globes or scenery unless explicitly in subject. Square 512x512 PNG with real alpha transparent background. Center object within 80% canvas, generous margins, fine restrained painted realism, bronze with subtle verdigris, vellum and wood as appropriate, soft upper-left light and contained contact shadow. Calm premium scholarly app. Dark objects have light rim; pale objects dark edges to read on both cream and charcoal. No words, lettering, pseudo writing, labels or watermark; manuscript decorated initial should be purely ornamental abstract knot motif, not a letter."
+  },
+  {
+    "name": "tile-starting-points.png",
+    "subject": "A milestone carved with a single arrow, a path leading past it",
+    "width": 512,
+    "height": 512,
+    "transparent": true,
+    "prompt": "Production icon subject ONLY: A milestone carved with a single arrow, a path leading past it. Single isolated object grouping, no extra props, books, maps, globes or scenery unless explicitly in subject. Square 512x512 PNG with real alpha transparent background. Center object within 80% canvas, generous margins, fine restrained painted realism, bronze with subtle verdigris, vellum and wood as appropriate, soft upper-left light and contained contact shadow. Calm premium scholarly app. Dark objects have light rim; pale objects dark edges to read on both cream and charcoal. No words, lettering, pseudo writing, labels or watermark; manuscript decorated initial should be purely ornamental abstract knot motif, not a letter."
+  },
+  {
+    "name": "tile-alphabet.png",
+    "subject": "A bronze plaque with three engraved letters \"\u0391\u0392\u0393\"",
+    "width": 512,
+    "height": 512,
+    "transparent": true,
+    "prompt": "Production app feature icon subject ONLY: A bronze plaque with three engraved letters \"\u0391\u0392\u0393\". Do not add unrelated props. Square 512x512 PNG, real alpha transparent background and corners. Centered grouping filling 80% canvas with generous margins and soft contact shadow. Fine restrained painted realism, appropriate bronze with subtle verdigris, vellum, wood or marble, soft upper-left key light. Premium calm classical scholarly app. Clear silhouette on light cream or charcoal background. No words or pseudo text, labels or watermark. The alphabet plaque must show exactly these three Greek uppercase letters \u0391\u0392\u0393, clearly and correctly; this lettering instruction applies ONLY if subject is alphabet plaque. Other objects entirely unlettered."
+  },
+  {
+    "name": "tile-read-aloud.png",
+    "subject": "A bronze horn beside an open scroll",
+    "width": 512,
+    "height": 512,
+    "transparent": true,
+    "prompt": "Production app feature icon subject ONLY: A bronze horn beside an open scroll. Do not add unrelated props. Square 512x512 PNG, real alpha transparent background and corners. Centered grouping filling 80% canvas with generous margins and soft contact shadow. Fine restrained painted realism, appropriate bronze with subtle verdigris, vellum, wood or marble, soft upper-left key light. Premium calm classical scholarly app. Clear silhouette on light cream or charcoal background. No words or pseudo text, labels or watermark. The alphabet plaque must show exactly these three Greek uppercase letters \u0391\u0392\u0393, clearly and correctly; this lettering instruction applies ONLY if subject is alphabet plaque. Other objects entirely unlettered."
+  },
+  {
+    "name": "tile-export.png",
+    "subject": "A sealed letter with a wax seal, an arrow-shaped ribbon",
+    "width": 512,
+    "height": 512,
+    "transparent": true,
+    "prompt": "Production app feature icon subject ONLY: A sealed letter with a wax seal, an arrow-shaped ribbon. Do not add unrelated props. Square 512x512 PNG, real alpha transparent background and corners. Centered grouping filling 80% canvas with generous margins and soft contact shadow. Fine restrained painted realism, appropriate bronze with subtle verdigris, vellum, wood or marble, soft upper-left key light. Premium calm classical scholarly app. Clear silhouette on light cream or charcoal background. No words or pseudo text, labels or watermark. The alphabet plaque must show exactly these three Greek uppercase letters \u0391\u0392\u0393, clearly and correctly; this lettering instruction applies ONLY if subject is alphabet plaque. Other objects entirely unlettered."
+  },
+  {
+    "name": "tile-setup.png",
+    "subject": "Crates of scrolls arriving on a cart",
+    "width": 512,
+    "height": 512,
+    "transparent": true,
+    "prompt": "Production app feature icon subject ONLY: Crates of scrolls arriving on a cart. Do not add unrelated props. Square 512x512 PNG, real alpha transparent background and corners. Centered grouping filling 80% canvas with generous margins and soft contact shadow. Fine restrained painted realism, appropriate bronze with subtle verdigris, vellum, wood or marble, soft upper-left key light. Premium calm classical scholarly app. Clear silhouette on light cream or charcoal background. No words or pseudo text, labels or watermark. The alphabet plaque must show exactly these three Greek uppercase letters \u0391\u0392\u0393, clearly and correctly; this lettering instruction applies ONLY if subject is alphabet plaque. Other objects entirely unlettered."
+  },
+  {
+    "name": "tile-authors.png",
+    "subject": "A row of three small marble busts",
+    "width": 512,
+    "height": 512,
+    "transparent": true,
+    "prompt": "Production app feature icon subject ONLY: A row of three small marble busts. Do not add unrelated props. Square 512x512 PNG, real alpha transparent background and corners. Centered grouping filling 80% canvas with generous margins and soft contact shadow. Fine restrained painted realism, appropriate bronze with subtle verdigris, vellum, wood or marble, soft upper-left key light. Premium calm classical scholarly app. Clear silhouette on light cream or charcoal background. No words or pseudo text, labels or watermark. The alphabet plaque must show exactly these three Greek uppercase letters \u0391\u0392\u0393, clearly and correctly; this lettering instruction applies ONLY if subject is alphabet plaque. Other objects entirely unlettered."
+  },
+  {
+    "name": "tile-settings.png",
+    "subject": "A brass astrolabe-like dial with a small lever",
+    "width": 512,
+    "height": 512,
+    "transparent": true,
+    "prompt": "Production app feature icon subject ONLY: A brass astrolabe-like dial with a small lever. Do not add unrelated props. Square 512x512 PNG, real alpha transparent background and corners. Centered grouping filling 80% canvas with generous margins and soft contact shadow. Fine restrained painted realism, appropriate bronze with subtle verdigris, vellum, wood or marble, soft upper-left key light. Premium calm classical scholarly app. Clear silhouette on light cream or charcoal background. No words or pseudo text, labels or watermark. The alphabet plaque must show exactly these three Greek uppercase letters \u0391\u0392\u0393, clearly and correctly; this lettering instruction applies ONLY if subject is alphabet plaque. Other objects entirely unlettered."
+  },
+  {
+    "name": "welcome-hero-light.png",
+    "width": 2880,
+    "height": 1620,
+    "transparent": false,
+    "subject": "A wide 16:9 ancient Mediterranean reading room, colonnade opens onto calm sea, scroll pigeonholes in cedar wall at right, reading desk with open unlettered codex and oil lamp at right. Late morning sunlight, parchment and marble. LEFT 45 PERCENT is quiet low contrast softly illuminated plain cream wall for overlaid title/buttons. All intricate detail on RIGHT. No people. Painterly refined realistic materials, calm.",
+    "prompt": "Create production app artwork, 2880x1620 pixels PNG. A wide 16:9 ancient Mediterranean reading room, colonnade opens onto calm sea, scroll pigeonholes in cedar wall at right, reading desk with open unlettered codex and oil lamp at right. Late morning sunlight, parchment and marble. LEFT 45 PERCENT is quiet low contrast softly illuminated plain cream wall for overlaid title/buttons. All intricate detail on RIGHT. No people. Painterly refined realistic materials, calm. Opaque edge-to-edge artwork. No words, letters, pseudo writing, captions or watermark."
+  },
+  {
+    "name": "parchment-tile.png",
+    "width": 1024,
+    "height": 1024,
+    "transparent": false,
+    "subject": "Seamless square texture tile of fine vellum, centered precisely on near-white warm cream #FAF7F0, extraordinarily faint fibres and mottling, almost flat warm color. No stain, crease, edge, vignette, gradient or lighting direction. Must repeat seamlessly horizontally and vertically. Very low contrast.",
+    "prompt": "Create production app artwork, 1024x1024 pixels PNG. Seamless square texture tile of fine vellum, centered precisely on near-white warm cream #FAF7F0, extraordinarily faint fibres and mottling, almost flat warm color. No stain, crease, edge, vignette, gradient or lighting direction. Must repeat seamlessly horizontally and vertically. Very low contrast. Opaque edge-to-edge artwork. No words, letters, pseudo writing, captions or watermark."
+  },
+  {
+    "name": "lamplight-tile.png",
+    "width": 1024,
+    "height": 1024,
+    "transparent": false,
+    "subject": "Seamless square texture tile of dark linen-paper grain centered on charcoal #18181A, faintest warm unevenness, almost flat charcoal. No stain crease edge vignette gradient or lighting direction. Must repeat seamlessly in both directions. Extremely low contrast.",
+    "prompt": "Nearly flat dark charcoal #18181A seamless 1024x1024 texture. Extremely faint linen-paper grain, variations only about one or two RGB levels. No visible weave or bands, no vignette, no lighting, no border. Dark neutral charcoal, not brown. Quiet background for hours of reading. Seamless repeat in both axes. Opaque."
+  },
+  {
+    "name": "about-art.png",
+    "width": 1600,
+    "height": 900,
+    "transparent": false,
+    "subject": "Wide 16:9 fine painted still life: Antikythera mechanism bronze gears with verdigris and an unlettered Alexandrian papyrus scroll on dark oak, warm raking light from upper left. Arrange objects in LEFT two thirds. RIGHT THIRD stays dark simple empty oak shadow for app credits. Calm premium scholarly aesthetic.",
+    "prompt": "Create production app artwork, 1600x900 pixels PNG. Wide 16:9 fine painted still life: Antikythera mechanism bronze gears with verdigris and an unlettered Alexandrian papyrus scroll on dark oak, warm raking light from upper left. Arrange objects in LEFT two thirds. RIGHT THIRD stays dark simple empty oak shadow for app credits. Calm premium scholarly aesthetic. Opaque edge-to-edge artwork. No words, letters, pseudo writing, captions or watermark."
+  },
+  {
+    "name": "empty-library.png",
+    "subject": "An empty cedar scroll-rack with empty square pigeonholes, one rolled scroll waiting on ground beside it.",
+    "width": 800,
+    "height": 600,
+    "transparent": true,
+    "prompt": "Create production app artwork, 800x600 pixels PNG. An empty cedar scroll-rack with empty square pigeonholes, one rolled scroll waiting on ground beside it. Genuine alpha transparency outside isolated object, transparent corners, centered with generous clear margins, soft contained contact shadow, gentle upper-left light, finely painted realistic wood, bronze and vellum. Readable on light cream and charcoal. No words, letters, pseudo writing, captions or watermark."
+  },
+  {
+    "name": "empty-results.png",
+    "subject": "An ancient oil lamp and bronze magnifying glass over a BLANK wax tablet.",
+    "width": 800,
+    "height": 600,
+    "transparent": true,
+    "prompt": "Create production app artwork, 800x600 pixels PNG. An ancient oil lamp and bronze magnifying glass over a BLANK wax tablet. Genuine alpha transparency outside isolated object, transparent corners, centered with generous clear margins, soft contained contact shadow, gentle upper-left light, finely painted realistic wood, bronze and vellum. Readable on light cream and charcoal. No words, letters, pseudo writing, captions or watermark."
+  },
+  {
+    "name": "empty-selection.png",
+    "subject": "A closed leather codex with a ribbon bookmark and bronze stylus laid across it.",
+    "width": 800,
+    "height": 600,
+    "transparent": true,
+    "prompt": "Create production app artwork, 800x600 pixels PNG. A closed leather codex with a ribbon bookmark and bronze stylus laid across it. Genuine alpha transparency outside isolated object, transparent corners, centered with generous clear margins, soft contained contact shadow, gentle upper-left light, finely painted realistic wood, bronze and vellum. Readable on light cream and charcoal. No words, letters, pseudo writing, captions or watermark."
+  },
+  {
+    "name": "dmg-background.png",
+    "width": 1320,
+    "height": 800,
+    "transparent": false,
+    "subject": "Mac app installer window background, landscape 1320x800. Very faint warm cream parchment #FAF7F0 texture, no stains or vignette. ONLY a soft hand painted gold rightward arrow in central gap from x510 to x810 at y400. Entire 256x256 squares centered at x330 y400 and x990 y400 remain blank clear parchment for app and Applications icons added by software. No icons drawn, no objects, no text.",
+    "prompt": "Create production app artwork, 1320x800 pixels PNG. Mac app installer window background, landscape 1320x800. Very faint warm cream parchment #FAF7F0 texture, no stains or vignette. ONLY a soft hand painted gold rightward arrow in central gap from x510 to x810 at y400. Entire 256x256 squares centered at x330 y400 and x990 y400 remain blank clear parchment for app and Applications icons added by software. No icons drawn, no objects, no text. Opaque edge-to-edge artwork. No words, letters, pseudo writing, captions or watermark."
+  },
+  {
+    "name": "welcome-hero-dark.png",
+    "width": 2880,
+    "height": 1620,
+    "transparent": false,
+    "prompt": "Edit this exact reading room image into nighttime. Preserve identical camera, architecture, columns, desk, book, shelves, sea horizon, and object positions. Replace daylight with soft cool moonlight, a moon over water visible between columns, warm oil lamp casting local amber light across book and desk. Left 45% quiet low-contrast dark charcoal wall, suitable for light title and buttons. Same room and composition, only time and lighting change. Opaque wide 16:9 PNG 2880x1620. No text or lettering."
+  }
+]

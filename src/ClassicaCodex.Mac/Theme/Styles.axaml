@@ -1,0 +1,365 @@
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <!--
+    The look, as classes a window opts into. A window says Classes="page" or
+    Classes="toolbar" and gets the Mac treatment; nothing here reaches into a
+    control that did not ask, apart from the window background and the
+    selection colours, which have to be right everywhere.
+  -->
+
+  <Style Selector="Window">
+    <Setter Property="Background" Value="{DynamicResource Cc.Window}" />
+    <Setter Property="Foreground" Value="{DynamicResource Cc.Ink}" />
+    <Setter Property="FontSize" Value="13" />
+  </Style>
+
+  <!-- Type. Matched with :is() so a SelectableTextBlock - a TextBlock
+       underneath - takes the same classes; a plain TextBlock selector
+       matches the exact type and passed it by. -->
+  <Style Selector=":is(TextBlock).display">
+    <Setter Property="FontFamily" Value="{StaticResource Cc.DisplayFont}" />
+    <Setter Property="FontSize" Value="34" />
+    <Setter Property="FontWeight" Value="Medium" />
+    <Setter Property="LetterSpacing" Value="0.3" />
+  </Style>
+  <Style Selector=":is(TextBlock).h1">
+    <Setter Property="FontSize" Value="22" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+  </Style>
+  <Style Selector=":is(TextBlock).h2">
+    <Setter Property="FontSize" Value="16" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+  </Style>
+  <Style Selector=":is(TextBlock).h3">
+    <Setter Property="FontSize" Value="13" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+  </Style>
+  <Style Selector=":is(TextBlock).section">
+    <Setter Property="FontSize" Value="11" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="Foreground" Value="{DynamicResource Cc.InkFaint}" />
+    <Setter Property="LetterSpacing" Value="0.6" />
+  </Style>
+  <Style Selector=":is(TextBlock).caption">
+    <Setter Property="FontSize" Value="11.5" />
+    <Setter Property="Foreground" Value="{DynamicResource Cc.InkMuted}" />
+  </Style>
+  <Style Selector=":is(TextBlock).muted">
+    <Setter Property="Foreground" Value="{DynamicResource Cc.InkMuted}" />
+  </Style>
+  <Style Selector=":is(TextBlock).faint">
+    <Setter Property="Foreground" Value="{DynamicResource Cc.InkFaint}" />
+  </Style>
+  <Style Selector=":is(TextBlock).warning">
+    <Setter Property="Foreground" Value="{DynamicResource Cc.Danger}" />
+  </Style>
+  <Style Selector=":is(TextBlock).source">
+    <Setter Property="FontFamily" Value="{StaticResource Cc.SourceFont}" />
+  </Style>
+  <Style Selector=":is(TextBlock).translation">
+    <Setter Property="FontFamily" Value="{StaticResource Cc.TranslationFont}" />
+  </Style>
+  <Style Selector=":is(TextBlock).mono">
+    <Setter Property="FontFamily" Value="{StaticResource Cc.MonoFont}" />
+    <Setter Property="FontSize" Value="12" />
+  </Style>
+  <Style Selector="SelectableTextBlock">
+    <Setter Property="SelectionBrush" Value="{DynamicResource Cc.Selection}" />
+  </Style>
+
+  <!-- Glyphs -->
+  <Style Selector="PathIcon">
+    <Setter Property="Width" Value="16" />
+    <Setter Property="Height" Value="16" />
+  </Style>
+  <Style Selector="PathIcon.small">
+    <Setter Property="Width" Value="13" />
+    <Setter Property="Height" Value="13" />
+  </Style>
+  <Style Selector="PathIcon.large">
+    <Setter Property="Width" Value="22" />
+    <Setter Property="Height" Value="22" />
+  </Style>
+
+  <!-- Toolbar buttons: flat glyphs that show a soft tile on hover, the way a
+       Mac toolbar's do. -->
+  <Style Selector=":is(Button).toolbar">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="Padding" Value="7,5" />
+    <Setter Property="MinWidth" Value="30" />
+    <Setter Property="Height" Value="28" />
+    <Setter Property="CornerRadius" Value="{StaticResource Cc.ControlRadius}" />
+    <Setter Property="Foreground" Value="{DynamicResource Cc.InkMuted}" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+    <Setter Property="HorizontalContentAlignment" Value="Center" />
+    <Setter Property="VerticalContentAlignment" Value="Center" />
+  </Style>
+  <Style Selector=":is(Button).toolbar:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource Cc.Hover}" />
+    <Setter Property="Foreground" Value="{DynamicResource Cc.Ink}" />
+  </Style>
+  <Style Selector=":is(Button).toolbar:pressed /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource Cc.AccentSoft}" />
+  </Style>
+  <Style Selector=":is(Button).toolbar:disabled /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="Foreground" Value="{DynamicResource Cc.InkFaint}" />
+    <Setter Property="Opacity" Value="0.45" />
+  </Style>
+  <Style Selector="ToggleButton.toolbar:checked /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource Cc.AccentSoft}" />
+    <Setter Property="Foreground" Value="{DynamicResource Cc.Accent}" />
+  </Style>
+
+  <!-- The one emphatic button on a screen. -->
+  <Style Selector="Button.accent">
+    <Setter Property="Background" Value="{DynamicResource Cc.Accent}" />
+    <Setter Property="Foreground" Value="{DynamicResource Cc.OnAccent}" />
+    <Setter Property="CornerRadius" Value="{StaticResource Cc.ControlRadius}" />
+    <Setter Property="Padding" Value="14,6" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+  </Style>
+  <!-- Fluent's own .accent sets the text on the template, which would win over the setter above. -->
+  <Style Selector="Button.accent /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Foreground" Value="{DynamicResource Cc.OnAccent}" />
+  </Style>
+  <Style Selector="Button.accent:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource Cc.AccentStrong}" />
+    <Setter Property="Foreground" Value="{DynamicResource Cc.OnAccent}" />
+  </Style>
+  <Style Selector="Button.accent:pressed /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource Cc.AccentStrong}" />
+    <Setter Property="Foreground" Value="{DynamicResource Cc.OnAccent}" />
+  </Style>
+  <Style Selector="Button.accent:disabled /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource Cc.AccentSoft}" />
+    <Setter Property="Foreground" Value="{DynamicResource Cc.InkFaint}" />
+  </Style>
+
+  <Style Selector="Button">
+    <Setter Property="CornerRadius" Value="{StaticResource Cc.ControlRadius}" />
+  </Style>
+
+  <!-- A button that reads as a link: for "Open in reader" and the like. -->
+  <Style Selector="Button.link">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="Padding" Value="0" />
+    <Setter Property="Foreground" Value="{DynamicResource Cc.Accent}" />
+    <Setter Property="Cursor" Value="Hand" />
+  </Style>
+  <Style Selector="Button.link:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="Foreground" Value="{DynamicResource Cc.AccentStrong}" />
+  </Style>
+
+  <!-- Surfaces -->
+  <Style Selector="Border.page">
+    <Setter Property="Background" Value="{DynamicResource Cc.Page}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource Cc.Rule}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="{StaticResource Cc.PageRadius}" />
+    <Setter Property="BoxShadow" Value="{DynamicResource Cc.PageShadow}" />
+    <Setter Property="ClipToBounds" Value="True" />
+  </Style>
+  <Style Selector="Border.card">
+    <Setter Property="Background" Value="{DynamicResource Cc.Card}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource Cc.Rule}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="{StaticResource Cc.CardRadius}" />
+    <Setter Property="BoxShadow" Value="{DynamicResource Cc.CardShadow}" />
+  </Style>
+  <Style Selector="Border.panel">
+    <Setter Property="Background" Value="{DynamicResource Cc.PageHeader}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource Cc.Rule}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="{StaticResource Cc.ControlRadius}" />
+  </Style>
+  <Style Selector="Border.notice">
+    <Setter Property="Background" Value="{DynamicResource Cc.AccentSoft}" />
+    <Setter Property="CornerRadius" Value="{StaticResource Cc.ControlRadius}" />
+    <Setter Property="Padding" Value="12,8" />
+  </Style>
+  <Style Selector="Border.rule">
+    <Setter Property="Background" Value="{DynamicResource Cc.Rule}" />
+    <Setter Property="Height" Value="1" />
+  </Style>
+  <Style Selector="Border.vrule">
+    <Setter Property="Background" Value="{DynamicResource Cc.Rule}" />
+    <Setter Property="Width" Value="1" />
+  </Style>
+
+  <!-- Tool tiles in the gallery: a card that lifts under the pointer. -->
+  <Style Selector="Button.tile">
+    <Setter Property="Background" Value="{DynamicResource Cc.Card}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource Cc.Rule}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="{StaticResource Cc.CardRadius}" />
+    <Setter Property="Padding" Value="14" />
+    <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+    <Setter Property="VerticalContentAlignment" Value="Stretch" />
+    <Setter Property="Transitions">
+      <Transitions>
+        <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.15" />
+      </Transitions>
+    </Setter>
+  </Style>
+  <Style Selector="Button.tile:pointerover">
+    <Setter Property="RenderTransform" Value="translateY(-2px)" />
+  </Style>
+  <Style Selector="Button.tile:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource Cc.CardHover}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource Cc.Accent}" />
+  </Style>
+
+  <!-- Search and filter fields: rounded, quiet until focused. -->
+  <Style Selector="TextBox.search">
+    <Setter Property="CornerRadius" Value="7" />
+    <Setter Property="Padding" Value="8,5" />
+    <Setter Property="MinHeight" Value="28" />
+    <Setter Property="Background" Value="{DynamicResource Cc.Hover}" />
+    <Setter Property="BorderThickness" Value="0" />
+  </Style>
+  <Style Selector="TextBox">
+    <Setter Property="CornerRadius" Value="{StaticResource Cc.ControlRadius}" />
+    <Setter Property="SelectionBrush" Value="{DynamicResource Cc.Selection}" />
+    <Setter Property="SelectionForegroundBrush" Value="{DynamicResource Cc.SelectionInk}" />
+  </Style>
+  <Style Selector="ComboBox">
+    <Setter Property="CornerRadius" Value="{StaticResource Cc.ControlRadius}" />
+  </Style>
+
+  <!-- The edition picker sits in a page header and should read as a title
+       with a chevron, not as a form field. -->
+  <Style Selector="ComboBox.edition">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="HorizontalAlignment" Value="Stretch" />
+    <Setter Property="FontSize" Value="12" />
+    <Setter Property="Foreground" Value="{DynamicResource Cc.InkMuted}" />
+    <Setter Property="Padding" Value="6,4" />
+  </Style>
+  <Style Selector="ComboBox.edition:pointerover /template/ Border#Background">
+    <Setter Property="Background" Value="{DynamicResource Cc.Hover}" />
+  </Style>
+
+  <!-- Lists: soft selection in the palette's colours rather than the system
+       blue, which would sit on parchment like a sticker. -->
+  <Style Selector="ListBox">
+    <Setter Property="Background" Value="Transparent" />
+  </Style>
+  <Style Selector="ListBoxItem">
+    <Setter Property="CornerRadius" Value="5" />
+  </Style>
+  <Style Selector="ListBoxItem:selected /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource Cc.Selection}" />
+    <Setter Property="Foreground" Value="{DynamicResource Cc.SelectionInk}" />
+  </Style>
+  <Style Selector="ListBoxItem:selected:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource Cc.Selection}" />
+  </Style>
+  <Style Selector="ListBoxItem:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource Cc.Hover}" />
+  </Style>
+  <Style Selector="ListBoxItem:selected:focus /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource Cc.Selection}" />
+  </Style>
+
+  <!-- The reader's passages: no item padding of Fluent's own, so verse sets
+       as close as a printed page and a row's height is the line's. -->
+  <Style Selector="ListBox.reader ListBoxItem">
+    <Setter Property="Padding" Value="0" />
+    <Setter Property="MinHeight" Value="0" />
+    <Setter Property="Margin" Value="0" />
+  </Style>
+
+  <!-- The sidebar's Library / Tools switch: the chosen half raised on a card,
+       the other flat, as a Mac segmented control draws them. -->
+  <Style Selector="ToggleButton.segment">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="Foreground" Value="{DynamicResource Cc.InkMuted}" />
+  </Style>
+  <Style Selector="ToggleButton.segment:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="Foreground" Value="{DynamicResource Cc.Ink}" />
+  </Style>
+  <Style Selector="ToggleButton.segment:checked /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource Cc.Card}" />
+    <Setter Property="Foreground" Value="{DynamicResource Cc.Ink}" />
+    <Setter Property="BoxShadow" Value="0 1 2 0 #22000000" />
+  </Style>
+  <Style Selector="ToggleButton.segment:checked:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource Cc.Card}" />
+    <Setter Property="Foreground" Value="{DynamicResource Cc.Ink}" />
+  </Style>
+
+  <Style Selector="TreeViewItem">
+    <Setter Property="MinHeight" Value="26" />
+  </Style>
+  <Style Selector="TreeViewItem:selected /template/ Border#PART_LayoutRoot">
+    <Setter Property="Background" Value="{DynamicResource Cc.Selection}" />
+  </Style>
+  <Style Selector="TreeViewItem:selected:focus /template/ Border#PART_LayoutRoot">
+    <Setter Property="Background" Value="{DynamicResource Cc.Selection}" />
+  </Style>
+  <Style Selector="TreeViewItem:selected:pointerover /template/ Border#PART_LayoutRoot">
+    <Setter Property="Background" Value="{DynamicResource Cc.Selection}" />
+  </Style>
+  <Style Selector="TreeViewItem:pointerover /template/ Border#PART_LayoutRoot">
+    <Setter Property="Background" Value="{DynamicResource Cc.Hover}" />
+  </Style>
+  <Style Selector="TreeView">
+    <Setter Property="Background" Value="Transparent" />
+  </Style>
+
+  <!-- Result tables. -->
+  <Style Selector="DataGrid">
+    <Setter Property="Background" Value="{DynamicResource Cc.Page}" />
+    <Setter Property="RowBackground" Value="Transparent" />
+    <Setter Property="GridLinesVisibility" Value="Horizontal" />
+    <Setter Property="HorizontalGridLinesBrush" Value="{DynamicResource Cc.Rule}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource Cc.Rule}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="{StaticResource Cc.ControlRadius}" />
+    <Setter Property="CanUserReorderColumns" Value="True" />
+    <Setter Property="CanUserResizeColumns" Value="True" />
+    <Setter Property="CanUserSortColumns" Value="True" />
+    <Setter Property="IsReadOnly" Value="True" />
+    <Setter Property="SelectionMode" Value="Extended" />
+  </Style>
+  <Style Selector="DataGridColumnHeader">
+    <Setter Property="Background" Value="{DynamicResource Cc.PageHeader}" />
+    <Setter Property="Foreground" Value="{DynamicResource Cc.InkMuted}" />
+    <Setter Property="FontSize" Value="11.5" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+  </Style>
+  <Style Selector="DataGridRow:selected /template/ Rectangle#BackgroundRectangle">
+    <Setter Property="Fill" Value="{DynamicResource Cc.Selection}" />
+    <Setter Property="Opacity" Value="1" />
+  </Style>
+  <Style Selector="DataGridCell">
+    <Setter Property="FontSize" Value="12.5" />
+  </Style>
+
+  <Style Selector="GridSplitter">
+    <Setter Property="Background" Value="Transparent" />
+  </Style>
+
+  <Style Selector="ProgressBar">
+    <Setter Property="Foreground" Value="{DynamicResource Cc.Accent}" />
+  </Style>
+
+  <Style Selector="ToolTip">
+    <Setter Property="FontSize" Value="12" />
+  </Style>
+
+  <Style Selector="TabControl">
+    <Setter Property="Padding" Value="0" />
+  </Style>
+  <Style Selector="TabItem">
+    <Setter Property="FontSize" Value="14" />
+    <Setter Property="MinHeight" Value="34" />
+  </Style>
+</Styles>

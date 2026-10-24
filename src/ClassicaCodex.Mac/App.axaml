@@ -1,0 +1,96 @@
+<Application xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="ClassicaCodex.Mac.App"
+             Name="Classica Codex"
+             RequestedThemeVariant="Default">
+
+  <Application.Resources>
+    <ResourceDictionary>
+      <ResourceDictionary.MergedDictionaries>
+        <ResourceInclude Source="avares://ClassicaCodex.Mac/Theme/Palette.axaml" />
+        <ResourceInclude Source="avares://ClassicaCodex.Mac/Theme/Glyphs.axaml" />
+      </ResourceDictionary.MergedDictionaries>
+    </ResourceDictionary>
+  </Application.Resources>
+
+  <Application.Styles>
+    <!-- Fluent supplies the controls; the palettes below recolour it so a
+         checkbox or a scroll bar is bronze on parchment rather than Windows
+         blue on white. -->
+    <FluentTheme>
+      <FluentTheme.Palettes>
+        <ColorPaletteResources x:Key="Light"
+                               Accent="#A0612B"
+                               AltHigh="#FBF8F1"
+                               AltLow="#FBF8F1"
+                               AltMedium="#FBF8F1"
+                               AltMediumHigh="#FBF8F1"
+                               AltMediumLow="#FBF8F1"
+                               BaseHigh="#1C1712"
+                               BaseLow="#D8CDB8"
+                               BaseMedium="#6B6152"
+                               BaseMediumHigh="#3A3229"
+                               BaseMediumLow="#8C826F"
+                               ChromeAltLow="#3A3229"
+                               ChromeBlackHigh="#000000"
+                               ChromeBlackLow="#D8CDB8"
+                               ChromeBlackMedium="#3A3229"
+                               ChromeBlackMediumLow="#8C826F"
+                               ChromeDisabledHigh="#D8CDB8"
+                               ChromeDisabledLow="#8C826F"
+                               ChromeGray="#6B6152"
+                               ChromeHigh="#D8CDB8"
+                               ChromeLow="#F2ECE0"
+                               ChromeMedium="#EAE3D4"
+                               ChromeMediumLow="#F2ECE0"
+                               ChromeWhite="#FFFDF8"
+                               ListLow="#EFE7D8"
+                               ListMedium="#D8CDB8"
+                               RegionColor="#F2ECE0"
+                               ErrorText="#A3362A" />
+        <ColorPaletteResources x:Key="Dark"
+                               Accent="#E0A15E"
+                               AltHigh="#1B1917"
+                               AltLow="#1B1917"
+                               AltMedium="#1B1917"
+                               AltMediumHigh="#1B1917"
+                               AltMediumLow="#1B1917"
+                               BaseHigh="#ECE5D8"
+                               BaseLow="#383229"
+                               BaseMedium="#A89E8D"
+                               BaseMediumHigh="#D2C9B9"
+                               BaseMediumLow="#6E665A"
+                               ChromeAltLow="#D2C9B9"
+                               ChromeBlackHigh="#000000"
+                               ChromeBlackLow="#D2C9B9"
+                               ChromeBlackMedium="#000000"
+                               ChromeBlackMediumLow="#000000"
+                               ChromeDisabledHigh="#383229"
+                               ChromeDisabledLow="#A89E8D"
+                               ChromeGray="#8C826F"
+                               ChromeHigh="#8C826F"
+                               ChromeLow="#22201D"
+                               ChromeMedium="#2B2823"
+                               ChromeMediumLow="#332F29"
+                               ChromeWhite="#FFFFFF"
+                               ListLow="#2B2823"
+                               ListMedium="#383229"
+                               RegionColor="#1B1917"
+                               ErrorText="#FF8A7A" />
+      </FluentTheme.Palettes>
+    </FluentTheme>
+    <StyleInclude Source="avares://Avalonia.Controls.DataGrid/Themes/Fluent.xaml" />
+    <StyleInclude Source="avares://ClassicaCodex.Mac/Theme/Styles.axaml" />
+  </Application.Styles>
+
+  <!-- The application menu: the one macOS puts under the app's own name, to
+       the left of File. Built here rather than per window because it belongs
+       to the application, and must exist before any window does. -->
+  <NativeMenu.Menu>
+    <NativeMenu>
+      <NativeMenuItem Header="About Classica Codex" Click="OnAboutClicked" />
+      <NativeMenuItemSeparator />
+      <NativeMenuItem Header="Settings…" Gesture="Cmd+OemComma" Click="OnSettingsClicked" />
+    </NativeMenu>
+  </NativeMenu.Menu>
+</Application>
