@@ -1,18 +1,41 @@
-using ClassicaCodex.Core.Models;
 using ClassicaCodex.Mac.Shell;
 
 namespace ClassicaCodex.Mac.Features.Apparatus;
 
 /// <summary>
-/// Entry points for this feature, called from the main window's menus,
-/// toolbar and context menus. A stub until the feature is ported: each
-/// opens the coming-soon card.
+/// Editor's Notes and the preface: the two windows that show what an edition
+/// carries besides its text, both opened from the reader's line menu.
 /// </summary>
 public static class ApparatusFeature
 {
-    public static void Open(IReaderHost host, PassageContext passage) =>
-        ComingSoon.Show(host, "Editor's Notes", "collation", "EditorNotes");
+    /// <summary>
+    /// Opens the editor's notes for a passage.
+    ///
+    /// The edition comes from whichever page was clicked rather than from the
+    /// original's page always: a translation carries its own notes, and
+    /// Smyth's on Agamemnon are not Dindorf's.
+    /// </summary>
+    public static void Open(IReaderHost host, PassageContext passage)
+    {
+        var editionId = passage.Edition?.EditionId ?? passage.Node.EditionId;
+        var label = string.IsNullOrWhiteSpace(passage.EditionLabel) ? "this edition" : passage.EditionLabel;
 
-    public static void ShowPreface(IReaderHost host, string title, string text) =>
-        ComingSoon.Show(host, "Preface", "reader", "Preface");
+        var window = new EditorNotesWindow(editionId, passage.Node, label, passage.FontFamily)
+        {
+            OnNavigate = host.NavigateToPassageAsync,
+            OnOpenWork = host.OpenWorkAsync
+        };
+        window.Show(host.Window);
+    }
+
+    /// <summary>Shows a preface the reader held back from a page.</summary>
+    public static void ShowPreface(IReaderHost host, string title, string text)
+    {
+        var window = new PrefaceWindow(title, text)
+        {
+            OnNavigate = host.NavigateToPassageAsync,
+            OnOpenWork = host.OpenWorkAsync
+        };
+        window.Show(host.Window);
+    }
 }
