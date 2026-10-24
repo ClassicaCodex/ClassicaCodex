@@ -50,6 +50,15 @@ await new PerseusIngestService().IngestAsync(
     corpora,
     new Progress<IngestProgress>(p => Console.WriteLine($"{p.CurrentAuthor}: {p.CurrentWork} ({p.WorksProcessed}/{p.TotalWorks})")));
 
+// Each edition stamped with the collection it came from, as setup does once
+// a collection's ingest has finished - Collate pairs editions across
+// collections, and the library's collection filter lists them. The keys are
+// the setup catalogue's (SetupDataSourceCatalog.CollectionKeys), which lives
+// in the Windows project and so is spelled out here.
+var editions = new ClassicaCodex.Data.Repositories.EditionRepository();
+foreach (var (dataPath, ns) in corpora)
+    await editions.StampCollectionAsync(dataPath, ns == "greekLit" ? "perseus-greek" : "perseus-latin");
+
 foreach (var (folder, language, source) in lexicons)
 {
     await new LexiconIngestService().IngestAsync(folder, language, source,
