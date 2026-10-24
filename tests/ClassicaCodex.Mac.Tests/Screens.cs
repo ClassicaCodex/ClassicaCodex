@@ -42,6 +42,6 @@ public static class Screens
         System.IO.Directory.CreateDirectory(Directory);
         Dispatcher.UIThread.RunJobs();
         var frame = window.CaptureRenderedFrame();
-        frame?.Save(Path.Combine(Directory, name + ".png"));
+        frame?.Save(Path.Combine(Directory, name + ".png"), Avalonia.Media.Imaging.PngBitmapEncoderOptions.Default);
     }
 }

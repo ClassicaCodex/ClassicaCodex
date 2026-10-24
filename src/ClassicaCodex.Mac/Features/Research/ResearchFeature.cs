@@ -18,4 +18,16 @@ public static class ResearchFeature
         ComingSoon.Show(host, "Passage Inquiry", "research", "Inquiry");
         return Task.FromResult(false);
     }
+
+    /// <summary>
+    /// Saves a set of echo candidates to a research project for human review -
+    /// the Windows "Save echo investigation" dialog. Opened from Find Echoes,
+    /// Cross-Language Echo and the Corpus Investigator.
+    /// </summary>
+    /// <returns>True if the reader saved them.</returns>
+    public static Task<bool> CaptureEchoAsync(Avalonia.Controls.Window owner, ClassicaCodex.Core.EchoCaptureRequest request, long? defaultProjectId = null)
+    {
+        if (MainWindow.Current is { } host) ComingSoon.Show(host, "Save Echo Investigation", "research", "Research");
+        return Task.FromResult(false);
+    }
 }
