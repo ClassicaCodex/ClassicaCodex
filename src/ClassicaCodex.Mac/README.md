@@ -12,6 +12,16 @@ libraries. Everything that knows what a passage, an edition or a lemma is
 lives in those libraries; this folder only draws the windows. Its version
 number follows the Windows app's.
 
+## Downloading it
+
+The first release is a preview,
+[Classica Codex for Mac 3.15.1](https://github.com/ClassicaCodex/ClassicaCodex/releases/tag/mac-v3.15.1),
+with a disk image for each kind of Mac: `arm64` for Apple silicon, `x64`
+for Intel. Open it and drag **Classica Codex** into Applications. It needs
+macOS 12 or later. The first time you open it macOS stops it, as described
+below; [the main README](../../README.md#on-a-mac) walks through that and
+the first library.
+
 ## Building it
 
 You need the [.NET SDK](https://dotnet.microsoft.com/download), version 8 or
