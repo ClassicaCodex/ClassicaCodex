@@ -52,7 +52,8 @@ public sealed class StartingPointsWindow : FeatureWindow
 
         _list = new ListBox
         {
-            ItemTemplate = new FuncDataTemplate<(StartingPoints.Suggestion Suggestion, Work Work)>((entry, _) => BuildRow(entry))
+            // Null while a row is cleared for reuse, which a tuple cannot hold.
+            ItemTemplate = new FuncDataTemplate<(StartingPoints.Suggestion Suggestion, Work Work)?>((entry, _) => entry is { } e ? BuildRow(e) : null)
         };
         _list.SelectionChanged += (_, _) => ShowWhyForSelection();
         _list.DoubleTapped += async (_, _) => await ChooseSelectedAsync(onChosen);

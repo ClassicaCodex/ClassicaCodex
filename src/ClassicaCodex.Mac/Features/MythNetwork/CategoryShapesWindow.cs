@@ -102,7 +102,8 @@ internal static class CategoryShapesWindow
                 SelectedItem = CategoryShapes.For(category),
                 HorizontalAlignment = HorizontalAlignment.Stretch,
                 Margin = new Thickness(0, 3),
-                ItemTemplate = new FuncDataTemplate<NodeShape>((shape, _) => ShapeLabel(shape, category))
+                // Null while a row is cleared for reuse, which an enum cannot hold.
+                ItemTemplate = new FuncDataTemplate<NodeShape?>((shape, _) => shape is { } s ? ShapeLabel(s, category) : null)
             };
 
             combo.SelectionChanged += (_, _) =>

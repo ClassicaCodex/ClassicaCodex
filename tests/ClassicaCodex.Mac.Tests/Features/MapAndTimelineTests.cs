@@ -305,6 +305,75 @@ public class MapAndTimelineTests
     }
 
     [AvaloniaFact]
+    public async Task Timeline_lists_a_shorter_author_after_a_longer_one()
+    {
+        var previousLibrary = DbConnectionFactory.DatabasePath;
+        var folder = Path.Combine(Path.GetTempPath(), "classicacodex-timeline-tests", Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(folder);
+        MainWindow? main = null;
+
+        try
+        {
+            // Three works and then one: the list gives up two rows it had,
+            // and Avalonia builds each once more, empty, as it clears them.
+            DbConnectionFactory.Configure(Path.Combine(folder, "library.db"), remember: false);
+            await SchemaInitializer.EnsureSchemaAsync();
+            await using (var conn = await DbConnectionFactory.OpenConnectionAsync())
+            await using (var cmd = conn.CreateCommand())
+            {
+                cmd.CommandText = @"
+                    INSERT INTO Authors (AuthorId, CtsUrn, Name, Namespace) VALUES
+                        (1, 'urn:cts:greekLit:tlg0012', 'Homer', 'greekLit'),
+                        (2, 'urn:cts:greekLit:tlg0085', 'Aeschylus', 'greekLit');
+                    INSERT INTO Works (WorkId, AuthorId, CtsUrn, Title) VALUES
+                        (1, 1, 'urn:cts:greekLit:tlg0012.tlg001', 'Iliad'),
+                        (2, 1, 'urn:cts:greekLit:tlg0012.tlg002', 'Odyssey'),
+                        (3, 1, 'urn:cts:greekLit:tlg0013.tlg001', 'Homeric Hymns'),
+                        (4, 2, 'urn:cts:greekLit:tlg0085.tlg005', 'Agamemnon');";
+                await cmd.ExecuteNonQueryAsync();
+            }
+
+            main = new MainWindow { Width = 1360, Height = 860 };
+            main.Show();
+            await Screens.Settle();
+            main.OpenTool("timeline");
+            await Screens.Settle(4);
+            var timeline = main.OwnedWindows.OfType<TimelineWindow>().Single();
+            await timeline.PendingLoad;
+            await Screens.Settle(4);
+
+            async Task Click(string name)
+            {
+                var entry = timeline.Canvas.Entries.Single(e => e.Name == name);
+                var row = ToWindow(timeline, timeline.Canvas.RowCentreOf(entry), timeline.Canvas);
+                timeline.MouseMove(row);
+                timeline.MouseDown(row, MouseButton.Left);
+                timeline.MouseUp(row, MouseButton.Left);
+                await Screens.Settle(2);
+                await timeline.PendingLoad;
+                await Screens.Settle(4);
+            }
+
+            await Click("Homer");
+            Assert.Equal(3, timeline.Works.Count);
+            Assert.Equal(3, timeline.WorkList.GetRealizedContainers().Count());
+
+            await Click("Aeschylus");
+            Assert.Equal("Agamemnon", Assert.Single(timeline.Works).Title);
+            Assert.Single(timeline.WorkList.GetRealizedContainers());
+        }
+        finally
+        {
+            foreach (var owned in main?.OwnedWindows.ToList() ?? new()) owned.Close();
+            main?.Close();
+            Microsoft.Data.Sqlite.SqliteConnection.ClearAllPools();
+            if (previousLibrary != null) DbConnectionFactory.Configure(previousLibrary, remember: false);
+            else Screens.ForgetLibrary();
+            Directory.Delete(folder, recursive: true);
+        }
+    }
+
+    [AvaloniaFact]
     public async Task Artifact_browser_says_why_it_is_empty_and_fetches_photographs_only_live()
     {
         var main = await OpenSampleLibraryAsync();

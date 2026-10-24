@@ -240,7 +240,8 @@ public sealed class PlacesMapWindow : FeatureWindow
         _passageList = new ListBox
         {
             SelectionMode = SelectionMode.Single,
-            ItemTemplate = new FuncDataTemplate<PlacePassage>((passage, _) => BuildPassageRow(passage), supportsRecycling: false)
+            // Null while a row is cleared for reuse, as the next place's passages replace these.
+            ItemTemplate = new FuncDataTemplate<PlacePassage?>((passage, _) => passage == null ? null : BuildPassageRow(passage), supportsRecycling: false)
         };
         ScrollViewer.SetHorizontalScrollBarVisibility(_passageList, Avalonia.Controls.Primitives.ScrollBarVisibility.Disabled);
         _passageList.Styles.Add(new Style(x => x.OfType<ListBoxItem>())

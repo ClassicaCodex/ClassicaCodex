@@ -85,7 +85,9 @@ public sealed class TimelineWindow : FeatureWindow
         _workList = new ListBox
         {
             SelectionMode = SelectionMode.Single,
-            ItemTemplate = new FuncDataTemplate<Work>((work, _) => BuildWorkRow(work), supportsRecycling: false)
+            // Avalonia builds the row once more with null when it clears a row
+            // for reuse - here, when the next author has fewer works.
+            ItemTemplate = new FuncDataTemplate<Work?>((work, _) => work == null ? null : BuildWorkRow(work), supportsRecycling: false)
         };
         _workList.Styles.Add(new Style(x => x.OfType<ListBoxItem>())
         {
