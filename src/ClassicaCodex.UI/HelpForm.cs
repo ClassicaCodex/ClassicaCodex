@@ -758,25 +758,25 @@ English only
    The Greek is not in the library's Greek collections, and the only open text of it is rough OCR of Migne that is missing the Heavenly Hierarchy's first chapter.
 
 Terms
-   Public domain. Transcribed by Roger Pearse for the Christian Classics Ethereal Library, which marks the text public domain.
+   Public domain. The text was transcribed by Roger Pearse, who placed his transcription in the public domain ("copy freely", at tertullian.org); the Christian Classics Ethereal Library's copy, which the setup wizard downloads, is the same text.
 """),
 
         ("The Goetia", """
-The Goetia, the first book of the Lesser Key of Solomon, in the edition of S. L. MacGregor Mathers and Aleister Crowley published in 1904. Install it from the setup wizard; it is a single small download.
+The Goetia, the first book of the Lesser Key of Solomon, in the edition of S. L. MacGregor Mathers and Aleister Crowley published in 1904, as L. W. de Laurence reprinted it in 1916. Install it from the setup wizard; it is a single small download.
 
 What is in it
-   The seventy-two spirits King Solomon bound and shut in a vessel of brass, each with its rank, the shape it takes, what it can do and how many legions it commands — Bael, Paimon, Beleth, Asmoday, Belial and the rest. Then the art of calling them: Mathers's definition of magic, the observations on days and hours, the list of the spirits by rank, the circle, the triangle, the hexagram, pentagram and ring of Solomon, the vessel of brass, the conjurations, the constraint, the curses, the welcome and the licence to depart. And Crowley's two additions: his essay "The Initiated Interpretation of Ceremonial Magic", and his mock-archaic English of the conjurations.
+   The seventy-two spirits King Solomon bound and shut in a vessel of brass, each with its rank, the shape it takes, what it can do and how many legions it commands — Bael, Paimon, Beleth, Asmoday, Belial and the rest. Then the art of calling them: Mathers's definition of magic, the observations on days and hours, the list of the spirits by rank, the circle, the triangle, the hexagram, pentagram and ring of Solomon, the vessel of brass, the conjurations, the constraint, the curses, the welcome and the licence to depart. And Crowley's additions: the Greek invocation, preface and Preliminary Invocation that open the book, his essay "The Initiated Interpretation of Ceremonial Magic", and his mock-archaic English of the conjurations at its end.
 
    Most of the spirits come from Johann Weyer's catalogue of 1577, which Reginald Scot put into English in the Discovery of Witchcraft. That is in the early English books, and the two can be read side by side, spirit by spirit.
 
 Citations
-   The spirits by number, as they are always cited: Goetia 1 is Bael, 72 is Andromalius. The rest of the art and Crowley's conjurations by section and paragraph, with each section's title as its heading; Crowley's essay by paragraph. A footnote follows the passage its marker was in, cited with .n1, .n2 — 9.n1 is the note on Paimon.
+   The spirits by number, as they are always cited: Goetia 1 is Bael, 72 is Andromalius. The rest of the art, Crowley's preface and his conjurations by section and paragraph in the book's order, with each section's title as its heading; Crowley's essay by paragraph. The Greek invocation before the preface has no heading and is section 1 of the preface. A footnote follows the passage or heading its marker was in, cited with .n1, .n2 — 9.n1 is the note on Paimon.
 
 About this text
-   It comes from Wikisource, where it has not yet been checked against the 1904 book. It appears to be a copy of an earlier web transcription, and keeps its habits: the footnotes were gathered at the foot of each page with bare numbers in the text, and those numbers have been matched up and taken out. Four notes whose numbers were lost say so. Wikisource names L. W. de Laurence's reprint of 1916 as its edition. Before quoting it in print, check the passage against the scan of the 1904 book, which is linked from the setup wizard. The seals and figures are pictures in the book and are not included.
+   It is Project Gutenberg's transcription of de Laurence's 1916 reprint of the 1904 book, proofread by the Distributed Proofreaders against page images. Small capitals are typed as ordinary words: the book prints BAEL and LUCIFER, the text has Bael and Lucifer. De Laurence's title page and copyright notice, the transcriber's notes, and the seals and figures, which are pictures, are not included. The library used Wikisource's copy before: an unproofread copy of the same reprint, with misreadings such as "bath" for "hath", which seemed to descend from a transcription released for non-commercial use only.
 
 Terms
-   Public domain: the book was published in 1904, and Mathers, Crowley and de Laurence all died more than seventy years ago. The earlier transcription this appears to descend from asks that its files be used only non-commercially; for a book that will be sold, quote from the scan.
+   Public domain in the United States, where both printings appeared before 1931, and in the United Kingdom: Mathers died in 1918, de Laurence in 1936 and Crowley in 1947. De Laurence's notice that the volume is protected by copyright no longer has force.
 """),
 
         ("Athanasius: Life of Antony", """
@@ -789,7 +789,7 @@ Citations
    By the 94 sections every edition uses; the letter to the monks abroad that comes first is the preface (pr). The editor's table of contents supplies a heading before each group of sections. The Life is filed under Athanasius, beside his Greek works from First1KGreek, so a Greek text added later will read beside it.
 
 Terms
-   Public domain. Ellershaw's footnotes are not included. English only: the Greek is not in the library.
+   Ellershaw's translation is in the public domain. The transcription is the Christian Classics Ethereal Library's, which asks to be contacted before its texts are republished or used commercially; for a book that will be sold, ask the CCEL or quote from the 1892 printing. Ellershaw's footnotes are not included. English only: the Greek is not in the library.
 """),
 
         ("The Arabian Nights", """

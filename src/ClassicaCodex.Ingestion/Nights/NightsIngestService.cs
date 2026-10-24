@@ -38,14 +38,6 @@ public class NightsIngestService
 
     public int PassagesInstalled { get; private set; }
 
-    /// <summary>The ebook's HTML on Gutenberg's mirror, which shelves books by the digits of their number.</summary>
-    public static string MirrorUrl(int ebook)
-    {
-        var digits = ebook.ToString();
-        var shelf = string.Join("/", digits[..^1].Select(c => c.ToString()));
-        return $"https://gutenberg.pglaf.org/{shelf}/{ebook}/{ebook}-h/{ebook}-h.htm";
-    }
-
     public async Task<IngestOutcome> IngestAsync(
         string root, IProgress<string> progress, CancellationToken cancellationToken = default)
     {
@@ -116,7 +108,7 @@ public class NightsIngestService
         var path = Path.Combine(root, $"{ebook}-h.htm");
         if (!File.Exists(path))
         {
-            await _downloader.DownloadAsync(MirrorUrl(ebook), path, new Progress<string>(_ => { }), ct);
+            await _downloader.DownloadAsync(GutenbergHtml.MirrorUrl(ebook), path, new Progress<string>(_ => { }), ct);
         }
 
         return await File.ReadAllTextAsync(path, ct);
