@@ -1780,12 +1780,18 @@ public class TextNodeRepository
             reader.IsDBNull(9) ? null : reader.GetString(9));
     }
 
-    // \p{L} matches a letter in any script, not just ASCII. The original
-    // [a-zA-Z] silently made this whole feature English-only: Greek text
-    // contains no ASCII letters at all, so no candidate words were ever
-    // extracted and echo finding returned nothing for every Greek passage.
-    private static readonly System.Text.RegularExpressions.Regex WordPattern =
-        new(@"\p{L}{4,}", System.Text.RegularExpressions.RegexOptions.Compiled);
+    // The shortest candidate worth ranking. Four LETTERS, which is not four
+    // chars: a .NET char is a UTF-16 code unit, so two hieroglyphs measure 4
+    // and would slip through a length test as if they were a four-letter word.
+    private const int MinCandidateLetters = 4;
+
+    // This scan was [a-zA-Z] once. That silently made the whole feature
+    // English-only: Greek text contains no ASCII letters at all, so no
+    // candidate words were ever extracted and echo finding returned nothing
+    // for every Greek passage. The repair was \p{L}, which matches a letter in
+    // any script - but .NET's regex engine matches 16-bit code units, so
+    // \p{L} has the same hole one plane up and finds nothing in Egyptian or
+    // cuneiform text. LetterRuns walks runes and closes both. See LetterRuns.
 
     // A deliberately blunt stopword list - not linguistically rigorous, just
     // enough to filter out words too common to signal anything (rarity is
@@ -1849,9 +1855,11 @@ public class TextNodeRepository
         // which would let καί and τῶν through as if they were rare. The
         // normalized form is also what the word index stores, so this is the
         // right shape for the frequency lookup that follows.
-        var candidateWords = WordPattern.Matches(source.Value.Text)
-            .Select(m => WordNormalizer.Normalize(m.Value))
-            .Where(w => w.Length >= 4)
+        var sourceText = source.Value.Text;
+        var candidateWords = LetterRuns.Scan(sourceText)
+            .Where(run => run.LetterCount >= MinCandidateLetters)
+            .Select(run => WordNormalizer.Normalize(sourceText.Substring(run.Start, run.Length)))
+            .Where(w => LetterRuns.CountLetters(w) >= MinCandidateLetters)
             .Distinct(StringComparer.Ordinal)
             .Where(w => !StopWords.Contains(w))
             .ToList();

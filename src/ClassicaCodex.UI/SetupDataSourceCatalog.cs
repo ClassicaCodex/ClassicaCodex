@@ -3,6 +3,7 @@ using ClassicaCodex.Core.Catmus;
 using ClassicaCodex.Core.Models;
 using ClassicaCodex.Data.Repositories;
 using ClassicaCodex.Ingestion;
+using ClassicaCodex.Ingestion.Oracc;
 using ClassicaCodex.Ingestion.Antony;
 using ClassicaCodex.Ingestion.Aquinas;
 using ClassicaCodex.Ingestion.Bfm;
@@ -39,9 +40,17 @@ namespace ClassicaCodex.UI;
 ///                    extend those corpora into late antiquity, First1KGreek
 ///                    and CSEL; then Migne, which is the widest net and the
 ///                    largest download; then the collections that are their
-///                    own thing - the Renaissance English, Bodin, and last
-///                    Menota, which is the only source that cannot be fetched
-///                    for you and asks the most of a reader.
+///                    own thing - the Renaissance English, Bodin, then the
+///                    cuneiform, and last Menota, which is the only source
+///                    that cannot be fetched for you and asks the most of a
+///                    reader.
+///
+///                    The cuneiform sits second-to-last for the same reason
+///                    Menota is last: it is the furthest from what someone
+///                    opening this app came for, and the Greek and Latin
+///                    should already be downloading before anyone is asked
+///                    whether they also want Assyrian royal inscriptions. It
+///                    is ahead of Menota only because it fetches itself.
 ///
 ///   the dictionary   what Word Study looks a word up in, and the first step
 ///                    that is about the texts rather than more of them.
@@ -88,6 +97,14 @@ public static class SetupDataSourceCatalog
         public const string PoliticalTheory = "pdl-politics";
         public const string Renaissance = "renaissance";
         public const string Menota = "menota";
+
+        /// <summary>
+        /// Cuneiform from Oracc. Deliberately the project family rather than
+        /// one project: the step installs eight of them and they belong to one
+        /// collection in the library, the way perseus-greek is one collection
+        /// and not one repository per author.
+        /// </summary>
+        public const string Oracc = OraccIngestService.CollectionKey;
 
         /// <summary>
         /// The Reference Corpus of Middle High German. Taken from the ingest
@@ -164,6 +181,7 @@ public static class SetupDataSourceCatalog
         CollectionKeys.PoliticalTheory => "Political Theory (Bodin)",
         CollectionKeys.Renaissance => "English Literature (Renaissance)",
         CollectionKeys.Menota => "Medieval Nordic (Menota)",
+        CollectionKeys.Oracc => "Cuneiform (Oracc)",
         CollectionKeys.ReM => "Middle High German (ReM)",
         CollectionKeys.Geste => "Old French chansons de geste (Geste)",
         CollectionKeys.Bfm => "Medieval French (BFM)",
@@ -593,6 +611,64 @@ public static class SetupDataSourceCatalog
                     await editionRepo.IsCollectionCompleteAsync(CollectionKeys.PoliticalTheory),
                 CheckHasSomeContent = async () =>
                     await editionRepo.CountByCollectionAsync(CollectionKeys.PoliticalTheory) > 0
+            },
+
+            new SetupDataSource
+            {
+                Title = "Cuneiform Texts (Oracc)",
+                RepoUrl = "https://oracc.museum.upenn.edu/",
+                DisplayNote =
+                    $"{OraccDownloadService.StarterProjects.Count} projects, about "
+                    + $"{OraccDownloadService.ApproxTotalMegabytes} MB; English for the magical texts, word meanings for the rest",
+                DefaultDestination = Path.Combine(dataRoot, "oracc"),
+
+                // Not DirectDownload: that fetches one file, and this is eight
+                // separate project archives that each need extracting and
+                // importing before the next is fetched. Same reason the
+                // artefact catalogue manages its own fetching.
+                FetchMode = SetupFetchMode.SelfManaged,
+
+                PlainLanguageDescription =
+                    "Akkadian and Sumerian written in cuneiform - the royal inscriptions of the Assyrian " +
+                    "kings, the letters written to Sargon II, scholarly commentaries and bilinguals, and " +
+                    "the magic: Maqlû, the night-long ceremony for burning a witch, all eight tablets; the " +
+                    "anti-witchcraft rituals of Abusch and Schwemer's corpus; and the tablet libraries of " +
+                    "Sultantepe and Uruk, with Šurpu, the Udug-hul demon incantations and the namburbi " +
+                    "rites for averting an omen. Each text arrives in the wedge signs, in the " +
+                    "transliteration scholars read them by, and as the dictionary meaning of every word. " +
+                    "The magical texts also come with their editors' translation, line by line, which " +
+                    "their projects release openly; the others have no translation, only the word " +
+                    "meanings, which are labelled for what they are and get you most of the way through " +
+                    "a line. Maqlû and the " +
+                    "anti-witchcraft rituals are composite texts, rebuilt from many tablets and written " +
+                    "in normalised Akkadian, so they have no sign pane.",
+
+                RunIngest = async (root, progress, ct) =>
+                {
+                    var service = new OraccIngestService();
+                    var outcome = await service.InstallStarterProjectsAsync(root, progress, ct);
+
+                    // Marked complete rather than stamped, because these
+                    // editions already carry their collection from ingest and
+                    // their SourcePath is the text's address on oracc.org
+                    // rather than the folder it was downloaded to - so the
+                    // folder-matching half of StampCollectionAsync would
+                    // match nothing. See MarkCollectionCompleteAsync.
+                    //
+                    // Guarded on something having actually gone in. A run
+                    // where every download failed must not leave a green tick
+                    // over an empty collection, which is the one state this
+                    // whole mechanism exists to prevent.
+                    if (outcome.InstalledCount > 0)
+                        await editionRepo.MarkCollectionCompleteAsync(CollectionKeys.Oracc, ct);
+
+                    return outcome;
+                },
+
+                CheckComplete = async () =>
+                    await editionRepo.IsCollectionCompleteAsync(CollectionKeys.Oracc),
+                CheckHasSomeContent = async () =>
+                    await editionRepo.CountByCollectionAsync(CollectionKeys.Oracc) > 0
             },
 
             new SetupDataSource
