@@ -92,6 +92,16 @@ public static class AedTeiLoader
         ["smaek"] = "Objects in the Munich Egyptian Museum"
     };
 
+    /// <summary>
+    /// The TLA's own test documents, which the 2018 snapshot exported with
+    /// the medical papyri: "Test Köhler mit Gruppierung" and "Test Köhler
+    /// ohne Gruppierung", an editor's trial of the sentence grouping, 17
+    /// sentences each. They are not Egyptian texts, and installed they sat
+    /// in the library as two more medical papyri.
+    /// </summary>
+    public static bool IsEditorsTest(ConcordanceEntry entry) =>
+        entry.ObjectName.StartsWith("Test ", StringComparison.Ordinal);
+
     public const string ConcordanceFileName = "concordance_name_text_id.csv";
     public const string DictionaryFileName = "dictionary.xml";
 
@@ -107,7 +117,7 @@ public static class AedTeiLoader
         var concordance = ReadConcordance(Path.Combine(root, ConcordanceFileName));
         var texts = new List<AedText>();
 
-        var chosen = concordance.Where(c => Subcorpora.ContainsKey(c.Subcorpus)).ToList();
+        var chosen = concordance.Where(c => Subcorpora.ContainsKey(c.Subcorpus) && !IsEditorsTest(c)).ToList();
         for (var i = 0; i < chosen.Count; i++)
         {
             var entry = chosen[i];
@@ -377,10 +387,23 @@ public static class AedTeiLoader
 
     private static string Collapse(string s) => Spaces.Replace(s, " ").Trim();
 
+    // An ampersand that does not begin an entity or character reference.
+    private static readonly Regex BareAmpersand =
+        new(@"&(?!(?:[A-Za-z][A-Za-z0-9]*|#[0-9]+|#x[0-9A-Fa-f]+);)", RegexOptions.Compiled);
+
     private static XDocument LoadXml(string path)
     {
         var settings = new XmlReaderSettings { DtdProcessing = DtdProcessing.Ignore, XmlResolver = null };
-        using var reader = XmlReader.Create(path, settings);
+
+        // A bare ampersand in the header's list of editors, "Adelheid &
+        // Ingelore Burkhardt & Hafemann", makes 126 of the texts this step
+        // reads malformed XML, and the translation and sign files of 125 of
+        // them. Escaping it is the only repair made, and it brings back 125
+        // texts with all their layers. A file broken any other way still fails
+        // and is reported: 26 texts, most with mis-nested editorial tags.
+        var text = File.ReadAllText(path);
+        if (text.Contains('&')) text = BareAmpersand.Replace(text, "&amp;");
+        using var reader = XmlReader.Create(new StringReader(text), settings);
         return XDocument.Load(reader);
     }
 
