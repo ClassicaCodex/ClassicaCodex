@@ -13,51 +13,53 @@
     <Setter Property="FontSize" Value="13" />
   </Style>
 
-  <!-- Type -->
-  <Style Selector="TextBlock.display">
+  <!-- Type. Matched with :is() so a SelectableTextBlock - a TextBlock
+       underneath - takes the same classes; a plain TextBlock selector
+       matches the exact type and passed it by. -->
+  <Style Selector=":is(TextBlock).display">
     <Setter Property="FontFamily" Value="{StaticResource Cc.DisplayFont}" />
     <Setter Property="FontSize" Value="34" />
     <Setter Property="FontWeight" Value="Medium" />
     <Setter Property="LetterSpacing" Value="0.3" />
   </Style>
-  <Style Selector="TextBlock.h1">
+  <Style Selector=":is(TextBlock).h1">
     <Setter Property="FontSize" Value="22" />
     <Setter Property="FontWeight" Value="SemiBold" />
   </Style>
-  <Style Selector="TextBlock.h2">
+  <Style Selector=":is(TextBlock).h2">
     <Setter Property="FontSize" Value="16" />
     <Setter Property="FontWeight" Value="SemiBold" />
   </Style>
-  <Style Selector="TextBlock.h3">
+  <Style Selector=":is(TextBlock).h3">
     <Setter Property="FontSize" Value="13" />
     <Setter Property="FontWeight" Value="SemiBold" />
   </Style>
-  <Style Selector="TextBlock.section">
+  <Style Selector=":is(TextBlock).section">
     <Setter Property="FontSize" Value="11" />
     <Setter Property="FontWeight" Value="SemiBold" />
     <Setter Property="Foreground" Value="{DynamicResource Cc.InkFaint}" />
     <Setter Property="LetterSpacing" Value="0.6" />
   </Style>
-  <Style Selector="TextBlock.caption">
+  <Style Selector=":is(TextBlock).caption">
     <Setter Property="FontSize" Value="11.5" />
     <Setter Property="Foreground" Value="{DynamicResource Cc.InkMuted}" />
   </Style>
-  <Style Selector="TextBlock.muted">
+  <Style Selector=":is(TextBlock).muted">
     <Setter Property="Foreground" Value="{DynamicResource Cc.InkMuted}" />
   </Style>
-  <Style Selector="TextBlock.faint">
+  <Style Selector=":is(TextBlock).faint">
     <Setter Property="Foreground" Value="{DynamicResource Cc.InkFaint}" />
   </Style>
-  <Style Selector="TextBlock.warning">
+  <Style Selector=":is(TextBlock).warning">
     <Setter Property="Foreground" Value="{DynamicResource Cc.Danger}" />
   </Style>
-  <Style Selector="TextBlock.source">
+  <Style Selector=":is(TextBlock).source">
     <Setter Property="FontFamily" Value="{StaticResource Cc.SourceFont}" />
   </Style>
-  <Style Selector="TextBlock.translation">
+  <Style Selector=":is(TextBlock).translation">
     <Setter Property="FontFamily" Value="{StaticResource Cc.TranslationFont}" />
   </Style>
-  <Style Selector="TextBlock.mono">
+  <Style Selector=":is(TextBlock).mono">
     <Setter Property="FontFamily" Value="{StaticResource Cc.MonoFont}" />
     <Setter Property="FontSize" Value="12" />
   </Style>

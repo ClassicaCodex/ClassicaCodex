@@ -263,6 +263,13 @@ public sealed class LibrarySidebar : UserControl
         Populate();
     }
 
+    /// <summary>
+    /// Rebuilds the rows from what is loaded - after something a row shows has
+    /// changed on a work, such as its attribution, whose italics and tooltip
+    /// are decided when the row is built.
+    /// </summary>
+    public void RefreshRows() => Populate();
+
     public async Task ToggleFavoriteAsync(Work work)
     {
         if (_favoriteUrns.Contains(work.CtsUrn))

@@ -326,8 +326,10 @@ public partial class MainWindow
 
         var attribution = Item("Attribution…", "Show", async w =>
         {
-            if (await WorkInfoFeature.EditAttributionAsync(this, w) && _openWork?.WorkId == w.WorkId)
-                await LoadEditionSelectorsAsync(w.WorkId);
+            if (!await WorkInfoFeature.EditAttributionAsync(this, w)) return;
+
+            Sidebar.RefreshRows();
+            if (_openWork?.WorkId == w.WorkId) await LoadEditionSelectorsAsync(w.WorkId);
         });
         menu.Items.Add(attribution);
 

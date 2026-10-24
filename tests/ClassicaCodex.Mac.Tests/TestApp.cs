@@ -4,6 +4,13 @@ using ClassicaCodex.Mac.Tests;
 
 [assembly: AvaloniaTestApplication(typeof(TestApp))]
 
+// One test at a time. The library connection is static - DbConnectionFactory
+// holds one path for the whole process, as the app does - so two tests
+// pointing it at different copies, or one clearing it to test the first-run
+// page, would pull the library out from under each other. The headless
+// platform runs every test on one UI thread anyway, so little is lost.
+[assembly: Xunit.CollectionBehavior(DisableTestParallelization = true)]
+
 namespace ClassicaCodex.Mac.Tests;
 
 /// <summary>
