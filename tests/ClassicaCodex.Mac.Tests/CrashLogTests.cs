@@ -12,6 +12,11 @@ public class CrashLogTests
     [AvaloniaFact]
     public async Task An_error_in_an_action_is_reported_and_the_app_keeps_running()
     {
+        // No library, so the window loads nothing: a library another test
+        // left configured, and has perhaps deleted, would put up an alert of
+        // its own beside the one this test counts.
+        Screens.ForgetLibrary();
+
         var window = new MainWindow { Width = 1000, Height = 700 };
         window.Show();
         await Screens.Settle();

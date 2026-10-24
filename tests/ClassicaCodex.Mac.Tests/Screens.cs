@@ -2,6 +2,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Headless;
 using Avalonia.Threading;
+using ClassicaCodex.Data;
 
 namespace ClassicaCodex.Mac.Tests;
 
@@ -23,6 +24,16 @@ public static class Screens
             return path != null && File.Exists(path) ? path : null;
         }
     }
+
+    /// <summary>
+    /// Points the library connection at nothing, as on a first run. It is
+    /// static, so without this a new MainWindow loads whatever library the
+    /// last test left it on - or fails to, if that test has since deleted it.
+    /// </summary>
+    public static void ForgetLibrary() =>
+        typeof(DbConnectionFactory)
+            .GetField("_databasePath", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)!
+            .SetValue(null, null);
 
     /// <summary>Lets queued layout, data loading and rendering finish.</summary>
     public static async Task Settle(int rounds = 6)

@@ -7,6 +7,7 @@ namespace ClassicaCodex.Mac.Features.Export;
 internal sealed record FontFace(
     string Family,
     string? TypographicFamily,
+    string FullName,
     bool Bold,
     bool Italic,
     int Weight,
@@ -26,6 +27,13 @@ internal sealed record FontFace(
 /// be offered here and then fail inside the export, which is worse than its
 /// never having been offered.
 ///
+/// For the same reason a face is listed only if PdfSharp can load it at all.
+/// PdfSharp reads Windows character maps and US English names and nothing
+/// else, and many of the Mac's own fonts - Times, Helvetica, Menlo, Optima,
+/// Futura - carry only Unicode-platform and Macintosh ones. And it keeps one
+/// face per full name, failing on a second face under a name it has already
+/// seen, so the first face found under a name is the one listed.
+///
 /// Read from each file's own name table rather than inferred from its file
 /// name: macOS keeps Palatino, Times, Geeza Pro and Arial Hebrew in
 /// collections whose file names say nothing about which faces are inside.
@@ -33,6 +41,7 @@ internal sealed record FontFace(
 internal sealed class FontCatalog
 {
     private readonly Dictionary<string, List<FontFace>> _byFamily = new(StringComparer.OrdinalIgnoreCase);
+    private readonly HashSet<string> _fullNames = new(StringComparer.Ordinal);
 
     /// <summary>
     /// Where a Mac keeps fonts - the system's, the machine's, the reader's -
@@ -92,6 +101,11 @@ internal sealed class FontCatalog
 
     private void Add(FontFace face)
     {
+        // The same font installed twice, or two of Apple's variable fonts
+        // that share a name: PdfSharp would take the first and fail on the
+        // second, so only the first is offered.
+        if (!_fullNames.Add(face.FullName)) return;
+
         FaceCount++;
         AddUnder(face.Family, face);
         if (face.TypographicFamily != null && !string.Equals(face.TypographicFamily, face.Family, StringComparison.OrdinalIgnoreCase))
@@ -370,12 +384,17 @@ internal static class SfntReader
             tables[tag] = (ReadUInt32(stream, record + 8), (int)ReadUInt32(stream, record + 12));
         }
 
-        // TrueType outlines only: see FontCatalog.
+        // TrueType outlines only, and what else PdfSharp needs to load the
+        // face: see FontCatalog.
         if (!tables.ContainsKey("glyf") || !tables.TryGetValue("name", out var name)) return null;
+        if (!tables.TryGetValue("cmap", out var cmap) || !HasWindowsCmap(stream, cmap.Offset)) return null;
 
         var names = ReadBytes(stream, name.Offset, Math.Min(name.Length, 1 << 20));
         var family = NameString(names, 1);
         if (string.IsNullOrWhiteSpace(family)) return null;
+
+        var fullName = UsEnglishName(names, 4);
+        if (fullName == null || UsEnglishName(names, 1) == null) return null;
 
         var typographic = NameString(names, 16);
 
@@ -402,7 +421,64 @@ internal static class SfntReader
             bold = italic = false;
         }
 
-        return new FontFace(family.Trim(), typographic?.Trim(), bold, italic, weight, width, path, index);
+        return new FontFace(family.Trim(), typographic?.Trim(), fullName, bold, italic, weight, width, path, index);
+    }
+
+    /// <summary>
+    /// Whether the face maps characters the way PdfSharp reads them: under
+    /// the Windows platform - symbol, Unicode or full Unicode - in format 4
+    /// or 12. PdfSharp looks nowhere else and fails on a face without one,
+    /// and a good many Mac fonts map their characters under the Unicode
+    /// platform alone.
+    /// </summary>
+    private static bool HasWindowsCmap(Stream stream, long offset)
+    {
+        var count = ReadUInt16(stream, offset + 2);
+
+        for (var i = 0; i < count; i++)
+        {
+            var record = offset + 4 + 8 * i;
+            var platform = ReadUInt16(stream, record);
+            var encoding = ReadUInt16(stream, record + 2);
+            if (platform != 3 || encoding is not (0 or 1 or 10)) continue;
+
+            var format = ReadUInt16(stream, offset + ReadUInt32(stream, record + 4));
+            if (format is 4 or 12) return true;
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// A name the way PdfSharp reads it: the first non-empty US English
+    /// record on the Unicode or Windows platform. It needs the family and
+    /// full names in that form, and keys its cache on the full name; a font
+    /// named only in other languages or on the Macintosh platform it cannot
+    /// load.
+    /// </summary>
+    private static string? UsEnglishName(byte[] table, int nameId)
+    {
+        if (table.Length < 6) return null;
+
+        var count = ReadUInt16(table, 2);
+        var storage = ReadUInt16(table, 4);
+
+        for (var i = 0; i < count; i++)
+        {
+            var record = 6 + 12 * i;
+            if (record + 12 > table.Length) break;
+
+            if (ReadUInt16(table, record + 6) != nameId) continue;
+            if (ReadUInt16(table, record) is not (0 or 3) || ReadUInt16(table, record + 4) != 0x0409) continue;
+
+            var length = ReadUInt16(table, record + 8);
+            var start = storage + ReadUInt16(table, record + 10);
+            if (length == 0 || start + length > table.Length) continue;
+
+            return Encoding.BigEndianUnicode.GetString(table, start, length);
+        }
+
+        return null;
     }
 
     /// <summary>

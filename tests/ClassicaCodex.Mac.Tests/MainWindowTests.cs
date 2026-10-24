@@ -15,9 +15,7 @@ public class MainWindowTests
     {
         // The factory is static and another test may have pointed it at the
         // sample library; this one is about the state before any library.
-        typeof(DbConnectionFactory)
-            .GetField("_databasePath", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)!
-            .SetValue(null, null);
+        Screens.ForgetLibrary();
 
         var window = new MainWindow { Width = 1280, Height = 800 };
         window.Show();

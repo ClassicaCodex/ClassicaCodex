@@ -11,6 +11,7 @@ using ClassicaCodex.Mac.Features.Export;
 using ClassicaCodex.Mac.Features.Translation;
 using ClassicaCodex.Mac.Shell;
 using ClassicaCodex.UI;
+using PdfSharp.Drawing;
 using Xunit;
 
 namespace ClassicaCodex.Mac.Tests.Features;
@@ -537,6 +538,35 @@ public class TranslationTests : IClassFixture<TranslationTestLibrary>
         await ExportFiles.WriteAsync(ExportFormat.Pdf, pdf, "A face from a collection", "a test",
             new List<(string, string)> { ("[1]", "Arma virumque cano") }, collection.Family);
         Assert.True(new FileInfo(pdf).Length > 1000);
+    }
+
+    [Fact]
+    public void Every_face_the_catalog_offers_is_one_PdfSharp_can_load()
+    {
+        // Times, Helvetica, Menlo and many more of the Mac's own fonts carry
+        // no Windows character map or US English names, which is all
+        // PdfSharp reads; offered anyway, they failed inside the export.
+        PdfFonts.EnsureInstalled();
+        var catalog = FontCatalog.Scan(FontCatalog.SystemDirectories);
+        if (catalog.FaceCount == 0) return;
+
+        var failures = new List<string>();
+        foreach (var family in catalog.Families)
+        {
+            foreach (var style in new[] { XFontStyleEx.Regular, XFontStyleEx.Bold, XFontStyleEx.Italic, XFontStyleEx.BoldItalic })
+            {
+                try
+                {
+                    _ = new XFont(family, 12, style);
+                }
+                catch (Exception ex)
+                {
+                    failures.Add($"{family} {style}: {ex.GetType().Name}");
+                }
+            }
+        }
+
+        Assert.Empty(failures);
     }
 
     [Fact]

@@ -547,11 +547,13 @@ public class SetupTests
     /// <summary>
     /// A folder of the test's own - a made-up home for the iCloud checks, room
     /// for a library and its downloads - removed afterwards, with the download
-    /// folder preference and the home override put back.
+    /// folder preference, the home override and the library connection put
+    /// back.
     /// </summary>
     private sealed class Scratch : IDisposable
     {
         private readonly string _previousRoot = DataFolderSettings.Root;
+        private readonly string? _previousLibrary = DbConnectionFactory.DatabasePath;
 
         public Scratch()
         {
@@ -593,6 +595,12 @@ public class SetupTests
         {
             MacDataFolder.HomeOverride = null;
             DataFolderSettings.Root = _previousRoot;
+
+            // Left on the library in this folder, every later test's
+            // MainWindow would try to open it from a deleted folder and put
+            // up "Couldn't load the library".
+            if (_previousLibrary != null) DbConnectionFactory.Configure(_previousLibrary, remember: false);
+            else Screens.ForgetLibrary();
 
             try
             {
