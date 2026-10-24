@@ -1,21 +1,19 @@
-using ClassicaCodex.Core.Models;
 using ClassicaCodex.Mac.Shell;
 
 namespace ClassicaCodex.Mac.Features.Instruments;
 
 /// <summary>
-/// Entry points for this feature, called from the main window's menus,
-/// toolbar and context menus. A stub until the feature is ported: each
-/// opens the coming-soon card.
+/// The three instruments in the Instruments menu. Each opens a card rather
+/// than the thing itself - the card says what the instrument is and how much
+/// of it is reconstruction, and carries the button that opens its page in the
+/// reader's browser. The third is the only one that can make a noise, and its
+/// card says so before anything else.
 /// </summary>
 public static class InstrumentsFeature
 {
-    public static void OpenAntikythera(IReaderHost host) =>
-        ComingSoon.Show(host, "The Antikythera Mechanism", "antikythera", "Antikythera");
+    public static void OpenAntikythera(IReaderHost host) => new AntikytheraCard().Show(host.Window);
 
-    public static void OpenAlmagest(IReaderHost host) =>
-        ComingSoon.Show(host, "Ptolemy's Cosmos", "almagest", "Almagest");
+    public static void OpenAlmagest(IReaderHost host) => new AlmagestCard().Show(host.Window);
 
-    public static void OpenHarmonics(IReaderHost host) =>
-        ComingSoon.Show(host, "Ptolemy's Harmony", "harmonics", "Harmonics");
+    public static void OpenHarmonics(IReaderHost host) => new HarmonicsCard().Show(host.Window);
 }

@@ -1,0 +1,14 @@
+<Project>
+  <ItemGroup>
+    <!-- Where to report a problem, kept in one place so the Help window's
+         link and the Windows crash dialog cannot drift apart: a half-updated
+         address looks like a working link and lands on somebody else's
+         project. Plain logic, no Windows types.
+
+         Removed before it is included, so that if another feature links the
+         same file the build compiles it once rather than warning that it was
+         given twice. -->
+    <Compile Remove="$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)../../../ClassicaCodex.UI/ProjectLinks.cs'))" />
+    <Compile Include="$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)../../../ClassicaCodex.UI/ProjectLinks.cs'))" Link="Shared\ProjectLinks.cs" />
+  </ItemGroup>
+</Project>
