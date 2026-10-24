@@ -59,6 +59,7 @@ public sealed class SearchWindow : FeatureWindow
     private readonly CheckBox _bookmarkedCheck;
     private readonly Button _collectionsButton;
     private readonly List<(string Key, string Title, CheckBox Box)> _collectionBoxes = new();
+    private IDisposable? _collectionsAccent;
     private readonly ToggleButton _passagesTab;
     private readonly ToggleButton _documentsTab;
     private readonly Button _backToDocuments;
@@ -463,6 +464,7 @@ public sealed class SearchWindow : FeatureWindow
     internal CheckBox LatinCheck => _latinCheck;
     internal CheckBox GreekCheck => _greekCheck;
     internal ComboBox AuthorBox => _authorBox;
+    internal Button CollectionsButton => _collectionsButton;
     internal IReadOnlyList<ResultRow> Rows => _rows;
     internal ListBox ResultsList => _resultsList;
     internal string EmptyMessage => _emptyState.IsVisible ? _emptyMessage.Text ?? string.Empty : string.Empty;
@@ -1007,8 +1009,13 @@ public sealed class SearchWindow : FeatureWindow
             ? "Collections: all"
             : $"Collections: {chosen} of {_collectionBoxes.Count}");
 
-        // A filter you cannot see is one you forget you set.
-        _collectionsButton.Foreground = chosen == 0 ? null : (IBrush?)this.FindResource("Cc.Accent");
+        // A filter you cannot see is one you forget you set. Bound, not looked
+        // up: a lookup naming no appearance never reaches the palette's light
+        // and dark dictionaries.
+        _collectionsAccent?.Dispose();
+        _collectionsAccent = chosen == 0
+            ? null
+            : _collectionsButton.Bind(Button.ForegroundProperty, _collectionsButton.GetResourceObservable("Cc.Accent"));
     }
 
     private List<string> CheckedCollections() =>

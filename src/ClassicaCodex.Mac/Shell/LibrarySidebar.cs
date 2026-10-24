@@ -81,6 +81,7 @@ public sealed class LibrarySidebar : UserControl
     private HashSet<string> _favoriteUrns = new(StringComparer.Ordinal);
     private HashSet<int>? _collectionWorkIds;
     private readonly List<(string Key, string Title, CheckBox Box)> _collections = new();
+    private IDisposable? _collectionsAccent;
     private bool _suppressSelection;
 
     public LibrarySidebar()
@@ -225,6 +226,10 @@ public sealed class LibrarySidebar : UserControl
         _allAuthors.FirstOrDefault(a => a.AuthorId == work.AuthorId)?.Name ?? string.Empty;
 
     public Work? FindWork(int workId) => AllWorks.FirstOrDefault(w => w.WorkId == workId);
+
+    internal Button CollectionsButton => _collectionsButton;
+
+    internal TreeView Tree => _tree;
 
     public void ShowMode(string mode)
     {
@@ -420,11 +425,17 @@ public sealed class LibrarySidebar : UserControl
         var chosen = _collections.Count(c => c.Box.IsChecked == true);
 
         // A filter you cannot see is one you forget you set, so the count
-        // goes where hovering will find it, and the button takes the accent.
+        // goes where hovering will find it, and the button takes the accent -
+        // bound rather than looked up, as the palette's colours live in its
+        // light and dark dictionaries, which a lookup naming no appearance
+        // never reaches, and a filter left on should follow the Mac to dark.
         ToolTip.SetTip(_collectionsButton, chosen == 0
             ? $"Showing all {_collections.Count} collections - click to choose"
             : $"Showing {chosen} of {_collections.Count} collections - click to change");
-        _collectionsButton.Foreground = chosen == 0 ? null : (IBrush?)Application.Current?.FindResource("Cc.Accent");
+        _collectionsAccent?.Dispose();
+        _collectionsAccent = chosen == 0
+            ? null
+            : _collectionsButton.Bind(Button.ForegroundProperty, _collectionsButton.GetResourceObservable("Cc.Accent"));
     }
 
     private void QueueRebuild()
