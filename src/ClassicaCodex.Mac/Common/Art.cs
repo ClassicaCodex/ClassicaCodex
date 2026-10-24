@@ -46,6 +46,22 @@ public static class Art
     }
 
     /// <summary>
+    /// The application's icon: Codex's when it has arrived, otherwise the
+    /// interim one composed from the Windows owl-on-a-book.
+    /// </summary>
+    public static Bitmap? AppIcon()
+    {
+        var painted = Load("app-icon-1024.png");
+        if (painted != null) return painted;
+
+        var uri = new Uri("avares://ClassicaCodex.Mac/Assets/Fallback/app-icon-interim.png");
+        if (!AssetLoader.Exists(uri)) return null;
+
+        using var stream = AssetLoader.Open(uri);
+        return new Bitmap(stream);
+    }
+
+    /// <summary>
     /// The tile for a tool: Codex's painting if it has arrived, otherwise a
     /// medallion in one of the palette's four metals with the glyph on it.
     /// </summary>

@@ -45,6 +45,8 @@ public partial class MainWindow : Window, IReaderHost
         ContentHost.Children.Add(_welcome);
         ContentHost.Children.Add(_noLibrary);
 
+        if (Art.AppIcon() is { } icon) Icon = new WindowIcon(icon);
+
         ConfigureChrome();
         WireToolbar();
         WireSidebar();
