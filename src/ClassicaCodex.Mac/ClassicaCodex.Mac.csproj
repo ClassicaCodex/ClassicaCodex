@@ -1,0 +1,96 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>ClassicaCodex.Mac</RootNamespace>
+    <AssemblyName>ClassicaCodex.Mac</AssemblyName>
+    <Version>3.15.1</Version>
+    <AssemblyVersion>3.15.1.0</AssemblyVersion>
+    <FileVersion>3.15.1.0</FileVersion>
+    <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
+    <!-- Avalonia's build telemetry. Off, for the same reason the Windows
+         app opens no connection the reader did not ask for. -->
+    <AvaloniaBuildTelemetry>false</AvaloniaBuildTelemetry>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Avalonia" Version="12.1.4" />
+    <PackageReference Include="Avalonia.Desktop" Version="12.1.4" />
+    <PackageReference Include="Avalonia.Themes.Fluent" Version="12.1.4" />
+    <PackageReference Include="Avalonia.Controls.DataGrid" Version="12.1.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- The same libraries the Windows app is built on. Everything that
+         knows what a passage, an edition or a lemma is lives in these three,
+         so the Mac front end reads the same library file the same way. -->
+    <ProjectReference Include="..\ClassicaCodex.Core\ClassicaCodex.Core.csproj" />
+    <ProjectReference Include="..\ClassicaCodex.Data\ClassicaCodex.Data.csproj" />
+    <ProjectReference Include="..\ClassicaCodex.Ingestion\ClassicaCodex.Ingestion.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Files from the Windows front end that are plain logic: no WinForms,
+         no System.Drawing. Compiled from where they are rather than copied,
+         so a change made for Windows reaches the Mac without anyone having
+         to remember, and the two can never disagree about where a reading
+         position is kept or how an edition is labelled. They keep their
+         ClassicaCodex.UI namespace, which is why the Mac code says
+         "using ClassicaCodex.UI" in a project that has no WinForms in it.
+
+         A file only belongs here while it stays free of Windows types. If
+         one ever gains a Form or a Color, this build breaks, which is the
+         point: better a compile error than a Mac build quietly diverging. -->
+    <Compile Include="..\ClassicaCodex.UI\AncientWorldCoastline.cs" Link="Shared\AncientWorldCoastline.cs" />
+    <Compile Include="..\ClassicaCodex.UI\CitationMarginSettings.cs" Link="Shared\CitationMarginSettings.cs" />
+    <Compile Include="..\ClassicaCodex.UI\DataFolderSettings.cs" Link="Shared\DataFolderSettings.cs" />
+    <Compile Include="..\ClassicaCodex.UI\EditionLabels.cs" Link="Shared\EditionLabels.cs" />
+    <Compile Include="..\ClassicaCodex.UI\GreekPhoneticTransliterator.cs" Link="Shared\GreekPhoneticTransliterator.cs" />
+    <Compile Include="..\ClassicaCodex.UI\NaturalEarthCoastline.cs" Link="Shared\NaturalEarthCoastline.cs" />
+    <Compile Include="..\ClassicaCodex.UI\NodeKindVisibility.cs" Link="Shared\NodeKindVisibility.cs" />
+    <Compile Include="..\ClassicaCodex.UI\PaneSyncSettings.cs" Link="Shared\PaneSyncSettings.cs" />
+    <Compile Include="..\ClassicaCodex.UI\PreferredCollectionSettings.cs" Link="Shared\PreferredCollectionSettings.cs" />
+    <Compile Include="..\ClassicaCodex.UI\ReadingFontSettings.cs" Link="Shared\ReadingFontSettings.cs" />
+    <Compile Include="..\ClassicaCodex.UI\ReadingPosition.cs" Link="Shared\ReadingPosition.cs" />
+    <Compile Include="..\ClassicaCodex.UI\SearchEras.cs" Link="Shared\SearchEras.cs" />
+    <Compile Include="..\ClassicaCodex.UI\SpeechSettings.cs" Link="Shared\SpeechSettings.cs" />
+
+    <!-- The setup catalogue: every collection the wizard can install, how to
+         fetch it and how to ingest it. Shared so a collection added for
+         Windows - the angels-and-demons texts going in now, say - appears in
+         the Mac's setup and its collection filter the moment it is merged.
+         Two hooks in it reach for WinForms; Shared/WindowsShims.cs answers
+         them for the Mac. -->
+    <Compile Include="..\ClassicaCodex.UI\SetupDataSource.cs" Link="Shared\SetupDataSource.cs" />
+    <Compile Include="..\ClassicaCodex.UI\SetupDataSourceCatalog.cs" Link="Shared\SetupDataSourceCatalog.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <AvaloniaResource Include="Assets\**" Exclude="Assets\Art\*.md;Assets\Art\*.json" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- The three diversions are self-contained pages, and a browser is a
+         browser on either system: the Mac opens the very files Windows does. -->
+    <None Include="..\ClassicaCodex.UI\Pages\*.html" Link="Pages\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+
+    <!-- The portraits for tagged figures are content rather than chrome, and
+         the Mac shows the same Achilles the Windows app does. -->
+    <None Include="..\ClassicaCodex.UI\Icons\Figures\*.png" Link="Figures\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="ClassicaCodex.Mac.Tests" />
+  </ItemGroup>
+
+  <!-- A feature that needs a shared file of its own from the Windows folder,
+       or content to copy beside the app, says so in a .props file in its own
+       folder (Features/Stylometry/Stylometry.props, say) rather than here, so
+       features can be ported side by side without all of them editing this
+       file. Same rule as the Shared group above: plain logic only. -->
+  <Import Project="Features\*\*.props" />
+
+</Project>

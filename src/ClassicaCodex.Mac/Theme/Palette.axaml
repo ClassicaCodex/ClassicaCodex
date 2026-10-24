@@ -1,0 +1,124 @@
+<ResourceDictionary xmlns="https://github.com/avaloniaui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <!--
+    The two appearances, as resources every window draws from.
+
+    "Parchment" is the Windows app's light theme carried over - the same
+    paper (#EDE7DA behind, #FAF7F0 for the page, #C7BEAC for rules) - with a
+    bronze accent where Windows uses the system blue. "Lamplight" is its dark
+    counterpart: warm greys rather than the cold near-black of a default dark
+    mode, because these are pages people read for hours, and ink on a warm
+    ground is easier on the eye than white on blue-black.
+
+    A window never names a colour. It asks for Cc.Page or Cc.Ink, so a later
+    change to the palette lands everywhere at once, and the appearance can
+    follow the system without any window knowing it changed.
+  -->
+  <ResourceDictionary.ThemeDictionaries>
+
+    <ResourceDictionary x:Key="Light">
+      <Color x:Key="Cc.WindowColor">#F2ECE0</Color>
+      <Color x:Key="Cc.SidebarColor">#E8E0CF</Color>
+      <Color x:Key="Cc.PageColor">#FBF8F1</Color>
+      <Color x:Key="Cc.InkColor">#1C1712</Color>
+      <Color x:Key="Cc.AccentColor">#A0612B</Color>
+
+      <SolidColorBrush x:Key="Cc.Window" Color="#F2ECE0" />
+      <SolidColorBrush x:Key="Cc.Toolbar" Color="#F2ECE0" />
+      <SolidColorBrush x:Key="Cc.Sidebar" Color="#E8E0CF" />
+      <SolidColorBrush x:Key="Cc.SidebarTranslucent" Color="#E8E0CF" Opacity="0.82" />
+      <SolidColorBrush x:Key="Cc.Page" Color="#FBF8F1" />
+      <SolidColorBrush x:Key="Cc.PageHeader" Color="#F3EDE2" />
+      <SolidColorBrush x:Key="Cc.Panel" Color="#E4DCCC" />
+      <SolidColorBrush x:Key="Cc.Card" Color="#FFFDF8" />
+      <SolidColorBrush x:Key="Cc.CardHover" Color="#FFFFFF" />
+      <SolidColorBrush x:Key="Cc.Rule" Color="#D8CDB8" />
+      <SolidColorBrush x:Key="Cc.RuleStrong" Color="#C7BEAC" />
+      <SolidColorBrush x:Key="Cc.Ink" Color="#1C1712" />
+      <SolidColorBrush x:Key="Cc.InkMuted" Color="#6B6152" />
+      <SolidColorBrush x:Key="Cc.InkFaint" Color="#9A8E7A" />
+      <SolidColorBrush x:Key="Cc.Accent" Color="#A0612B" />
+      <SolidColorBrush x:Key="Cc.AccentStrong" Color="#864C1D" />
+      <SolidColorBrush x:Key="Cc.AccentSoft" Color="#A0612B" Opacity="0.14" />
+      <SolidColorBrush x:Key="Cc.OnAccent" Color="#FFFDF8" />
+      <SolidColorBrush x:Key="Cc.Selection" Color="#EAD7BA" />
+      <SolidColorBrush x:Key="Cc.SelectionInk" Color="#1C1712" />
+      <SolidColorBrush x:Key="Cc.Hover" Color="#1C1712" Opacity="0.06" />
+      <SolidColorBrush x:Key="Cc.Gold" Color="#B8913F" />
+      <SolidColorBrush x:Key="Cc.Verdigris" Color="#3F7F74" />
+      <SolidColorBrush x:Key="Cc.Lapis" Color="#2F4A7A" />
+      <SolidColorBrush x:Key="Cc.Danger" Color="#A3362A" />
+      <SolidColorBrush x:Key="Cc.Link" Color="#00468C" />
+      <SolidColorBrush x:Key="Cc.Shadow" Color="#5A3D1A" Opacity="0.16" />
+      <BoxShadows x:Key="Cc.PageShadow">0 1 2 0 #22503A1F, 0 8 24 -6 #33503A1F</BoxShadows>
+      <BoxShadows x:Key="Cc.CardShadow">0 1 1 0 #1A503A1F, 0 4 14 -4 #2A503A1F</BoxShadows>
+      <BoxShadows x:Key="Cc.LiftShadow">0 2 4 0 #22503A1F, 0 14 32 -8 #44503A1F</BoxShadows>
+    </ResourceDictionary>
+
+    <ResourceDictionary x:Key="Dark">
+      <Color x:Key="Cc.WindowColor">#1B1917</Color>
+      <Color x:Key="Cc.SidebarColor">#22201D</Color>
+      <Color x:Key="Cc.PageColor">#25221E</Color>
+      <Color x:Key="Cc.InkColor">#ECE5D8</Color>
+      <Color x:Key="Cc.AccentColor">#E0A15E</Color>
+
+      <SolidColorBrush x:Key="Cc.Window" Color="#1B1917" />
+      <SolidColorBrush x:Key="Cc.Toolbar" Color="#1B1917" />
+      <SolidColorBrush x:Key="Cc.Sidebar" Color="#22201D" />
+      <SolidColorBrush x:Key="Cc.SidebarTranslucent" Color="#22201D" Opacity="0.80" />
+      <SolidColorBrush x:Key="Cc.Page" Color="#25221E" />
+      <SolidColorBrush x:Key="Cc.PageHeader" Color="#2B2823" />
+      <SolidColorBrush x:Key="Cc.Panel" Color="#2C2C32" />
+      <SolidColorBrush x:Key="Cc.Card" Color="#2A2722" />
+      <SolidColorBrush x:Key="Cc.CardHover" Color="#322E28" />
+      <SolidColorBrush x:Key="Cc.Rule" Color="#383229" />
+      <SolidColorBrush x:Key="Cc.RuleStrong" Color="#4A4237" />
+      <SolidColorBrush x:Key="Cc.Ink" Color="#ECE5D8" />
+      <SolidColorBrush x:Key="Cc.InkMuted" Color="#A89E8D" />
+      <SolidColorBrush x:Key="Cc.InkFaint" Color="#7C7366" />
+      <SolidColorBrush x:Key="Cc.Accent" Color="#E0A15E" />
+      <SolidColorBrush x:Key="Cc.AccentStrong" Color="#F0B877" />
+      <SolidColorBrush x:Key="Cc.AccentSoft" Color="#E0A15E" Opacity="0.16" />
+      <SolidColorBrush x:Key="Cc.OnAccent" Color="#1B1917" />
+      <SolidColorBrush x:Key="Cc.Selection" Color="#4A3A27" />
+      <SolidColorBrush x:Key="Cc.SelectionInk" Color="#F5EFE4" />
+      <SolidColorBrush x:Key="Cc.Hover" Color="#ECE5D8" Opacity="0.07" />
+      <SolidColorBrush x:Key="Cc.Gold" Color="#D8B66E" />
+      <SolidColorBrush x:Key="Cc.Verdigris" Color="#5FA597" />
+      <SolidColorBrush x:Key="Cc.Lapis" Color="#6F8FC8" />
+      <SolidColorBrush x:Key="Cc.Danger" Color="#FF8A7A" />
+      <SolidColorBrush x:Key="Cc.Link" Color="#73B4F5" />
+      <SolidColorBrush x:Key="Cc.Shadow" Color="#000000" Opacity="0.40" />
+      <BoxShadows x:Key="Cc.PageShadow">0 1 2 0 #55000000, 0 10 28 -8 #77000000</BoxShadows>
+      <BoxShadows x:Key="Cc.CardShadow">0 1 1 0 #44000000, 0 4 14 -4 #66000000</BoxShadows>
+      <BoxShadows x:Key="Cc.LiftShadow">0 2 4 0 #55000000, 0 16 36 -8 #88000000</BoxShadows>
+    </ResourceDictionary>
+
+  </ResourceDictionary.ThemeDictionaries>
+
+  <!--
+    Reading faces. Palatino for the original and Georgia for the translation,
+    as on Windows - both ship with macOS, and Palatino carries polytonic
+    Greek. The Windows names follow for anyone running this elsewhere, then
+    faces a Linux machine is likely to have, so the headless screenshots the
+    tests take show Greek rather than boxes.
+
+    The interface face is the system's (San Francisco on a Mac), which is
+    what "$Default" asks for: a Mac app set in anything else looks like a
+    visitor.
+  -->
+  <FontFamily x:Key="Cc.SourceFont">Palatino, Palatino Linotype, Book Antiqua, DejaVu Serif, FreeSerif, serif</FontFamily>
+  <FontFamily x:Key="Cc.TranslationFont">Georgia, Iowan Old Style, DejaVu Serif, FreeSerif, serif</FontFamily>
+  <FontFamily x:Key="Cc.DisplayFont">Palatino, Palatino Linotype, Book Antiqua, DejaVu Serif, serif</FontFamily>
+  <FontFamily x:Key="Cc.MonoFont">SF Mono, Menlo, JetBrains Mono, DejaVu Sans Mono, monospace</FontFamily>
+
+  <CornerRadius x:Key="Cc.PageRadius">10</CornerRadius>
+  <CornerRadius x:Key="Cc.CardRadius">12</CornerRadius>
+  <CornerRadius x:Key="Cc.ControlRadius">6</CornerRadius>
+
+  <!-- macOS draws its traffic lights at the top left of a window whose
+       content runs up under the title bar. The toolbar row is this tall and
+       leaves this much room for them. -->
+  <x:Double x:Key="Cc.TitleBarHeight">52</x:Double>
+  <Thickness x:Key="Cc.TrafficLightInset">78,0,0,0</Thickness>
+</ResourceDictionary>
