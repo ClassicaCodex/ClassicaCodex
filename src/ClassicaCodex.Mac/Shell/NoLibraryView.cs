@@ -15,7 +15,11 @@ public sealed class NoLibraryView : UserControl
 {
     public NoLibraryView(MainWindow main)
     {
-        var tile = Art.Tile("authors", "Library", 84);
+        // Codex's empty scroll-rack, with one scroll waiting beside it; the
+        // library medallion if that painting is not there.
+        Control tile = Art.Load("empty-library.png") is { } painting
+            ? new Image { Source = painting, Width = 240, Height = 180, Stretch = Stretch.Uniform, HorizontalAlignment = HorizontalAlignment.Left, Margin = new Thickness(-16, 0, 0, -8) }
+            : Art.Tile("authors", "Library", 84);
         tile.HorizontalAlignment = HorizontalAlignment.Left;
 
         var open = new Button { Content = "Open Library…", Classes = { "accent" }, MinWidth = 150 };

@@ -33,7 +33,7 @@ public sealed class WelcomeView : UserControl
         {
             Text = "The Greek and Latin classics, their translations and dictionaries, and the languages around them - read side by side, searched, and studied on your own Mac.",
             TextWrapping = TextWrapping.Wrap,
-            MaxWidth = 540,
+            MaxWidth = 500,
             HorizontalAlignment = HorizontalAlignment.Left,
             FontSize = 15,
             Classes = { "muted" },
@@ -96,7 +96,7 @@ public sealed class WelcomeView : UserControl
 
     private Button Card(string title, string subtitle, string tileKey, string glyph, Func<Task> action, bool wide = false)
     {
-        var tile = Art.Tile(tileKey, glyph, 44);
+        var tile = Art.Tile(tileKey, glyph, 52);
         tile.VerticalAlignment = VerticalAlignment.Center;
         tile.Margin = new Thickness(0, 0, 14, 0);
 

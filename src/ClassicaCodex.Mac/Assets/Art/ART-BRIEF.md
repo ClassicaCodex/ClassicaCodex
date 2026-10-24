@@ -206,3 +206,25 @@ For the window that opens when someone mounts the `.dmg` to install the app.
 left to right across the middle, where the app icon (left) is dragged to the
 Applications folder (right). Leave a clear 256 × 256 area at x 330, y 400 and at
 x 990, y 400 (2× pixels) for those two icons.
+
+---
+
+## Delivered
+
+All 44 files arrived from Codex, generated with its image tool from this
+brief (the prompts are in `prompts.json`), and were checked on import:
+every name, size and format matches the tables above; every transparent
+file has real alpha (corners at 0, nothing painted in); every opaque file is
+fully opaque; the two textures tile with no visible seam; the ΑΩ and ΑΒΓ are
+the right letters.
+
+One change was made on import. The icon's lapis tile came at 716 pixels
+inside the canvas rather than the 824 of Apple's grid, which would have sat
+noticeably smaller than its neighbours in the Dock; it was scaled to the
+grid, centred, with the 100-pixel margin.
+
+Codex's own notes, kept because they are true: these are illustrations, not
+reconstructions - the authors group includes one bronze bust among marble
+ones, the manuscript initial is an abstract ornament, and some objects carry
+added decoration. The welcome scenes are upscaled from the generator's
+native resolution.

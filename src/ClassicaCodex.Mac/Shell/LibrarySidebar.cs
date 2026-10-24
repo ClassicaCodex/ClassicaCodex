@@ -603,7 +603,7 @@ public sealed class LibrarySidebar : UserControl
 
         if (item is not ToolEntry tool) return new TextBlock();
 
-        var tile = Art.Tile(tool.TileKey, tool.Glyph, 30);
+        var tile = Art.Tile(tool.TileKey, tool.Glyph, 34);
         tile.VerticalAlignment = VerticalAlignment.Center;
 
         var text = new StackPanel { VerticalAlignment = VerticalAlignment.Center, Spacing = 1 };

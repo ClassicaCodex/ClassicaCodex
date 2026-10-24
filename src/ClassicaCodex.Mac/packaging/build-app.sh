@@ -44,9 +44,8 @@ mkdir -p "$app/Contents/MacOS" "$app/Contents/Resources"
 cp -R "$publish/." "$app/Contents/MacOS/"
 sed "s/__VERSION__/$version/g" "$here/Info.plist" > "$app/Contents/Info.plist"
 
-# The icon: Codex's painting if it has arrived, the interim one otherwise.
+# The icon, from the 1024-pixel master in the artwork folder.
 art="$repo/src/ClassicaCodex.Mac/Assets/Art/app-icon-1024.png"
-[ -f "$art" ] || art="$repo/src/ClassicaCodex.Mac/Assets/Fallback/app-icon-interim.png"
 iconset="$out/ClassicaCodex.iconset"
 rm -rf "$iconset" && mkdir -p "$iconset"
 for size in 16 32 128 256 512; do

@@ -80,9 +80,21 @@ public partial class MainWindow : Window, IReaderHost
         // The sidebar shows the desktop through it, as Finder's does. Where the
         // system cannot blur behind a window it falls back to the opaque
         // sidebar colour, so nothing reads as a hole.
-        TransparencyLevelHint = new[] { WindowTransparencyLevel.AcrylicBlur, WindowTransparencyLevel.None };
-        Background = Avalonia.Media.Brushes.Transparent;
-        this.Bind(TransparencyBackgroundFallbackProperty, this.GetResourceObservable("Cc.Sidebar"));
+        //
+        // Asked for on a real Mac only: the headless renderer the tests use
+        // composites a translucent window over white, which photographs the
+        // dark sidebar grey and says nothing about how it looks on a Mac.
+        if (OperatingSystem.IsMacOS())
+        {
+            TransparencyLevelHint = new[] { WindowTransparencyLevel.AcrylicBlur, WindowTransparencyLevel.None };
+            Background = Avalonia.Media.Brushes.Transparent;
+            this.Bind(TransparencyBackgroundFallbackProperty, this.GetResourceObservable("Cc.Sidebar"));
+        }
+        else
+        {
+            SidebarHost.Bind(Border.BackgroundProperty, SidebarHost.GetResourceObservable("Cc.Sidebar"));
+        }
+
         FallbackMenuBar.IsVisible = false;
 
         // The empty parts of the title-bar row drag the window, as a title bar

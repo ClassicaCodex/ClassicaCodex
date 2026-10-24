@@ -120,7 +120,25 @@ public sealed class ReaderPane : UserControl
         dock.Children.Add(footerBorder);
         dock.Children.Add(body);
 
-        Content = new Border { Classes = { "page" }, Child = dock };
+        // The page's paper: Codex's vellum or linen grain, laid under the text
+        // and faint enough to read as warmth rather than pattern. Behind the
+        // list, not in it, so selection and hover still draw in flat colour.
+        var paper = new Border { IsHitTestVisible = false };
+        void LayPaper()
+        {
+            var dark = ActualThemeVariant == Avalonia.Styling.ThemeVariant.Dark;
+            paper.Background = Common.Art.PageTexture(dark);
+            paper.Opacity = dark ? 0.5 : 0.9;
+        }
+
+        ActualThemeVariantChanged += (_, _) => LayPaper();
+        LayPaper();
+
+        var layered = new Panel();
+        layered.Children.Add(paper);
+        layered.Children.Add(dock);
+
+        Content = new Border { Classes = { "page" }, Child = layered };
 
         _list.FontFamily = ReadingFont;
         ApplyFontSize();

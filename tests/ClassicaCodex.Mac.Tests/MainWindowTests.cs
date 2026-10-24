@@ -1,6 +1,7 @@
 using Avalonia.Controls;
 using Avalonia.Headless.XUnit;
 using Avalonia.Styling;
+using Avalonia.VisualTree;
 using ClassicaCodex.Data;
 using ClassicaCodex.Mac.Shell;
 using Xunit;
@@ -38,6 +39,14 @@ public class MainWindowTests
         window.Show();
         await Screens.Settle(10);
         Screens.Save(window, "01-welcome-light");
+
+        Avalonia.Application.Current!.RequestedThemeVariant = ThemeVariant.Dark;
+        var sidebar = window.GetVisualDescendants().OfType<LibrarySidebar>().Single();
+        sidebar.ShowMode("tools");
+        await Screens.Settle(6);
+        Screens.Save(window, "01b-welcome-dark-tools");
+        sidebar.ShowMode("library");
+        Avalonia.Application.Current!.RequestedThemeVariant = ThemeVariant.Light;
 
         var agamemnon = window.LibraryWorks.First(w => w.Title.Contains("Agamemnon"));
         Assert.True(await window.OpenWorkAsync(agamemnon.WorkId));

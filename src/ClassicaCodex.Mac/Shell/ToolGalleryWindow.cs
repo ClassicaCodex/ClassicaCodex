@@ -34,7 +34,7 @@ public sealed class ToolGalleryWindow : FeatureWindow
             var wrap = new WrapPanel { Orientation = Orientation.Horizontal };
             foreach (var tool in section)
             {
-                var tile = Art.Tile(tool.TileKey, tool.Glyph, 56);
+                var tile = Art.Tile(tool.TileKey, tool.Glyph, 84);
                 tile.HorizontalAlignment = HorizontalAlignment.Left;
 
                 var text = new StackPanel { Spacing = 2, Margin = new Thickness(0, 10, 0, 0) };
@@ -55,7 +55,7 @@ public sealed class ToolGalleryWindow : FeatureWindow
                     Classes = { "tile" },
                     Content = content,
                     Width = 196,
-                    Height = 164,
+                    Height = 190,
                     Margin = new Thickness(0, 0, 12, 12),
                     VerticalContentAlignment = VerticalAlignment.Top
                 };

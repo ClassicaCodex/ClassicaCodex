@@ -45,20 +45,25 @@ public static class Art
         return bitmap;
     }
 
+    /// <summary>The application's icon, for the window and the Dock.</summary>
+    public static Bitmap? AppIcon() => Load("app-icon-1024.png");
+
     /// <summary>
-    /// The application's icon: Codex's when it has arrived, otherwise the
-    /// interim one composed from the Windows owl-on-a-book.
+    /// The page texture for an appearance - vellum in Parchment, linen-paper
+    /// grain in Lamplight - tiled at half its pixel size so it stays fine on a
+    /// Retina display, or null to leave the page its plain colour.
     /// </summary>
-    public static Bitmap? AppIcon()
+    public static IBrush? PageTexture(bool dark)
     {
-        var painted = Load("app-icon-1024.png");
-        if (painted != null) return painted;
+        var tile = Load(dark ? "lamplight-tile.png" : "parchment-tile.png");
+        if (tile == null) return null;
 
-        var uri = new Uri("avares://ClassicaCodex.Mac/Assets/Fallback/app-icon-interim.png");
-        if (!AssetLoader.Exists(uri)) return null;
-
-        using var stream = AssetLoader.Open(uri);
-        return new Bitmap(stream);
+        return new ImageBrush(tile)
+        {
+            TileMode = TileMode.Tile,
+            Stretch = Stretch.None,
+            DestinationRect = new RelativeRect(0, 0, tile.PixelSize.Width / 2.0, tile.PixelSize.Height / 2.0, RelativeUnit.Absolute)
+        };
     }
 
     /// <summary>
