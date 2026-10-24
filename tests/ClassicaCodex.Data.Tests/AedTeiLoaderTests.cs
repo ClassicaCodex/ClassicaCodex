@@ -170,6 +170,46 @@ public class AedTeiLoaderTests : IDisposable
     }
 
     /// <summary>
+    /// <b>A bare ampersand in the editors' names does not lose the text.</b>
+    /// 126 texts in the release, most of the Middle Kingdom letters among
+    /// them, have "Adelheid &amp; Ingelore Burkhardt &amp; Hafemann" unescaped in
+    /// their header, which makes the file malformed XML.
+    /// </summary>
+    [Fact]
+    public void ABareAmpersandInTheHeaderIsEscaped()
+    {
+        Concordance("bbawbriefe:pBerlin 10019//Brief des Neb-kau-ra\tHHHHHHHHHHHHHHHHHHHHHHHHHH");
+        File.WriteAllText(Path.Combine(_root, "files", "HHHHHHHHHHHHHHHHHHHHHHHHHH.xml"),
+            Header.Replace("<name>Burkhard Backes</name>", "<name>Adelheid & Ingelore Burkhardt & Hafemann</name>")
+            + "<s xml:id=\"s1\">" + W("a", "1", "sḏm") + "</s>\n" + Footer);
+
+        var problems = new List<(string Text, string Problem)>();
+        var text = Assert.Single(AedTeiLoader.Load(_root, null, problems));
+
+        Assert.Equal("sḏm", Assert.Single(text.Sentences).Transliteration);
+        Assert.Empty(problems);
+    }
+
+    /// <summary>
+    /// <b>The TLA's test documents are left out.</b> The snapshot exported
+    /// two of an editor's trial documents with the medical papyri, "Test
+    /// Köhler mit Gruppierung" and "Test Köhler ohne Gruppierung".
+    /// </summary>
+    [Fact]
+    public void TheTlaEditorsTestDocumentsAreLeftOut()
+    {
+        Concordance(
+            "sawmedizin:Test Köhler mit Gruppierung//Test\tGGGGGGGGGGGGGGGGGGGGGGGGGG",
+            "sawmedizin:Papyrus Ebers//Eb 185\tFFFFFFFFFFFFFFFFFFFFFFFFFF");
+        File_("GGGGGGGGGGGGGGGGGGGGGGGGGG.xml", "<s xml:id=\"s1\">" + W("a", "1", "ḥtp") + "</s>\n");
+        File_("FFFFFFFFFFFFFFFFFFFFFFFFFF.xml", "<s xml:id=\"s1\">" + W("a", "1", "nfr") + "</s>\n");
+
+        var text = Assert.Single(AedTeiLoader.Load(_root));
+
+        Assert.Equal("Papyrus Ebers", text.ObjectName);
+    }
+
+    /// <summary>
     /// <b>The concordance's names need decoding.</b> They are stored with HTML
     /// entities, an object name can contain a colon, and a German title marks
     /// a transliterated word with dollar signs.
