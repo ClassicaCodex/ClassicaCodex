@@ -1,0 +1,8 @@
+<Project>
+  <ItemGroup>
+    <!-- Which shape each tag category draws as in the network, and where the
+         choice is kept. Plain logic, shared so the Mac reads and writes the
+         same assignments, in the same format, as the Windows app does. -->
+    <Compile Include="$(MSBuildThisFileDirectory)..\..\..\ClassicaCodex.UI\CategoryShapes.cs" Link="Shared\CategoryShapes.cs" />
+  </ItemGroup>
+</Project>
