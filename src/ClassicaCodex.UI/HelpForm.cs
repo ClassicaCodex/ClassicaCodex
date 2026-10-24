@@ -672,7 +672,7 @@ Terms
 The books outside the Bible that tell where angels and demons came from. Install it from the setup wizard; it is about 4 MB in some 120 small downloads.
 
 What is in it
-   1 Enoch in R. H. Charles's translation of 1917: the two hundred Watchers who came down on Mount Hermon, the giants they fathered, and the evil spirits that came out of the giants. The Testament of Solomon, in which Solomon binds demon after demon with a ring and makes each tell its name and the angel that defeats it, in McCown's Greek (1922) and Conybeare's English (1898). The Testaments of the Twelve Patriarchs in Greek and in Charles's English, with Beliar and the seven spirits of deceit. Jubilees in Charles's English, with Mastema. The Greek Apocalypse of Moses, and 2 Enoch in Morfill's English.
+   1 Enoch in R. H. Charles's translation of 1917: the two hundred Watchers who came down on Mount Hermon, the giants they fathered, and the evil spirits that came out of the giants. The Testament of Solomon, in which Solomon binds demon after demon with a ring and makes each tell its name and the angel that defeats it, in McCown's Greek (1922) and Conybeare's English (1898). The Testaments of the Twelve Patriarchs in Greek and in Charles's English, with Beliar and the seven spirits of deceit. Jubilees in Charles's English, with Mastema. The Greek Apocalypse of Moses; the Latin Life of Adam and Eve in Meyer's edition (1878), in which Satan tells Adam that he fell for refusing to worship him; and 2 Enoch in Morfill's English.
 
 1 Enoch sits beside the Greek
    The library already has the Greek fragments of 1 Enoch from First1KGreek. Charles's English is filed as their translation, so chapters 1 to 32, where the Greek survives, read side by side; the rest of the book survives only in Ethiopic and is in English alone.
@@ -777,6 +777,38 @@ About this text
 
 Terms
    Public domain: the book was published in 1904, and Mathers, Crowley and de Laurence all died more than seventy years ago. The earlier transcription this appears to descend from asks that its files be used only non-commercially; for a book that will be sold, quote from the scan.
+"""),
+
+        ("Athanasius: Life of Antony", """
+Athanasius of Alexandria's Life of Antony, the first desert hermit, written about 360, in the English of the Rev. H. Ellershaw from the Nicene and Post-Nicene Fathers (1892). Install it from the setup wizard; it comes as the whole Athanasius volume, about 6 MB, of which only the Life is read.
+
+What is in it
+   Antony's life from his boyhood to his death at a hundred and five: the devil's first temptations, the night in the tomb when demons beat him senseless, the demons who come through the walls as lions, bears, leopards, bulls, serpents, asps, scorpions and wolves, the long sermon to the monks on the tricks of demons and how to tell them from angels, the exorcisms, and his visions of the soul's passage after death. Every later saint tormented by devils, painted or written, descends from it.
+
+Citations
+   By the 94 sections every edition uses; the letter to the monks abroad that comes first is the preface (pr). The editor's table of contents supplies a heading before each group of sections. The Life is filed under Athanasius, beside his Greek works from First1KGreek, so a Greek text added later will read beside it.
+
+Terms
+   Public domain. Ellershaw's footnotes are not included. English only: the Greek is not in the library.
+"""),
+
+        ("The Arabian Nights", """
+The Thousand Nights and a Night in the translation of Richard Burton (1885), all ten volumes and all 1,001 nights, and the third volume of his Supplemental Nights (1887), which holds Aladdin, Ali Baba and the other tales Antoine Galland added to the Nights in French. Install it from the setup wizard; it is about 15 MB in twelve downloads.
+
+What is in it
+   Shahrazad's frame story and every tale she tells, from the Trader and the Jinni and the Fisherman and the Jinni to Ma'aruf the Cobbler. The jinn, ifrits and marids of the Quran's world are everywhere: the Ifrit shut in a brass jar under Solomon's seal, the jinni who keeps a woman in a casket at the bottom of the sea, the City of Brass, the slave of the ring and the slave of the lamp.
+
+Citations
+   The Nights by night and paragraph: 3.12 is the twelfth paragraph of the Third Night, wherever the volumes break, and 3.head is the night's own opening line. The titles of the tales are headings within the nights. Burton gives the First Night no heading; it begins with the first tale, and the frame story before it is night 0. The Supplemental tales mostly have no nights, and are cited by tale, in the order the volume prints them, and paragraph.
+
+What is left out
+   Burton's prefaces, indexes, appendices and Terminal Essay, Clouston's variants and analogues, the illustrations, and Burton's 5,000 footnotes, which are an anthropology of his own, often prurient and frequently racist. Verse is kept, a line to each "/".
+
+About the translation
+   Burton wrote in a deliberately archaic English and did not soften the tales' sex or violence. The text is Project Gutenberg's transcription of the Burton Club's American reprint.
+
+Terms
+   Public domain: Burton died in 1890.
 """),
 
         ("Medieval Hands", """
