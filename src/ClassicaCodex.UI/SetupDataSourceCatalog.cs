@@ -3,6 +3,7 @@ using ClassicaCodex.Core.Catmus;
 using ClassicaCodex.Core.Models;
 using ClassicaCodex.Data.Repositories;
 using ClassicaCodex.Ingestion;
+using ClassicaCodex.Ingestion.Antony;
 using ClassicaCodex.Ingestion.Aquinas;
 using ClassicaCodex.Ingestion.Bfm;
 using ClassicaCodex.Ingestion.Catmus;
@@ -13,6 +14,7 @@ using ClassicaCodex.Ingestion.Geste;
 using ClassicaCodex.Ingestion.Goetia;
 using ClassicaCodex.Ingestion.EarlyEnglish;
 using ClassicaCodex.Ingestion.Hebrew;
+using ClassicaCodex.Ingestion.Nights;
 using ClassicaCodex.Ingestion.Pseudepigrapha;
 using ClassicaCodex.Ingestion.Quran;
 using ClassicaCodex.Ingestion.Rabbinic;
@@ -127,6 +129,12 @@ public static class SetupDataSourceCatalog
 
         /// <summary>The Goetia of Mathers and Crowley (1904): the seventy-two spirits and their conjuration.</summary>
         public const string Goetia = GoetiaIngestService.CollectionKey;
+
+        /// <summary>Athanasius's Life of Antony in Ellershaw's English.</summary>
+        public const string LifeOfAntony = AntonyIngestService.CollectionKey;
+
+        /// <summary>The Arabian Nights in Burton's translation, with the third Supplemental volume.</summary>
+        public const string ArabianNights = NightsIngestService.CollectionKey;
     }
 
     /// <summary>
@@ -158,6 +166,8 @@ public static class SetupDataSourceCatalog
         CollectionKeys.Aquinas => "Aquinas, Summa Theologiae, First Part (English)",
         CollectionKeys.Dionysius => "Pseudo-Dionysius the Areopagite (Parker's English)",
         CollectionKeys.Goetia => "The Goetia (Mathers and Crowley, 1904)",
+        CollectionKeys.LifeOfAntony => "Athanasius, Life of Antony (English)",
+        CollectionKeys.ArabianNights => "The Arabian Nights (Burton)",
         _ => key
     };
 
@@ -1158,7 +1168,7 @@ public static class SetupDataSourceCatalog
                     + "side by side. The Testament of Solomon, with its catalogue of the demons Solomon bound "
                     + "with his ring, in McCown's Greek and Conybeare's English. The Testaments of the Twelve "
                     + "Patriarchs in Greek and in Charles's English, Jubilees in Charles's English, the Greek "
-                    + "Apocalypse of Moses and 2 Enoch. "
+                    + "Apocalypse of Moses, the Latin Life of Adam and Eve, and 2 Enoch. "
                     + "Two things to know. Conybeare numbered his translation of the Testament of Solomon in "
                     + "130 sections of his own, from a different manuscript, so it is cited §1 to §130 and "
                     + "does not scroll with McCown's chapters. And Jubilees has no original-language pane: "
@@ -1398,6 +1408,86 @@ public static class SetupDataSourceCatalog
                     await editionRepo.IsCollectionCompleteAsync(CollectionKeys.Goetia),
                 CheckHasSomeContent = async () =>
                     await editionRepo.CountByCollectionAsync(CollectionKeys.Goetia) > 0
+            },
+
+            new SetupDataSource
+            {
+                Title = "Athanasius: the Life of Antony, in English",
+                RepoUrl = "https://www.ccel.org/ccel/schaff/npnf204",
+                DisplayNote = "about 6 MB in one download (the whole Athanasius volume)",
+                DefaultDestination = Path.Combine(dataRoot, "life-of-antony"),
+                FetchMode = SetupFetchMode.SelfManaged,
+
+                Links =
+                {
+                    new SetupLink { Text = "The Athanasius volume at the Christian Classics Ethereal Library", Url = "https://www.ccel.org/ccel/schaff/npnf204" }
+                },
+
+                PlainLanguageDescription =
+                    "The Life of Antony, Athanasius's account of the first desert hermit, written about 360, in "
+                    + "the English of the Rev. H. Ellershaw (1892): the devil beating Antony senseless in a tomb, "
+                    + "demons breaking in through the walls as lions, bears, serpents and scorpions, the long "
+                    + "sermon on how to tell a demon from an angel, and the tall figure who catches souls as they "
+                    + "rise. Every later saint tormented by devils goes back to it. "
+                    + "Cited by its 94 sections, with the editor's table of contents as headings; filed under "
+                    + "Athanasius beside his Greek works. English only. Public domain.",
+
+                RunIngest = async (root, progress, ct) =>
+                {
+                    var service = new AntonyIngestService();
+                    var outcome = await service.IngestAsync(root, progress, ct);
+
+                    if (service.PassagesInstalled > 0)
+                        await editionRepo.StampCollectionAsync(root, CollectionKeys.LifeOfAntony, ct);
+
+                    return outcome;
+                },
+
+                CheckComplete = async () =>
+                    await editionRepo.IsCollectionCompleteAsync(CollectionKeys.LifeOfAntony),
+                CheckHasSomeContent = async () =>
+                    await editionRepo.CountByCollectionAsync(CollectionKeys.LifeOfAntony) > 0
+            },
+
+            new SetupDataSource
+            {
+                Title = "The Arabian Nights, in Burton's translation",
+                RepoUrl = "https://www.gutenberg.org/ebooks/51252",
+                DisplayNote = "about 15 MB in twelve downloads",
+                DefaultDestination = Path.Combine(dataRoot, "arabian-nights"),
+                FetchMode = SetupFetchMode.SelfManaged,
+
+                Links =
+                {
+                    new SetupLink { Text = "Volume 1 at Project Gutenberg", Url = "https://www.gutenberg.org/ebooks/51252" }
+                },
+
+                PlainLanguageDescription =
+                    "The Thousand Nights and a Night in Richard Burton's translation (1885), all ten volumes and "
+                    + "all 1,001 nights, with the third volume of his Supplemental Nights (1887), which holds "
+                    + "Aladdin and Ali Baba. The jinn of the Quran as storytellers knew them: the Ifrit in the "
+                    + "fisherman's brass jar, sealed with Solomon's seal; the jinni with a woman in a casket under "
+                    + "the sea; the slaves of the ring and the lamp. "
+                    + "Cited by night and paragraph (3.12 is the Third Night); the Supplemental tales by tale and "
+                    + "paragraph. Burton's English is deliberately archaic and his tales are frank about sex. His "
+                    + "5,000 footnotes, often prurient and frequently racist, and his Terminal Essay are left out. "
+                    + "Public domain.",
+
+                RunIngest = async (root, progress, ct) =>
+                {
+                    var service = new NightsIngestService();
+                    var outcome = await service.IngestAsync(root, progress, ct);
+
+                    if (service.PassagesInstalled > 0)
+                        await editionRepo.StampCollectionAsync(root, CollectionKeys.ArabianNights, ct);
+
+                    return outcome;
+                },
+
+                CheckComplete = async () =>
+                    await editionRepo.IsCollectionCompleteAsync(CollectionKeys.ArabianNights),
+                CheckHasSomeContent = async () =>
+                    await editionRepo.CountByCollectionAsync(CollectionKeys.ArabianNights) > 0
             },
 
             new SetupDataSource

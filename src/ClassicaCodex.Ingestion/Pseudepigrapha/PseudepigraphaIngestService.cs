@@ -8,7 +8,8 @@ namespace ClassicaCodex.Ingestion.Pseudepigrapha;
 /// The books outside the Bible that tell where angels and demons came from:
 /// 1 Enoch in Charles's translation, the Testament of Solomon in Greek and
 /// English, the Testaments of the Twelve Patriarchs in Greek and English,
-/// Jubilees, the Greek Apocalypse of Moses and 2 Enoch.
+/// Jubilees, the Greek Apocalypse of Moses, the Latin Life of Adam and Eve and
+/// 2 Enoch.
 ///
 /// These are the texts that name the Watchers and their two hundred on Mount
 /// Hermon, the giants whose spirits became the demons, Mastema and the tenth
@@ -51,7 +52,7 @@ public class PseudepigraphaIngestService
 
     public List<(string Text, string Error)> Failed { get; } = new();
 
-    private const int Attempted = 6;
+    private const int Attempted = 7;
 
     private static readonly string[] Patriarchs =
     {
@@ -69,6 +70,7 @@ public class PseudepigraphaIngestService
         await Attempt("Testaments of the Twelve Patriarchs", () => InstallPatriarchsAsync(root, progress, cancellationToken));
         await Attempt("Jubilees", () => InstallJubileesAsync(root, progress, cancellationToken));
         await Attempt("Apocalypse of Moses", () => InstallMosesAsync(root, progress, cancellationToken));
+        await Attempt("Life of Adam and Eve (Latin)", () => InstallVitaAsync(root, progress, cancellationToken));
         await Attempt("2 Enoch", () => InstallSecretsOfEnochAsync(root, progress, cancellationToken));
 
         progress.Report($"{WorksInstalled} works, {PassagesInstalled:N0} passages.");
@@ -296,6 +298,53 @@ public class PseudepigraphaIngestService
                 Availability = "CC BY 4.0, the Online Critical Pseudepigrapha; Tischendorf's text (1866) is in the public domain."
             }, ct);
     }
+
+    // ---- the Latin Life of Adam and Eve -------------------------------------
+
+    /// <summary>
+    /// The Latin Life of Adam and Eve in Wilhelm Meyer's edition (1878), from
+    /// the same OCP file as the Greek: the penance in the rivers, Satan
+    /// disguised as an angel of light, and his account of his own fall - he
+    /// would not worship Adam, the image of God, because he was made first.
+    ///
+    /// A separate work from the Apocalypse of Moses, not its translation: the
+    /// two tell overlapping stories in different words and are numbered
+    /// independently. OCP divides each of Meyer's 51 chapters as a single verse
+    /// 0, which is dropped, so the chapters are cited as everyone cites them.
+    /// There is no English: the only one in the file is OCP's own, which is
+    /// recent and unchecked, and Charles's translation of 1913 has no clean
+    /// transcription anywhere open.
+    /// </summary>
+    private async Task InstallVitaAsync(string root, IProgress<string> progress, CancellationToken ct)
+    {
+        progress.Report("Life of Adam and Eve: Meyer's Latin...");
+        var path = await FetchAsync(root, "AdamEve.xml", OcpLoader.Root + "AdamEve.xml", ct);
+        var (latin, bibliography) = OcpLoader.Load(path, "Latin (Meyer)", "Meyer");
+
+        var authorId = await AuthorAsync("urn:pseudepigrapha:life-of-adam-and-eve", "Life of Adam and Eve",
+            "pseudepigrapha", "grc", ct);
+        var workId = await WorkAsync(authorId, "urn:pseudepigrapha:life-of-adam-and-eve:latin",
+            "Vita Adae et Evae (Latin Life of Adam and Eve)", "Chapter", ct);
+
+        await EditionAsync(workId, "urn:pseudepigrapha:life-of-adam-and-eve:latin:meyer", EditionKind.Original, "lat",
+            null, latin.Select(p => (ChapterOnly(p.Citation), p.Text, false)).ToList(),
+            new EditionHeader
+            {
+                Title = "Vita Adae et Evae (Latin)",
+                SourceDescription = (bibliography ?? "W. Meyer, \"Vita Adae et Evae\" (Munich, 1878)")
+                    + " As encoded by the Online Critical Pseudepigrapha from Denis's Concordance latine (1993), which "
+                    + "reproduces Meyer's text. Cited by Meyer's 51 chapters.",
+                Availability = "CC BY 4.0, the Online Critical Pseudepigrapha; Meyer's edition (1878) is in the public "
+                    + "domain (he died in 1917)."
+            }, ct);
+    }
+
+    /// <summary>
+    /// OCP's citation for a chapter it does not divide into verses ("14.0")
+    /// as the chapter alone ("14"); a lettered addition ("29.a") is kept.
+    /// </summary>
+    public static string ChapterOnly(string citation) =>
+        citation.EndsWith(".0", StringComparison.Ordinal) ? citation[..^2] : citation;
 
     // ---- 2 Enoch -------------------------------------------------------------
 
