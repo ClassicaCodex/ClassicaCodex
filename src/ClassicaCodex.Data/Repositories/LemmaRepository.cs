@@ -56,6 +56,41 @@ public class LemmaRepository
         await transaction.CommitAsync(cancellationToken);
     }
 
+    /// <summary>
+    /// Adds the mappings not already present for this language, and leaves the
+    /// rest alone. For a language that more than one collection supplies -
+    /// Egyptian comes from the Pyramid Texts treebank and from the TLA corpus,
+    /// both keyed to the TLA dictionary - where replacing the language's rows
+    /// wholesale, as a single-source collection does, would mean that loading
+    /// one erased the other's. The price is that a mapping outlives the texts
+    /// it came from if a collection is ever removed; a stale mapping points a
+    /// word at a headword it really has, which is harmless, where an erased
+    /// one leaves Word Study with nothing to say.
+    /// </summary>
+    public async Task<int> InsertMissingAsync(
+        string language, IReadOnlyList<Lemma> lemmas, CancellationToken cancellationToken = default)
+    {
+        if (lemmas.Count == 0) return 0;
+
+        var existing = new HashSet<string>(StringComparer.Ordinal);
+        await using (var conn = await DbConnectionFactory.OpenConnectionAsync(cancellationToken))
+        await using (var cmd = conn.CreateCommand())
+        {
+            cmd.CommandText = "SELECT Form, Headword, IFNULL(PartOfSpeech, '') FROM Lemmas WHERE Language = @Language;";
+            cmd.Parameters.AddWithValue("@Language", language);
+            await using var reader = await cmd.ExecuteReaderAsync(cancellationToken);
+            while (await reader.ReadAsync(cancellationToken))
+                existing.Add($"{reader.GetString(0)}\u0001{reader.GetString(1)}\u0001{reader.GetString(2)}");
+        }
+
+        var missing = lemmas
+            .Where(l => existing.Add($"{l.Form}\u0001{l.Headword}\u0001{l.PartOfSpeech ?? string.Empty}"))
+            .ToList();
+
+        await BulkInsertAsync(missing, cancellationToken);
+        return missing.Count;
+    }
+
     public async Task<int> CountAsync(CancellationToken cancellationToken = default)
     {
         await using var conn = await DbConnectionFactory.OpenConnectionAsync(cancellationToken);

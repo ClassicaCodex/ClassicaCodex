@@ -633,6 +633,66 @@ Boxes where a sign should be
    About one passage in five shows a small empty box. Unicode added four thousand more hieroglyphs in 2023, 1.35% of the signs here are among them, and no font that ships with Windows has caught up. Nothing is wrong with the text — installing a font with wider coverage, such as Aegyptus or NewGardiner, fills them in.
 """),
 
+        ("Egyptian texts (Thesaurus Linguae Aegyptiae)", """
+About 3,400 Egyptian texts in 59,000 passages from the Thesaurus Linguae Aegyptiae, the Berlin and Leipzig academies' dictionary of Ancient Egyptian, as its database stood in January 2018, in Simon Schweitzer's TEI conversion (AED-TEI). Install it from the setup wizard; it is a 75 MB download.
+
+What is in it
+   The Book of the Dead from 24 papyri, the Papyrus of Nu and the Turin papyrus with over a hundred spells each. The medical papyri, Ebers and Edwin Smith among them, with the spells said over the remedies. The Bremner-Rhind papyrus, with the songs of Isis and Nephthys and the book of overthrowing Apophis, and the other late funerary and temple books. The literature, from Sinuhe and the Shipwrecked Sailor to the love songs of Chester Beatty I. And letters, papyrus archives, stelae, historical inscriptions and rock inscriptions.
+
+Three readings
+   Every document arrives in transliteration, with the TLA's German translation in the second pane. The literary, medical, funerary and temple papyri also arrive in hieroglyphs, in the edition dropdown as "Egyptian (hieroglyphs)". Where a sign group has no Unicode character it is shown by its Gardiner codes in angle brackets, ⟨D58-X1-N37A⟩, and as a box where the TLA gave none.
+
+Citations
+   One work is one document - a papyrus, a stela, a letter - and its texts are numbered within it. A Book of the Dead papyrus is cited by spell: 125.12 is the twelfth sentence of spell 125, the Judgement of the Dead; a second copy of a spell in the same papyrus is 28-2, and a hymn copied alongside the spells is T1. Everything else is numbered in the order of the texts' titles. The TLA's own title for each text ("Tb 125", "Eb 185") is in the margin.
+
+Word Study
+   Every word points at its entry in the TLA dictionary, so Word Study gives the headword and its German meaning, with the Wörterbuch reference.
+
+What is not here
+   The tomb inscriptions, and the Amarna and Ramesside monuments. The conversion keeps which wall a text is on but not whose tomb or temple it is, so they could only have arrived as hundreds of works called "West wall". The TLA's own Pyramid Texts are left out because the library has them already, parsed, from Universal Dependencies. And about 150 texts whose files in the release are not well-formed XML are skipped and counted.
+
+Terms
+   CC BY-SA 4.0, from the TLA's contributors: Burkhard Backes, Susanne Beck, Anke Blöbaum, Angela Böhme, Marc Brose, Adelheid Burkhardt, Roberto A. Díaz Hernández, Peter Dils, Roland Enmarch, Frank Feder, Heinz Felber, Silke Grallert, Stefan Grunert, Ingelore Hafemann, Anne Herzberg, John M. Iskander, Ines Köhler, Maxim Kupreyev, Renata Landgrafova, Verena Lepper, Lutz Popko, Alexander Schütze, Simon Schweitzer, Stephan Seidlmayer, Gunnar Sperveslage, Susanne Töpfer, Doris Topmann and Anja Weber.
+"""),
+
+        ("Curse tablets", """
+About 840 Greek and Latin curse tablets - defixiones, the lead sheets on which people bound a rival's tongue, a thief's body or a charioteer's horses, and buried in graves, dropped down wells or threw into sacred springs. Install them from the setup wizard; the step fetches about 870 small files.
+
+What is in it
+   Every curse tablet found in Attica, 486 of them, from the Inscriptiones Graecae's volume of Attic defixiones (IG II/III³ 8, 1, edited by Jaime Curbera), each with an English translation by Curbera and a German one by Klaus Hallof. The Greek tablets of Sicily that have a text, from Selinous, Kamarina, Gela and elsewhere, from I.Sicily. And the Latin tablets of the Roman provinces from the Epigraphic Database Heidelberg: Bath and Uley under Britannia, the Mainz tablets under Germania superior, and Spain, Pannonia, Raetia, Africa and the rest.
+
+How it is laid out
+   One work per region - Attica, Sicily, or a Roman province, and two where a province has tablets in both Greek and Latin - because a tablet is a few lines long. A passage is a line of a tablet, cited tablet and line: 125.6 is line 6 of IG II/III³ 8, 1, 125, and the tablet's own citation is in the margin. Where a tablet's faces or fragments each start again at line 1 the face is added, so 12.2.1 is the first line of the second fragment of HD000012. The translations are cited the same way and sit beside the lines they translate.
+
+The brackets
+   The texts are printed in the Leiden conventions epigraphers use: [restored], [- - -] for a loss of unknown length, one dot per lost letter where it is counted, a dot under a letter whose reading is uncertain, abbreviations expanded in round brackets, ⟦erased⟧, {superfluous}, ⟨omitted by the writer⟩, and (!) where the editor confirms an odd reading is what the tablet has. Words broken across lines end the first line with a hyphen.
+
+What is not here
+   Translations for the Heidelberg tablets: the database never made them. The Bath and Uley tablets are in Roman Inscriptions of Britain with English translations, but only as web pages, and are not fetched here. The curse tablets of the Greek East - Cyprus, Syria, Egypt - are not in any openly licensed source.
+
+Terms
+   The Inscriptiones Graecae and I.Sicily are CC BY 4.0; the Heidelberg database is CC BY-SA 4.0.
+"""),
+
+        ("Magical papyri", """
+The working papers of ancient magicians: handbooks of spells, spells written out for one client, and amulets folded small and worn. About 150 Greek papyri and about 350 Coptic spells. Install them from the setup wizard.
+
+What is in it
+   The Greek papyri are papyri.info's: every papyrus that the Digital Corpus of Literary Papyri, or the documentary databank, tags as magic and that has an edited text. Among them are PGM I complete - the Berlin papyrus with the rite for gaining a divine assistant, 347 lines in five columns - PGM VIII, LXII and Va, most of the Supplementum Magicum, the magical formularies from Oxyrhynchus, amulets against fever and scorpions, Christian amulets made of psalm verses, and a spell to bring down the horses of the Blue faction at the races. The Coptic texts are the Kyprianos database's, from the Würzburg Coptic Magical Papyri project: curses, love spells, healing and protection, invocations and divination, each with the project's English translation.
+
+How it is laid out
+   One work per papyrus or spell. The Greek ones are filed under the Papyri Graecae Magicae, the Supplementum Magicum, or the other papyri and amulets; the Coptic ones by what they were for - curses, love and favour, healing and protection, and the rest. A passage is a line, cited column and line where a papyrus has columns, so 3.12 is line 12 of the third column with "col. iii" in the margin. A Coptic text is cited by page or side and line, and its English is cited the same way, so each piece of the translation sits beside the line it begins on. A translation follows the sense rather than the line, so a piece can hold the end of one line and the start of the next.
+
+The text
+   The Greek is printed in the Leiden conventions, as for the curse tablets: [restored], [- - -] for a loss, a dot under an uncertain letter, (expanded) abbreviations. Where the papyrus misspells a word the regularised spelling is printed, so that searching finds it; where the edition gives several scholars' readings, the one it prints is the one you see. The Coptic is Kyprianos's transcription, with the scribe's abbreviation strokes and corrections.
+
+What is not here
+   The great handbooks - PGM IV, the Paris papyrus with the "Mithras Liturgy", PGM V, VII and the Leiden XII and XIII - have no open digital text anywhere: papyri.info holds their records with an empty edition. The Greek papyri have no translations. The Demotic magical papyri are not in any open source with text.
+
+Terms
+   papyri.info's texts are CC BY 3.0, with attribution to the Digital Corpus of Literary Papyri and the Duke Databank of Documentary Papyri. The Kyprianos database is made available under the Open Database License, and its contents under the Database Contents License: credit the Coptic Magical Papyri project (Würzburg) when you use it, and anything you publish that adapts the database must be offered under the same licence.
+"""),
+
         ("The Hebrew Bible", """
 The whole Hebrew Bible — Torah, Prophets and Writings, 39 books and 23,213 verses — in the text of the Leningrad Codex, the oldest complete manuscript of it, copied in 1008, with the translation the Jewish Publication Society published in 1917 beside it. Install it from the setup wizard; it is about 23 MB in 41 downloads.
 
