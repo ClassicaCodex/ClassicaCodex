@@ -30,7 +30,15 @@ public partial class MainWindow
     private bool _readerHasNavigated;
 
     private bool _panesLinked = PaneSyncSettings.Enabled;
-    private bool _syncingScroll;
+
+    /// <summary>
+    /// The pane being scrolled to follow the other, while it moves. Its own
+    /// scroll events are not the reader's and must not be mirrored back - but
+    /// the leader's still are: a long jump arrives in several passes, and
+    /// ignoring every event until the first settled left the follower parked
+    /// wherever the leader's first pass had landed.
+    /// </summary>
+    private ReaderPane? _scrollFollower;
     private bool _fillingPickers;
 
     private (AttributionStatus Status, string? Note, bool SetByUser) _currentWorkAttribution = (AttributionStatus.Accepted, null, false);
@@ -138,26 +146,56 @@ public partial class MainWindow
     /// </summary>
     private void OnPaneTopChanged(ReaderPane source)
     {
-        if (!_panesLinked || _syncingScroll) return;
+        if (!_panesLinked || ReferenceEquals(source, _scrollFollower)) return;
 
-        var target = Counterpart(source);
-        if (target.Count == 0) return;
+        // Moving the follower runs a layout pass over the whole window, which
+        // can raise the leader's scroll event again from inside this one. That
+        // nested event is noted rather than acted on - acting on it recursed
+        // until the stack gave out - and the leader is mirrored once more
+        // after, so a leader still settling is followed to where it settles.
+        if (_mirroring)
+        {
+            _mirrorAgain = source;
+            return;
+        }
 
-        var ordinal = source.TopIndex;
-        if (ordinal < 0 || ordinal >= target.Count) return;
-        if (target.TopIndex == ordinal) return;
-
-        _syncingScroll = true;
+        _mirroring = true;
         try
         {
-            target.ScrollToTop(ordinal);
+            for (var pass = 0; pass < 4; pass++)
+            {
+                _mirrorAgain = null;
+                Mirror(source);
+                if (!ReferenceEquals(_mirrorAgain, source)) break;
+            }
         }
         finally
         {
-            // Cleared after layout has run, so the scroll this causes in the
-            // other pane is not taken for the reader scrolling it.
-            Dispatcher.UIThread.Post(() => _syncingScroll = false, DispatcherPriority.Background);
+            _mirroring = false;
         }
+    }
+
+    private bool _mirroring;
+    private ReaderPane? _mirrorAgain;
+
+    private void Mirror(ReaderPane leader)
+    {
+        var target = Counterpart(leader);
+        if (target.Count == 0) return;
+
+        var ordinal = leader.TopIndex;
+        if (ordinal < 0 || ordinal >= target.Count) return;
+        if (target.TopIndex == ordinal) return;
+
+        _scrollFollower = target;
+        target.ScrollToTop(ordinal);
+
+        // Released after layout has run, so the scroll this causes in the
+        // other pane is not taken for the reader scrolling it.
+        Dispatcher.UIThread.Post(() =>
+        {
+            if (ReferenceEquals(_scrollFollower, target)) _scrollFollower = null;
+        }, DispatcherPriority.Background);
     }
 
     private void RememberReadingPosition(ReaderPane pane, int index)

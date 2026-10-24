@@ -90,7 +90,9 @@ public sealed class ReaderPane : UserControl
             Classes = { "reader" },
             SelectionMode = SelectionMode.Single,
             Padding = new Thickness(6, 8),
-            ItemTemplate = new FuncDataTemplate<PassageRow>((row, _) => BuildRow(row), supportsRecycling: false)
+            // The template is asked for a null item while the list is being cleared
+            // - switching works, showing a message - and answers it with nothing.
+            ItemTemplate = new FuncDataTemplate<PassageRow>((row, _) => row == null ? new Border() : BuildRow(row), supportsRecycling: false)
         };
         _list.SelectionChanged += OnSelectionChanged;
         _list.TemplateApplied += (_, _) => Dispatcher.UIThread.Post(HookScroller);
@@ -279,26 +281,50 @@ public sealed class ReaderPane : UserControl
             foreach (var container in _list.GetRealizedContainers().OrderBy(c => _list.IndexFromContainer(c)))
             {
                 var position = container.TranslatePoint(new Point(0, container.Bounds.Height), _scroller);
-                if (position is { Y: > 1 }) return _list.IndexFromContainer(container);
+                if (position is { } bottom && bottom.Y > TopInset + 1) return _list.IndexFromContainer(container);
             }
 
             return -1;
         }
     }
 
+    /// <summary>
+    /// How far below the top edge a passage scrolled "to the top" sits, so its
+    /// first line is not flush against the page header. TopIndex uses the same
+    /// figure, or the passage above - whose last pixels fill that gap - would
+    /// count as the one at the top, and linked pages would disagree by one.
+    /// </summary>
+    private const double TopInset = 6;
+
     /// <summary>Scrolls so the passage at <paramref name="index"/> sits at the top of the pane.</summary>
+    /// <remarks>
+    /// In passes, because one is not enough. The list knows the height of
+    /// the passages it has drawn and guesses the rest, so moving to a
+    /// passage it has not drawn lands where the guess put it; drawing what is
+    /// now on screen corrects the guess and moves the passage. A prose
+    /// translation whose paragraphs differ in length by a factor of ten
+    /// landed thirty passages short of the Greek on the first pass. Each pass
+    /// measures what the last one revealed, and three settle it.
+    /// </remarks>
     public void ScrollToTop(int index)
     {
         if (_scroller == null || index < 0 || index >= _rows.Count) return;
 
-        _list.ScrollIntoView(index);
-        _list.UpdateLayout();
+        for (var pass = 0; pass < 4; pass++)
+        {
+            _list.ScrollIntoView(index);
+            _list.UpdateLayout();
 
-        if (_list.ContainerFromIndex(index) is not { } container) return;
-        var position = container.TranslatePoint(new Point(0, 0), _scroller);
-        if (position == null) return;
+            if (_list.ContainerFromIndex(index) is not { } container) return;
+            var position = container.TranslatePoint(new Point(0, 0), _scroller);
+            if (position == null) return;
 
-        _scroller.Offset = new Vector(_scroller.Offset.X, Math.Max(0, _scroller.Offset.Y + position.Value.Y - 6));
+            var error = position.Value.Y - TopInset;
+            if (Math.Abs(error) < 1) return;
+
+            _scroller.Offset = new Vector(_scroller.Offset.X, Math.Max(0, _scroller.Offset.Y + error));
+            _list.UpdateLayout();
+        }
     }
 
     /// <summary>The citation of the selected passage, as the footer shows it.</summary>
