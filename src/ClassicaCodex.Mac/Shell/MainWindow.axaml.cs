@@ -51,6 +51,7 @@ public partial class MainWindow : Window, IReaderHost
         WireToolbar();
         WireSidebar();
         WireReader();
+        TrackArcadePane();
         BuildMenus();
         ApplyAppearance(MacSettings.Current.Appearance);
         RestoreWindowPlacement();
@@ -219,6 +220,12 @@ public partial class MainWindow : Window, IReaderHost
 
     private void OnWindowKeyDown(object? sender, KeyEventArgs e)
     {
+        if (HandleArcadeKeys(e))
+        {
+            e.Handled = true;
+            return;
+        }
+
         // On a Mac these come from the menu bar's key equivalents. Elsewhere
         // there may be no global menu to deliver them, so the window answers.
         if (OperatingSystem.IsMacOS()) return;

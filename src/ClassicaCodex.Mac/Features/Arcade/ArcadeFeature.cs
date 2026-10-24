@@ -12,4 +12,12 @@ public static class ArcadeFeature
 {
     public static void Open(IReaderHost host) =>
         ComingSoon.Show(host, "Bronze and Thunder", "reactions", "Gamepad", "The hidden arcade");
+
+    /// <summary>Whether the arcade window is open, for the ⌃⇧Return chord.</summary>
+    public static bool IsOpen => false;
+
+    /// <summary>Hands the reader's selected passage to the open arcade (⌃⇧Return).</summary>
+    public static void SubmitReaderSelection()
+    {
+    }
 }
