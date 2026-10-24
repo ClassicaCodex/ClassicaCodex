@@ -462,7 +462,7 @@ public partial class MainWindow
 
         bar.Add(Submenu("Edit",
             Command("Copy Passage", () => _ = CopySelectedAsync(), $"{cmd}+Shift+C"),
-            Command("Filter Library", () => Sidebar.FocusFilter(), $"{cmd}+L"),
+            Command("Filter Library", FocusLibraryFilter, $"{cmd}+L"),
             new NativeMenuItemSeparator(),
             Tool("search", $"{cmd}+F")));
 
@@ -538,6 +538,17 @@ public partial class MainWindow
 
         NativeMenu.SetMenu(this, bar);
         RefreshMenuState();
+    }
+
+    /// <summary>
+    /// ⌘L: the author filter, showing the sidebar first if it is hidden - as
+    /// Ctrl+L opens the collapsed library on Windows, since filtering a list
+    /// you cannot see is not a thing.
+    /// </summary>
+    private void FocusLibraryFilter()
+    {
+        if (!MacSettings.Current.SidebarVisible) ToggleSidebar();
+        Sidebar.FocusFilter();
     }
 
     /// <summary>Keeps the menu bar's checkmarks and enabled states in step with the window.</summary>

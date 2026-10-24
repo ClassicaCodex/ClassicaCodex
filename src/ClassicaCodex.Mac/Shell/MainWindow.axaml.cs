@@ -248,7 +248,7 @@ public partial class MainWindow : Window, IReaderHost
         switch (e.Key)
         {
             case Key.F: OpenTool("search"); e.Handled = true; break;
-            case Key.L: Sidebar.FocusFilter(); e.Handled = true; break;
+            case Key.L: FocusLibraryFilter(); e.Handled = true; break;
             case Key.OemOpenBrackets: _ = GoHistoryAsync(-1); e.Handled = true; break;
             case Key.OemCloseBrackets: _ = GoHistoryAsync(1); e.Handled = true; break;
         }

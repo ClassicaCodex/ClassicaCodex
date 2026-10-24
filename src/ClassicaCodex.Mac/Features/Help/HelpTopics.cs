@@ -53,7 +53,7 @@ Pick an author in the library on the left, then a work beneath it. The original-
 Two editions of the same thing
    The menu at the top of each page lists every edition of that work you have. Where a work has several translations, you can switch between translators freely - the other pane stays where it is. The original-language side can carry more than one edition too, when a later collection added an alternate older edition of a work Perseus already had (a couple of Sophocles' plays, among others) - each entry in the menu names which.
 
-   Which of them a work opens on is yours to set. "Open works from:" under Reading in Settings picks a collection, and any work carried by more than one opens on that collection's edition - Perseus and First1KGreek both have the Agamemnon, CSEL and Patrologia Latina share a good deal of Augustine. It is a preference, not a filter: the other editions stay in the menu in the same order, and only which one is already selected changes. Works that collection doesn't have open exactly as before, so a preference set once needs no maintenance as the library grows.
+   Which of them a work opens on is yours to set. the Default collection menu under General in Settings picks a collection, and any work carried by more than one opens on that collection's edition - Perseus and First1KGreek both have the Agamemnon, CSEL and Patrologia Latina share a good deal of Augustine. It is a preference, not a filter: the other editions stay in the menu in the same order, and only which one is already selected changes. Works that collection doesn't have open exactly as before, so a preference set once needs no maintenance as the library grows.
 
 Collate Editions
    Where a work is held by two collections, Collate Editions in the Tools menu shows what the two editions disagree about. It is the one thing here that needs more than one collection to exist at all: a single corpus gives you one printing of a text and no way to know what it settled.
@@ -159,10 +159,12 @@ Where you left off
 
    Only clicking a line updates it. Jumping to a search result or a tagged passage moves the reader without changing where you left off, so following a reference doesn't cost you your place.
 
-   If reopening a long work at launch feels slow, turn off "Open where I last left off" under Reading in Settings. Your place is still recorded either way, so switching it back on picks up where you were rather than starting over.
+   If reopening a long work at launch feels slow, turn off "Reopen the passage I was last reading" under General in Settings. Your place is still recorded either way, so switching it back on picks up where you were rather than starting over.
 
 View Preface
    Some translations carry a translator's preface or similar front matter. It has nothing on the original side to line up against, so it's kept out of the reader rather than sitting at the top of the text looking like the first line of the work. Where an edition has one, "View Preface…" appears on that page's right-click menu.
+
+And if, patient reader, you would step beyond the words and meet your fate... return to the main window and press ⌃⇧F12 - Control, Shift and F12, with fn if your keyboard asks for it. The bronze is drawn. The thunder answers. Tread carefully: the oracle has warned you.
 """),
 
         ("Translate", """
