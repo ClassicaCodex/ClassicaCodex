@@ -1,0 +1,17 @@
+{
+  "solution": {
+    "path": "ClassicaCodex.sln",
+    "projects": [
+      "src\\ClassicaCodex.Core\\ClassicaCodex.Core.csproj",
+      "src\\ClassicaCodex.Data\\ClassicaCodex.Data.csproj",
+      "src\\ClassicaCodex.Ingestion\\ClassicaCodex.Ingestion.csproj",
+      "src\\ClassicaCodex.Mac\\ClassicaCodex.Mac.csproj",
+      "tests\\ClassicaCodex.Data.Tests\\ClassicaCodex.Data.Tests.csproj",
+      "tests\\ClassicaCodex.Mac.Tests\\ClassicaCodex.Mac.Tests.csproj",
+      "tools\\BfmCatalogue\\BfmCatalogue.csproj",
+      "tools\\CatmusCatalogue\\CatmusCatalogue.csproj",
+      "tools\\CatmusManifests\\CatmusManifests.csproj",
+      "tools\\MacSampleLibrary\\MacSampleLibrary.csproj"
+    ]
+  }
+}
