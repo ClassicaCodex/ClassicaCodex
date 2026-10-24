@@ -1,15 +1,21 @@
-using ClassicaCodex.Core.Models;
 using ClassicaCodex.Mac.Shell;
 
 namespace ClassicaCodex.Mac.Features.Alphabet;
 
 /// <summary>
-/// Entry points for this feature, called from the main window's menus,
-/// toolbar and context menus. A stub until the feature is ported: each
-/// opens the coming-soon card.
+/// Entry points for the alphabet reference, called from the Tools menu and
+/// from the translation workbench.
 /// </summary>
 public static class AlphabetFeature
 {
-    public static void Open(IReaderHost host, string? language) =>
-        ComingSoon.Show(host, "Alphabet Reference", "alphabet", "Alphabet");
+    /// <summary>
+    /// Opens the reference for <paramref name="language"/> - the edition's
+    /// code, "grc" or "lat". Anything else, or nothing, opens on the note that
+    /// there is no chart for it, with the switch to Greek or Latin above.
+    /// </summary>
+    public static void Open(IReaderHost host, string? language)
+    {
+        var window = new AlphabetWindow(language);
+        window.Show(host.Window);
+    }
 }

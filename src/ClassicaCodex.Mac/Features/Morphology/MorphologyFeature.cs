@@ -1,15 +1,17 @@
-using ClassicaCodex.Core.Models;
 using ClassicaCodex.Mac.Shell;
 
 namespace ClassicaCodex.Mac.Features.Morphology;
 
 /// <summary>
-/// Entry points for this feature, called from the main window's menus,
-/// toolbar and context menus. A stub until the feature is ported: each
-/// opens the coming-soon card.
+/// Entry points for the morphology search, called from the Tools menu, the
+/// sidebar and the gallery.
 /// </summary>
 public static class MorphologyFeature
 {
-    public static void Open(IReaderHost host) =>
-        ComingSoon.Show(host, "Morphology Search", "morphology", "Morphology");
+    /// <summary>Opens the search beside the reader; a passage it finds opens there.</summary>
+    public static void Open(IReaderHost host)
+    {
+        var window = new MorphologyWindow { OnNavigate = host.NavigateToPassageAsync };
+        window.Show(host.Window);
+    }
 }
