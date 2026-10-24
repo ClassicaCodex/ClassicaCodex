@@ -121,6 +121,16 @@ Prompts and confirmations are modal (`await window.ShowDialog(host.Window)`).
 Building controls in C#, as the Windows forms do, is the norm here; XAML is
 fine where a layout is large and static. No MVVM framework.
 
+Two things that differ from WinForms and have caught ports out:
+
+- `TextBox.TextChanged` can arrive after the code that set the text has
+  returned. A "has unsaved changes" flag set from it comes back on right
+  after a load or a save. Compare the fields with what was last saved instead.
+- An exception that escapes a click handler is caught by `CrashLog`, which
+  logs it and shows the same "Something went wrong with that action" message
+  as the Windows CrashReporter. That message is a safety net, not a design:
+  catch the failures you expect and say what went wrong (`ShowErrorAsync`).
+
 ### The host
 
 `Shell/IReaderHost` is what a feature may ask of the main window: navigate,

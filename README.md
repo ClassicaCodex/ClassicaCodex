@@ -312,7 +312,9 @@ Shakespeare, Holinshed, Hakluyt, Sidney, James I, Wilson and Peacham are all imp
 
 ## Platform
 
-Windows only, for now — it's built on WinForms, which doesn't run elsewhere. No Mac or Linux build exists.
+The Windows app is built on WinForms, which doesn't run elsewhere.
+
+A Mac app lives in [`src/ClassicaCodex.Mac`](src/ClassicaCodex.Mac/README.md). It shares the same libraries, setup wizard and tools, and has its own design and artwork. Libraries open on both. There is no Mac release download yet; its README explains how to build the `.app` on a Mac. No Linux build exists.
 
 ### Building from source
 

@@ -17,6 +17,7 @@ internal static class Program
             e.SetObserved();
         };
 
+        CrashLog.Install();
         BuildAvaloniaApp().StartWithClassicDesktopLifetime(args);
     }
 
