@@ -124,3 +124,11 @@ that file attached.
 
 The Mac app builds with zero warnings, and 1,721 tests pass on macOS: the Mac
 app's 125 and the shared libraries' 1,596.
+
+The downloads are signed ad hoc but not notarised, so if you would rather check
+them than trust them:
+
+```
+SHA-256  93C5376337BA510EA6201F7F7243333FC051587A7AED149CD3850866649AF21E  ClassicaCodex-3.16.0-mac-arm64.dmg
+SHA-256  9AE6239B145E58D180C1349F1131E60776AA6F946AEC39ECAA9BB50F16D9B9A3  ClassicaCodex-3.16.0-mac-x64.dmg
+```
