@@ -199,8 +199,14 @@ public partial class MainWindow
         menu.Items.Add(reactions);
 
         menu.Items.Add(Item("Translate…", "Translate", p => TranslationFeature.TranslatePassageAsync(this, p)));
-        menu.Items.Add(Item("Word Study…", "WordStudy", p => { WordStudyFeature.Open(this, p); return Task.CompletedTask; }));
-        menu.Items.Add(Item("Editor's Notes…", "EditorNotes", p => { ApparatusFeature.Open(this, p); return Task.CompletedTask; }));
+        // Both hidden when the text in this pane has nothing for them to open,
+        // on the same rule as Fictional Ancient Reactions and View Preface -
+        // see ReaderPaneCapabilities, which is why the rule is about the data
+        // and not the collection.
+        var wordStudy = Item("Word Study…", "WordStudy", p => { WordStudyFeature.Open(this, p); return Task.CompletedTask; });
+        var editorNotes = Item("Editor's Notes…", "EditorNotes", p => { ApparatusFeature.Open(this, p); return Task.CompletedTask; });
+        menu.Items.Add(wordStudy);
+        menu.Items.Add(editorNotes);
         menu.Items.Add(Item("Export…", "Export", p => ExportFeature.ExportPassageAsync(this, p)));
 
         var readAloud = Item("Read Aloud", "ReadAloud", p =>
@@ -226,6 +232,20 @@ public partial class MainWindow
         };
         menu.Items.Add(preface);
 
+        // For a text that lives on the web as well as here. Named by its host,
+        // so the reader can see where the click will take them before making
+        // it. Cuneiform is why it exists: Oracc's published translations are
+        // on its own site and not in the open data, so for those texts this is
+        // the route to an English reading, and it copies nothing.
+        var viewOnline = new MenuItem { Header = "View Online…", Icon = Glyphs.Icon("OpenExternal", 14) };
+        viewOnline.Click += async (_, _) =>
+        {
+            if (SourceWebPageFor(pane) is not { } page) return;
+            if (!MacShell.Open(page.AbsoluteUri))
+                await Alert.Warn(this, "Could not open the page", $"Could not open {page.AbsoluteUri} in your browser.");
+        };
+        menu.Items.Add(viewOnline);
+
         var show = new MenuItem { Header = "Show", Icon = Glyphs.Icon("Show", 14) };
         menu.Items.Add(show);
 
@@ -237,6 +257,14 @@ public partial class MainWindow
         {
             reactions.IsVisible = OpenWorkHasDebate();
             preface.IsVisible = _prefaces.TryGetValue(pane, out var p) && p != null;
+
+            var capabilities = CapabilitiesOf(pane);
+            wordStudy.IsVisible = capabilities.HasLexicon;
+            editorNotes.IsVisible = capabilities.HasApparatus;
+
+            var page = SourceWebPageFor(pane);
+            viewOnline.IsVisible = page != null;
+            if (page != null) viewOnline.Header = $"View on {page.Host}…";
             margin.IsChecked = CitationMarginSettings.Enabled;
             readAloud.IsVisible = SpeechService.IsAvailable;
             stopReading.IsVisible = SpeechService.IsAvailable && SpeechService.IsSpeaking;

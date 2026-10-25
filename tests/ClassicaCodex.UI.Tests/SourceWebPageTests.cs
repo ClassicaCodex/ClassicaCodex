@@ -27,7 +27,7 @@ public class SourceWebPageTests
     [Fact]
     public void AnOraccSourceIsAPage()
     {
-        var page = MainForm.WebPageFromSourcePath("http://oracc.org/rinap/rinap1/Q003414");
+        var page = ReaderPaneRules.WebPageFromSourcePath("http://oracc.org/rinap/rinap1/Q003414");
 
         Assert.NotNull(page);
         Assert.Equal("oracc.org", page!.Host);
@@ -36,7 +36,7 @@ public class SourceWebPageTests
     [Fact]
     public void HttpsIsAPageToo()
     {
-        Assert.NotNull(MainForm.WebPageFromSourcePath("https://oracc.museum.upenn.edu/rinap/rinap1/Q003414"));
+        Assert.NotNull(ReaderPaneRules.WebPageFromSourcePath("https://oracc.museum.upenn.edu/rinap/rinap1/Q003414"));
     }
 
     /// <summary>
@@ -51,7 +51,7 @@ public class SourceWebPageTests
     [InlineData("data/first1k/x.xml")]
     public void AFileOnDiskIsNotAPage(string sourcePath)
     {
-        Assert.Null(MainForm.WebPageFromSourcePath(sourcePath));
+        Assert.Null(ReaderPaneRules.WebPageFromSourcePath(sourcePath));
     }
 
     /// <summary>
@@ -67,7 +67,7 @@ public class SourceWebPageTests
     [InlineData("mailto:someone@example.org")]
     public void NothingElseIsAPage(string sourcePath)
     {
-        Assert.Null(MainForm.WebPageFromSourcePath(sourcePath));
+        Assert.Null(ReaderPaneRules.WebPageFromSourcePath(sourcePath));
     }
 
     /// <summary>
@@ -80,6 +80,6 @@ public class SourceWebPageTests
     [InlineData("   ")]
     public void NothingRecordedIsNotAPage(string? sourcePath)
     {
-        Assert.Null(MainForm.WebPageFromSourcePath(sourcePath));
+        Assert.Null(ReaderPaneRules.WebPageFromSourcePath(sourcePath));
     }
 }

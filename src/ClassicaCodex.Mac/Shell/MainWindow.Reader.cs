@@ -24,6 +24,11 @@ public partial class MainWindow
     private readonly TextNodeRepository _textNodeRepo = new();
     private readonly PassageMarkRepository _passageMarkRepo = new();
 
+    // Only ever asked whether a pane's edition has anything to offer, when
+    // that edition loads - see ReaderPaneCapabilities.
+    private readonly LemmaRepository _lemmaRepo = new();
+    private readonly ApparatusRepository _apparatusRepo = new();
+
     private Work? _openWork;
 
     /// <summary>Whether the reader has opened something since launch; the restore gives way to it.</summary>
@@ -54,6 +59,9 @@ public partial class MainWindow
 
     /// <summary>Which fill of each pane is current; a later fill wins over one still awaiting.</summary>
     private readonly Dictionary<ReaderPane, int> _paneFillGeneration = new();
+
+    /// <summary>What each pane's edition can support, so its menu offers only tools that will find something.</summary>
+    private readonly Dictionary<ReaderPane, ReaderPaneCapabilities> _paneCapabilities = new();
 
     // Back and Forward. Session-only and keyed on ids, as on Windows: it does
     // not outlive the window, so the durable URN key would buy nothing.
@@ -351,9 +359,10 @@ public partial class MainWindow
         var editions = await _editionRepo.GetByWorkAsync(workId);
 
         // Everything that is not the original goes in the second pane, an
-        // unclassified edition included - it is still a text of this work.
-        var originals = editions.Where(e => e.Kind == EditionKind.Original).ToList();
-        var translations = editions.Where(e => e.Kind != EditionKind.Original).ToList();
+        // unclassified edition included - it is still a text of this work -
+        // and where there is nothing else, the other originals do: Oracc's
+        // signs beside their transliteration. The reasons are in the method.
+        var (originals, translations) = ReaderPaneRules.SplitEditionsBetweenPanes(editions);
 
         var work = Sidebar.FindWork(workId);
         var authorName = work == null ? null : Sidebar.AuthorNameFor(work);
@@ -528,6 +537,10 @@ public partial class MainWindow
         _paneKinds[pane] = new List<string>();
         _prefaces[pane] = null;
 
+        // Reset for the same reason as the preface: an edition that offers
+        // less than the last one must not inherit its menu.
+        _paneCapabilities[pane] = ReaderPaneCapabilities.Empty;
+
         _paneFillGeneration.TryGetValue(pane, out var previous);
         var generation = previous + 1;
         _paneFillGeneration[pane] = generation;
@@ -540,6 +553,18 @@ public partial class MainWindow
 
         try
         {
+            // Settled here rather than when the menu opens, as on Windows:
+            // both are database questions, and the answer cannot change while
+            // an edition sits in a pane.
+            var capabilities = ReaderPaneCapabilities.For(
+                edition.Language,
+                string.IsNullOrWhiteSpace(edition.Language)
+                    ? 0
+                    : await _lemmaRepo.CountByLanguageAsync(edition.Language),
+                await _apparatusRepo.CountForEditionAsync(edition.EditionId));
+            if (_paneFillGeneration[pane] != generation) return;
+            _paneCapabilities[pane] = capabilities;
+
             var marks = await _passageMarkRepo.GetForEditionAsync(edition.EditionId, edition.CtsUrn);
             if (_paneFillGeneration[pane] != generation) return;
 
@@ -582,6 +607,23 @@ public partial class MainWindow
             pane.ShowMessage($"Couldn't load this edition: {ex.Message}", edition);
         }
     }
+
+    /// <summary>
+    /// What the pane's edition supports. A pane never filled reports nothing
+    /// rather than everything, so a menu opened before it offers no tool that
+    /// would open on nothing.
+    /// </summary>
+    internal ReaderPaneCapabilities CapabilitiesOf(ReaderPane pane) =>
+        _paneCapabilities.TryGetValue(pane, out var capabilities) ? capabilities : ReaderPaneCapabilities.Empty;
+
+    /// <summary>
+    /// The web page the pane's text came from, when it came from one -
+    /// Oracc's editions record theirs - and only an http or https address:
+    /// see ReaderPaneRules.WebPageFromSourcePath.
+    /// </summary>
+    internal Uri? SourceWebPageFor(ReaderPane pane) =>
+        ReaderPaneRules.WebPageFromSourcePath(
+            _paneSource.TryGetValue(pane, out var source) ? source.Edition?.SourcePath : null);
 
     private static bool IsPrefaceNode(TextNode node) =>
         PassageAligner.ExtractPassageRef(node.CitationRef).StartsWith("preface", StringComparison.OrdinalIgnoreCase);
