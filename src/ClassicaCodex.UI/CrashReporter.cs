@@ -1,4 +1,5 @@
 using System.Text;
+using ClassicaCodex.Data;
 
 namespace ClassicaCodex.UI;
 
@@ -32,9 +33,7 @@ internal static class CrashReporter
     /// Next to the database and the settings files, so everything the app
     /// writes for one user is in one place.
     /// </summary>
-    public static string LogPath => Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-        "ClassicaCodex", "errors.log");
+    public static string LogPath => Path.Combine(PreferencesFolder.Root, "errors.log");
 
     public static void Install()
     {

@@ -1,4 +1,5 @@
 using ClassicaCodex.Core.Models;
+using ClassicaCodex.Data;
 
 namespace ClassicaCodex.UI;
 
@@ -61,9 +62,7 @@ internal static class ReaderLayoutCache
     /// Where entries are kept. Settable so that tests write somewhere of their
     /// own rather than into the reader's real settings folder.
     /// </summary>
-    internal static string Directory { get; set; } = Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-        "ClassicaCodex", "layout-cache");
+    internal static string Directory { get; set; } = Path.Combine(PreferencesFolder.Root, "layout-cache");
 
     /// <summary>
     /// How many entries to keep. One per edition per pane width per font size,

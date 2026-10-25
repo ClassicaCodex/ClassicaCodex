@@ -1,4 +1,5 @@
 using ClassicaCodex.Core.Models;
+using ClassicaCodex.Data;
 
 namespace ClassicaCodex.UI;
 
@@ -30,9 +31,7 @@ namespace ClassicaCodex.UI;
 /// </summary>
 public static class NodeKindVisibility
 {
-    private static string HiddenFile => Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-        "ClassicaCodex", "hidden-node-kinds.txt");
+    private static string HiddenFile => Path.Combine(PreferencesFolder.Root, "hidden-node-kinds.txt");
 
     /// <summary>
     /// What to call each kind in front of a reader.

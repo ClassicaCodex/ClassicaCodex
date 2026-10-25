@@ -1,5 +1,6 @@
 using System.Security.Cryptography;
 using System.Text;
+using ClassicaCodex.Data;
 
 namespace ClassicaCodex.UI;
 
@@ -47,9 +48,7 @@ public static class TranslationSettings
     /// </summary>
     private const string EncryptedPrefix = "dpapi:";
 
-    private static string SettingsFile => Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-        "ClassicaCodex", "translate-settings.txt");
+    private static string SettingsFile => Path.Combine(PreferencesFolder.Root, "translate-settings.txt");
 
     // Every property below used to re-read and re-parse the file on each
     // access, so a single "should I confirm before sending?" check cost three

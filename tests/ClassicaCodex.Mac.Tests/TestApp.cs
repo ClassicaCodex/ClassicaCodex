@@ -1,6 +1,8 @@
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using Avalonia;
 using Avalonia.Headless;
+using ClassicaCodex.Data;
 using ClassicaCodex.Mac.Tests;
 
 [assembly: AvaloniaTestApplication(typeof(TestApp))]
@@ -22,13 +24,25 @@ namespace ClassicaCodex.Mac.Tests;
 /// </summary>
 public static class TestApp
 {
-    static TestApp()
+    /// <summary>
+    /// A module initializer rather than a static constructor, so that it runs
+    /// before any test does. A static constructor waits for the first
+    /// [AvaloniaFact] to start the headless platform, and a plain [Fact] that
+    /// ran first and touched a setting would have found the real folder.
+    /// </summary>
+    [ModuleInitializer]
+    internal static void KeepToScratchFolders()
     {
         // Preferences and settings go to a scratch folder, never the real
         // one: a test that saved a reading position or a window size would
-        // otherwise leave it behind for the reader to find.
+        // otherwise leave it behind for the reader to find. PreferencesFolder
+        // is the folder every settings class asks for, and the one redirect
+        // that works on Windows, where nothing outside the process can move
+        // LocalApplicationData. The environment variables move what the
+        // operating system itself is asked for - on a Mac, Documents too.
         var scratch = Path.Combine(Path.GetTempPath(), "classicacodex-mac-tests", Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(scratch);
+        PreferencesFolder.UseInstead(Path.Combine(scratch, "ClassicaCodex"));
         Environment.SetEnvironmentVariable("XDG_DATA_HOME", scratch);
         if (OperatingSystem.IsMacOS()) UseScratchHomeOnMac(scratch);
         Environment.SetEnvironmentVariable("CC_MAC_LOOK", "1");
@@ -40,7 +54,7 @@ public static class TestApp
     /// macOS answers from CFFIXED_USER_HOME when that is set - set in the
     /// process's real environment, which Environment.SetEnvironmentVariable
     /// never reaches on a Mac, hence setenv. If it does not take, the tests
-    /// stop here rather than write into the reader's own settings.
+    /// stop here rather than reach into the reader's own Documents.
     /// </summary>
     private static void UseScratchHomeOnMac(string scratch)
     {
@@ -52,7 +66,7 @@ public static class TestApp
         setenv("CFFIXED_USER_HOME", home, 1);
 
         if (Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData) == real)
-            throw new InvalidOperationException($"The tests would write their settings into {real}: macOS did not take up CFFIXED_USER_HOME.");
+            throw new InvalidOperationException($"The tests would use the reader's own folders: macOS did not take up CFFIXED_USER_HOME, and {real} did not move.");
     }
 
     [DllImport("libc")]
