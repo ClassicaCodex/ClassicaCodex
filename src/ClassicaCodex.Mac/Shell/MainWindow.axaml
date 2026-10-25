@@ -1,0 +1,100 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:shell="using:ClassicaCodex.Mac.Shell"
+        x:Class="ClassicaCodex.Mac.Shell.MainWindow"
+        Title="Classica Codex"
+        Width="1360" Height="860"
+        MinWidth="820" MinHeight="520"
+        WindowStartupLocation="CenterScreen">
+
+  <!--
+    One window, three columns: the sidebar, a splitter, and the reading area
+    with its toolbar. On a Mac the content runs up under the title bar, the
+    way Finder and Notes do it, so the traffic lights sit at the top of the
+    sidebar and the toolbar shares the title bar's row. MainWindow.axaml.cs
+    turns that on for macOS only; elsewhere the window keeps ordinary
+    decorations and shows its menu as a menu bar.
+  -->
+  <DockPanel>
+    <NativeMenuBar DockPanel.Dock="Top" x:Name="FallbackMenuBar" />
+
+    <Grid x:Name="Columns" ColumnDefinitions="270,Auto,*">
+
+      <!-- Sidebar -->
+      <Border x:Name="SidebarHost" Grid.Column="0"
+              Background="{DynamicResource Cc.SidebarTranslucent}"
+              BorderBrush="{DynamicResource Cc.Rule}" BorderThickness="0,0,1,0">
+        <DockPanel>
+          <Panel x:Name="SidebarTitleRow" DockPanel.Dock="Top" Height="{StaticResource Cc.TitleBarHeight}">
+            <Border x:Name="SidebarDragArea" Background="Transparent" />
+          </Panel>
+          <shell:LibrarySidebar x:Name="Sidebar" />
+        </DockPanel>
+      </Border>
+
+      <GridSplitter x:Name="SidebarSplitter" Grid.Column="1" Width="5" Margin="-3,0,-2,0"
+                    ResizeDirection="Columns" Background="Transparent" />
+
+      <!-- Reading area -->
+      <DockPanel Grid.Column="2" Background="{DynamicResource Cc.Window}">
+
+        <Panel x:Name="Toolbar" DockPanel.Dock="Top" Height="{StaticResource Cc.TitleBarHeight}">
+          <Border x:Name="ToolbarDragArea" Background="{DynamicResource Cc.Toolbar}"
+                  BorderBrush="{DynamicResource Cc.Rule}" BorderThickness="0,0,0,1" />
+
+          <DockPanel x:Name="ToolbarContent" Margin="10,0,12,0" LastChildFill="True">
+            <StackPanel x:Name="ToolbarLeft" DockPanel.Dock="Left" Orientation="Horizontal" Spacing="2" VerticalAlignment="Center">
+              <Button x:Name="SidebarToggle" Classes="toolbar" ToolTip.Tip="Show or hide the sidebar (⌥⌘S)">
+                <PathIcon Data="{StaticResource Glyph.Sidebar}" />
+              </Button>
+              <Border Width="8" />
+              <Button x:Name="BackButton" Classes="toolbar" IsEnabled="False" ToolTip.Tip="Back (⌘[)">
+                <PathIcon Data="{StaticResource Glyph.Back}" />
+              </Button>
+              <Button x:Name="ForwardButton" Classes="toolbar" IsEnabled="False" ToolTip.Tip="Forward (⌘])">
+                <PathIcon Data="{StaticResource Glyph.Forward}" />
+              </Button>
+            </StackPanel>
+
+            <StackPanel x:Name="ToolbarRight" DockPanel.Dock="Right" Orientation="Horizontal" Spacing="2" VerticalAlignment="Center">
+              <Button x:Name="BookmarksButton" Classes="toolbar" ToolTip.Tip="Bookmarks">
+                <PathIcon Data="{StaticResource Glyph.Bookmarks}" />
+              </Button>
+              <Button x:Name="TagsButton" Classes="toolbar" ToolTip.Tip="Tags">
+                <PathIcon Data="{StaticResource Glyph.Tags}" />
+              </Button>
+              <Border Classes="vrule" Height="18" Margin="6,0" />
+              <ToggleButton x:Name="LinkPanesButton" Classes="toolbar">
+                <PathIcon x:Name="LinkPanesIcon" Data="{StaticResource Glyph.Linked}" />
+              </ToggleButton>
+              <Button x:Name="TextSizeButton" Classes="toolbar" ToolTip.Tip="Text size">
+                <PathIcon Data="{StaticResource Glyph.TextSize}" />
+              </Button>
+              <Button x:Name="AppearanceButton" Classes="toolbar" ToolTip.Tip="Appearance">
+                <PathIcon x:Name="AppearanceIcon" Data="{StaticResource Glyph.Appearance}" />
+              </Button>
+              <Border Classes="vrule" Height="18" Margin="6,0" />
+              <Button x:Name="SearchButton" Classes="toolbar" Padding="9,4" ToolTip.Tip="Search the library (⌘F)">
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                  <PathIcon Data="{StaticResource Glyph.Search}" Width="14" Height="14" />
+                  <TextBlock Text="Search" VerticalAlignment="Center" />
+                </StackPanel>
+              </Button>
+              <Button x:Name="GalleryButton" Classes="toolbar" ToolTip.Tip="All tools (⇧⌘T)">
+                <PathIcon Data="{StaticResource Glyph.Gallery}" />
+              </Button>
+            </StackPanel>
+
+            <!-- What is open, set like a running head. -->
+            <StackPanel x:Name="TitleBlock" VerticalAlignment="Center" Margin="14,0" IsHitTestVisible="False">
+              <TextBlock x:Name="WorkTitle" Classes="h3" FontSize="13.5" TextTrimming="CharacterEllipsis" />
+              <TextBlock x:Name="WorkSubtitle" Classes="caption" TextTrimming="CharacterEllipsis" />
+            </StackPanel>
+          </DockPanel>
+        </Panel>
+
+        <Panel x:Name="ContentHost" />
+      </DockPanel>
+    </Grid>
+  </DockPanel>
+</Window>

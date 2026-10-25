@@ -18,7 +18,7 @@ Built as a personal project, for reading and researching the classics more close
 
 Why make it a Windows Forms application? 
 This was just my personal preference for development. 
-If there is interest from Mac users then let me know and I can attempt to make a version for the Mac as well.
+There is now a Mac version as well, in preview — see [Download](#download).
 
 ## Download
 
@@ -27,6 +27,12 @@ The latest Windows release is on the
 Extract it, run `ClassicaCodex.UI.exe`, and the setup wizard does the rest — see
 [Getting started](#getting-started) for what to expect, including the Windows
 security warning you'll hit on first run.
+
+The Mac version's first release is a preview:
+[Classica Codex for Mac 3.15.1](https://github.com/ClassicaCodex/ClassicaCodex/releases/tag/mac-v3.15.1).
+There is a disk image for Apple silicon and one for Intel. Open the one for
+your Mac and drag the app into Applications — see [On a Mac](#on-a-mac) for
+the security prompt you'll hit the first time you open it.
 
 ## Read the original beside the translation
 
@@ -223,6 +229,14 @@ Windows will almost certainly stop you the first time with a blue "Windows prote
 
 Extract the whole archive before running it, not just the `.exe`. The executable carries its own libraries, so run from inside the ZIP — or copied out on its own — it does start, but the icons live in the `Icons` folder beside it, so every toolbar button comes up blank. It says so on startup if that folder isn't there.
 
+### On a Mac
+
+Download the disk image for your Mac from the [Mac release](https://github.com/ClassicaCodex/ClassicaCodex/releases/tag/mac-v3.15.1) — `arm64` for Apple silicon, `x64` for Intel — open it, and drag **Classica Codex** into Applications. It needs macOS 12 or later and carries its own copy of .NET, so there is nothing else to install.
+
+macOS will refuse to open it the first time, because the app isn't notarised by Apple; notarising needs a paid Apple developer account. Click **Done**, then open **System Settings → Privacy & Security**, scroll down to the message about Classica Codex, and click **Open Anyway**. macOS remembers, and won't ask again.
+
+The first window asks for a library. A library built on Windows is one `.db` file, and the Mac opens it as it is: copy it across and choose **Open Library…**. Otherwise choose **Create a New Library…**, and the same setup as on Windows, described below, fills it. The library and settings are kept in `~/Library/Application Support/ClassicaCodex`.
+
 On first launch you go straight into **Guided Setup** — one step at a time,
 plain language, no file paths or repository URLs on screen. **Advanced Setup**,
 which puts every data source on one screen for pointing at files you already
@@ -318,7 +332,9 @@ Shakespeare, Holinshed, Hakluyt, Sidney, James I, Wilson and Peacham are all imp
 
 ## Platform
 
-Windows only, for now — it's built on WinForms, which doesn't run elsewhere. No Mac or Linux build exists.
+The Windows app is built on WinForms, which doesn't run elsewhere.
+
+A Mac app lives in [`src/ClassicaCodex.Mac`](src/ClassicaCodex.Mac/README.md). It shares the same libraries, setup wizard and tools, and has its own design and artwork. Libraries open on both. Its first release is a preview — see [On a Mac](#on-a-mac) — and its README explains how to build the `.app` yourself. No Linux build exists.
 
 ### Building from source
 

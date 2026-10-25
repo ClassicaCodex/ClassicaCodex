@@ -1,0 +1,15 @@
+<Project>
+  <ItemGroup>
+    <!-- The arcade's painted icons: the Windows game's Icons/Bronze*.ico,
+         decoded to PNG - the 64-pixel frame of each, which is enough for a
+         20-point button image or a 32-point tab on a Retina display, and the
+         256-pixel frame of the game's own emblem for its window. Decoded
+         once and kept here rather than read from the Windows project, so the
+         Mac build never reaches into a folder another machine is changing;
+         if the Windows icons are repainted, decode them again.
+
+         Linked under the feature's path so they load as
+         avares://ClassicaCodex.Mac/Features/Arcade/Assets/<name>.png. -->
+    <AvaloniaResource Include="$(MSBuildThisFileDirectory)Assets\*.png" Link="Features\Arcade\Assets\%(Filename)%(Extension)" />
+  </ItemGroup>
+</Project>
