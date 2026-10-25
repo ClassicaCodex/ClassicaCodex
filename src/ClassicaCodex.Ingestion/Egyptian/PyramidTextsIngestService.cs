@@ -128,8 +128,10 @@ public class PyramidTextsIngestService
 
         if (lemmas.Count > 0)
         {
-            await _lemmaRepo.ClearByLanguageAsync(Language, cancellationToken);
-            await _lemmaRepo.BulkInsertAsync(lemmas, cancellationToken);
+            // Added to rather than replaced: Egyptian has a second source, the
+            // TLA corpus, keyed to the same dictionary, and clearing the
+            // language here would erase its mappings every time this step ran.
+            await _lemmaRepo.InsertMissingAsync(Language, lemmas, cancellationToken);
             MappingsLoaded = lemmas.Count;
         }
 

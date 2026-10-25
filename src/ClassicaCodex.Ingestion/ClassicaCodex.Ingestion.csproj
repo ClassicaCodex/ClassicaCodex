@@ -34,6 +34,16 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- Same arrangement Core already has with this test project. The Oracc
+         reader's per-text entry point takes content rather than a path so it
+         can be tested without a 3 MB download on disk, and that entry point
+         is not something callers outside this assembly should reach for -
+         they want Read, which handles the empty files a real download
+         contains. -->
+    <InternalsVisibleTo Include="ClassicaCodex.Data.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="DocumentFormat.OpenXml" Version="3.0.2" />
     <PackageReference Include="LibGit2Sharp" Version="0.32.0" />
     <!-- CATMuS publishes its manuscripts as Parquet and nothing else; its own

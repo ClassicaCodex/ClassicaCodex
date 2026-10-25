@@ -26,9 +26,21 @@ public static class WordNormalizer
         var decomposed = word.Normalize(NormalizationForm.FormD);
         var sb = new StringBuilder(decomposed.Length);
 
-        foreach (var ch in decomposed)
+        // Runes, not chars. A char is a UTF-16 code unit, and every Egyptian
+        // hieroglyph and cuneiform sign is a surrogate pair - two code units,
+        // neither of which is a letter on its own. Walking this by char drops
+        // both halves and returns the empty string, so a word index built over
+        // such a text is built successfully and contains nothing. See
+        // LetterRuns for the measurement and the fuller note.
+        //
+        // For Greek and Latin this is the same walk it always was: every
+        // letter and every combining mark in those scripts is a single code
+        // unit, so each one is its own rune. EnumerateRunes is a struct
+        // enumerator and allocates nothing, which matters because this runs
+        // once per word across a multi-million-line index build.
+        foreach (var rune in decomposed.EnumerateRunes())
         {
-            if (CharUnicodeInfo.GetUnicodeCategory(ch) == UnicodeCategory.NonSpacingMark) continue;
+            if (Rune.GetUnicodeCategory(rune) == UnicodeCategory.NonSpacingMark) continue;
 
             // Three Arabic characters that Unicode classes as letters and are
             // not: the tatweel, a stroke that only stretches a word, and the
@@ -36,9 +48,20 @@ public static class WordNormalizer
             // long vowel its spelling leaves out. Kept, they make a different
             // word of every word they touch - the Uthmani text's al-Rahman,
             // stretched under its small alef, would not be al-Rahman.
-            if (ch is Tatweel or SmallWaw or SmallYeh) continue;
+            if (rune.Value is Tatweel or SmallWaw or SmallYeh) continue;
 
-            if (!char.IsLetter(ch)) continue;
+            if (!Rune.IsLetter(rune)) continue;
+
+            // A sign outside the Basic Multilingual Plane - a cuneiform sign, a
+            // hieroglyph - has none of the case or letter-shape foldings below,
+            // which are all for single code units; it goes into the word whole.
+            if (!rune.IsBmp)
+            {
+                sb.Append(Rune.ToLowerInvariant(rune).ToString());
+                continue;
+            }
+
+            var ch = (char)rune.Value;
 
             var lower = char.ToLowerInvariant(ch);
 

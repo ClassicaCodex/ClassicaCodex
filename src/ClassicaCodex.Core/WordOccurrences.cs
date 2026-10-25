@@ -113,12 +113,12 @@ public static class WordOccurrences
                 // nothing and no target is empty - but one PIECE of a broken
                 // word can be (a stray soft hyphen standing alone), and that
                 // piece simply contributes no span.
-                var from = pieceStart;
-                var to = pieceEnd - 1;
-                while (from <= to && !char.IsLetter(text[from])) from++;
-                while (to >= from && !char.IsLetter(text[to])) to--;
-
-                if (from <= to) spans.Add((from, to - from + 1));
+                // By whole runes. Walking this by char loses an astral word
+                // entirely - both halves of every surrogate pair fail
+                // char.IsLetter, so the two ends meet in the middle, and a
+                // hieroglyphic or cuneiform match is found but never drawn.
+                if (LetterRuns.TrimToLetters(text, pieceStart, pieceEnd - 1, out var from, out var to))
+                    spans.Add((from, to - from + 1));
             }
         }
 

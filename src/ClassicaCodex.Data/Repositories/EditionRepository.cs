@@ -346,6 +346,13 @@ public class EditionRepository
 
         await ExecuteAsync("DELETE FROM TextNodes WHERE EditionId = @EditionId;", "@EditionId", editionId);
         await ExecuteAsync("DELETE FROM ApparatusEntries WHERE EditionId = @EditionId;", "@EditionId", editionId);
+
+        // The stored TEI header and its responsibility lines point at the
+        // edition and do not cascade, so leaving them made the delete fail on a
+        // foreign key for every edition that has a header - a Perseus or Menota
+        // text, an Oracc one - which is most of them.
+        await ExecuteAsync("DELETE FROM EditionResponsibilities WHERE EditionId = @EditionId;", "@EditionId", editionId);
+        await ExecuteAsync("DELETE FROM EditionHeaders WHERE EditionId = @EditionId;", "@EditionId", editionId);
         await ExecuteAsync("DELETE FROM Editions WHERE EditionId = @EditionId;", "@EditionId", editionId);
 
         if (await ScalarAsync(
@@ -386,18 +393,44 @@ public class EditionRepository
 
         var stamped = await cmd.ExecuteNonQueryAsync(cancellationToken);
 
-        // Reached only when the ingest before it returned without throwing or
-        // being cancelled, which is what makes this a record of FINISHING
-        // rather than of having written something.
+        await MarkCollectionCompleteAsync(collection, cancellationToken);
+
+        return stamped;
+    }
+
+    /// <summary>
+    /// Records that a collection finished importing, which is what turns a
+    /// setup step's tick green.
+    ///
+    /// Split out of StampCollectionAsync because the two halves answer
+    /// different questions and not every step needs both. Stamping matches
+    /// editions by the folder their files came from - which works for a step
+    /// that clones a repository and imports whatever is inside it, and does
+    /// nothing for one whose editions record where they came from rather than
+    /// where they were downloaded to. Oracc's SourcePath is the text's own
+    /// address on oracc.org, so the LIKE matches nothing; its editions carry
+    /// their collection from the moment they are written.
+    ///
+    /// Calling this on its own is therefore not a shortcut past the stamping.
+    /// It is the other half, for a step that has already done the first.
+    ///
+    /// Either way it is reached only when the ingest before it returned
+    /// without throwing or being cancelled, which is what makes it a record
+    /// of FINISHING rather than of having written something.
+    /// </summary>
+    public async Task MarkCollectionCompleteAsync(
+        string collection, CancellationToken cancellationToken = default)
+    {
+        await using var conn = await DbConnectionFactory.OpenConnectionAsync(cancellationToken);
         await using var completion = conn.CreateCommand();
+
         completion.CommandText =
             @"INSERT INTO CollectionCompletions (Collection, CompletedUtc)
               VALUES (@Collection, strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))
               ON CONFLICT (Collection) DO UPDATE SET CompletedUtc = excluded.CompletedUtc;";
         completion.Parameters.AddWithValue("@Collection", collection);
-        await completion.ExecuteNonQueryAsync(cancellationToken);
 
-        return stamped;
+        await completion.ExecuteNonQueryAsync(cancellationToken);
     }
 
     /// <summary>
