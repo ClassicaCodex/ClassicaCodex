@@ -53,6 +53,7 @@
     <Compile Include="..\ClassicaCodex.UI\NodeKindVisibility.cs" Link="Shared\NodeKindVisibility.cs" />
     <Compile Include="..\ClassicaCodex.UI\PaneSyncSettings.cs" Link="Shared\PaneSyncSettings.cs" />
     <Compile Include="..\ClassicaCodex.UI\PreferredCollectionSettings.cs" Link="Shared\PreferredCollectionSettings.cs" />
+    <Compile Include="..\ClassicaCodex.UI\ReaderPaneRules.cs" Link="Shared\ReaderPaneRules.cs" />
     <Compile Include="..\ClassicaCodex.UI\ReadingFontSettings.cs" Link="Shared\ReadingFontSettings.cs" />
     <Compile Include="..\ClassicaCodex.UI\ReadingPosition.cs" Link="Shared\ReadingPosition.cs" />
     <Compile Include="..\ClassicaCodex.UI\SearchEras.cs" Link="Shared\SearchEras.cs" />

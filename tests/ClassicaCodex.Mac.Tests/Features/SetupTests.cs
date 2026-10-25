@@ -559,13 +559,17 @@ public class SetupTests
 
     /// <summary>
     /// A folder of the test's own - a made-up home for the iCloud checks, room
-    /// for a library and its downloads - removed afterwards, with the download
-    /// folder preference, the home override and the library connection put
-    /// back.
+    /// for a library and its downloads - removed afterwards, with the home
+    /// override and the library connection put back.
+    ///
+    /// The download folder is this one's too, and kept to this process, so
+    /// nothing a test chooses reaches the reader's data-path.txt and nothing
+    /// the reader has downloaded counts as installed. On a Mac or Linux the
+    /// test app's scratch home already kept it out; on Windows it did not,
+    /// and the Natural Earth step read Complete from the reader's own folder.
     /// </summary>
     private sealed class Scratch : IDisposable
     {
-        private readonly string _previousRoot = DataFolderSettings.Root;
         private readonly string? _previousLibrary = DbConnectionFactory.DatabasePath;
 
         public Scratch()
@@ -574,6 +578,7 @@ public class SetupTests
             Home = Path.Combine(Root, "home");
             Directory.CreateDirectory(Home);
             MacDataFolder.HomeOverride = Home;
+            DataFolderSettings.KeepToThisSession(Path.Combine(Root, "data"));
         }
 
         public string Root { get; }
@@ -607,7 +612,7 @@ public class SetupTests
         public void Dispose()
         {
             MacDataFolder.HomeOverride = null;
-            DataFolderSettings.Root = _previousRoot;
+            DataFolderSettings.StopKeepingToThisSession();
 
             // Left on the library in this folder, every later test's
             // MainWindow would try to open it from a deleted folder and put

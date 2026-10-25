@@ -24,7 +24,7 @@ public class EditionPaneSplitTests
     [Fact]
     public void OriginalGoesLeftAndTranslationRight()
     {
-        var (left, right) = MainForm.SplitEditionsBetweenPanes(new[]
+        var (left, right) = ReaderPaneRules.SplitEditionsBetweenPanes(new[]
         {
             Of(EditionKind.Original, 1, "grc"),
             Of(EditionKind.Translation, 2, "eng"),
@@ -42,7 +42,7 @@ public class EditionPaneSplitTests
     [Fact]
     public void UnknownKindIsStillReachable()
     {
-        var (left, right) = MainForm.SplitEditionsBetweenPanes(new[]
+        var (left, right) = ReaderPaneRules.SplitEditionsBetweenPanes(new[]
         {
             Of(EditionKind.Original, 1),
             Of(EditionKind.Unknown, 2),
@@ -65,7 +65,7 @@ public class EditionPaneSplitTests
     [Fact]
     public void TwoOriginalsAndNoTranslationFillBothPanes()
     {
-        var (left, right) = MainForm.SplitEditionsBetweenPanes(new[]
+        var (left, right) = ReaderPaneRules.SplitEditionsBetweenPanes(new[]
         {
             Of(EditionKind.Original, 1, "akk"),   // transliteration
             Of(EditionKind.Original, 2, "akk"),   // cuneiform signs
@@ -83,7 +83,7 @@ public class EditionPaneSplitTests
     [Fact]
     public void ATranslationOutranksASecondOriginal()
     {
-        var (left, right) = MainForm.SplitEditionsBetweenPanes(new[]
+        var (left, right) = ReaderPaneRules.SplitEditionsBetweenPanes(new[]
         {
             Of(EditionKind.Original, 1, "akk"),
             Of(EditionKind.Original, 2, "akk"),
@@ -107,7 +107,7 @@ public class EditionPaneSplitTests
     [Fact]
     public void ACuneiformWorkOpensOnSignsWithMeaningsBeside()
     {
-        var (left, right) = MainForm.SplitEditionsBetweenPanes(new[]
+        var (left, right) = ReaderPaneRules.SplitEditionsBetweenPanes(new[]
         {
             Of(EditionKind.Original, 1, "akk"),      // cuneiform, written first
             Of(EditionKind.Original, 2, "akk"),      // transliteration
@@ -128,7 +128,7 @@ public class EditionPaneSplitTests
     [Fact]
     public void ASingleOriginalStaysOnTheLeft()
     {
-        var (left, right) = MainForm.SplitEditionsBetweenPanes(new[] { Of(EditionKind.Original, 1) });
+        var (left, right) = ReaderPaneRules.SplitEditionsBetweenPanes(new[] { Of(EditionKind.Original, 1) });
 
         Assert.Single(left);
         Assert.Empty(right);
@@ -141,7 +141,7 @@ public class EditionPaneSplitTests
     [Fact]
     public void NoEditionsIsNotAnError()
     {
-        var (left, right) = MainForm.SplitEditionsBetweenPanes(Array.Empty<Edition>());
+        var (left, right) = ReaderPaneRules.SplitEditionsBetweenPanes(Array.Empty<Edition>());
 
         Assert.Empty(left);
         Assert.Empty(right);
@@ -168,7 +168,7 @@ public class EditionPaneSplitTests
             .Concat(Enumerable.Range(0, unknowns).Select(_ => Of(EditionKind.Unknown, ++id)))
             .ToList();
 
-        var (left, right) = MainForm.SplitEditionsBetweenPanes(editions);
+        var (left, right) = ReaderPaneRules.SplitEditionsBetweenPanes(editions);
 
         var placed = left.Concat(right).Select(e => e.EditionId).ToList();
 

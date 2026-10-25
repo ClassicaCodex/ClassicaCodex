@@ -57,7 +57,8 @@ return early; without `CC_SCREENSHOT_DIR` nothing is written.
 Some files in `src/ClassicaCodex.UI` are plain logic - no WinForms, no
 `System.Drawing` - and the Mac compiles them where they are rather than
 copying them: the reading position, linked panes, text size, node-kind
-visibility, edition labels, the setup catalogue. They keep their
+visibility, edition labels, which edition opens in which pane and what its
+menu offers, the setup catalogue. They keep their
 `ClassicaCodex.UI` namespace. The list is in `ClassicaCodex.Mac.csproj`.
 
 A feature that needs another such file links it from a `.props` file in its

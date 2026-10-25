@@ -54,7 +54,7 @@ public sealed class ReaderPane : UserControl
 
         _roleLabel = new TextBlock
         {
-            Text = role == PaneRole.Original ? "ORIGINAL" : "TRANSLATION",
+            Text = RoleLabelFor(role, null),
             Classes = { "section" },
             VerticalAlignment = VerticalAlignment.Center,
             Margin = new Thickness(14, 0, 4, 0)
@@ -154,6 +154,23 @@ public sealed class ReaderPane : UserControl
     /// <summary>The edition currently filling the pane, or null when it shows a message.</summary>
     public Edition? Edition { get; private set; }
 
+    /// <summary>The word over the pane, as the reader sees it.</summary>
+    internal string RoleText => _roleLabel.Text ?? string.Empty;
+
+    /// <summary>
+    /// What the label over a pane says. The second pane is the translation's
+    /// until it holds an original: where a work has two originals and no
+    /// translation the reader puts the second one there - Oracc's signs beside
+    /// their transliteration, see ReaderPaneRules.SplitEditionsBetweenPanes -
+    /// and a label still saying TRANSLATION would claim an English text the
+    /// library does not have.
+    /// </summary>
+    internal static string RoleLabelFor(PaneRole role, Edition? edition)
+    {
+        var isOriginal = edition == null ? role == PaneRole.Original : edition.Kind == EditionKind.Original;
+        return isOriginal ? "ORIGINAL" : "TRANSLATION";
+    }
+
     /// <summary>Raised when the reader - not the program - selects a passage.</summary>
     public event Action<ReaderPane, int>? UserSelected;
 
@@ -201,6 +218,7 @@ public sealed class ReaderPane : UserControl
     public void ShowMessage(string message, Edition? edition = null)
     {
         Edition = edition;
+        _roleLabel.Text = RoleLabelFor(Role, edition);
         _rows = new List<PassageRow>();
         _list.ItemsSource = null;
         _message.Text = message;
@@ -216,6 +234,7 @@ public sealed class ReaderPane : UserControl
     public void Fill(Edition edition, IReadOnlyList<TextNode> nodes, Dictionary<string, PassageMarks> marks)
     {
         Edition = edition;
+        _roleLabel.Text = RoleLabelFor(Role, edition);
         _marks = marks;
 
         var scriptFamily = ScriptFonts.FamilyFor(nodes);

@@ -146,7 +146,7 @@ Back and Forward
    This is a record of the current session only, and is not kept when the app closes. Where you left off, which is remembered, is a separate thing.
 
 Keyboard shortcuts
-   Escape closes any window you are looking at - a results list, a map, a comparison - and so does ⌘W, as in any Mac app. Escape deliberately does nothing in the setup wizards or while a corpus is being ingested, where it would abandon work halfway rather than dismiss a view.
+   Escape closes any window you are looking at - a results list, a map, a comparison - and so does ⌘W, as in any Mac app. Escape deliberately does nothing in Setup or while a corpus is being ingested, where it would abandon work halfway rather than dismiss a view.
 
    In the reader: ⌘F opens Search, ⌘L jumps to the author filter (switching the sidebar to the library if it is showing the tools), ⌘? opens this help, and ⌘[ and ⌘] walk back and forward through the passages you have jumped to - the same keys Safari uses, for the same reason.
 
@@ -652,6 +652,66 @@ Boxes where a sign should be
    About one passage in five shows a small empty box. Unicode added four thousand more hieroglyphs in 2023, 1.35% of the signs here are among them, and the hieroglyph font that ships with macOS has not caught up with all of them. Nothing is wrong with the text — installing a font with wider coverage, such as Aegyptus or NewGardiner (double-click it to add it with Font Book), fills them in.
 """),
 
+        ("Egyptian texts (Thesaurus Linguae Aegyptiae)", """
+About 3,500 Egyptian texts in 62,000 passages from the Thesaurus Linguae Aegyptiae, the Berlin and Leipzig academies' dictionary of Ancient Egyptian, as its database stood in January 2018, in Simon Schweitzer's TEI conversion (AED-TEI). Install it from Setup; it is a 75 MB download.
+
+What is in it
+   The Book of the Dead from 24 papyri, the Papyrus of Nu and the Turin papyrus with over a hundred spells each. The medical papyri, Ebers and Edwin Smith among them, with the spells said over the remedies. The Bremner-Rhind papyrus, with the songs of Isis and Nephthys and the book of overthrowing Apophis, and the other late funerary and temple books. The literature, from Sinuhe and the Shipwrecked Sailor to the love songs of Chester Beatty I. And letters, papyrus archives, stelae, historical inscriptions and rock inscriptions.
+
+Three readings
+   Every document arrives in transliteration, with the TLA's German translation in the second pane. The literary, medical, funerary and temple papyri also arrive in hieroglyphs, in the edition menu as "Egyptian (hieroglyphs)". Where a sign group has no Unicode character it is shown by its Gardiner codes in angle brackets, ⟨D58-X1-N37A⟩, and as a box where the TLA gave none.
+
+Citations
+   One work is one document - a papyrus, a stela, a letter - and its texts are numbered within it. A Book of the Dead papyrus is cited by spell: 125.12 is the twelfth sentence of spell 125, the Judgement of the Dead; a second copy of a spell in the same papyrus is 28-2, and a hymn copied alongside the spells is T1. Everything else is numbered in the order of the texts' titles. The TLA's own title for each text ("Tb 125", "Eb 185") is in the margin.
+
+Word Study
+   Every word points at its entry in the TLA dictionary, so Word Study gives the headword and its German meaning, with the Wörterbuch reference.
+
+What is not here
+   The tomb inscriptions, and the Amarna and Ramesside monuments. The conversion keeps which wall a text is on but not whose tomb or temple it is, so they could only have arrived as hundreds of works called "West wall". The TLA's own Pyramid Texts are left out because the library has them already, parsed, from Universal Dependencies. And 26 texts whose files in the release are not well-formed XML are skipped and counted.
+
+Terms
+   CC BY-SA 4.0, from the TLA's contributors: Burkhard Backes, Susanne Beck, Anke Blöbaum, Angela Böhme, Marc Brose, Adelheid Burkhardt, Roberto A. Díaz Hernández, Peter Dils, Roland Enmarch, Frank Feder, Heinz Felber, Silke Grallert, Stefan Grunert, Ingelore Hafemann, Anne Herzberg, John M. Iskander, Ines Köhler, Maxim Kupreyev, Renata Landgrafova, Verena Lepper, Lutz Popko, Alexander Schütze, Simon Schweitzer, Stephan Seidlmayer, Gunnar Sperveslage, Susanne Töpfer, Doris Topmann and Anja Weber.
+"""),
+
+        ("Curse tablets", """
+About 840 Greek and Latin curse tablets - defixiones, the lead sheets on which people bound a rival's tongue, a thief's body or a charioteer's horses, and buried in graves, dropped down wells or threw into sacred springs. Install them from Setup; the step fetches about 870 small files.
+
+What is in it
+   Every curse tablet found in Attica, 486 of them, from the Inscriptiones Graecae's volume of Attic defixiones (IG II/III³ 8, 1, edited by Jaime Curbera), each with an English translation by Curbera and a German one by Klaus Hallof. The Greek tablets of Sicily that have a text, from Selinous, Kamarina, Gela and elsewhere, from I.Sicily. And the Latin tablets of the Roman provinces from the Epigraphic Database Heidelberg: Bath and Uley under Britannia, the Mainz tablets under Germania superior, and Spain, Pannonia, Raetia, Africa and the rest.
+
+How it is laid out
+   One work per region - Attica, Sicily, or a Roman province, and two where a province has tablets in both Greek and Latin - because a tablet is a few lines long. A passage is a line of a tablet, cited tablet and line: 125.6 is line 6 of IG II/III³ 8, 1, 125, and the tablet's own citation is in the margin. Where a tablet's faces or fragments each start again at line 1 the face is added, so 12.2.1 is the first line of the second fragment of HD000012. The translations are cited the same way and sit beside the lines they translate.
+
+The brackets
+   The texts are printed in the Leiden conventions epigraphers use: [restored], [- - -] for a loss of unknown length, one dot per lost letter where it is counted, a dot under a letter whose reading is uncertain, abbreviations expanded in round brackets, ⟦erased⟧, {superfluous}, ⟨omitted by the writer⟩, and (!) where the editor confirms an odd reading is what the tablet has. Words broken across lines end the first line with a hyphen.
+
+What is not here
+   Translations for the Heidelberg tablets: the database never made them. The Bath and Uley tablets are in Roman Inscriptions of Britain with English translations, but only as web pages, and are not fetched here. The curse tablets of the Greek East - Cyprus, Syria, Egypt - are not in any openly licensed source.
+
+Terms
+   The Inscriptiones Graecae and I.Sicily are CC BY 4.0; the Heidelberg database is CC BY-SA 4.0.
+"""),
+
+        ("Magical papyri", """
+The working papers of ancient magicians: handbooks of spells, spells written out for one client, and amulets folded small and worn. About 150 Greek papyri and about 350 Coptic spells. Install them from Setup.
+
+What is in it
+   The Greek papyri are papyri.info's: every papyrus that the Digital Corpus of Literary Papyri, or the documentary databank, tags as magic and that has an edited text. Among them are PGM I complete - the Berlin papyrus with the rite for gaining a divine assistant, 347 lines in five columns - PGM VIII, LXII and Va, most of the Supplementum Magicum, the magical formularies from Oxyrhynchus, amulets against fever and scorpions, Christian amulets made of psalm verses, and a spell to bring down the horses of the Blue faction at the races. The Coptic texts are the Kyprianos database's, from the Würzburg Coptic Magical Papyri project: curses, love spells, healing and protection, invocations and divination, each with the project's English translation.
+
+How it is laid out
+   One work per papyrus or spell. The Greek ones are filed under the Papyri Graecae Magicae, the Supplementum Magicum, or the other papyri and amulets; the Coptic ones by what they were for - curses, love and favour, healing and protection, and the rest. A passage is a line, cited column and line where a papyrus has columns, so 3.12 is line 12 of the third column with "col. iii" in the margin. A Coptic text is cited by page or side and line, and its English is cited the same way, so each piece of the translation sits beside the line it begins on. A translation follows the sense rather than the line, so a piece can hold the end of one line and the start of the next.
+
+The text
+   The Greek is printed in the Leiden conventions, as for the curse tablets: [restored], [- - -] for a loss, a dot under an uncertain letter, (expanded) abbreviations. Where the papyrus misspells a word the regularised spelling is printed, so that searching finds it; where the edition gives several scholars' readings, the one it prints is the one you see. The Coptic is Kyprianos's transcription, with the scribe's abbreviation strokes and corrections.
+
+What is not here
+   The great handbooks - PGM IV, the Paris papyrus with the "Mithras Liturgy", PGM V, VII and the Leiden XII and XIII - have no open digital text anywhere: papyri.info holds their records with an empty edition. The Greek papyri have no translations. The Demotic magical papyri are not in any open source with text.
+
+Terms
+   papyri.info's texts are CC BY 3.0, with attribution to the Digital Corpus of Literary Papyri and the Duke Databank of Documentary Papyri. The Kyprianos database is made available under the Open Database License, and its contents under the Database Contents License: credit the Coptic Magical Papyri project (Würzburg) when you use it, and anything you publish that adapts the database must be offered under the same licence.
+"""),
+
         ("The Hebrew Bible", """
 The whole Hebrew Bible — Torah, Prophets and Writings, 39 books and 23,213 verses — in the text of the Leningrad Codex, the oldest complete manuscript of it, copied in 1008, with the translation the Jewish Publication Society published in 1917 beside it. Install it from Setup; it is about 23 MB in 41 downloads.
 
@@ -691,7 +751,7 @@ Terms
 The books outside the Bible that tell where angels and demons came from. Install it from Setup; it is about 4 MB in some 120 small downloads.
 
 What is in it
-   1 Enoch in R. H. Charles's translation of 1917: the two hundred Watchers who came down on Mount Hermon, the giants they fathered, and the evil spirits that came out of the giants. The Testament of Solomon, in which Solomon binds demon after demon with a ring and makes each tell its name and the angel that defeats it, in McCown's Greek (1922) and Conybeare's English (1898). The Testaments of the Twelve Patriarchs in Greek and in Charles's English, with Beliar and the seven spirits of deceit. Jubilees in Charles's English, with Mastema. The Greek Apocalypse of Moses, and 2 Enoch in Morfill's English.
+   1 Enoch in R. H. Charles's translation of 1917: the two hundred Watchers who came down on Mount Hermon, the giants they fathered, and the evil spirits that came out of the giants. The Testament of Solomon, in which Solomon binds demon after demon with a ring and makes each tell its name and the angel that defeats it, in McCown's Greek (1922) and Conybeare's English (1898). The Testaments of the Twelve Patriarchs in Greek and in Charles's English, with Beliar and the seven spirits of deceit. Jubilees in Charles's English, with Mastema. The Greek Apocalypse of Moses; the Latin Life of Adam and Eve in Meyer's edition (1878), in which Satan tells Adam that he fell for refusing to worship him; and 2 Enoch in Morfill's English.
 
 1 Enoch sits beside the Greek
    The library already has the Greek fragments of 1 Enoch from First1KGreek. Charles's English is filed as their translation, so chapters 1 to 32, where the Greek survives, read side by side; the rest of the book survives only in Ethiopic and is in English alone.
@@ -777,25 +837,57 @@ English only
    The Greek is not in the library's Greek collections, and the only open text of it is rough OCR of Migne that is missing the Heavenly Hierarchy's first chapter.
 
 Terms
-   Public domain. Transcribed by Roger Pearse for the Christian Classics Ethereal Library, which marks the text public domain.
+   Public domain. The text was transcribed by Roger Pearse, who placed his transcription in the public domain ("copy freely", at tertullian.org); the Christian Classics Ethereal Library's copy, which Setup downloads, is the same text.
 """),
 
         ("The Goetia", """
-The Goetia, the first book of the Lesser Key of Solomon, in the edition of S. L. MacGregor Mathers and Aleister Crowley published in 1904. Install it from Setup; it is a single small download.
+The Goetia, the first book of the Lesser Key of Solomon, in the edition of S. L. MacGregor Mathers and Aleister Crowley published in 1904, as L. W. de Laurence reprinted it in 1916. Install it from Setup; it is a single small download.
 
 What is in it
-   The seventy-two spirits King Solomon bound and shut in a vessel of brass, each with its rank, the shape it takes, what it can do and how many legions it commands — Bael, Paimon, Beleth, Asmoday, Belial and the rest. Then the art of calling them: Mathers's definition of magic, the observations on days and hours, the list of the spirits by rank, the circle, the triangle, the hexagram, pentagram and ring of Solomon, the vessel of brass, the conjurations, the constraint, the curses, the welcome and the licence to depart. And Crowley's two additions: his essay "The Initiated Interpretation of Ceremonial Magic", and his mock-archaic English of the conjurations.
+   The seventy-two spirits King Solomon bound and shut in a vessel of brass, each with its rank, the shape it takes, what it can do and how many legions it commands — Bael, Paimon, Beleth, Asmoday, Belial and the rest. Then the art of calling them: Mathers's definition of magic, the observations on days and hours, the list of the spirits by rank, the circle, the triangle, the hexagram, pentagram and ring of Solomon, the vessel of brass, the conjurations, the constraint, the curses, the welcome and the licence to depart. And Crowley's additions: the Greek invocation, preface and Preliminary Invocation that open the book, his essay "The Initiated Interpretation of Ceremonial Magic", and his mock-archaic English of the conjurations at its end.
 
    Most of the spirits come from Johann Weyer's catalogue of 1577, which Reginald Scot put into English in the Discovery of Witchcraft. That is in the early English books, and the two can be read side by side, spirit by spirit.
 
 Citations
-   The spirits by number, as they are always cited: Goetia 1 is Bael, 72 is Andromalius. The rest of the art and Crowley's conjurations by section and paragraph, with each section's title as its heading; Crowley's essay by paragraph. A footnote follows the passage its marker was in, cited with .n1, .n2 — 9.n1 is the note on Paimon.
+   The spirits by number, as they are always cited: Goetia 1 is Bael, 72 is Andromalius. The rest of the art, Crowley's preface and his conjurations by section and paragraph in the book's order, with each section's title as its heading; Crowley's essay by paragraph. The Greek invocation before the preface has no heading and is section 1 of the preface. A footnote follows the passage or heading its marker was in, cited with .n1, .n2 — 9.n1 is the note on Paimon.
 
 About this text
-   It comes from Wikisource, where it has not yet been checked against the 1904 book. It appears to be a copy of an earlier web transcription, and keeps its habits: the footnotes were gathered at the foot of each page with bare numbers in the text, and those numbers have been matched up and taken out. Four notes whose numbers were lost say so. Wikisource names L. W. de Laurence's reprint of 1916 as its edition. Before quoting it in print, check the passage against the scan of the 1904 book, which is linked from Setup. The seals and figures are pictures in the book and are not included.
+   It is Project Gutenberg's transcription of de Laurence's 1916 reprint of the 1904 book, proofread by the Distributed Proofreaders against page images. Small capitals are typed as ordinary words: the book prints BAEL and LUCIFER, the text has Bael and Lucifer. De Laurence's title page and copyright notice, the transcriber's notes, and the seals and figures, which are pictures, are not included. The library used Wikisource's copy before: an unproofread copy of the same reprint, with misreadings such as "bath" for "hath", which seemed to descend from a transcription released for non-commercial use only.
 
 Terms
-   Public domain: the book was published in 1904, and Mathers, Crowley and de Laurence all died more than seventy years ago. The earlier transcription this appears to descend from asks that its files be used only non-commercially; for a book that will be sold, quote from the scan.
+   Public domain in the United States, where both printings appeared before 1931, and in the United Kingdom: Mathers died in 1918, de Laurence in 1936 and Crowley in 1947. De Laurence's notice that the volume is protected by copyright no longer has force.
+"""),
+
+        ("Athanasius: Life of Antony", """
+Athanasius of Alexandria's Life of Antony, the first desert hermit, written about 360, in the English of the Rev. H. Ellershaw from the Nicene and Post-Nicene Fathers (1892). Install it from Setup; it comes as the whole Athanasius volume, about 6 MB, of which only the Life is read.
+
+What is in it
+   Antony's life from his boyhood to his death at a hundred and five: the devil's first temptations, the night in the tomb when demons beat him senseless, the demons who come through the walls as lions, bears, leopards, bulls, serpents, asps, scorpions and wolves, the long sermon to the monks on the tricks of demons and how to tell them from angels, the exorcisms, and his visions of the soul's passage after death. Every later saint tormented by devils, painted or written, descends from it.
+
+Citations
+   By the 94 sections every edition uses; the letter to the monks abroad that comes first is the preface (pr). The editor's table of contents supplies a heading before each group of sections. The Life is filed under Athanasius, beside his Greek works from First1KGreek, so a Greek text added later will read beside it.
+
+Terms
+   Ellershaw's translation is in the public domain. The transcription is the Christian Classics Ethereal Library's, which asks to be contacted before its texts are republished or used commercially; for a book that will be sold, ask the CCEL or quote from the 1892 printing. Ellershaw's footnotes are not included. English only: the Greek is not in the library.
+"""),
+
+        ("The Arabian Nights", """
+The Thousand Nights and a Night in the translation of Richard Burton (1885), all ten volumes and all 1,001 nights, and the third volume of his Supplemental Nights (1887), which holds Aladdin, Ali Baba and the other tales Antoine Galland added to the Nights in French. Install it from Setup; it is about 15 MB in twelve downloads.
+
+What is in it
+   Shahrazad's frame story and every tale she tells, from the Trader and the Jinni and the Fisherman and the Jinni to Ma'aruf the Cobbler. The jinn, ifrits and marids of the Quran's world are everywhere: the Ifrit shut in a brass jar under Solomon's seal, the jinni who keeps a woman in a casket at the bottom of the sea, the City of Brass, the slave of the ring and the slave of the lamp.
+
+Citations
+   The Nights by night and paragraph: 3.12 is the twelfth paragraph of the Third Night, wherever the volumes break, and 3.head is the night's own opening line. The titles of the tales are headings within the nights. Burton gives the First Night no heading; it begins with the first tale, and the frame story before it is night 0. The Supplemental tales mostly have no nights, and are cited by tale, in the order the volume prints them, and paragraph.
+
+What is left out
+   Burton's prefaces, indexes, appendices and Terminal Essay, Clouston's variants and analogues, the illustrations, and Burton's 5,000 footnotes, which are an anthropology of his own, often prurient and frequently racist. Verse is kept, a line to each "/".
+
+About the translation
+   Burton wrote in a deliberately archaic English and did not soften the tales' sex or violence. The text is Project Gutenberg's transcription of the Burton Club's American reprint.
+
+Terms
+   Public domain: Burton died in 1890.
 """),
 
         ("Medieval Hands", """

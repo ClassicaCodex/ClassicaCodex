@@ -380,7 +380,7 @@ public class ReactionsAndDocsTests
     [AvaloniaFact]
     public void The_help_text_is_all_there_and_says_how_the_Mac_does_things()
     {
-        Assert.Equal(27, HelpTopics.All.Length);
+        Assert.Equal(32, HelpTopics.All.Length);
 
         foreach (var (title, body) in HelpTopics.All)
         {
@@ -388,7 +388,8 @@ public class ReactionsAndDocsTests
             Assert.DoesNotContain("Ctrl", text);
             Assert.DoesNotContain("Alt+", text);
             Assert.DoesNotContain("%LocalAppData%", text);
-            Assert.DoesNotContain("Setup Wizard", text);
+            Assert.DoesNotContain("setup wizard", text, StringComparison.OrdinalIgnoreCase);
+            Assert.DoesNotContain("dropdown", text, StringComparison.OrdinalIgnoreCase);
             Assert.DoesNotMatch(@"%[A-Z_]+%", text);
             Assert.False(string.IsNullOrWhiteSpace(text), title);
         }
@@ -409,7 +410,7 @@ public class ReactionsAndDocsTests
         var help = await WaitForAsync(() => main.OwnedWindows.OfType<HelpWindow>().FirstOrDefault());
         await Screens.Settle(4);
 
-        Assert.Equal(27, help.TopicCount);
+        Assert.Equal(32, help.TopicCount);
         Assert.Equal("Getting started", help.ShownTopic);
         await InBothAppearancesAsync(help, "help-getting-started");
 

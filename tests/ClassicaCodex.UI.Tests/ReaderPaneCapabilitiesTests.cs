@@ -24,7 +24,7 @@ public class ReaderPaneCapabilitiesTests
     [Fact]
     public void AkkadianWithNoLexiconOffersNeitherTool()
     {
-        var capabilities = MainForm.ReaderPaneCapabilities.For("akk", lemmaCount: 0, apparatusCount: 0);
+        var capabilities = ReaderPaneCapabilities.For("akk", lemmaCount: 0, apparatusCount: 0);
 
         Assert.False(capabilities.HasLexicon);
         Assert.False(capabilities.HasApparatus);
@@ -38,7 +38,7 @@ public class ReaderPaneCapabilitiesTests
     [Fact]
     public void AkkadianWithALexiconOffersWordStudy()
     {
-        var capabilities = MainForm.ReaderPaneCapabilities.For("akk", lemmaCount: 40_000, apparatusCount: 0);
+        var capabilities = ReaderPaneCapabilities.For("akk", lemmaCount: 40_000, apparatusCount: 0);
 
         Assert.True(capabilities.HasLexicon);
     }
@@ -49,7 +49,7 @@ public class ReaderPaneCapabilitiesTests
     [Fact]
     public void GreekWithBothKeepsBothTools()
     {
-        var capabilities = MainForm.ReaderPaneCapabilities.For("grc", lemmaCount: 900_000, apparatusCount: 12);
+        var capabilities = ReaderPaneCapabilities.For("grc", lemmaCount: 900_000, apparatusCount: 12);
 
         Assert.True(capabilities.HasLexicon);
         Assert.True(capabilities.HasApparatus);
@@ -63,7 +63,7 @@ public class ReaderPaneCapabilitiesTests
     [Fact]
     public void AnyEditionWithoutAnApparatusLosesEditorsNotes()
     {
-        var capabilities = MainForm.ReaderPaneCapabilities.For("grc", lemmaCount: 900_000, apparatusCount: 0);
+        var capabilities = ReaderPaneCapabilities.For("grc", lemmaCount: 900_000, apparatusCount: 0);
 
         Assert.True(capabilities.HasLexicon);
         Assert.False(capabilities.HasApparatus);
@@ -81,7 +81,7 @@ public class ReaderPaneCapabilitiesTests
     [InlineData("   ")]
     public void NoLanguageMeansNoWordStudy(string? language)
     {
-        var capabilities = MainForm.ReaderPaneCapabilities.For(language, lemmaCount: 900_000, apparatusCount: 0);
+        var capabilities = ReaderPaneCapabilities.For(language, lemmaCount: 900_000, apparatusCount: 0);
 
         Assert.False(capabilities.HasLexicon);
     }
@@ -93,7 +93,7 @@ public class ReaderPaneCapabilitiesTests
     [Fact]
     public void AnApparatusDoesNotDependOnTheLanguage()
     {
-        var capabilities = MainForm.ReaderPaneCapabilities.For(null, lemmaCount: 0, apparatusCount: 3);
+        var capabilities = ReaderPaneCapabilities.For(null, lemmaCount: 0, apparatusCount: 3);
 
         Assert.False(capabilities.HasLexicon);
         Assert.True(capabilities.HasApparatus);
@@ -108,7 +108,7 @@ public class ReaderPaneCapabilitiesTests
     [Fact]
     public void AnEmptyPaneOffersNothing()
     {
-        var capabilities = MainForm.ReaderPaneCapabilities.Empty;
+        var capabilities = ReaderPaneCapabilities.Empty;
 
         Assert.False(capabilities.HasLexicon);
         Assert.False(capabilities.HasApparatus);
