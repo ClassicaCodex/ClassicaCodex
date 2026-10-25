@@ -634,7 +634,7 @@ Boxes where a sign should be
 """),
 
         ("Egyptian texts (Thesaurus Linguae Aegyptiae)", """
-About 3,400 Egyptian texts in 59,000 passages from the Thesaurus Linguae Aegyptiae, the Berlin and Leipzig academies' dictionary of Ancient Egyptian, as its database stood in January 2018, in Simon Schweitzer's TEI conversion (AED-TEI). Install it from the setup wizard; it is a 75 MB download.
+About 3,500 Egyptian texts in 62,000 passages from the Thesaurus Linguae Aegyptiae, the Berlin and Leipzig academies' dictionary of Ancient Egyptian, as its database stood in January 2018, in Simon Schweitzer's TEI conversion (AED-TEI). Install it from the setup wizard; it is a 75 MB download.
 
 What is in it
    The Book of the Dead from 24 papyri, the Papyrus of Nu and the Turin papyrus with over a hundred spells each. The medical papyri, Ebers and Edwin Smith among them, with the spells said over the remedies. The Bremner-Rhind papyrus, with the songs of Isis and Nephthys and the book of overthrowing Apophis, and the other late funerary and temple books. The literature, from Sinuhe and the Shipwrecked Sailor to the love songs of Chester Beatty I. And letters, papyrus archives, stelae, historical inscriptions and rock inscriptions.
@@ -649,7 +649,7 @@ Word Study
    Every word points at its entry in the TLA dictionary, so Word Study gives the headword and its German meaning, with the Wörterbuch reference.
 
 What is not here
-   The tomb inscriptions, and the Amarna and Ramesside monuments. The conversion keeps which wall a text is on but not whose tomb or temple it is, so they could only have arrived as hundreds of works called "West wall". The TLA's own Pyramid Texts are left out because the library has them already, parsed, from Universal Dependencies. And about 150 texts whose files in the release are not well-formed XML are skipped and counted.
+   The tomb inscriptions, and the Amarna and Ramesside monuments. The conversion keeps which wall a text is on but not whose tomb or temple it is, so they could only have arrived as hundreds of works called "West wall". The TLA's own Pyramid Texts are left out because the library has them already, parsed, from Universal Dependencies. And 26 texts whose files in the release are not well-formed XML are skipped and counted.
 
 Terms
    CC BY-SA 4.0, from the TLA's contributors: Burkhard Backes, Susanne Beck, Anke Blöbaum, Angela Böhme, Marc Brose, Adelheid Burkhardt, Roberto A. Díaz Hernández, Peter Dils, Roland Enmarch, Frank Feder, Heinz Felber, Silke Grallert, Stefan Grunert, Ingelore Hafemann, Anne Herzberg, John M. Iskander, Ines Köhler, Maxim Kupreyev, Renata Landgrafova, Verena Lepper, Lutz Popko, Alexander Schütze, Simon Schweitzer, Stephan Seidlmayer, Gunnar Sperveslage, Susanne Töpfer, Doris Topmann and Anja Weber.

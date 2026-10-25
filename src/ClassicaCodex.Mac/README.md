@@ -64,7 +64,10 @@ Every tool the Windows app offers is here:
 - and the arcade, for anyone who finds it
 
 New collections added to the Windows setup wizard show up here too, because
-both apps read one shared catalogue.
+both apps read one shared catalogue. Their help topics and About credits do
+not: those are the Windows text reworded for the Mac, in
+`Features/Help/HelpTopics.cs` and `Features/About/AboutWindow.cs`, and have
+to be copied across when a collection adds one.
 
 ## What is different, and why
 

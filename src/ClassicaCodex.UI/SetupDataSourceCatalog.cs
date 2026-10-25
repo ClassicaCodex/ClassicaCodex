@@ -1144,8 +1144,8 @@ public static class SetupDataSourceCatalog
 
                 PlainLanguageDescription =
                     "Egyptian texts from the Thesaurus Linguae Aegyptiae, the Berlin and Leipzig "
-                    + "academies' dictionary of Ancient Egyptian, as it stood in 2018: about 3,400 texts "
-                    + "in 59,000 passages. The Book of the Dead from 24 papyri, the Papyrus of Nu and the "
+                    + "academies' dictionary of Ancient Egyptian, as it stood in 2018: about 3,500 texts "
+                    + "in 62,000 passages. The Book of the Dead from 24 papyri, the Papyrus of Nu and the "
                     + "Turin papyrus among them; the medical papyri, Ebers and Edwin Smith, with their "
                     + "healing spells; the Bremner-Rhind papyrus and the other late funerary and temple "
                     + "books; the literature, from Sinuhe and the Shipwrecked Sailor to the love songs; "
