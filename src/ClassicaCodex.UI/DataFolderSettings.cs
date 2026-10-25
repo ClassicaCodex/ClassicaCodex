@@ -52,6 +52,35 @@ public static class DataFolderSettings
     /// </summary>
     private static string? _chosenThisSession;
 
+    /// <summary>
+    /// Whether choices stay in this process rather than being written to the
+    /// preference file - see <see cref="KeepToThisSession"/>.
+    /// </summary>
+    private static bool _keptToThisSession;
+
+    /// <summary>
+    /// Points <see cref="Root"/> at a folder for this process alone, and stops
+    /// the setter writing data-path.txt until <see cref="StopKeepingToThisSession"/>.
+    ///
+    /// Only the tests call this. They run the real setup windows on a
+    /// reader's own machine, and on Windows nothing redirects
+    /// LocalApplicationData: a test that chose a download folder wrote the
+    /// reader's preference, and one that asked whether the map file had been
+    /// downloaded found the reader's own downloads and was told yes.
+    /// </summary>
+    internal static void KeepToThisSession(string folder)
+    {
+        _keptToThisSession = true;
+        _chosenThisSession = folder;
+    }
+
+    /// <summary>Hands <see cref="Root"/> back to the preference file.</summary>
+    internal static void StopKeepingToThisSession()
+    {
+        _keptToThisSession = false;
+        _chosenThisSession = null;
+    }
+
     public static string Root
     {
         get
@@ -84,6 +113,7 @@ public static class DataFolderSettings
             // directory, which is what an empty path would mean to
             // Path.Combine - see the note on the getter.
             _chosenThisSession = chosen.Length == 0 ? DefaultRoot : chosen;
+            if (_keptToThisSession) return;
 
             try
             {
