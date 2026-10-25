@@ -1,3 +1,5 @@
+using ClassicaCodex.Data;
+
 namespace ClassicaCodex.UI;
 
 /// <summary>
@@ -47,9 +49,7 @@ public static class ReadingFontSettings
 
     public static event Action? Changed;
 
-    private static string SettingsFile => Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-        "ClassicaCodex", "reading-font-size.txt");
+    private static string SettingsFile => Path.Combine(PreferencesFolder.Root, "reading-font-size.txt");
 
     /// <summary>Size of Greek and Latin text.</summary>
     public static float SourceSize

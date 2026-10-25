@@ -15,7 +15,7 @@ public sealed class BronzeSaveStore
     {
         var identity = library == null ? "PRACTICE" : Path.GetFullPath(library).ToUpperInvariant();
         var key = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(identity)));
-        directory ??= Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "ClassicaCodex", "BronzeAndThunder");
+        directory ??= Path.Combine(PreferencesFolder.Root, "BronzeAndThunder");
         FilePath = Path.Combine(directory, key + ".json");
     }
 

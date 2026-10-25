@@ -2,6 +2,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Threading;
+using ClassicaCodex.Data;
 using ClassicaCodex.Mac.Common;
 using ClassicaCodex.UI;
 
@@ -14,9 +15,7 @@ namespace ClassicaCodex.Mac;
 /// </summary>
 public static class CrashLog
 {
-    public static string LogFile => Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-        "ClassicaCodex", "errors.log");
+    public static string LogFile => Path.Combine(PreferencesFolder.Root, "errors.log");
 
     private static bool _reporting;
 

@@ -1,3 +1,5 @@
+using ClassicaCodex.Data;
+
 namespace ClassicaCodex.UI;
 
 /// <summary>
@@ -16,9 +18,7 @@ namespace ClassicaCodex.UI;
 /// </summary>
 public static class PreferredCollectionSettings
 {
-    private static string PreferenceFile => Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-        "ClassicaCodex", "preferred-collection.txt");
+    private static string PreferenceFile => Path.Combine(PreferencesFolder.Root, "preferred-collection.txt");
 
     /// <summary>
     /// The stored collection key, or null for no preference.

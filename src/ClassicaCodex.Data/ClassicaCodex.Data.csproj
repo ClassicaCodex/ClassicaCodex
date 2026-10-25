@@ -36,4 +36,8 @@
     <ProjectReference Include="..\ClassicaCodex.Core\ClassicaCodex.Core.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <InternalsVisibleTo Include="ClassicaCodex.Mac.Tests" />
+  </ItemGroup>
+
 </Project>

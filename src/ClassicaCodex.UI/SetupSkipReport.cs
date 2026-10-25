@@ -1,4 +1,5 @@
 using System.Text;
+using ClassicaCodex.Data;
 using ClassicaCodex.Ingestion;
 
 namespace ClassicaCodex.UI;
@@ -22,9 +23,7 @@ internal static class SetupSkipReport
 {
     private const int MaxShown = 12;
 
-    public static string LogPath => Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-        "ClassicaCodex", "ingest-skipped.log");
+    public static string LogPath => Path.Combine(PreferencesFolder.Root, "ingest-skipped.log");
 
     /// <summary>
     /// Tells the reader what a setup step could not read, and stops there.

@@ -1,3 +1,5 @@
+using ClassicaCodex.Data;
+
 namespace ClassicaCodex.UI;
 
 /// <summary>
@@ -18,9 +20,7 @@ namespace ClassicaCodex.UI;
 /// </summary>
 public static class CitationMarginSettings
 {
-    private static string EnabledFile => Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-        "ClassicaCodex", "citation-margin.txt");
+    private static string EnabledFile => Path.Combine(PreferencesFolder.Root, "citation-margin.txt");
 
     public static bool Enabled
     {
