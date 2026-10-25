@@ -14,8 +14,8 @@ number follows the Windows app's.
 
 ## Downloading it
 
-The first release is a preview,
-[Classica Codex for Mac 3.15.1](https://github.com/ClassicaCodex/ClassicaCodex/releases/tag/mac-v3.15.1),
+The current release is a preview,
+[Classica Codex for Mac 3.16.0](https://github.com/ClassicaCodex/ClassicaCodex/releases/tag/mac-v3.16.0),
 with a disk image for each kind of Mac: `arm64` for Apple silicon, `x64`
 for Intel. Open it and drag **Classica Codex** into Applications. It needs
 macOS 12 or later. The first time you open it macOS stops it, as described

@@ -28,8 +28,8 @@ Extract it, run `ClassicaCodex.UI.exe`, and the setup wizard does the rest — s
 [Getting started](#getting-started) for what to expect, including the Windows
 security warning you'll hit on first run.
 
-The Mac version's first release is a preview:
-[Classica Codex for Mac 3.15.1](https://github.com/ClassicaCodex/ClassicaCodex/releases/tag/mac-v3.15.1).
+The Mac version is in preview:
+[Classica Codex for Mac 3.16.0](https://github.com/ClassicaCodex/ClassicaCodex/releases/tag/mac-v3.16.0).
 There is a disk image for Apple silicon and one for Intel. Open the one for
 your Mac and drag the app into Applications — see [On a Mac](#on-a-mac) for
 the security prompt you'll hit the first time you open it.
@@ -231,7 +231,7 @@ Extract the whole archive before running it, not just the `.exe`. The executable
 
 ### On a Mac
 
-Download the disk image for your Mac from the [Mac release](https://github.com/ClassicaCodex/ClassicaCodex/releases/tag/mac-v3.15.1) — `arm64` for Apple silicon, `x64` for Intel — open it, and drag **Classica Codex** into Applications. It needs macOS 12 or later and carries its own copy of .NET, so there is nothing else to install.
+Download the disk image for your Mac from the [Mac release](https://github.com/ClassicaCodex/ClassicaCodex/releases/tag/mac-v3.16.0) — `arm64` for Apple silicon, `x64` for Intel — open it, and drag **Classica Codex** into Applications. It needs macOS 12 or later and carries its own copy of .NET, so there is nothing else to install.
 
 macOS will refuse to open it the first time, because the app isn't notarised by Apple; notarising needs a paid Apple developer account. Click **Done**, then open **System Settings → Privacy & Security**, scroll down to the message about Classica Codex, and click **Open Anyway**. macOS remembers, and won't ask again.
 
