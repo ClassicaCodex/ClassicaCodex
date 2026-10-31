@@ -74,6 +74,13 @@ public class SetupDataSource
     public string? DownloadFileName;
 
     /// <summary>
+    /// For GitClone sources only: which files the clone writes out, by
+    /// extension. XML unless a source says otherwise, because every corpus but
+    /// the AI translations is TEI, and those are JSON.
+    /// </summary>
+    public IReadOnlyList<string> ClonedFileExtensions = GitCorpusFetchService.DefaultFileExtensions;
+
+    /// <summary>
     /// A one- or two-sentence, jargon-free explanation of what this step is
     /// for - written for GuidedSetupForm, where there's no repo URL or file
     /// path on screen to give context the way SetupWizardForm's rows do.

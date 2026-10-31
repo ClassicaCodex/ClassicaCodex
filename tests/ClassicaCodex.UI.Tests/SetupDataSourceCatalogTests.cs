@@ -1,4 +1,5 @@
 using ClassicaCodex.Data.Repositories;
+using ClassicaCodex.Ingestion.AiTranslations;
 using ClassicaCodex.UI;
 using Xunit;
 
@@ -100,5 +101,33 @@ public class SetupDataSourceCatalogTests
 
         Assert.Equal("Cuneiform (Oracc)",
             SetupDataSourceCatalog.DescribeCollection(SetupDataSourceCatalog.CollectionKeys.Oracc));
+    }
+
+    /// <summary>
+    /// The AI translations step, because it is the one clone whose files are
+    /// not XML. A clone that is told nothing writes out only XML, and this one
+    /// would arrive as an empty folder and fail.
+    /// </summary>
+    [Fact]
+    public void TheAiTranslationsStepClonesItsJsonAndSaysWhatItIs()
+    {
+        var url = AiTranslationsIngestService.RepositoryUrl;
+        var step = Assert.Single(Build(), s => s.RepoUrl == url);
+
+        Assert.Equal(SetupFetchMode.GitClone, step.FetchMode);
+        Assert.Equal(new[] { ".json" }, step.ClonedFileExtensions);
+        Assert.Contains(step.Links, l => l.Url == url);
+
+        // Said before anyone installs it, not discovered in the reader.
+        Assert.Contains("AI-generated", step.PlainLanguageDescription);
+        Assert.Contains("no specialist", step.PlainLanguageDescription);
+        Assert.Contains("CC BY-SA 4.0", step.PlainLanguageDescription);
+        Assert.Contains("CC BY 4.0", step.PlainLanguageDescription);
+        Assert.Contains("AI-generated", step.DisplayNote);
+
+        // Every other clone still writes out its XML and nothing else.
+        Assert.All(
+            Build().Where(s => s.FetchMode == SetupFetchMode.GitClone && s.RepoUrl != url),
+            s => Assert.Equal(new[] { ".xml" }, s.ClonedFileExtensions));
     }
 }
