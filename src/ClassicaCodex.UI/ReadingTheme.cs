@@ -1,4 +1,5 @@
 using System.Runtime.InteropServices;
+using ClassicaCodex.Data;
 
 namespace ClassicaCodex.UI;
 
@@ -853,9 +854,7 @@ public static class ReadingTheme
         || label.ForeColor == Color.FromArgb(150, 148, 142)
         || label.ForeColor == Color.DarkSlateGray;
 
-    private static string SettingsPath => Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-        "ClassicaCodex", "theme.txt");
+    private static string SettingsPath => Path.Combine(PreferencesFolder.Root, "theme.txt");
 
     // --- Native theming ---------------------------------------------------
     //

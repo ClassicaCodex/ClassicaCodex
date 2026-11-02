@@ -1,4 +1,5 @@
 using System.Text.Json;
+using ClassicaCodex.Data;
 
 namespace ClassicaCodex.Mac;
 
@@ -53,9 +54,7 @@ public sealed class MacSettings
 
     public static MacSettings Current => _current ??= Load();
 
-    internal static string SettingsFile => Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-        "ClassicaCodex", "mac-settings.json");
+    internal static string SettingsFile => Path.Combine(PreferencesFolder.Root, "mac-settings.json");
 
     private static MacSettings Load()
     {

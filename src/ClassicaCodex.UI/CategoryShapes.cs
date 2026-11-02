@@ -1,3 +1,5 @@
+using ClassicaCodex.Data;
+
 namespace ClassicaCodex.UI;
 
 public enum NodeShape
@@ -54,9 +56,7 @@ public static class CategoryShapes
         }
     }
 
-    private static string SettingsPath => Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-        "ClassicaCodex", "category-shapes.txt");
+    private static string SettingsPath => Path.Combine(PreferencesFolder.Root, "category-shapes.txt");
 
     private static void EnsureLoaded()
     {

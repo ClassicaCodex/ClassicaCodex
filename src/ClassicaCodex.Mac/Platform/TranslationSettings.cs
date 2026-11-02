@@ -1,3 +1,5 @@
+using ClassicaCodex.Data;
+
 namespace ClassicaCodex.Mac.Platform;
 
 /// <summary>
@@ -21,9 +23,7 @@ public static class TranslationSettings
     private static (string? Anthropic, string? Gemini, bool Confirm)? _cached;
     private static readonly object CacheLock = new();
 
-    private static string ConfirmFile => Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-        "ClassicaCodex", "translate-confirm.txt");
+    private static string ConfirmFile => Path.Combine(PreferencesFolder.Root, "translate-confirm.txt");
 
     public static string? AnthropicApiKey => Load().Anthropic;
 

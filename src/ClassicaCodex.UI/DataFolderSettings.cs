@@ -1,3 +1,5 @@
+using ClassicaCodex.Data;
+
 namespace ClassicaCodex.UI;
 
 /// <summary>
@@ -22,9 +24,7 @@ namespace ClassicaCodex.UI;
 /// </summary>
 public static class DataFolderSettings
 {
-    private static string PreferenceFile => Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-        "ClassicaCodex", "data-path.txt");
+    private static string PreferenceFile => Path.Combine(PreferencesFolder.Root, "data-path.txt");
 
     /// <summary>
     /// The folder every download goes into and every setup step reads back

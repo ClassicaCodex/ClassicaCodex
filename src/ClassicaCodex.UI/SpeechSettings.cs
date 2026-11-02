@@ -1,3 +1,5 @@
+using ClassicaCodex.Data;
+
 namespace ClassicaCodex.UI;
 
 /// <summary>
@@ -15,9 +17,7 @@ namespace ClassicaCodex.UI;
 /// </summary>
 public static class SpeechSettings
 {
-    private static string SettingsFile => Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-        "ClassicaCodex", "speech-settings.txt");
+    private static string SettingsFile => Path.Combine(PreferencesFolder.Root, "speech-settings.txt");
 
     /// <summary>Null when no voice has been explicitly chosen yet - callers fall back to whatever SpeechSynthesizer's own default is.</summary>
     public static string? PreferredVoiceName

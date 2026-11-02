@@ -1,3 +1,5 @@
+using ClassicaCodex.Data;
+
 namespace ClassicaCodex.UI;
 
 /// <summary>
@@ -19,9 +21,7 @@ namespace ClassicaCodex.UI;
 /// </summary>
 public static class ReadingPosition
 {
-    private static string EnabledFile => Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-        "ClassicaCodex", "reopen-last-passage.txt");
+    private static string EnabledFile => Path.Combine(PreferencesFolder.Root, "reopen-last-passage.txt");
 
     /// <summary>
     /// Whether the last passage is reopened on launch.
@@ -66,9 +66,7 @@ public static class ReadingPosition
         }
     }
 
-    private static string SettingsFile => Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-        "ClassicaCodex", "reading-position.txt");
+    private static string SettingsFile => Path.Combine(PreferencesFolder.Root, "reading-position.txt");
 
     /// <summary>Null when nothing has been read yet, or the file is unreadable.</summary>
     public static (string WorkCtsUrn, string CitationRef)? Load()

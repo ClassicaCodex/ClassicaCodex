@@ -40,9 +40,7 @@ public static class DbConnectionFactory
     }
 
     /// <summary>Where a database lands if the user never picks anywhere else.</summary>
-    public static string DefaultDatabasePath => Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-        "ClassicaCodex", "classicacodex.db");
+    public static string DefaultDatabasePath => Path.Combine(PreferencesFolder.Root, "classicacodex.db");
 
     /// <summary>The last database path used, or the default if none was ever saved.</summary>
     public static string PreferredDatabasePath
@@ -89,9 +87,7 @@ public static class DbConnectionFactory
         }
     }
 
-    private static string PathPreferenceFile => Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-        "ClassicaCodex", "database-path.txt");
+    private static string PathPreferenceFile => Path.Combine(PreferencesFolder.Root, "database-path.txt");
 
     private static void SavePathPreference(string databasePath)
     {
