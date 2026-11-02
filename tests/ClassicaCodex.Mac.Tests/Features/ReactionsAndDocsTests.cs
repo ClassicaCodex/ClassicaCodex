@@ -380,7 +380,7 @@ public class ReactionsAndDocsTests
     [AvaloniaFact]
     public void The_help_text_is_all_there_and_says_how_the_Mac_does_things()
     {
-        Assert.Equal(32, HelpTopics.All.Length);
+        Assert.Equal(33, HelpTopics.All.Length);
 
         foreach (var (title, body) in HelpTopics.All)
         {
@@ -410,7 +410,7 @@ public class ReactionsAndDocsTests
         var help = await WaitForAsync(() => main.OwnedWindows.OfType<HelpWindow>().FirstOrDefault());
         await Screens.Settle(4);
 
-        Assert.Equal(32, help.TopicCount);
+        Assert.Equal(33, help.TopicCount);
         Assert.Equal("Getting started", help.ShownTopic);
         await InBothAppearancesAsync(help, "help-getting-started");
 

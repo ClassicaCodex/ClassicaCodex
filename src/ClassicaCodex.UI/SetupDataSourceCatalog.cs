@@ -4,6 +4,7 @@ using ClassicaCodex.Core.Models;
 using ClassicaCodex.Data.Repositories;
 using ClassicaCodex.Ingestion;
 using ClassicaCodex.Ingestion.Oracc;
+using ClassicaCodex.Ingestion.AiTranslations;
 using ClassicaCodex.Ingestion.Antony;
 using ClassicaCodex.Ingestion.Aquinas;
 using ClassicaCodex.Ingestion.Bfm;
@@ -222,6 +223,7 @@ public static class SetupDataSourceCatalog
         var cselDestination = Path.Combine(dataRoot, "csel");
         var patrologiaDestination = Path.Combine(dataRoot, "patrologia-latina");
         var politicalDestination = Path.Combine(dataRoot, "political-theory");
+        var aiTranslationsDestination = Path.Combine(dataRoot, "ai-translations");
 
         return new List<SetupDataSource>
         {
@@ -1721,6 +1723,66 @@ public static class SetupDataSourceCatalog
                     await editionRepo.IsCollectionCompleteAsync(CollectionKeys.ArabianNights),
                 CheckHasSomeContent = async () =>
                     await editionRepo.CountByCollectionAsync(CollectionKeys.ArabianNights) > 0
+            },
+
+            // After every text collection, because each translation is filed
+            // beside a text one of them installs, and arrives only if that text
+            // is already here.
+            new SetupDataSource
+            {
+                Title = "Classica Codex AI translations of passages with no published English",
+                RepoUrl = AiTranslationsIngestService.RepositoryUrl,
+                DisplayNote = "about 8 MB; AI-generated and labelled so, reviewed by no specialist; install the texts they translate first",
+                DefaultDestination = aiTranslationsDestination,
+
+                // The translations are JSON, and a clone writes out only XML
+                // unless it is told otherwise.
+                ClonedFileExtensions = AiTranslationsIngestService.FileExtensions,
+
+                Links =
+                {
+                    new SetupLink
+                    {
+                        Text = "The AI translations on GitHub, with how they were made and checked",
+                        Url = AiTranslationsIngestService.RepositoryUrl
+                    }
+                },
+
+                PlainLanguageDescription =
+                    "English for passages that have none published: about 15,900 lines from 446 works in twelve "
+                    + "languages - Greek and Latin, Old Norse, Middle High German, Egyptian, Old French, Dante's "
+                    + "Italian, Hebrew and Aramaic - the passages that the Atlas of Ancient Myth, Magic in the "
+                    + "Ancient Texts and a study of demons and angels cite. Each is filed beside the text it "
+                    + "translates, line for line, as another translation of that work. "
+                    + "These are AI translations. Claude made them from the original, a second AI, Codex, checked "
+                    + "them against it, and the objections that held up were corrected; no specialist has "
+                    + "reviewed them. The reader labels every one \"Claude (AI-generated)\", and since only the "
+                    + "cited passages were translated, most cover part of a work and the edition list says how "
+                    + "much. "
+                    + "Install the collections they translate first: a translation whose text is not in your "
+                    + "library is skipped and noted, and running this step again after adding a collection "
+                    + "picks it up. Each translation carries its source's licence, CC BY-SA 4.0 or CC BY 4.0, "
+                    + "and the credit that licence asks for.",
+
+                // No stamp and no completion record: the translations carry no
+                // collection, so that no collection filter hides one from the
+                // text it translates. See AiTranslationsIngestService.
+                RunIngest = async (root, progress, ct) =>
+                    await new AiTranslationsIngestService().IngestAsync(root, progress, ct),
+
+                // Complete when every translation whose text this library holds
+                // is installed. Asked of the folder and the library each time,
+                // not recorded once, because the answer changes when a source
+                // collection arrives: install Menota after this step and its
+                // translations are still to install, which the tick should say.
+                //
+                // Same caveat as First1KGreek: an Advanced Setup run into a
+                // custom folder is not seen here, and the step offers to run
+                // again. A re-run changes nothing that has not changed.
+                CheckComplete = async () =>
+                    (await new AiTranslationsIngestService().SurveyAsync(aiTranslationsDestination)).IsComplete,
+                CheckHasSomeContent = async () =>
+                    (await new AiTranslationsIngestService().SurveyAsync(aiTranslationsDestination)).Installed > 0
             },
 
             new SetupDataSource

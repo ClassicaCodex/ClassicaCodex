@@ -109,7 +109,54 @@ public class EditionRepository
     }
 
     /// <summary>
-    /// Maps a row selected by the column list the two readers above share.
+    /// The editions held under any of these identifiers, keyed by CTS URN. An
+    /// identifier the library does not hold is simply absent from the result.
+    ///
+    /// A few hundred to a query rather than one query each, because the AI
+    /// translations step asks this of every file's source and translation -
+    /// nearly nine hundred identifiers - each time setup draws its tick.
+    /// </summary>
+    public async Task<Dictionary<string, Edition>> GetByCtsUrnsAsync(
+        IReadOnlyCollection<string> ctsUrns, CancellationToken cancellationToken = default)
+    {
+        var wanted = ctsUrns.Distinct(StringComparer.Ordinal).ToList();
+        var results = new Dictionary<string, Edition>(StringComparer.Ordinal);
+        if (wanted.Count == 0) return results;
+
+        await using var conn = await DbConnectionFactory.OpenConnectionAsync(cancellationToken);
+
+        const int batchSize = 400;
+        for (var offset = 0; offset < wanted.Count; offset += batchSize)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            var thisBatch = Math.Min(batchSize, wanted.Count - offset);
+
+            await using var cmd = conn.CreateCommand();
+            var names = new List<string>(thisBatch);
+            for (var i = 0; i < thisBatch; i++)
+            {
+                names.Add($"@u{i}");
+                cmd.Parameters.AddWithValue($"@u{i}", wanted[offset + i]);
+            }
+
+            cmd.CommandText =
+                $@"SELECT EditionId, WorkId, CtsUrn, Kind, Language, Translator, SourcePath, Orthography, Collection
+                   FROM Editions WHERE CtsUrn IN ({string.Join(",", names)});";
+
+            await using var reader = await cmd.ExecuteReaderAsync(cancellationToken);
+            while (await reader.ReadAsync(cancellationToken))
+            {
+                var edition = Read(reader);
+                results[edition.CtsUrn] = edition;
+            }
+        }
+
+        return results;
+    }
+
+    /// <summary>
+    /// Maps a row selected by the column list the readers above share.
     /// One mapper because they must agree: an ordinal corrected in one and
     /// missed in the other reads every field after it out of the wrong column.
     /// </summary>

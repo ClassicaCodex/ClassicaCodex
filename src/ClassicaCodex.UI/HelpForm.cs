@@ -232,6 +232,8 @@ Create Translation (right-click a work in the library tree)
 
    A part-finished translation is a normal thing to have, so the edition dropdown says so: an AI translation that doesn't yet cover its whole source reads "INCOMPLETE: 412 of 965 lines translated". Reopen Create Translation on that work to carry on. The note only appears on AI translations - a published translation divides the text differently from the original by choice, and counting its lines against the original's would say nothing useful.
 
+   Many passages with no published English already have an AI translation, made in advance and checked by a second AI, to install rather than make: see Classica Codex AI translations.
+
 Find Cross-Language Echo (right-click a line)
    Find Echoes, described under Analysis tools, works by shared rare words - which by definition can't connect a Greek original to an English translation of something else. This fills exactly that gap: a shared image or idea across languages, where the wording has nothing in common.
 
@@ -869,6 +871,28 @@ About the translation
 
 Terms
    Public domain: Burton died in 1890.
+"""),
+
+        ("Classica Codex AI translations", """
+English for passages that have no published English: about 15,900 lines from 446 works in twelve languages, made by AI and labelled as such. Install it from the setup wizard after the collections it translates; it is about 8 MB.
+
+What is in it
+   The passages that the Atlas of Ancient Myth, Magic in the Ancient Texts and a study of demons and angels quote or cite, and that had no English in the library: Greek and Latin from Perseus, First1KGreek, CSEL and the Patrologia Latina; the sagas and Eddic poems of Menota; the Middle High German of ReM; the chansons de geste; the Pyramid Texts and the TLA's Egyptian texts; Dante; the curse tablets and magical papyri; and some of the rabbinic texts and pseudepigrapha. Only the cited passages are translated, so a translation usually covers part of a work.
+
+How they were made
+   Claude (Anthropic) translated each passage from the original as the library holds it, a line of English for each line of the original, without consulting a published translation. A second AI, Codex (OpenAI), checked every passage against the original; the objections that held up were corrected, and readings that could go either way went into the translators' notes. No specialist has reviewed any of it. Read them as working versions, not as authoritative translations.
+
+How they are labelled
+   Each is a translation of its work like any other, beside the original line for line under the same references, and in the edition dropdown as "trans. Claude (AI-generated)". Its Work Details say "An AI-generated translation. No specialist has reviewed it.", and exported passages carry the label with them. Because only some passages are translated, the dropdown marks most of them INCOMPLETE with how many lines they have. That is by design, not a download that stopped.
+
+How they differ from Create Translation
+   Create Translation asks Gemini for a translation of a work you choose, with your own key, and keeps it in your library alone, checked by nobody. These were made in advance, checked passage by passage by a second AI with every objection and decision recorded, and are the same for everyone who installs them. They are shared in a public repository, so a correction made there reaches every library: run this step again and it brings in corrections and new passages, changing only the lines that changed.
+
+The texts come first
+   A translation is filed beside its original, so it arrives only if that text is already in your library. One whose text is not there is skipped and noted in the setup log, and the step shows as unfinished; install that collection and run this step again.
+
+Terms
+   Each translation carries its source's licence, and the credit that licence asks for is in its Work Details. Most are CC BY-SA 4.0; those made from the magical papyri, the Online Critical Pseudepigrapha and the Otzar Midrashim are CC BY 4.0. The repository, with the translators' briefs, the review of every passage and the notes on doubtful readings, is github.com/ClassicaCodex/ai-translations.
 """),
 
         ("Medieval Hands", """

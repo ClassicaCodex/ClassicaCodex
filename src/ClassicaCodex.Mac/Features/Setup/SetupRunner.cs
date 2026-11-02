@@ -71,7 +71,7 @@ internal static class SetupRunner
                     // copied out from there, as on Windows - which is why the
                     // download folder step names the startup disk's free space
                     // when the chosen folder is on another volume.
-                    await new GitCorpusFetchService().FetchAsync(
+                    await new GitCorpusFetchService { FileExtensions = source.ClonedFileExtensions }.FetchAsync(
                         source.RepoUrl, destination,
                         new Progress<FetchProgress>(p => status(p.Message)), cancellationToken);
                     break;

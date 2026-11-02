@@ -23,6 +23,17 @@ public record FetchProgress(string Message, int FilesExtracted);
 /// </summary>
 public class GitCorpusFetchService
 {
+    /// <summary>What a clone writes out unless told otherwise: the TEI every corpus here is made of.</summary>
+    public static readonly IReadOnlyList<string> DefaultFileExtensions = new[] { ".xml" };
+
+    /// <summary>
+    /// The kinds of file written out of the clone, by extension; everything
+    /// else in the tree is left in git's object store and thrown away with
+    /// it. The AI translations are JSON, and a clone of them that kept only
+    /// XML arrived as an empty folder.
+    /// </summary>
+    public IReadOnlyList<string> FileExtensions { get; init; } = DefaultFileExtensions;
+
     public async Task FetchAsync(
         string repoUrl,
         string outputFolder,
@@ -141,7 +152,7 @@ public class GitCorpusFetchService
                 var tree = repo.Head.Tip.Tree;
 
                 var extracted = 0;
-                ExtractTree(tree, string.Empty, outputFolder, ref extracted, progress, cancellationToken);
+                ExtractTree(tree, string.Empty, outputFolder, FileExtensions, ref extracted, progress, cancellationToken);
 
                 progress?.Report(new FetchProgress($"Done - {extracted} file(s) extracted.", extracted));
             }
@@ -153,7 +164,7 @@ public class GitCorpusFetchService
     }
 
     private static void ExtractTree(
-        Tree tree, string relativePath, string outputRoot, ref int extracted,
+        Tree tree, string relativePath, string outputRoot, IReadOnlyList<string> extensions, ref int extracted,
         IProgress<FetchProgress>? progress, CancellationToken cancellationToken)
     {
         foreach (var entry in tree)
@@ -165,12 +176,12 @@ public class GitCorpusFetchService
 
             if (entry.TargetType == TreeEntryTargetType.Tree)
             {
-                ExtractTree((Tree)entry.Target, childRelative, outputRoot, ref extracted, progress, cancellationToken);
+                ExtractTree((Tree)entry.Target, childRelative, outputRoot, extensions, ref extracted, progress, cancellationToken);
                 continue;
             }
 
             if (entry.TargetType != TreeEntryTargetType.Blob) continue;
-            if (!entry.Name.EndsWith(".xml", StringComparison.OrdinalIgnoreCase)) continue; // nothing else here is needed
+            if (!extensions.Any(e => entry.Name.EndsWith(e, StringComparison.OrdinalIgnoreCase))) continue; // nothing else here is needed
 
             var destPath = Path.Combine(outputRoot, childRelative.Replace('/', Path.DirectorySeparatorChar));
             var destDir = Path.GetDirectoryName(destPath);
