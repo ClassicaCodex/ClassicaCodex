@@ -141,5 +141,5 @@ before this release; until then Search cannot see them.
 The download is not code-signed, so if you would rather check it than trust it:
 
 ```
-SHA-256  (added once the release is published)
+SHA-256  8EDFA92365C61B536C3397A9110485F210BC9A9110AD5B29F80FFA3AEA4622DE
 ```
