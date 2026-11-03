@@ -737,6 +737,10 @@ public class SetupTests
             try
             {
                 Microsoft.Data.Sqlite.SqliteConnection.ClearAllPools();
+
+                // Git's object files are written read-only; clear that first or the delete fails on Windows.
+                foreach (var file in Directory.GetFiles(Root, "*", SearchOption.AllDirectories))
+                    File.SetAttributes(file, FileAttributes.Normal);
                 Directory.Delete(Root, recursive: true);
             }
             catch (IOException)
