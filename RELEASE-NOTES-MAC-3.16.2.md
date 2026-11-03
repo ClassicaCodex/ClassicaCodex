@@ -9,6 +9,9 @@ in every library. The Menota step no longer loses works whose headings repeat:
 the Mac app has had far less use than the Windows one, and the Intel build has
 not yet been opened on an Intel Mac.
 
+Windows has the same fixes, in
+[Classica Codex 3.16.1](https://github.com/ClassicaCodex/ClassicaCodex/releases/tag/v3.16.1).
+
 **[Download the disk image for your Mac](https://github.com/ClassicaCodex/ClassicaCodex/releases/tag/mac-v3.16.2)** —
 `arm64` for Apple silicon, `x64` for Intel. **Apple menu → About This Mac**
 says which you have: a Chip line means Apple silicon, a Processor line means
@@ -65,10 +68,6 @@ Security**, scroll down to the message about Classica Codex, and click
   because no library held the homily. Re-running the Menota step with this
   release installs it, so the lines can now be filed in the AI translations
   repository. Once they are, running that step again brings them in.
-- **Windows.** These fixes are in the shared code but not yet in a Windows
-  release. Windows 3.16.0 still behaves as the
-  [Mac 3.16.1 notes](https://github.com/ClassicaCodex/ClassicaCodex/releases/tag/mac-v3.16.1)
-  describe.
 
 ## If something goes wrong
 
