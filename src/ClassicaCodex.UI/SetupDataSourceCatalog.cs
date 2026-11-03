@@ -837,6 +837,11 @@ public static class SetupDataSourceCatalog
                             "produce - merged or split works, or rows unticked.");
                     }
 
+                    foreach (var (file, note) in service.SharedSlugs)
+                    {
+                        progress.Report($"{Path.GetFileName(file)}: {note}");
+                    }
+
                     if (service.PlansWritten.Count > 0)
                     {
                         progress.Report(

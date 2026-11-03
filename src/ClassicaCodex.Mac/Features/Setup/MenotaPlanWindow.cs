@@ -328,8 +328,8 @@ public sealed class MenotaPlanWindow : FeatureWindow
                 // A work is usually split because it is a collection: the Codex
                 // Regius eddic poems arrive as one row, and splitting should
                 // give Voluspa, Havamal and Grimnismal, not "Eddic poems (1)"
-                // through "(29)". Numbering is the fallback, because two pieces
-                // sharing a title would mint one URN and overwrite each other.
+                // through "(29)". Numbering is the fallback for a division
+                // with no heading.
                 var heading = _body == null
                     ? string.Empty
                     : MenotaXmlLoader.FirstHeading(
@@ -352,17 +352,14 @@ public sealed class MenotaPlanWindow : FeatureWindow
                 };
             }).ToList();
 
-            // Two divisions can carry the same heading. Disambiguate the slug
-            // only, leaving the titles as the manuscript has them.
-            for (var p = 0; p < pieces.Count; p++)
-            {
-                if (pieces.Take(p).Any(e => e.UrnSlug == pieces[p].UrnSlug))
-                    pieces[p].UrnSlug = $"{pieces[p].UrnSlug}-{p + 1}";
-            }
-
             _plan.Works.RemoveAt(at);
             _plan.Works.InsertRange(at, pieces);
         }
+
+        // Two divisions can carry the same heading, and so can a piece and a
+        // row elsewhere in the manuscript. The slugs are numbered, leaving the
+        // titles as the manuscript has them.
+        _plan.MakeSlugsUnique();
 
         LoadRows();
         UpdateSummary();
@@ -457,6 +454,11 @@ public sealed class MenotaPlanWindow : FeatureWindow
             // what the URN is built from and it may have just been corrected.
             work.UrnSlug = MenotaIngestPlanner.Slug(work.Title);
         }
+
+        // Which re-joins every repeated title on one URN, so they are numbered
+        // again - by the rule the ingest applies, so the saved plan names the
+        // URNs the library will hold.
+        _plan.MakeSlugsUnique();
     }
 
     private async Task ConfirmAsync()
