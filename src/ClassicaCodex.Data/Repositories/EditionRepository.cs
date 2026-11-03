@@ -156,6 +156,33 @@ public class EditionRepository
     }
 
     /// <summary>
+    /// The editions whose identifier ends in this, in no particular order.
+    ///
+    /// For the AI translations, which carry no collection and no source path:
+    /// their ".ai-claude" is the one thing that says the setup step made them,
+    /// and so the only way to find one whose file the repository has dropped.
+    /// Compared exactly, with substr rather than LIKE, which reads _ and % as
+    /// wildcards and ignores case.
+    /// </summary>
+    public async Task<List<Edition>> GetByCtsUrnSuffixAsync(
+        string suffix, CancellationToken cancellationToken = default)
+    {
+        await using var conn = await DbConnectionFactory.OpenConnectionAsync(cancellationToken);
+        await using var cmd = conn.CreateCommand();
+
+        cmd.CommandText =
+            @"SELECT EditionId, WorkId, CtsUrn, Kind, Language, Translator, SourcePath, Orthography, Collection
+              FROM Editions WHERE length(CtsUrn) > length(@Suffix) AND substr(CtsUrn, -length(@Suffix)) = @Suffix;";
+        cmd.Parameters.AddWithValue("@Suffix", suffix);
+
+        var results = new List<Edition>();
+        await using var reader = await cmd.ExecuteReaderAsync(cancellationToken);
+        while (await reader.ReadAsync(cancellationToken)) results.Add(Read(reader));
+
+        return results;
+    }
+
+    /// <summary>
     /// Maps a row selected by the column list the readers above share.
     /// One mapper because they must agree: an ordinal corrected in one and
     /// missed in the other reads every field after it out of the wrong column.

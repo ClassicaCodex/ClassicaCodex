@@ -345,6 +345,93 @@ public class AiTranslationsIngestTests
     }
 
     /// <summary>
+    /// A translation the repository has withdrawn comes out of the library on
+    /// the next run: no file will ever correct it again. What it was filed
+    /// beside stays, and so does every edition this step cannot have made - a
+    /// Gemini translation from Create Translation, and an .ai-claude edition
+    /// whose translator does not say it is a machine's. A file renamed but
+    /// naming the same edition is still that edition, untouched.
+    /// </summary>
+    [Fact]
+    public async Task ATranslationTheRepositoryNoLongerHoldsIsRemoved()
+    {
+        using var db = await TempDatabase.CreateAsync();
+        await IliadAsync();
+        var voluspaWork = await VoluspaAsync();
+        var root = Folder(IliadFile(), VoluspaFile());
+
+        await new AiTranslationsIngestService().IngestAsync(root, new Messages());
+        await new WordIndexService().BuildAsync();
+        var iliad = (await LinesAsync(IliadWork + ".ai-claude")).Select(l => l.TextNodeId).ToList();
+        Assert.Equal(1, await db.ScalarAsync<long>("SELECT COUNT(*) FROM WordIndex WHERE NormalizedWord = 'hearing';"));
+
+        var gemini = VoluspaWork + ".ai-gemini-20260808193042";
+        var unlabelled = Voluspa + ":hand.ai-claude";
+        foreach (var (urn, translator) in new[] { (gemini, "Gemini (AI-generated)"), (unlabelled, "A reader") })
+        {
+            await new EditionRepository().UpsertAsync(new Edition
+            {
+                WorkId = voluspaWork, CtsUrn = urn, Kind = EditionKind.Translation, Language = "eng", Translator = translator
+            });
+        }
+
+        var folder = Path.Combine(root, AiTranslationsIngestService.TranslationsFolder);
+        File.Delete(Path.Combine(folder, "urn_menota_anonymous_voluspa.json"));
+        File.Move(
+            Path.Combine(folder, "cts_greekLit_tlg0012.tlg001.json"),
+            Path.Combine(folder, "cts_greekLit_tlg0012.tlg001-renamed.json"));
+
+        var service = new AiTranslationsIngestService();
+        var messages = new Messages();
+        await service.IngestAsync(root, messages);
+
+        Assert.Equal(1, service.Removed);
+        Assert.Equal(1, service.Unchanged);
+        Assert.Null(await EditionAsync(VoluspaWork + ".ai-claude"));
+        Assert.Contains($"{VoluspaWork}: AI translation (Claude): no longer in the repository, removed", messages.All);
+        Assert.Equal(
+            "AI translations: 0 imported, 0 updated, 1 unchanged; 1 removed because the repository no longer has them.",
+            messages.All[^1]);
+
+        // Removed with its lines, and the word index forgets them.
+        Assert.Equal(0, await db.ScalarAsync<long>("SELECT COUNT(*) FROM WordIndex WHERE NormalizedWord = 'hearing';"));
+
+        Assert.Equal(2, (await LinesAsync(Voluspa)).Count);
+        Assert.NotNull(await EditionAsync(gemini));
+        Assert.NotNull(await EditionAsync(unlabelled));
+        Assert.Equal(iliad, (await LinesAsync(IliadWork + ".ai-claude")).Select(l => l.TextNodeId));
+
+        Assert.Equal(new AiTranslationsSurvey(1, 1, 1), await new AiTranslationsIngestService().SurveyAsync(root));
+    }
+
+    /// <summary>
+    /// A file that cannot be read names no edition, and the one it would have
+    /// named may be the translation that looks withdrawn. So while any file
+    /// cannot be read nothing is removed, and the log says what was kept.
+    /// </summary>
+    [Fact]
+    public async Task NothingIsRemovedWhileAFileCannotBeRead()
+    {
+        using var db = await TempDatabase.CreateAsync();
+        await IliadAsync();
+        await VoluspaAsync();
+        var root = Folder(IliadFile(), VoluspaFile());
+
+        await new AiTranslationsIngestService().IngestAsync(root, new Messages());
+        Write(root, ("urn_menota_anonymous_voluspa", "{ \"edition_urn\": "));
+
+        var service = new AiTranslationsIngestService();
+        var messages = new Messages();
+        await service.IngestAsync(root, messages);
+
+        Assert.Equal(0, service.Removed);
+        Assert.Equal("urn_menota_anonymous_voluspa.json", Path.GetFileName(Assert.Single(service.Failed).FilePath));
+        Assert.NotNull(await EditionAsync(VoluspaWork + ".ai-claude"));
+        Assert.Contains(messages.All, m => m.StartsWith(
+            "1 installed translation(s) no longer in the repository kept for now", StringComparison.Ordinal));
+    }
+
+    /// <summary>
     /// With none of the texts in the library nothing can be installed, and the
     /// step says what to install instead of reporting itself ready - and its
     /// tick stays unearned.

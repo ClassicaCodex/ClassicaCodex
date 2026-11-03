@@ -45,8 +45,8 @@ public sealed record AiTranslationFile(
         // The label is what tells a reader the text is a machine's: the edition
         // list, exports and the coverage note all read it from the translator.
         var translator = Required("translator");
-        if (!translator.Contains("(AI-generated)", StringComparison.OrdinalIgnoreCase))
-            throw new InvalidDataException($"its translator, {translator}, does not say \"(AI-generated)\"");
+        if (!translator.Contains(AiTranslationsIngestService.AiLabel, StringComparison.OrdinalIgnoreCase))
+            throw new InvalidDataException($"its translator, {translator}, does not say \"{AiTranslationsIngestService.AiLabel}\"");
 
         var header = root.TryGetProperty("header", out var h) && h.ValueKind == JsonValueKind.Object ? h : default;
         string? HeaderField(string name) =>
@@ -129,7 +129,9 @@ public sealed record AiTranslationsSurvey(int Files, int WithSource, int Install
 /// on their reference, so a corrected line is rewritten in place and keeps
 /// its id, and the word index - kept current only where the library has one,
 /// for the reason CreateTranslationForm gives - is told about that line and
-/// no other.
+/// no other. A translation the repository has withdrawn comes out of the
+/// library, and the setup step's clone takes its file out of the folder; see
+/// RemoveWithdrawnAsync.
 ///
 /// The translators' notes on doubtful readings stay in the files; nothing in
 /// the reader has a place for a note on a translation.
@@ -144,6 +146,9 @@ public class AiTranslationsIngestService
     /// <summary>What every translation's identifier ends in: its work's, and this.</summary>
     public const string EditionSuffix = ".ai-claude";
 
+    /// <summary>What every translation's translator says, so that the reader labels it a machine's.</summary>
+    public const string AiLabel = "(AI-generated)";
+
     /// <summary>What the clone has to write out. The translations are JSON, not TEI.</summary>
     public static readonly IReadOnlyList<string> FileExtensions = new[] { ".json" };
 
@@ -156,6 +161,9 @@ public class AiTranslationsIngestService
     public int Imported { get; private set; }
     public int Updated { get; private set; }
     public int Unchanged { get; private set; }
+
+    /// <summary>Translations removed from the library because no file in the folder is theirs any more.</summary>
+    public int Removed { get; private set; }
 
     /// <summary>Files whose source edition is not in this library. Nothing is wrong with them.</summary>
     public List<(string FilePath, string Reason)> WithoutSource { get; } = new();
@@ -186,6 +194,11 @@ public class AiTranslationsIngestService
                 Failed.Add((path, ex.Message));
             }
         }
+
+        // Before the installs rather than after, so a run stopped part of the
+        // way through them has still taken out what the repository withdrew.
+        await RemoveWithdrawnAsync(
+            files.Select(f => f.File.EditionUrn), everyFileRead: Failed.Count == 0, progress, cancellationToken);
 
         // Every source and every translation asked about at once: it is the
         // same question for each file, and one query answers all of them.
@@ -243,6 +256,9 @@ public class AiTranslationsIngestService
         var text = new StringBuilder(
             $"AI translations: {Imported:N0} imported, {Updated:N0} updated, {Unchanged:N0} unchanged");
 
+        if (Removed > 0)
+            text.Append($"; {Removed:N0} removed because the repository no longer has them");
+
         if (WithoutSource.Count > 0)
             text.Append($"; {WithoutSource.Count:N0} skipped because the text they translate is not in this library");
 
@@ -280,6 +296,52 @@ public class AiTranslationsIngestService
 
         var withSource = files.Where(f => held.ContainsKey(f.SourceEdition)).ToList();
         return new AiTranslationsSurvey(files.Count, withSource.Count, withSource.Count(f => held.ContainsKey(f.EditionUrn)));
+    }
+
+    /// <summary>
+    /// Takes out of the library each translation that no file in the folder
+    /// names any more: withdrawn upstream, or filed under a work renamed since.
+    /// No file will ever correct one again, so left in place it would stay for
+    /// good, under the AI label, beside a text the repository no longer
+    /// translates.
+    ///
+    /// Only an edition this step can have made: an .ai-claude identifier and a
+    /// translator saying "(AI-generated)", the two things Load insists on and
+    /// that Create Translation's ".ai-gemini-" editions never match. And only
+    /// when every file in the folder was read, for the reason the magical
+    /// papyri give for theirs: a file that could not be read names no edition,
+    /// and the one it would have named may be among these. A folder with no
+    /// files never gets here; IngestAsync refuses it first.
+    /// </summary>
+    private async Task RemoveWithdrawnAsync(
+        IEnumerable<string> named, bool everyFileRead, IProgress<string> progress, CancellationToken cancellationToken)
+    {
+        var inFolder = named.ToHashSet(StringComparer.Ordinal);
+        var withdrawn = (await _editionRepo.GetByCtsUrnSuffixAsync(EditionSuffix, cancellationToken))
+            .Where(e => !inFolder.Contains(e.CtsUrn)
+                        && e.Translator?.Contains(AiLabel, StringComparison.OrdinalIgnoreCase) == true)
+            .OrderBy(e => e.CtsUrn, StringComparer.Ordinal)
+            .ToList();
+
+        if (withdrawn.Count == 0) return;
+
+        if (!everyFileRead)
+        {
+            progress.Report(
+                $"{withdrawn.Count:N0} installed translation(s) no longer in the repository kept for now: a file "
+                + "that could not be read may be one of them.");
+            return;
+        }
+
+        foreach (var edition in withdrawn)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            var title = (await _headerRepo.GetAsync(edition.EditionId, cancellationToken))?.Title ?? edition.CtsUrn;
+            await _editionRepo.DeleteEditionAsync(edition.EditionId, cancellationToken);
+            Removed++;
+            progress.Report($"{title}: no longer in the repository, removed");
+        }
     }
 
     private async Task InstallAsync(

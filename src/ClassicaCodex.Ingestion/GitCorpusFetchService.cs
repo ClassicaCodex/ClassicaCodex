@@ -34,12 +34,34 @@ public class GitCorpusFetchService
     /// </summary>
     public IReadOnlyList<string> FileExtensions { get; init; } = DefaultFileExtensions;
 
+    /// <summary>
+    /// Folders, relative to the output folder, that a fetch leaves holding
+    /// what the repository holds now. A file of the extensions above that the
+    /// new tree does not have - deleted or renamed upstream since the last
+    /// fetch - is deleted from these, and from nowhere else.
+    ///
+    /// Without it a fetch only ever adds and overwrites, because the tree is
+    /// extracted on top of whatever the folder already holds. For a corpus of
+    /// TEI that has never mattered much. For the AI translations it does: a
+    /// translation withdrawn upstream stayed in the folder and was installed
+    /// again on every run.
+    ///
+    /// Empty unless a source asks, and by folder rather than the whole output
+    /// folder, because Advanced Setup lets a step be pointed at any folder,
+    /// and one holding a reader's own files is not a clone to be tidied.
+    /// </summary>
+    public IReadOnlyList<string> MirroredFolders { get; init; } = Array.Empty<string>();
+
     public async Task FetchAsync(
         string repoUrl,
         string outputFolder,
         IProgress<FetchProgress>? progress = null,
         CancellationToken cancellationToken = default)
     {
+        // Checked before anything is downloaded. "" or ".." here would tidy
+        // the whole output folder or the one above it.
+        var mirrored = MirroredFolders.Select(folder => MirroredFolderPath(outputFolder, folder)).ToList();
+
         await Task.Run(() =>
         {
             var tempClonePath = Path.Combine(Path.GetTempPath(), $"classicacodex-clone-{Guid.NewGuid():N}");
@@ -152,9 +174,18 @@ public class GitCorpusFetchService
                 var tree = repo.Head.Tip.Tree;
 
                 var extracted = 0;
-                ExtractTree(tree, string.Empty, outputFolder, FileExtensions, ref extracted, progress, cancellationToken);
+                var written = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                ExtractTree(tree, string.Empty, outputFolder, FileExtensions, written, ref extracted, progress, cancellationToken);
 
-                progress?.Report(new FetchProgress($"Done - {extracted} file(s) extracted.", extracted));
+                // Only once the whole tree is written out, so a fetch that
+                // fails or is cancelled part of the way deletes nothing.
+                var removed = RemoveFilesNotInTree(mirrored, FileExtensions, written);
+
+                progress?.Report(new FetchProgress(
+                    removed == 0
+                        ? $"Done - {extracted} file(s) extracted."
+                        : $"Done - {extracted} file(s) extracted, {removed} no longer in the repository removed.",
+                    extracted));
             }
             finally
             {
@@ -164,8 +195,8 @@ public class GitCorpusFetchService
     }
 
     private static void ExtractTree(
-        Tree tree, string relativePath, string outputRoot, IReadOnlyList<string> extensions, ref int extracted,
-        IProgress<FetchProgress>? progress, CancellationToken cancellationToken)
+        Tree tree, string relativePath, string outputRoot, IReadOnlyList<string> extensions, ISet<string> written,
+        ref int extracted, IProgress<FetchProgress>? progress, CancellationToken cancellationToken)
     {
         foreach (var entry in tree)
         {
@@ -176,7 +207,7 @@ public class GitCorpusFetchService
 
             if (entry.TargetType == TreeEntryTargetType.Tree)
             {
-                ExtractTree((Tree)entry.Target, childRelative, outputRoot, extensions, ref extracted, progress, cancellationToken);
+                ExtractTree((Tree)entry.Target, childRelative, outputRoot, extensions, written, ref extracted, progress, cancellationToken);
                 continue;
             }
 
@@ -194,12 +225,63 @@ public class GitCorpusFetchService
                 contentStream.CopyTo(fileStream);
             }
 
+            written.Add(Path.GetFullPath(destPath));
             extracted++;
             if (extracted % 250 == 0)
             {
                 progress?.Report(new FetchProgress($"Extracted {extracted} file(s)...", extracted));
             }
         }
+    }
+
+    /// <summary>Where a mirrored folder is, refusing one that is not a folder inside the output folder.</summary>
+    private static string MirroredFolderPath(string outputFolder, string folder)
+    {
+        var root = Path.GetFullPath(outputFolder);
+        var path = Path.GetFullPath(Path.Combine(root, folder));
+        var relative = Path.GetRelativePath(root, path);
+
+        if (Path.IsPathRooted(folder) || Path.IsPathRooted(relative) || relative == "." || relative == ".."
+            || relative.StartsWith(".." + Path.DirectorySeparatorChar, StringComparison.Ordinal))
+        {
+            throw new ArgumentException(
+                $"A mirrored folder has to be a folder inside {outputFolder}, and \"{folder}\" is not.",
+                nameof(MirroredFolders));
+        }
+
+        return path;
+    }
+
+    /// <summary>
+    /// Deletes from each mirrored folder every file of the cloned kinds that
+    /// this fetch did not write, and says how many. Files of other kinds are
+    /// not the clone's, and are left.
+    ///
+    /// Compared without regard to case, because the disks this runs on, NTFS
+    /// and APFS as macOS formats it, ignore it. A file renamed upstream from
+    /// Iliad.json to iliad.json is written over the old one, which keeps its
+    /// old name; by an exact comparison that name is not in the tree, and the
+    /// file just written with the new text is the one that would go. On a disk
+    /// that does see case the cost is the old file kept beside the new, which
+    /// is what every fetch did before.
+    /// </summary>
+    private static int RemoveFilesNotInTree(
+        IReadOnlyList<string> folders, IReadOnlyList<string> extensions, ISet<string> written)
+    {
+        var removed = 0;
+        foreach (var folder in folders.Where(Directory.Exists))
+        {
+            foreach (var file in Directory.GetFiles(folder, "*", SearchOption.AllDirectories))
+            {
+                if (!extensions.Any(e => file.EndsWith(e, StringComparison.OrdinalIgnoreCase))) continue;
+                if (written.Contains(Path.GetFullPath(file))) continue;
+
+                File.Delete(file);
+                removed++;
+            }
+        }
+
+        return removed;
     }
 
     /// <summary>Replaces every character NTFS won't allow in a filename with an underscore.</summary>
