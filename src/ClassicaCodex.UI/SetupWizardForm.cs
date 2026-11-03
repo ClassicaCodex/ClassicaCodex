@@ -602,7 +602,11 @@ public class SetupWizardForm : ScaledForm
             }
             else
             {
-                var fetchService = new GitCorpusFetchService { FileExtensions = row.Source.ClonedFileExtensions };
+                var fetchService = new GitCorpusFetchService
+                {
+                    FileExtensions = row.Source.ClonedFileExtensions,
+                    MirroredFolders = row.Source.MirroredFolders
+                };
                 var fetchProgress = new Progress<FetchProgress>(p => row.StatusLabel.Text = p.Message);
                 await fetchService.FetchAsync(row.Source.RepoUrl, destination, fetchProgress, _cts.Token);
             }

@@ -81,6 +81,17 @@ public class SetupDataSource
     public IReadOnlyList<string> ClonedFileExtensions = GitCorpusFetchService.DefaultFileExtensions;
 
     /// <summary>
+    /// For GitClone sources only: folders inside the destination that a re-run
+    /// leaves matching the repository, so a file it has since deleted or
+    /// renamed goes from there too. A clone otherwise only adds and overwrites.
+    ///
+    /// Empty unless a source needs it, and named folders rather than the whole
+    /// destination, because Advanced Setup lets a step be pointed at any
+    /// folder. See GitCorpusFetchService.MirroredFolders.
+    /// </summary>
+    public IReadOnlyList<string> MirroredFolders = Array.Empty<string>();
+
+    /// <summary>
     /// A one- or two-sentence, jargon-free explanation of what this step is
     /// for - written for GuidedSetupForm, where there's no repo URL or file
     /// path on screen to give context the way SetupWizardForm's rows do.

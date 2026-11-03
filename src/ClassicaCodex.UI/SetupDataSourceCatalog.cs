@@ -1739,6 +1739,12 @@ public static class SetupDataSourceCatalog
                 // unless it is told otherwise.
                 ClonedFileExtensions = AiTranslationsIngestService.FileExtensions,
 
+                // A re-run is how corrections arrive, and withdrawing or
+                // renaming a translation is one. Left in the folder, the old
+                // file would be installed again on every run, or fail on
+                // every run and keep the tick from ever being earned.
+                MirroredFolders = new[] { AiTranslationsIngestService.TranslationsFolder },
+
                 Links =
                 {
                     new SetupLink
