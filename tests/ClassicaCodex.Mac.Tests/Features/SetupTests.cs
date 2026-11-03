@@ -5,11 +5,14 @@ using Avalonia.VisualTree;
 using ClassicaCodex.Data;
 using ClassicaCodex.Data.Repositories;
 using ClassicaCodex.Ingestion;
+using ClassicaCodex.Ingestion.AiTranslations;
 using ClassicaCodex.Mac.Common;
 using ClassicaCodex.Mac.Features.Setup;
 using ClassicaCodex.Mac.Shell;
 using ClassicaCodex.UI;
 using Xunit;
+using Git = LibGit2Sharp;
+using Models = ClassicaCodex.Core.Models;
 
 namespace ClassicaCodex.Mac.Tests.Features;
 
@@ -498,6 +501,56 @@ public class SetupTests
         main.Close();
     }
 
+    /// <summary>
+    /// The AI translations step fetched twice through SetupRunner, as both
+    /// Mac setup windows fetch it, from a repository whose second commit
+    /// fixes a file by renaming it - what ai-translations did to AM 677 4to.
+    /// The old file names lines its source does not have, and left in the
+    /// folder it would fail on every run and the step would never read
+    /// complete. The clone mirrors the translations folder, so it is gone.
+    /// </summary>
+    [Fact]
+    public async Task Ai_translations_refetch_drops_a_file_renamed_upstream_and_completes()
+    {
+        using var scratch = new Scratch();
+        await scratch.FreshLibraryAsync();
+
+        const string first = "urn:menota:anonymous:untitled-section-1";
+        const string renamed = "urn:menota:anonymous:untitled-section-105";
+        await MenotaSourceAsync(first, "1r.1");
+        await MenotaSourceAsync(renamed, "DiII.10.20");
+
+        var step = Assert.Single(
+            SetupDataSourceCatalog.Build(
+                new AuthorRepository(), new LemmaRepository(), new DefinitionRepository(), new ArtifactRepository(),
+                new EditionRepository()),
+            s => s.RepoUrl == AiTranslationsIngestService.RepositoryUrl);
+
+        var repository = Path.Combine(scratch.Root, "ai-translations.git");
+        step.RepoUrl = repository;
+
+        Task<IngestOutcome> RunAsync() => SetupRunner.RunAsync(
+            step, step.DefaultDestination, step.RunIngest, fetch: true, new Progress<string>(_ => { }), _ => { },
+            "Downloading...", "Installing...", CancellationToken.None);
+
+        // Folio references, which are not lines of the default plan's work.
+        CommitTip(repository, ("translations/menota_anonymous_untitled-section-1.json",
+            TranslationJson(first, "40v.20", "the folio the translator's library cited")));
+        Assert.Single((await RunAsync()).SkippedFiles);
+        Assert.False(await step.CheckComplete());
+
+        CommitTip(repository, ("translations/menota_anonymous_untitled-section-105.json",
+            TranslationJson(renamed, "DiII.10.20", "the same line under its div")));
+        var outcome = await RunAsync();
+
+        Assert.Empty(outcome.SkippedFiles);
+        Assert.Equal(
+            new[] { "menota_anonymous_untitled-section-105.json" },
+            Directory.GetFiles(Path.Combine(step.DefaultDestination, AiTranslationsIngestService.TranslationsFolder))
+                .Select(Path.GetFileName));
+        Assert.True(await step.CheckComplete());
+    }
+
     [Fact]
     public void A_new_library_gets_one_library_extension()
     {
@@ -521,6 +574,67 @@ public class SetupTests
         DivPaths = divs.ToList(),
         Section = "Alcuin"
     };
+
+    /// <summary>One work of AM 677 4to, one line long, as a Menota import leaves it.</summary>
+    private static async Task MenotaSourceAsync(string workUrn, string citationRef)
+    {
+        var authorId = await new AuthorRepository().UpsertAsync(new Models.Author
+        {
+            CtsUrn = "urn:menota:anonymous", Name = "Anonymous", Namespace = "menota", Language = "non"
+        });
+        var workId = await new WorkRepository().UpsertAsync(new Models.Work
+        {
+            AuthorId = authorId, CtsUrn = workUrn, Title = workUrn
+        });
+        var editionId = await new EditionRepository().UpsertAsync(new Models.Edition
+        {
+            WorkId = workId, CtsUrn = workUrn + ":am-677-4to", Kind = Models.EditionKind.Original, Language = "non",
+            SourcePath = workUrn, Collection = "menota"
+        });
+        await new TextNodeRepository().BulkInsertAsync(new List<Models.TextNode>
+        {
+            new() { EditionId = editionId, CitationRef = citationRef, SortOrder = 10, Text = "Old Norse", NodeKind = Models.TextNodeKinds.Line }
+        });
+    }
+
+    /// <summary>A file in the AI translations' own format, of one line.</summary>
+    private static string TranslationJson(string workUrn, string citationRef, string text) =>
+        System.Text.Json.JsonSerializer.Serialize(new
+        {
+            work_urn = workUrn,
+            edition_urn = workUrn + AiTranslationsIngestService.EditionSuffix,
+            source_edition = workUrn + ":am-677-4to",
+            language = "eng",
+            translator = "Claude (AI-generated)",
+            header = new { title = workUrn },
+            nodes = new[] { new { @ref = citationRef, text } }
+        });
+
+    /// <summary>
+    /// Makes a bare repository's tip hold these files and nothing else,
+    /// written straight into git's object store, so it can be cloned from its
+    /// path and nothing is downloaded.
+    /// </summary>
+    private static void CommitTip(string repository, params (string Path, string Text)[] files)
+    {
+        if (!Directory.Exists(repository)) Git.Repository.Init(repository, isBare: true);
+        using var repo = new Git.Repository(repository);
+
+        var tree = new Git.TreeDefinition();
+        foreach (var (path, text) in files)
+        {
+            tree.Add(path, repo.ObjectDatabase.CreateBlob(new MemoryStream(System.Text.Encoding.UTF8.GetBytes(text))),
+                Git.Mode.NonExecutableFile);
+        }
+
+        var signature = new Git.Signature("Test", "test@example.com", DateTimeOffset.UnixEpoch);
+        var parents = repo.Head.Tip == null ? Array.Empty<Git.Commit>() : new[] { repo.Head.Tip };
+        var commit = repo.ObjectDatabase.CreateCommit(
+            signature, signature, "test", repo.ObjectDatabase.CreateTree(tree), parents, prettifyMessage: false);
+
+        repo.Refs.Add("refs/heads/main", commit.Id, allowOverwrite: true);
+        repo.Refs.UpdateTarget(repo.Refs.Head, "refs/heads/main");
+    }
 
     private static void SetPath(GuidedSetupWindow window, string path)
     {
@@ -623,6 +737,10 @@ public class SetupTests
             try
             {
                 Microsoft.Data.Sqlite.SqliteConnection.ClearAllPools();
+
+                // Git's object files are written read-only; clear that first or the delete fails on Windows.
+                foreach (var file in Directory.GetFiles(Root, "*", SearchOption.AllDirectories))
+                    File.SetAttributes(file, FileAttributes.Normal);
                 Directory.Delete(Root, recursive: true);
             }
             catch (IOException)
