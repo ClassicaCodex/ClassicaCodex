@@ -84,6 +84,6 @@ The downloads are signed ad hoc but not notarised, so if you would rather check
 them than trust them:
 
 ```
-SHA-256  (to come)  ClassicaCodex-3.16.2-mac-arm64.dmg
-SHA-256  (to come)  ClassicaCodex-3.16.2-mac-x64.dmg
+SHA-256  2B8DFD29C8C2F18EB00CB3C3AE5625B261D630DC33BF59B486652DBCFC79855C  ClassicaCodex-3.16.2-mac-arm64.dmg
+SHA-256  B975C287A56B1900CE2387AB8D66ACD888EC2527AF126AE17CE2F8CE9B203005  ClassicaCodex-3.16.2-mac-x64.dmg
 ```
