@@ -1,3 +1,8 @@
+> **Historical.** These are the notes for Classica Codex 3.16.0. It has been followed by
+> [Classica Codex 3.16.1](https://github.com/ClassicaCodex/ClassicaCodex/releases/tag/v3.16.1).
+> Any download link or SHA-256 below refers to the 3.16.0 ZIP, not to the current
+> one, so do not check a current download against a checksum printed here.
+
 # Classica Codex 3.16.0
 
 Cuneiform, the Egyptian texts, what ancient magicians wrote down, and English
