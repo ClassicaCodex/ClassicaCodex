@@ -60,5 +60,5 @@ More info, then Run anyway.
 The download is not code-signed, so if you would rather check it than trust it:
 
 ```
-SHA-256  (added once the release is published)
+SHA-256  569817EB27630A8716BBE03281EAE759CC650AF9011924E9EF13F2CB2996DB55
 ```
