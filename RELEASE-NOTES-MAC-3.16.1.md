@@ -66,15 +66,30 @@ texts already in the library. On a full library it takes about ten seconds.
 The word index is kept up to date as they go in, so there is nothing to
 rebuild.
 
-## Two that don't install yet
+## Two that didn't install, since corrected
 
-On a library set up today, two of the 446 are skipped and named in the setup
-log: two lines of Seneca's *Moral Letters*, and thirty lines of AM 677 4to,
-the Old Icelandic manuscript of Gregory's Homilies and Dialogues. Their
-references don't match the way setup divides those two texts. The fault is in
-the two files, not in your library, and the other translations are not
-affected. Until they are corrected in the repository, the step stays unticked
-even with every collection installed. The same is true on Windows 3.16.0.
+When this release came out, two of the 446 did not install into a library set
+up that day. They were two lines of Seneca's *Moral Letters* and thirty lines
+of AM 677 4to, the Old Icelandic manuscript of Gregory's Homilies and
+Dialogues, and with them missing the step stayed unticked. Both files have
+since been corrected in the repository. Running the step now installs every
+translation whose text is in your library, and the step ticks. The same is
+true on Windows 3.16.0.
+
+Three things are still to be put right in the app, in a coming release:
+
+- **If you ran the step on 2 November or earlier,** a re-run can still leave
+  it unticked, with `menota_anonymous_untitled-section-1.json` named in the
+  setup log. That is the old file: a re-run adds files but never removes
+  them. Delete the `ai-translations` folder in your download folder and run
+  the step again.
+- **If your Latin texts were installed before 16 October,** in a library
+  brought over from Windows, say, Seneca's two lines don't install. Perseus
+  changed how that text is cited on that date, and the corrected file follows
+  the new form.
+- **Twenty-five lines of Gregory's Homily 34 are held back.** In AM 677 4to,
+  setup keeps only one of seven homilies that share a heading, and Homily 34 is
+  one it loses, so there is nothing yet to file them beside.
 
 ## If something goes wrong
 
