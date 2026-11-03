@@ -1739,6 +1739,11 @@ public static class SetupDataSourceCatalog
                 // unless it is told otherwise.
                 ClonedFileExtensions = AiTranslationsIngestService.FileExtensions,
 
+                // Every file in the folder is installed, so one deleted or
+                // renamed upstream and left behind here, no longer installable,
+                // would keep this step from ever showing complete.
+                MirroredFolders = new[] { AiTranslationsIngestService.TranslationsFolder },
+
                 Links =
                 {
                     new SetupLink

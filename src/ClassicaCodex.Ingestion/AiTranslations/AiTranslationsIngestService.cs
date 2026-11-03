@@ -294,19 +294,22 @@ public class AiTranslationsIngestService
 
         // Checked before anything is written, so a file is installed whole or
         // not at all.
-        var unknown = file.Lines.Select(l => l.CitationRef).Where(c => !sourceLines.ContainsKey(c)).Distinct().ToList();
+        var matched = file.Lines.Select(l => (l.CitationRef, Line: SourceLine(sourceLines, source.CtsUrn, l.CitationRef))).ToList();
+        var unknown = matched.Where(m => m.Line == null).Select(m => m.CitationRef).Distinct().ToList();
         if (unknown.Count > 0)
         {
             throw new InvalidDataException(
                 $"{unknown.Count:N0} of its references are not lines of {file.SourceEdition}, the first {unknown[0]}");
         }
 
+        // Filed under the source line's reference as this library holds it,
+        // which is not always the form the file wrote. See SourceLine.
         var lines = file.Lines
-            .Select(l => new TextNode
+            .Select((l, i) => new TextNode
             {
-                CitationRef = l.CitationRef,
-                SortOrder = sourceLines[l.CitationRef].SortOrder,
-                NodeKind = sourceLines[l.CitationRef].NodeKind,
+                CitationRef = matched[i].Line!.CitationRef,
+                SortOrder = matched[i].Line!.SortOrder,
+                NodeKind = matched[i].Line!.NodeKind,
                 Text = l.Text
             })
             .OrderBy(l => l.SortOrder)
@@ -356,6 +359,32 @@ public class AiTranslationsIngestService
         {
             Unchanged++;
         }
+    }
+
+    /// <summary>
+    /// The source line a file's reference names, in whichever of its two
+    /// forms this library holds it; null if neither.
+    ///
+    /// <b>The same edition is stored two ways.</b> TeiParser puts every div's
+    /// n in the trail, and Perseus has been giving some editions' outer div an
+    /// n that is the edition's own URN: Seneca's phi1017.phi015.perseus-lat2
+    /// gained one on 2026-10-16. A library that fetched the Latin before then
+    /// holds its lines as 1.9.6.1, one fetched since as
+    /// urn:cts:latinLit:phi1017.phi015.perseus-lat2.1.9.6.1, and one file of
+    /// the collection has to install in both. So a reference that is not a
+    /// line as written is tried with the source's URN put in front, or taken
+    /// off, before it is called unknown.
+    /// </summary>
+    private static TextNode? SourceLine(Dictionary<string, TextNode> sourceLines, string sourceUrn, string citationRef)
+    {
+        if (sourceLines.TryGetValue(citationRef, out var line)) return line;
+
+        var prefix = sourceUrn + ".";
+        var other = citationRef.StartsWith(prefix, StringComparison.Ordinal)
+            ? citationRef[prefix.Length..]
+            : prefix + citationRef;
+
+        return sourceLines.GetValueOrDefault(other);
     }
 
     private static List<string> Files(string root)

@@ -316,6 +316,113 @@ public class AiTranslationsIngestTests
         Assert.False((await new AiTranslationsIngestService().SurveyAsync(root)).IsComplete);
     }
 
+    private const string SenecaWork = "urn:cts:latinLit:phi1017.phi015";
+    private const string Seneca = "urn:cts:latinLit:phi1017.phi015.perseus-lat2";
+
+    /// <summary>
+    /// Seneca's letters as a library holds them: under bare references if the
+    /// Latin was fetched before Perseus gave the edition div its URN as an n,
+    /// under references that begin with that URN if it was fetched since.
+    /// </summary>
+    private static Task<int> SenecaAsync(bool urnInTheReferences)
+    {
+        var prefix = urnInTheReferences ? Seneca + "." : "";
+        return SourceAsync(
+            "urn:cts:latinLit:phi1017", "Seneca", SenecaWork, "Epistulae Morales", Seneca, "lat",
+            (prefix + "1.9.6.1", "Ego tibi monstrabo amatorium sine medicamento,", TextNodeKinds.Line),
+            (prefix + "1.9.6.2", "sine herba, sine ullius veneficae carmine:", TextNodeKinds.Line));
+    }
+
+    private static (string Name, string Json) SenecaFile(bool urnInTheReferences, string firstLine = "I will show you a love potion")
+    {
+        var prefix = urnInTheReferences ? Seneca + "." : "";
+        return ("cts_latinLit_phi1017.phi015", Translation(SenecaWork, Seneca,
+            (prefix + "1.9.6.1", firstLine),
+            (prefix + "1.9.6.2", "without drugs, without herbs, without any witch's spell:")));
+    }
+
+    /// <summary>
+    /// One file installs in a library of either kind, whichever form it was
+    /// written in, and each line is filed under the reference the library
+    /// gives its original - the form the reader looks it up by.
+    /// </summary>
+    [Theory]
+    [InlineData(false, true)]
+    [InlineData(true, false)]
+    [InlineData(true, true)]
+    [InlineData(false, false)]
+    public async Task AFileInstallsWhicheverFormOfTheSourcesReferencesTheLibraryHolds(bool libraryHasUrn, bool fileHasUrn)
+    {
+        using var db = await TempDatabase.CreateAsync();
+        await SenecaAsync(libraryHasUrn);
+
+        var service = new AiTranslationsIngestService();
+        await service.IngestAsync(Folder(SenecaFile(fileHasUrn)), new Messages());
+
+        Assert.Empty(service.Failed);
+        Assert.Equal(1, service.Imported);
+
+        var prefix = libraryHasUrn ? Seneca + "." : "";
+        var lines = await LinesAsync(SenecaWork + ".ai-claude");
+        Assert.Equal(new[] { prefix + "1.9.6.1", prefix + "1.9.6.2" }, lines.Select(l => l.CitationRef));
+        Assert.Equal(new[] { 10, 20 }, lines.Select(l => l.SortOrder));
+        Assert.Equal("I will show you a love potion", lines[0].Text);
+    }
+
+    /// <summary>
+    /// A translation installed from the bare form is the same translation in
+    /// the URN form: re-run with the file rewritten, it is unchanged, and a
+    /// corrected line keeps its id. What the collection's own fix to Seneca's
+    /// file does to a library that already holds it.
+    /// </summary>
+    [Fact]
+    public async Task RewritingAFileInTheOtherFormChangesNothingButTheText()
+    {
+        using var db = await TempDatabase.CreateAsync();
+        await SenecaAsync(urnInTheReferences: false);
+        var root = Folder(SenecaFile(urnInTheReferences: false));
+
+        await new AiTranslationsIngestService().IngestAsync(root, new Messages());
+        var before = await LinesAsync(SenecaWork + ".ai-claude");
+
+        Write(root, SenecaFile(urnInTheReferences: true));
+        var again = new AiTranslationsIngestService();
+        await again.IngestAsync(root, new Messages());
+        Assert.Equal(1, again.Unchanged);
+
+        Write(root, SenecaFile(urnInTheReferences: true, firstLine: "I will show you a love charm"));
+        var corrected = new AiTranslationsIngestService();
+        await corrected.IngestAsync(root, new Messages());
+        Assert.Equal(1, corrected.Updated);
+
+        var after = await LinesAsync(SenecaWork + ".ai-claude");
+        Assert.Equal(before.Select(l => (l.TextNodeId, l.CitationRef)), after.Select(l => (l.TextNodeId, l.CitationRef)));
+        Assert.Equal("I will show you a love charm", after[0].Text);
+    }
+
+    /// <summary>
+    /// The other form is tried only with this source's own URN. A reference
+    /// in neither form, or carrying another edition's URN, is still not a
+    /// line, and the file is still skipped whole.
+    /// </summary>
+    [Fact]
+    public async Task AReferenceInNeitherFormIsStillUnknown()
+    {
+        using var db = await TempDatabase.CreateAsync();
+        await SenecaAsync(urnInTheReferences: true);
+
+        var other = "urn:cts:latinLit:phi1017.phi015.perseus-lat1.1.9.6.2";
+        var service = new AiTranslationsIngestService();
+        await service.IngestAsync(Folder(("cts_latinLit_phi1017.phi015", Translation(SenecaWork, Seneca,
+            ("1.9.6.1", "I will show you a love potion"),
+            (other, "without drugs, without herbs, without any witch's spell:"),
+            ($"{Seneca}.1.9.6.99", "a line the letter does not have")))), new Messages());
+
+        var (_, error) = Assert.Single(service.Failed);
+        Assert.Equal($"2 of its references are not lines of {Seneca}, the first {other}", error);
+        Assert.Null(await EditionAsync(SenecaWork + ".ai-claude"));
+    }
+
     /// <summary>
     /// The upsert overwrites whatever holds the identifier and the sync
     /// deletes every line the file does not list, so a file whose own

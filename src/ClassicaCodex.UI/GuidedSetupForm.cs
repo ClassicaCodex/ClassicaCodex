@@ -1178,7 +1178,11 @@ public class GuidedSetupForm : ScaledForm
             }
             else
             {
-                var fetchService = new GitCorpusFetchService { FileExtensions = source.ClonedFileExtensions };
+                var fetchService = new GitCorpusFetchService
+                {
+                    FileExtensions = source.ClonedFileExtensions,
+                    MirroredFolders = source.MirroredFolders
+                };
                 var fetchProgress = new Progress<FetchProgress>(p => _statusLabel.Text = p.Message);
                 await fetchService.FetchAsync(source.RepoUrl, source.DefaultDestination, fetchProgress, _cts.Token);
             }

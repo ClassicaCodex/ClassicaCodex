@@ -118,6 +118,11 @@ public class SetupDataSourceCatalogTests
         Assert.Equal(new[] { ".json" }, step.ClonedFileExtensions);
         Assert.Contains(step.Links, l => l.Url == url);
 
+        // Its translations folder is made to match the repository on every
+        // fetch, so a file renamed upstream does not linger, fail to install
+        // and keep the step from ever reading complete.
+        Assert.Equal(new[] { AiTranslationsIngestService.TranslationsFolder }, step.MirroredFolders);
+
         // Said before anyone installs it, not discovered in the reader.
         Assert.Contains("AI-generated", step.PlainLanguageDescription);
         Assert.Contains("no specialist", step.PlainLanguageDescription);
@@ -125,9 +130,14 @@ public class SetupDataSourceCatalogTests
         Assert.Contains("CC BY 4.0", step.PlainLanguageDescription);
         Assert.Contains("AI-generated", step.DisplayNote);
 
-        // Every other clone still writes out its XML and nothing else.
+        // Every other clone still writes out its XML and nothing else, over
+        // what is there, removing nothing.
         Assert.All(
             Build().Where(s => s.FetchMode == SetupFetchMode.GitClone && s.RepoUrl != url),
-            s => Assert.Equal(new[] { ".xml" }, s.ClonedFileExtensions));
+            s =>
+            {
+                Assert.Equal(new[] { ".xml" }, s.ClonedFileExtensions);
+                Assert.Empty(s.MirroredFolders);
+            });
     }
 }
