@@ -90,6 +90,87 @@ public sealed class MenotaIngestPlan
         File.Exists(path)
             ? JsonSerializer.Deserialize<MenotaIngestPlan>(File.ReadAllText(path), JsonOptions)
             : null;
+
+    /// <summary>
+    /// Gives every included work an edition URN of its own, and says which
+    /// ones had to change.
+    ///
+    /// The URN is built from the title, and titles come from headings, which
+    /// repeat. AM 677 4to opens seven homilies with the rubric "Gregorius";
+    /// Holm A 80 heads 158 prayers "pr̅ nr̅", "Aue maria" and the like. Seven
+    /// works with one URN were one edition, and the ingest cleared it and
+    /// refilled it once per work, so the library held the last homily and
+    /// nothing at all of the other six - 17,470 words of AM 677 4to, 15,714 of
+    /// Holm A 80 and 3,048 of Wolf Aug 9 10 4to, with no message anywhere.
+    ///
+    /// The last work keeps the shared slug and the earlier ones are numbered
+    /// in manuscript order - gregorius-1 to gregorius-6, then gregorius. Last
+    /// rather than first because the last is what every library imported
+    /// before this already holds under that URN, so bookmarks, notes and
+    /// translations made against it still find the same text, and the only
+    /// URNs that are new are ones that never held anything.
+    ///
+    /// Keyed on the author as well as the slug, because the edition URN is,
+    /// and two works that differ by author never collided. Excluded works mint
+    /// nothing, so they neither take a slug nor keep one from anybody.
+    ///
+    /// The planner, the review and the ingest all call this, so a plan
+    /// confirmed before this existed imports under the same URNs a fresh plan
+    /// proposes.
+    /// </summary>
+    public List<MenotaSlugCollision> MakeSlugsUnique()
+    {
+        var collisions = new List<MenotaSlugCollision>();
+
+        var groups = Works
+            .Where(w => w.Include)
+            .GroupBy(w => (Author: MenotaIngestPlanner.Slug(w.AuthorOrAnonymous()), Slug: w.SlugOrTitleSlug()))
+            .ToList();
+
+        // Ordinal, as SQLite compares the URN column, so two slugs differing
+        // only in case - which only hand-editing produces - are not renamed.
+        var taken = groups.Select(g => g.Key).ToHashSet();
+
+        foreach (var group in groups)
+        {
+            var works = group.ToList();
+            if (works.Count < 2) continue;
+
+            var renamed = new List<string>();
+
+            // A suffix the manuscript already uses for a title of its own -
+            // a work headed "Gregorius 2" - is passed over rather than shared.
+            var n = 0;
+            foreach (var work in works.Take(works.Count - 1))
+            {
+                string slug;
+                do slug = $"{group.Key.Slug}-{++n}";
+                while (!taken.Add((group.Key.Author, slug)));
+
+                work.UrnSlug = slug;
+                renamed.Add(slug);
+            }
+
+            collisions.Add(new MenotaSlugCollision(group.Key.Slug, works.Count, renamed));
+        }
+
+        return collisions;
+    }
+}
+
+/// <summary>
+/// A slug several included works in one plan shared. The last of them kept it;
+/// Renamed lists what the others were given, in manuscript order.
+/// </summary>
+public sealed record MenotaSlugCollision(string Slug, int Works, IReadOnlyList<string> Renamed)
+{
+    public string Describe() =>
+        Renamed.Count switch
+        {
+            1 => $"{Works} works shared \"{Slug}\"; the first is now {Renamed[0]}",
+            2 => $"{Works} works shared \"{Slug}\"; the first two are now {Renamed[0]} and {Renamed[1]}",
+            _ => $"{Works} works shared \"{Slug}\"; all but the last are now {Renamed[0]} to {Renamed[^1]}"
+        };
 }
 
 public sealed class MenotaWorkPlan
@@ -139,6 +220,14 @@ public sealed class MenotaWorkPlan
     /// rather than infer it from a note.
     /// </summary>
     public string Section { get; set; } = "";
+
+    /// <summary>The author the ingest files this work under.</summary>
+    public string AuthorOrAnonymous() =>
+        string.IsNullOrWhiteSpace(Author) ? "Anonymous" : Author.Trim();
+
+    /// <summary>The slug the ingest mints this work's URN from.</summary>
+    public string SlugOrTitleSlug() =>
+        string.IsNullOrWhiteSpace(UrnSlug) ? MenotaIngestPlanner.Slug(Title) : UrnSlug;
 }
 
 /// <summary>
@@ -413,6 +502,16 @@ public sealed class MenotaIngestPlanner
                 MatchBasis = basis,
                 WordCount = wordCount
             });
+        }
+
+        // Headings repeat - AM 677 4to opens seven homilies with "Gregorius" -
+        // and a URN made from a heading repeats with them.
+        var shared = plan.MakeSlugsUnique();
+        if (shared.Count > 0)
+        {
+            plan.Notes.Add(
+                $"{shared.Sum(c => c.Works)} work(s) would share a URN with another, so they are numbered " +
+                $"in manuscript order: {string.Join("; ", shared.Select(c => c.Describe()))}.");
         }
 
         var unmatched = leafItems.Where(m => !used.Contains(m.N)).ToList();

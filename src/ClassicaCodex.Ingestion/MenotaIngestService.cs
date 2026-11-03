@@ -53,6 +53,12 @@ public class MenotaIngestService
     /// <summary>Files that had no plan, and now have an unconfirmed one written.</summary>
     public List<string> PlansWritten { get; } = new();
 
+    /// <summary>
+    /// Files whose confirmed plan gave two included works the same URN, with
+    /// what each was imported as instead. See MenotaIngestPlan.MakeSlugsUnique.
+    /// </summary>
+    public List<(string FilePath, string Note)> SharedSlugs { get; } = new();
+
     public async Task<IngestOutcome> IngestAsync(
         string folder,
         IProgress<string>? progress = null,
@@ -148,6 +154,22 @@ public class MenotaIngestService
 
         var msSlug = MenotaIngestPlanner.Slug(plan.ManuscriptId);
 
+        // Plans confirmed before the planner numbered repeated titles still
+        // give seven homilies one URN, and each would replace the one before.
+        // Numbered here by the same rule, in memory - the confirmed file is
+        // the reader's and is not rewritten - and said, so a library that
+        // grows by seven works does not do it without a word. Reviewing the
+        // plan again writes the numbers into it.
+        var shared = plan.MakeSlugsUnique();
+        if (shared.Count > 0)
+        {
+            SharedSlugs.Add((path,
+                $"{shared.Sum(c => c.Works - 1)} work(s) had the same URN as a later work in this manuscript, " +
+                "which replaced them on import. They now have URNs of their own: " +
+                string.Join("; ", shared.Take(5).Select(c => c.Describe())) +
+                (shared.Count > 5 ? $"; and {shared.Count - 5} more." : ".")));
+        }
+
         // What this file put in the library last time, so that anything the
         // confirmed plan no longer produces can be taken out again.
         var previous = await _editionRepo.GetBySourcePathAsync(path, cancellationToken);
@@ -186,11 +208,9 @@ public class MenotaIngestService
                 continue;
             }
 
-            var authorName = string.IsNullOrWhiteSpace(work.Author) ? "Anonymous" : work.Author.Trim();
+            var authorName = work.AuthorOrAnonymous();
             var authorSlug = MenotaIngestPlanner.Slug(authorName);
-            var workSlug = string.IsNullOrWhiteSpace(work.UrnSlug)
-                ? MenotaIngestPlanner.Slug(work.Title)
-                : work.UrnSlug;
+            var workSlug = work.SlugOrTitleSlug();
 
             var authorId = await _authorRepo.UpsertAsync(new Author
             {

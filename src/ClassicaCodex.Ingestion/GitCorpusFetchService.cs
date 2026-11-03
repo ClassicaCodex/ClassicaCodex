@@ -35,20 +35,20 @@ public class GitCorpusFetchService
     public IReadOnlyList<string> FileExtensions { get; init; } = DefaultFileExtensions;
 
     /// <summary>
-    /// Folders, relative to the output folder, made to hold what the tree
-    /// holds and no more: once the tree is written out, any file there of
-    /// one of FileExtensions that the tree no longer has is deleted. Empty
-    /// unless a source asks for it.
+    /// Folders, relative to the output folder, that a fetch leaves holding
+    /// what the repository holds now. A file of the extensions above that the
+    /// new tree does not have - deleted or renamed upstream since the last
+    /// fetch - is deleted from these, and from nowhere else.
     ///
-    /// A clone otherwise writes over the folder and removes nothing, so a
-    /// file deleted or renamed upstream stays in the reader's copy for good.
-    /// For the TEI corpora that has never mattered, and they are left as they
-    /// were. For the AI translations it does: every file in the folder is
-    /// installed, and a leftover that no longer installs keeps the step from
-    /// ever showing complete.
+    /// Without it a fetch only ever adds and overwrites, because the tree is
+    /// extracted on top of whatever the folder already holds. For a corpus of
+    /// TEI that has never mattered much. For the AI translations it does: a
+    /// translation withdrawn upstream stayed in the folder and was installed
+    /// again on every run.
     ///
-    /// Done after the new tree is written, not by emptying the folder first,
-    /// so a clone that fails or is cancelled leaves the old files usable.
+    /// Empty unless a source asks, and by folder rather than the whole output
+    /// folder, because Advanced Setup lets a step be pointed at any folder,
+    /// and one holding a reader's own files is not a clone to be tidied.
     /// </summary>
     public IReadOnlyList<string> MirroredFolders { get; init; } = Array.Empty<string>();
 
@@ -58,14 +58,9 @@ public class GitCorpusFetchService
         IProgress<FetchProgress>? progress = null,
         CancellationToken cancellationToken = default)
     {
-        // Only ever a folder inside the clone's own: a rooted path or one that
-        // climbs out would have the mirror delete files that are not its.
-        // Checked before anything is downloaded.
-        foreach (var folder in MirroredFolders)
-        {
-            if (Path.IsPathRooted(folder) || folder.Split('/', '\\').Contains(".."))
-                throw new ArgumentException($"{folder} is not a folder inside the clone.", nameof(MirroredFolders));
-        }
+        // Checked before anything is downloaded. "" or ".." here would tidy
+        // the whole output folder or the one above it.
+        var mirrored = MirroredFolders.Select(folder => MirroredFolderPath(outputFolder, folder)).ToList();
 
         await Task.Run(() =>
         {
@@ -182,7 +177,9 @@ public class GitCorpusFetchService
                 var written = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
                 ExtractTree(tree, string.Empty, outputFolder, FileExtensions, written, ref extracted, progress, cancellationToken);
 
-                var removed = RemoveFilesGoneUpstream(outputFolder, MirroredFolders, FileExtensions, written, cancellationToken);
+                // Only once the whole tree is written out, so a fetch that
+                // fails or is cancelled part of the way deletes nothing.
+                var removed = RemoveFilesNotInTree(mirrored, FileExtensions, written);
 
                 progress?.Report(new FetchProgress(
                     removed == 0
@@ -198,9 +195,8 @@ public class GitCorpusFetchService
     }
 
     private static void ExtractTree(
-        Tree tree, string relativePath, string outputRoot, IReadOnlyList<string> extensions,
-        HashSet<string> written, ref int extracted,
-        IProgress<FetchProgress>? progress, CancellationToken cancellationToken)
+        Tree tree, string relativePath, string outputRoot, IReadOnlyList<string> extensions, ISet<string> written,
+        ref int extracted, IProgress<FetchProgress>? progress, CancellationToken cancellationToken)
     {
         foreach (var entry in tree)
         {
@@ -238,30 +234,45 @@ public class GitCorpusFetchService
         }
     }
 
+    /// <summary>Where a mirrored folder is, refusing one that is not a folder inside the output folder.</summary>
+    private static string MirroredFolderPath(string outputFolder, string folder)
+    {
+        var root = Path.GetFullPath(outputFolder);
+        var path = Path.GetFullPath(Path.Combine(root, folder));
+        var relative = Path.GetRelativePath(root, path);
+
+        if (Path.IsPathRooted(folder) || Path.IsPathRooted(relative) || relative == "." || relative == ".."
+            || relative.StartsWith(".." + Path.DirectorySeparatorChar, StringComparison.Ordinal))
+        {
+            throw new ArgumentException(
+                $"A mirrored folder has to be a folder inside {outputFolder}, and \"{folder}\" is not.",
+                nameof(MirroredFolders));
+        }
+
+        return path;
+    }
+
     /// <summary>
-    /// Deletes each file in the mirrored folders, of the extensions the clone
-    /// writes, that this clone did not write. See MirroredFolders.
+    /// Deletes from each mirrored folder every file of the cloned kinds that
+    /// this fetch did not write, and says how many. Files of other kinds are
+    /// not the clone's, and are left.
     ///
-    /// Compared without regard to case, because the folders Windows and macOS
-    /// give a reader are case-insensitive: a file renamed upstream only in its
-    /// case is written over the old one, which keeps the old name's case on
-    /// disk, and an ordinal comparison would take the file just written for a
-    /// leftover and delete it.
+    /// Compared without regard to case, because the disks this runs on, NTFS
+    /// and APFS as macOS formats it, ignore it. A file renamed upstream from
+    /// Iliad.json to iliad.json is written over the old one, which keeps its
+    /// old name; by an exact comparison that name is not in the tree, and the
+    /// file just written with the new text is the one that would go. On a disk
+    /// that does see case the cost is the old file kept beside the new, which
+    /// is what every fetch did before.
     /// </summary>
-    private static int RemoveFilesGoneUpstream(
-        string outputRoot, IReadOnlyList<string> folders, IReadOnlyList<string> extensions,
-        HashSet<string> written, CancellationToken cancellationToken)
+    private static int RemoveFilesNotInTree(
+        IReadOnlyList<string> folders, IReadOnlyList<string> extensions, ISet<string> written)
     {
         var removed = 0;
-        foreach (var folder in folders)
+        foreach (var folder in folders.Where(Directory.Exists))
         {
-            var path = Path.Combine(outputRoot, folder.Replace('/', Path.DirectorySeparatorChar));
-            if (!Directory.Exists(path)) continue;
-
-            foreach (var file in Directory.GetFiles(path, "*", SearchOption.AllDirectories))
+            foreach (var file in Directory.GetFiles(folder, "*", SearchOption.AllDirectories))
             {
-                cancellationToken.ThrowIfCancellationRequested();
-
                 if (!extensions.Any(e => file.EndsWith(e, StringComparison.OrdinalIgnoreCase))) continue;
                 if (written.Contains(Path.GetFullPath(file))) continue;
 

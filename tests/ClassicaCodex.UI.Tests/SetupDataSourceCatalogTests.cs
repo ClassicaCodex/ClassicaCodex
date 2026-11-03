@@ -118,11 +118,6 @@ public class SetupDataSourceCatalogTests
         Assert.Equal(new[] { ".json" }, step.ClonedFileExtensions);
         Assert.Contains(step.Links, l => l.Url == url);
 
-        // Its translations folder is made to match the repository on every
-        // fetch, so a file renamed upstream does not linger, fail to install
-        // and keep the step from ever reading complete.
-        Assert.Equal(new[] { AiTranslationsIngestService.TranslationsFolder }, step.MirroredFolders);
-
         // Said before anyone installs it, not discovered in the reader.
         Assert.Contains("AI-generated", step.PlainLanguageDescription);
         Assert.Contains("no specialist", step.PlainLanguageDescription);
@@ -130,14 +125,49 @@ public class SetupDataSourceCatalogTests
         Assert.Contains("CC BY 4.0", step.PlainLanguageDescription);
         Assert.Contains("AI-generated", step.DisplayNote);
 
-        // Every other clone still writes out its XML and nothing else, over
-        // what is there, removing nothing.
+        // Every other clone still writes out its XML and nothing else.
         Assert.All(
             Build().Where(s => s.FetchMode == SetupFetchMode.GitClone && s.RepoUrl != url),
-            s =>
+            s => Assert.Equal(new[] { ".xml" }, s.ClonedFileExtensions));
+    }
+
+    /// <summary>
+    /// A re-run of the AI translations step leaves its folder of translations
+    /// as the repository has it. Running it again is how corrections arrive,
+    /// and a file withdrawn or renamed upstream that stayed behind would be
+    /// installed again on every run, or fail on every run and keep the tick
+    /// from ever being earned. Every other clone deletes nothing, as before.
+    /// </summary>
+    [Fact]
+    public void TheAiTranslationsStepMirrorsItsTranslationsFolderAndNoOtherCloneMirrorsAnything()
+    {
+        var url = AiTranslationsIngestService.RepositoryUrl;
+        var step = Assert.Single(Build(), s => s.RepoUrl == url);
+
+        Assert.Equal(new[] { AiTranslationsIngestService.TranslationsFolder }, step.MirroredFolders);
+
+        Assert.All(Build().Where(s => s.RepoUrl != url), s => Assert.Empty(s.MirroredFolders));
+    }
+
+    /// <summary>
+    /// A mirrored folder is one the clone fills, inside the step's destination.
+    /// The fetch refuses anything else, but only once the step is run; this
+    /// says so for every step without running one. "" or ".." would tidy a
+    /// whole folder Advanced Setup may have pointed at a reader's own files.
+    /// </summary>
+    [Fact]
+    public void EveryMirroredFolderIsAFolderInsideAClonesDestination()
+    {
+        Assert.All(Build().Where(s => s.MirroredFolders.Count > 0), source =>
+        {
+            Assert.Equal(SetupFetchMode.GitClone, source.FetchMode);
+
+            Assert.All(source.MirroredFolders, folder =>
             {
-                Assert.Equal(new[] { ".xml" }, s.ClonedFileExtensions);
-                Assert.Empty(s.MirroredFolders);
+                Assert.False(string.IsNullOrWhiteSpace(folder), $"{source.Title} mirrors a folder with no name");
+                Assert.False(Path.IsPathRooted(folder), $"{source.Title} mirrors {folder}, which is not inside its destination");
+                Assert.DoesNotContain(folder.Split('/', '\\'), part => part is "." or "..");
             });
+        });
     }
 }

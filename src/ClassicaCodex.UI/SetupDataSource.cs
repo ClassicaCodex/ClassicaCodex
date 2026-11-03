@@ -81,11 +81,13 @@ public class SetupDataSource
     public IReadOnlyList<string> ClonedFileExtensions = GitCorpusFetchService.DefaultFileExtensions;
 
     /// <summary>
-    /// For GitClone sources only: folders of the clone that are made to match
-    /// the repository on every fetch, losing whatever files it has deleted or
-    /// renamed since the last one. Empty unless a source says otherwise, so a
-    /// TEI corpus is still written over and nothing in it removed. See
-    /// GitCorpusFetchService.MirroredFolders.
+    /// For GitClone sources only: folders inside the destination that a re-run
+    /// leaves matching the repository, so a file it has since deleted or
+    /// renamed goes from there too. A clone otherwise only adds and overwrites.
+    ///
+    /// Empty unless a source needs it, and named folders rather than the whole
+    /// destination, because Advanced Setup lets a step be pointed at any
+    /// folder. See GitCorpusFetchService.MirroredFolders.
     /// </summary>
     public IReadOnlyList<string> MirroredFolders = Array.Empty<string>();
 

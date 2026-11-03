@@ -837,6 +837,11 @@ public static class SetupDataSourceCatalog
                             "produce - merged or split works, or rows unticked.");
                     }
 
+                    foreach (var (file, note) in service.SharedSlugs)
+                    {
+                        progress.Report($"{Path.GetFileName(file)}: {note}");
+                    }
+
                     if (service.PlansWritten.Count > 0)
                     {
                         progress.Report(
@@ -1739,9 +1744,10 @@ public static class SetupDataSourceCatalog
                 // unless it is told otherwise.
                 ClonedFileExtensions = AiTranslationsIngestService.FileExtensions,
 
-                // Every file in the folder is installed, so one deleted or
-                // renamed upstream and left behind here, no longer installable,
-                // would keep this step from ever showing complete.
+                // A re-run is how corrections arrive, and withdrawing or
+                // renaming a translation is one. Left in the folder, the old
+                // file would be installed again on every run, or fail on
+                // every run and keep the tick from ever being earned.
                 MirroredFolders = new[] { AiTranslationsIngestService.TranslationsFolder },
 
                 Links =

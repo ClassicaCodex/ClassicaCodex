@@ -440,8 +440,8 @@ public class MenotaPlanForm : ScaledForm
                 // poems (1)" through "(29)". The headings are right there in
                 // the manuscript and were being thrown away.
                 //
-                // Numbering remains the fallback, because two pieces sharing a
-                // title would mint one URN and overwrite each other on import.
+                // Numbering remains the fallback for a division with no
+                // heading.
                 var heading = _body == null
                     ? ""
                     : MenotaXmlLoader.FirstHeading(
@@ -464,17 +464,14 @@ public class MenotaPlanForm : ScaledForm
                 };
             }).ToList();
 
-            // Two divisions can carry the same heading. Disambiguate the slug
-            // only, leaving the titles as the manuscript has them.
-            for (var p = 0; p < pieces.Count; p++)
-            {
-                if (pieces.Take(p).Any(e => e.UrnSlug == pieces[p].UrnSlug))
-                    pieces[p].UrnSlug = $"{pieces[p].UrnSlug}-{p + 1}";
-            }
-
             _plan.Works.RemoveAt(at);
             _plan.Works.InsertRange(at, pieces);
         }
+
+        // Two divisions can carry the same heading, and so can a piece and a
+        // row elsewhere in the manuscript. The slugs are numbered, leaving the
+        // titles as the manuscript has them.
+        _plan.MakeSlugsUnique();
 
         LoadRows();
         UpdateSummary();
@@ -600,6 +597,11 @@ public class MenotaPlanForm : ScaledForm
             // what the URN is built from and it may have just been corrected.
             work.UrnSlug = MenotaIngestPlanner.Slug(work.Title);
         }
+
+        // Which re-joins every repeated title on one URN, so they are numbered
+        // again - by the rule the ingest applies, so the saved plan names the
+        // URNs the library will hold.
+        _plan.MakeSlugsUnique();
     }
 
     private void Commit()
