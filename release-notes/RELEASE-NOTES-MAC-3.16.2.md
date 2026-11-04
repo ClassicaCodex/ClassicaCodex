@@ -1,3 +1,9 @@
+> **Historical.** These are the notes for Classica Codex for Mac 3.16.2, the fourth
+> Mac preview. It has been followed by
+> [Classica Codex for Mac 3.16.3](https://github.com/ClassicaCodex/ClassicaCodex/releases/tag/mac-v3.16.3).
+> Any download link or SHA-256 below refers to the 3.16.2 disk images, not to the
+> current ones, so do not check a current download against a checksum printed here.
+
 # Classica Codex for Mac 3.16.2 (preview)
 
 Setup puts right what the 3.16.1 notes left open.
