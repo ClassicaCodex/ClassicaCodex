@@ -15,12 +15,12 @@ number follows the Windows app's.
 ## Downloading it
 
 The current release is a preview,
-[Classica Codex for Mac 3.16.2](https://github.com/ClassicaCodex/ClassicaCodex/releases/tag/mac-v3.16.2),
+[Classica Codex for Mac 3.16.3](https://github.com/ClassicaCodex/ClassicaCodex/releases/tag/mac-v3.16.3),
 with a disk image for each kind of Mac: `arm64` for Apple silicon, `x64`
 for Intel. Open it and drag **Classica Codex** into Applications. It needs
-macOS 12 or later. The first time you open it macOS stops it, as described
-below; [the main README](../../README.md#on-a-mac) walks through that and
-the first library.
+macOS 12 or later, and is notarised by Apple, so it opens like any other
+app. [The main README](../../README.md#on-a-mac) walks through the first
+library.
 
 ## Building it
 
@@ -37,10 +37,22 @@ build for the other kind. It writes to `src/ClassicaCodex.Mac/bin/mac-app/`.
 The app carries its own copy of .NET, so the Mac you install it on does not
 need one.
 
-The app is signed ad hoc, not notarised; notarising needs a paid Apple
-Developer account. A copy you build yourself opens straight away. A
-downloaded copy is stopped the first time: open **System Settings →
-Privacy & Security** and click **Open Anyway**.
+How the app is signed depends on what your Mac has. With a **Developer ID
+Application** certificate in the keychain, `build-app.sh` signs with it,
+under the hardened runtime. Set `NOTARY_PROFILE` to a profile made once
+with `xcrun notarytool store-credentials`, and it also has Apple notarise
+the app and the disk image, and staples the tickets to both:
+
+```
+NOTARY_PROFILE=<profile> src/ClassicaCodex.Mac/packaging/build-app.sh arm64
+```
+
+A notarised download opens on any Mac as any downloaded app does. Without a
+certificate the app is signed ad hoc. A copy you build yourself still
+opens straight away, but a downloaded copy is stopped the first time:
+open **System Settings → Privacy & Security** and click **Open Anyway**.
+`packaging/ClassicaCodex.entitlements` holds the one exception the
+hardened runtime has to make, letting .NET compile code while the app runs.
 
 `ClassicaCodex.Mac.slnf` is the solution filter for working on the Mac. It
 leaves out the WinForms projects, which do not build there.
