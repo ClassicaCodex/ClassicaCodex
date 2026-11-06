@@ -8,8 +8,8 @@ namespace ClassicaCodex.Mac.Platform;
 ///
 /// Through <c>open</c>, which is what the Finder itself does on a double-
 /// click, so whatever the reader has chosen as their browser or PDF viewer
-/// is what appears. Elsewhere (a Linux machine building the Mac front end)
-/// xdg-open does the same job.
+/// is what appears. On Linux xdg-open does the same job, and on Windows the
+/// shell itself, which is also what a double-click goes through.
 /// </summary>
 public static class MacShell
 {
@@ -17,6 +17,12 @@ public static class MacShell
     {
         try
         {
+            if (OperatingSystem.IsWindows())
+            {
+                Process.Start(new ProcessStartInfo(pathOrUrl) { UseShellExecute = true })?.Dispose();
+                return true;
+            }
+
             var start = OperatingSystem.IsMacOS()
                 ? new ProcessStartInfo("/usr/bin/open")
                 : new ProcessStartInfo("xdg-open");
@@ -31,16 +37,26 @@ public static class MacShell
         }
     }
 
-    /// <summary>Shows a file selected in a Finder window.</summary>
+    /// <summary>Shows a file selected in a Finder or File Explorer window.</summary>
     public static bool Reveal(string path)
     {
-        if (!OperatingSystem.IsMacOS()) return Open(Path.GetDirectoryName(path) ?? path);
+        if (!OperatingSystem.IsMacOS() && !OperatingSystem.IsWindows()) return Open(Path.GetDirectoryName(path) ?? path);
 
         try
         {
-            var start = new ProcessStartInfo("/usr/bin/open") { UseShellExecute = false };
-            start.ArgumentList.Add("-R");
-            start.ArgumentList.Add(path);
+            ProcessStartInfo start;
+            if (OperatingSystem.IsWindows())
+            {
+                start = new ProcessStartInfo("explorer.exe", ExplorerArguments(path));
+            }
+            else
+            {
+                start = new ProcessStartInfo("/usr/bin/open");
+                start.ArgumentList.Add("-R");
+                start.ArgumentList.Add(path);
+            }
+
+            start.UseShellExecute = false;
             Process.Start(start)?.Dispose();
             return true;
         }
@@ -49,4 +65,10 @@ public static class MacShell
             return false;
         }
     }
+
+    /// <summary>
+    /// Written out rather than left to ArgumentList, which would put the
+    /// quotes around the whole argument: Explorer wants them around the path.
+    /// </summary>
+    internal static string ExplorerArguments(string path) => $"/select,\"{path}\"";
 }

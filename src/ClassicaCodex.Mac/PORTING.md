@@ -47,7 +47,7 @@ return early; without `CC_SCREENSHOT_DIR` nothing is written.
 | `Shell/` | The main window: sidebar, reader panes, toolbar, menu bar, welcome page, tool gallery |
 | `Features/<Name>/` | One folder per tool. Each has a `<Name>Feature.cs` with static entry points the shell calls |
 | `Common/` | Shared building blocks: `FeatureWindow`, `Alert`, `TextPrompt`, `Files`, `ClipboardText`, `TableExport`, `Art`, `Glyphs` |
-| `Platform/` | macOS specifics: `Keychain` + `TranslationSettings` (API keys), `SpeechService` (`say`), `ScriptFonts`, `MacShell` (`open`) |
+| `Platform/` | What differs by system: `Keychain`, `SecretService` and `WindowsKeyFile` behind `TranslationSettings` (API keys), `SpeechService` and `WindowsVoices`, `ScriptFonts`, `MacShell`, `SystemWords` |
 | `Shared/` | Shims that let shared Windows files compile here (`WindowsShims.cs`) |
 | `Theme/` | `Palette.axaml` (colours, fonts), `Styles.axaml` (classes), `Glyphs.axaml` (icons) |
 | `Assets/Art/` | The Mac's painted artwork, and `ART-BRIEF.md`, the brief it is made to |
@@ -199,6 +199,28 @@ menu that a window draws won't answer it.
 
 A system feature that has no Linux equivalent everyone has goes through
 `SystemTools.Find`, and a missing tool turns off that feature alone.
+
+### Windows specifics
+
+`SystemWords` has a Windows column as well, so a new phrase needs both.
+`WindowsTests` fails on any Mac or Linux word in the Windows column or left in
+a Help topic.
+
+Windows calls that need guarding are in classes marked
+`[SupportedOSPlatform("windows")]`, `WindowsKeyFile` and `WindowsVoices`, which
+are only reached behind `OperatingSystem.IsWindows()`. The analyzer enforces
+it, so a call outside a guard is a build warning.
+
+`%LOCALAPPDATA%\ClassicaCodex` is the classic app's folder too, so this app
+reads and writes that app's files. Anything it writes there has to mean the
+same to the classic app, which is still installed beside it. `WindowsTests`
+compiles the classic `TranslationSettings` in to test the key file against it,
+and `packaging/windows/smoke-test.ps1` runs the released classic app before,
+during and after. On a Windows development machine the tests stay out of that
+folder by way of `PreferencesFolder.UseInstead`.
+
+[WINDOWS-PARITY.md](WINDOWS-PARITY.md) lists what the classic app does that
+this one doesn't yet.
 
 ### Tests
 

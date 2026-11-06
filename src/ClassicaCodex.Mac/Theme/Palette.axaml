@@ -110,7 +110,7 @@
   <FontFamily x:Key="Cc.SourceFont">Palatino, Palatino Linotype, Book Antiqua, DejaVu Serif, FreeSerif, serif</FontFamily>
   <FontFamily x:Key="Cc.TranslationFont">Georgia, Iowan Old Style, DejaVu Serif, FreeSerif, serif</FontFamily>
   <FontFamily x:Key="Cc.DisplayFont">Palatino, Palatino Linotype, Book Antiqua, DejaVu Serif, serif</FontFamily>
-  <FontFamily x:Key="Cc.MonoFont">SF Mono, Menlo, JetBrains Mono, DejaVu Sans Mono, monospace</FontFamily>
+  <FontFamily x:Key="Cc.MonoFont">SF Mono, Menlo, JetBrains Mono, DejaVu Sans Mono, Cascadia Mono, Consolas, monospace</FontFamily>
 
   <CornerRadius x:Key="Cc.PageRadius">10</CornerRadius>
   <CornerRadius x:Key="Cc.CardRadius">12</CornerRadius>

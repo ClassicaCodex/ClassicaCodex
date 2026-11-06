@@ -1,3 +1,4 @@
+using ClassicaCodex.Mac.Platform;
 using ClassicaCodex.UI;
 
 namespace ClassicaCodex.Mac.Features.Setup;
@@ -55,6 +56,10 @@ internal static class MacDataFolder
     public static string Proposed(string? home = null)
     {
         if (DataFolderSettings.IsCustom) return DataFolderSettings.Root;
+
+        // Windows has its own answer in SuggestedRoot, behind Root, and the
+        // Windows app reads the same preference: nothing to propose over it.
+        if (OperatingSystem.IsWindows() && home == null && HomeOverride == null) return DataFolderSettings.Root;
 
         var shared = DataFolderSettings.DefaultRoot;
         return HoldsAnything(shared) ? shared : Unsynced(home);
@@ -242,7 +247,7 @@ internal static class MacDataFolder
         var tempFree = FreeGigabytesAt(tempVolume);
         if (tempFree == null || tempFree >= DataFolderSettings.ComfortableFreeGigabytes) return string.Empty;
 
-        var where = tempVolume == "/" ? "your Mac's startup disk" : tempVolume;
+        var where = tempVolume == "/" ? SystemWords.Say("your Mac's startup disk") : tempVolume;
         return $" - note the largest downloads also unpack through {where} first, which has {tempFree:N1} GB free.";
     }
 

@@ -21,4 +21,16 @@
     <ProjectReference Include="..\..\src\ClassicaCodex.Mac\ClassicaCodex.Mac.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <!-- The Windows app's own class, so that the test of the key file is
+         against what that app really reads and writes and not against a copy
+         of its format. It calls DPAPI with no guard, being a Windows project,
+         and the test only reaches it on Windows. Hence CA1416. -->
+    <Compile Include="..\..\src\ClassicaCodex.UI\TranslationSettings.cs" Link="Classic\TranslationSettings.cs" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <NoWarn>$(NoWarn);CA1416</NoWarn>
+  </PropertyGroup>
+
 </Project>

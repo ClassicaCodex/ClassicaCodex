@@ -18,7 +18,9 @@ namespace ClassicaCodex.Mac.Platform;
 /// needs no entitlement to use them.
 ///
 /// On Linux the same three calls go to <see cref="SecretService"/>, the
-/// desktop's keyring, under the same names.
+/// desktop's keyring, under the same names. On Windows this class is not
+/// used at all: <see cref="TranslationSettings"/> goes to
+/// <see cref="WindowsKeyFile"/>, the file the Windows app already keeps.
 /// </summary>
 internal static class Keychain
 {

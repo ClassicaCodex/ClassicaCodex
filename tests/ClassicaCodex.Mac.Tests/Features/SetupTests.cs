@@ -87,7 +87,7 @@ public class SetupTests
         Screens.Save(guided, "setup-guided-01-welcome-dark");
         Avalonia.Application.Current!.RequestedThemeVariant = ThemeVariant.Light;
 
-        guided.Close();
+        await CloseAsync(guided);
         main.Close();
     }
 
@@ -115,7 +115,7 @@ public class SetupTests
         Assert.Equal("Not built yet.", guided.StatusText);
         Assert.Equal("Build Word Index", guided.ActionText);
         Screens.Save(guided, "setup-guided-06-word-index-empty");
-        guided.Close();
+        await CloseAsync(guided);
         main.Close();
 
         if (scratch.SampleCopy() is not { } sample) return;
@@ -161,7 +161,7 @@ public class SetupTests
         await Screens.Settle(3);
         Screens.Save(guided, "setup-guided-03-source-loaded-dark");
         Avalonia.Application.Current!.RequestedThemeVariant = ThemeVariant.Light;
-        guided.Close();
+        await CloseAsync(guided);
 
         // Advanced Setup reads the same answers from the same catalogue.
         var advanced = new AdvancedSetupWindow(main);
@@ -279,7 +279,7 @@ public class SetupTests
         Assert.StartsWith(unsynced, guided.Sources[0].DefaultDestination);
         Screens.Save(guided, "setup-guided-02c-download-folder-chosen");
 
-        guided.Close();
+        await CloseAsync(guided);
         main.Close();
     }
 
@@ -330,7 +330,7 @@ public class SetupTests
         await guided.GoToStepAsync(guided.WordIndexStepIndex);
         Assert.StartsWith("Up to date - ", guided.StatusText);
 
-        guided.Close();
+        await CloseAsync(guided);
         main.Close();
     }
 
@@ -682,6 +682,17 @@ public class SetupTests
     /// test app's scratch home already kept it out; on Windows it did not,
     /// and the Natural Earth step read Complete from the reader's own folder.
     /// </summary>
+    /// <summary>
+    /// Closes the window once the refresh it starts on opening has finished:
+    /// that needs the library, which goes when the test ends. On a slow
+    /// machine it was still running then, and failed the test on its way out.
+    /// </summary>
+    private static async Task CloseAsync(GuidedSetupWindow guided)
+    {
+        guided.Close();
+        await guided.OpeningRefresh;
+    }
+
     private sealed class Scratch : IDisposable
     {
         private readonly string? _previousLibrary = DbConnectionFactory.DatabasePath;

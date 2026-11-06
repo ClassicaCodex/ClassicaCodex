@@ -14,21 +14,24 @@ namespace ClassicaCodex.Mac.Tests.Features;
 /// </summary>
 public class LinuxTests
 {
-    /// <summary>Every word that means something on a Mac and nothing, or something wrong, on Linux.</summary>
-    private static readonly string[] MacOnly =
+    /// <summary>Every word that means something on a Mac and nothing, or something wrong, elsewhere.</summary>
+    internal static readonly string[] MacOnly =
     {
         "⌘", "⇧", "⌥", "⌃", "Finder", "macOS", "Keychain Access", "keychain", "System Settings", "Safari",
         "Time Machine", "Font Book", "AirDrop", "Go to Folder", "CoreText", "Geeza", "Option-", "Option key"
     };
 
-    [Fact]
-    public void Help_reads_as_Linux_with_nothing_of_the_Mac_left_in_it()
+    [Theory]
+    [InlineData("Linux")]
+    [InlineData("Windows")]
+    public void Help_reads_with_nothing_of_the_Mac_left_in_it(string system)
     {
         var left = new List<string>();
 
         foreach (var (title, body) in HelpTopics.All)
         {
-            var text = SystemWords.ForLinux(HelpOutline.Expand(body));
+            var expanded = HelpOutline.Expand(body);
+            var text = system == "Linux" ? SystemWords.ForLinux(expanded) : SystemWords.ForWindows(expanded);
 
             foreach (var word in MacOnly)
             {

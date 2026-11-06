@@ -2,6 +2,8 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
+using Avalonia.Platform;
+using Avalonia.Styling;
 using ClassicaCodex.Data;
 using ClassicaCodex.Mac.Shell;
 
@@ -9,7 +11,22 @@ namespace ClassicaCodex.Mac;
 
 public partial class App : Application
 {
-    public override void Initialize() => AvaloniaXamlLoader.Load(this);
+    public override void Initialize()
+    {
+        AvaloniaXamlLoader.Load(this);
+        if (OperatingSystem.IsWindows()) GiveWindowsTheirIcon();
+    }
+
+    /// <summary>
+    /// The icon in the executable reaches the taskbar, but a title bar shows
+    /// what its window was given. Every window has one, so a style gives it.
+    /// </summary>
+    private void GiveWindowsTheirIcon()
+    {
+        using var file = AssetLoader.Open(new Uri("avares://ClassicaCodex.Mac/Assets/app.ico"));
+        var icon = new WindowIcon(file);
+        Styles.Add(new Style(x => x.Is<Window>()) { Setters = { new Setter(Window.IconProperty, icon) } });
+    }
 
     public override async void OnFrameworkInitializationCompleted()
     {

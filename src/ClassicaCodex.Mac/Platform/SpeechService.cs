@@ -22,6 +22,8 @@ namespace ClassicaCodex.Mac.Platform;
 /// Linux has no engine every desktop can be relied on for, and espeak-ng is
 /// the one every distribution packages, so it stands in for <c>say</c> where
 /// it is installed, with the same caveats. Without it Read Aloud is not offered.
+///
+/// Windows goes to SAPI instead, in-process: see <see cref="WindowsVoices"/>.
 /// </summary>
 public static class SpeechService
 {
@@ -32,9 +34,12 @@ public static class SpeechService
 
     private static readonly Lazy<string?> Espeak = new(() => OperatingSystem.IsLinux() ? SystemTools.Find("espeak-ng", "espeak") : null);
 
-    public static bool IsAvailable => OperatingSystem.IsMacOS() ? File.Exists(Say) : Espeak.Value != null;
+    public static bool IsAvailable =>
+        OperatingSystem.IsWindows() ? WindowsVoices.IsAvailable
+        : OperatingSystem.IsMacOS() ? File.Exists(Say)
+        : Espeak.Value != null;
 
-    public static bool IsSpeaking => _current is { HasExited: false };
+    public static bool IsSpeaking => OperatingSystem.IsWindows() ? WindowsVoices.IsSpeaking : _current is { HasExited: false };
 
     /// <summary>
     /// The installed voices, as <c>say -v ?</c> lists them: a name, a locale,
@@ -45,6 +50,7 @@ public static class SpeechService
     {
         if (_voices != null) return _voices;
         if (!IsAvailable) return _voices = Array.Empty<InstalledVoiceToken>();
+        if (OperatingSystem.IsWindows()) return _voices = WindowsVoices.Installed();
 
         try
         {
@@ -112,7 +118,11 @@ public static class SpeechService
         return voices;
     }
 
-    public static void SetVoice(string voiceName) => SpeechSettings.SetPreferredVoice(voiceName);
+    public static void SetVoice(string voiceName)
+    {
+        SpeechSettings.SetPreferredVoice(voiceName);
+        if (OperatingSystem.IsWindows()) WindowsVoices.Use(voiceName);
+    }
 
     public static void Speak(string text, string? language)
     {
@@ -123,6 +133,12 @@ public static class SpeechService
         var toSpeak = string.Equals(language, "grc", StringComparison.OrdinalIgnoreCase)
             ? GreekPhoneticTransliterator.ToPhoneticLatin(text)
             : text;
+
+        if (OperatingSystem.IsWindows())
+        {
+            WindowsVoices.Speak(toSpeak);
+            return;
+        }
 
         var linux = Espeak.Value;
         var start = new ProcessStartInfo(linux ?? Say)
@@ -161,6 +177,12 @@ public static class SpeechService
 
     public static void Stop()
     {
+        if (OperatingSystem.IsWindows())
+        {
+            WindowsVoices.Stop();
+            return;
+        }
+
         try
         {
             if (_current is { HasExited: false }) _current.Kill();

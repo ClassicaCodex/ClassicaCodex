@@ -9,6 +9,7 @@ using Avalonia.Styling;
 using ClassicaCodex.Core;
 using ClassicaCodex.Data.Repositories;
 using ClassicaCodex.Mac.Common;
+using ClassicaCodex.Mac.Platform;
 using ClassicaCodex.Mac.Features.Artifacts;
 using ClassicaCodex.UI;
 using ClassicaCodex.Mac.Features.Export;
@@ -165,9 +166,9 @@ public sealed class PlacesMapWindow : FeatureWindow
         _canvas.ViewChanged += UpdateZoomButtons;
         _canvas.AppearanceChanged += RecolourSwatches;
 
-        _zoomIn = ZoomButton("Plus", "Zoom in (⌘+)", () => _canvas.ZoomBy(1.6));
-        _zoomOut = ZoomButton("Minus", "Zoom out (⌘−)", () => _canvas.ZoomBy(1 / 1.6));
-        _zoomHome = ZoomButton("Home", "Show the whole map (⌘0)", () => _canvas.ResetView());
+        _zoomIn = ZoomButton("Plus", SystemWords.Say("Zoom in (⌘+)"), () => _canvas.ZoomBy(1.6));
+        _zoomOut = ZoomButton("Minus", SystemWords.Say("Zoom out (⌘−)"), () => _canvas.ZoomBy(1 / 1.6));
+        _zoomHome = ZoomButton("Home", SystemWords.Say("Show the whole map (⌘0)"), () => _canvas.ResetView());
 
         var zoomStack = new StackPanel();
         zoomStack.Children.Add(_zoomIn);

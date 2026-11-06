@@ -185,10 +185,17 @@ public sealed class GuidedSetupWindow : FeatureWindow
         RenderStep();
         Opened += async (_, _) =>
         {
-            await RefreshAllCompletionAsync();
+            OpeningRefresh = RefreshAllCompletionAsync();
+            await OpeningRefresh;
             RenderStep();
         };
     }
+
+    /// <summary>
+    /// The refresh started as the window opens, which outlives closing it.
+    /// A test waits for it before the library it is reading goes away.
+    /// </summary>
+    internal Task OpeningRefresh { get; private set; } = Task.CompletedTask;
 
     /// <summary>The step showing now - for tests, and for the sidebar.</summary>
     internal int CurrentStep => _currentStep;
@@ -761,11 +768,11 @@ public sealed class GuidedSetupWindow : FeatureWindow
         {
             _tileHost.Content = Art.Tile("authors", "Database", 60);
             _titleLabel.Text = "Library File";
-            _descriptionLabel.Text =
+            _descriptionLabel.Text = SystemWords.Say(
                 "This is the one file everything else in setup writes into - your library, tags, and bookmarks, "
                 + "plus everything you download next. The file below works fine for almost everyone; only change it "
                 + "if you want your library to live somewhere specific - on another disk, say. A library copied from "
-                + "the PC can be chosen here too, with Open Existing, and is used as it is.";
+                + "the PC can be chosen here too, with Open Existing, and is used as it is.");
             _pathBox.Text = LibraryFile.Current;
             _actionButton.Content = _databaseComplete ? "Use This Library File" : "Prepare Library File";
             _statusLabel.Text = _databaseComplete
