@@ -102,20 +102,21 @@
     <InternalsVisibleTo Include="ClassicaCodex.Mac.Tests" />
   </ItemGroup>
 
-  <!-- PDFsharp's sample fonts stay out of a Windows download, for the reasons
+  <!-- PDFsharp's sample fonts stay out of every download, for the reasons
        given at ExcludeProprietaryFonts in ClassicaCodex.UI.csproj, along with
-       the two assemblies that use them and SkiaSharp's 84 MB of debug symbols.
+       the two assemblies that use them and SkiaSharp's 84 MB of debug symbols,
+       which only the Windows packages carry.
 
        That target removes them from the list of files to publish, which is
-       enough for its single executable. This download is a folder, with a
+       enough for its single executable. These downloads are folders, with a
        deps.json beside the executable, and a file named there and missing from
        the folder stops the app before it starts. Marking them this early takes
        them out of both, provided publish writes a deps.json of its own rather
        than reusing the one from the build, which is the second target. If the
-       SDK ever renames that property, build-windows.ps1 fails on the deps.json. -->
-  <Target Name="LeaveOutOfWindowsDownload"
-          AfterTargets="ResolvePackageAssets"
-          Condition="$(RuntimeIdentifier.StartsWith('win'))">
+       SDK ever renames that property, build-app.sh, build-linux.sh and
+       build-windows.ps1 each fail on the deps.json. -->
+  <Target Name="LeaveOutOfDownloads"
+          AfterTargets="ResolvePackageAssets">
     <ItemGroup>
       <RuntimeCopyLocalItems Condition="'%(Filename)' == 'PdfSharp.WPFonts'
                                      Or '%(Filename)' == 'PdfSharp.Snippets'
@@ -128,9 +129,8 @@
     </ItemGroup>
   </Target>
 
-  <Target Name="WriteDepsFileForWindowsDownload"
-          AfterTargets="_ComputeUseBuildDependencyFile"
-          Condition="$(RuntimeIdentifier.StartsWith('win'))">
+  <Target Name="WriteDepsFileForDownloads"
+          AfterTargets="_ComputeUseBuildDependencyFile">
     <PropertyGroup>
       <_UseBuildDependencyFile>false</_UseBuildDependencyFile>
     </PropertyGroup>
