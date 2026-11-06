@@ -23,6 +23,22 @@ preferences="$XDG_DATA_HOME/ClassicaCodex"
 mkdir -p "$preferences"
 printf '%s' "$library" > "$preferences/database-path.txt"
 
+# Opens on a Greek passage, by way of the setting that reopens the last one
+# read, so that the first photograph shows polytonic Greek in the reader.
+python3 - "$library" > "$preferences/reading-position.txt" <<'PYTHON'
+import sqlite3, sys
+work, line = sqlite3.connect(sys.argv[1]).execute("""
+    SELECT w.CtsUrn, t.CitationRef
+    FROM TextNodes t
+    JOIN Editions e ON e.EditionId = t.EditionId
+    JOIN Works w ON w.WorkId = e.WorkId
+    WHERE e.Language = 'grc' AND length(t.Text) > 30
+    ORDER BY e.EditionId, t.SortOrder
+    LIMIT 1""").fetchone()
+print(work)
+print(line)
+PYTHON
+
 tar -xzf "$tarball" -C "$home"
 app="$(echo "$home"/classica-codex-*/classica-codex)"
 

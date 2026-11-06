@@ -82,7 +82,13 @@ public partial class MainWindow : Window, IReaderHost
 
     private void ConfigureChrome()
     {
-        if (!UnifiedTitleBar) return;
+        if (!UnifiedTitleBar)
+        {
+            // The strip that holds the traffic lights, which the system's own
+            // title bar makes unnecessary here.
+            SidebarTitleRow.IsVisible = false;
+            return;
+        }
 
         ExtendClientAreaToDecorationsHint = true;
         ExtendClientAreaTitleBarHeightHint = (double)Application.Current!.FindResource("Cc.TitleBarHeight")!;
