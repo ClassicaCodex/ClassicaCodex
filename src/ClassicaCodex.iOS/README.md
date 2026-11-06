@@ -40,6 +40,12 @@ dotnet build src/ClassicaCodex.iOS
 ```
 
 The app is built to `bin/Debug/net10.0-ios/iossimulator-arm64/ClassicaCodex.Mac.app`.
+
+Delete `bin` and `obj` in this folder after a package or target framework
+changes, for example after merging `main`. An incremental build can keep the old
+native code beside the new DLL, and the app then quits at launch with `Failed to
+load AOT module ... doesn't match assembly` in the system log.
+
 The workload asks for Xcode 27.1 exactly, so `ValidateXcodeVersion` is off in the
 project for the sake of Xcode 27.2. A release for the App Store should use the
 Xcode the workload names.

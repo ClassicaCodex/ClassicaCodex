@@ -44,8 +44,8 @@
 
     <!-- For the Mac project's Windows files, which come along with the rest.
          Nothing calls them on iOS, as nothing does on a Mac. -->
-    <PackageReference Include="System.Speech" Version="8.0.0" />
-    <PackageReference Include="System.Security.Cryptography.ProtectedData" Version="8.0.0" />
+    <PackageReference Include="System.Speech" Version="10.0.14" />
+    <PackageReference Include="System.Security.Cryptography.ProtectedData" Version="10.0.14" />
   </ItemGroup>
 
   <ItemGroup>
