@@ -3,14 +3,19 @@
 Written to check the claim before anything makes it: can a Windows reader do
 everything in this front end that they can do in the WinForms app?
 
-**Every tool has a counterpart. Not every behaviour does.** All 84 functional
-forms have an equivalent here, and the 85th is a WinForms scaling base class
-with nothing to port. The gaps are five behaviours of the main window and
-startup, and some smaller differences.
+**Every tool has a counterpart, and the five behaviours that didn't have now
+come across.** All 84 functional forms have an equivalent here, and the 85th is
+a WinForms scaling base class with nothing to port. What is left is the smaller
+differences below.
 
 ## What this is based on
 
-This is a reading of the source, not of the running windows.
+The window-by-window table is a reading of the source, not of the running
+windows. The five behaviours under Brought across are also tested: by headless
+tests on every system, and on a real Windows desktop by
+`packaging/windows/smoke-test.ps1`, which presses the keys, starts the app with
+its library missing and then broken, and crashes it on a background thread.
+Retry is the exception there, covered by the headless tests alone.
 
 - **read both**: the WinForms form and its counterpart were read and compared.
 - **controls compared**: both sides' controls, handlers and messages were listed and compared.
@@ -21,18 +26,20 @@ Ingestion are also called from here or from a file this project compiles, and
 all 33 Help topic titles match. The first is a check of method names, and the
 bodies of the Help topics were not compared.
 
-## Truly missing
+## Brought across
 
 | Behaviour | Classic app | Here |
 |---|---|---|
-| F1 opens Help | `MainForm.cs:3204` | Help is Ctrl+Shift+? only |
-| Alt+Left and Alt+Right go Back and Forward | `MainForm.cs:3184`, `3188` | Ctrl+[ and Ctrl+], and the toolbar arrows |
-| A library that isn't available at launch is named, with Retry. This is usually a drive that isn't plugged in | `Program.cs:91-97` | The general Choose your library page, which doesn't name the path. Setting up a new library from it makes both apps forget the old location |
-| A library that can't be opened (locked, corrupt) is reported at launch | `Program.cs:113-119` | Written to `errors.log`, and the main window opens with nothing said |
-| A fatal crash on a background thread shows a dialog before the app closes | `CrashReporter.cs:51`, `102-106` | Written to `errors.log` only. Errors on the UI thread do show a dialog |
+| F1 opens Help | `MainForm.cs:3204` | `Shell/MainWindow.Menus.cs`, off a Mac. The Help menu prints it, and Ctrl+Shift+? still works |
+| Alt+Left and Alt+Right go Back and Forward | `MainForm.cs:3184`, `3188` | `Shell/MainWindow.Menus.cs`, off a Mac. The Go menu prints them, and Ctrl+[ and Ctrl+] still work |
+| A library that isn't available at launch is named, with Retry. This is usually a drive that isn't plugged in | `Program.cs:91-97` | `LibraryFile.OpenRememberedAsync` and `Shell/NoLibraryView.cs`, a page in the main window. The remembered path stays until a library that opens replaces it, and the page warns of that |
+| A library that can't be opened (locked, corrupt) is reported at launch | `Program.cs:113-119` | The same page, with the reason, and with Retry, which the classic app doesn't offer here |
+| A fatal crash on a background thread shows a dialog before the app closes | `CrashReporter.cs:51`, `102-106` | `CrashLog.ReportFatal`, called from `Program.cs` |
 
 ## Smaller differences
 
+- **A fatal crash when the UI thread can't answer.** The classic app's message box runs on the failing thread. Here the dialog is the UI thread's to show, so a fatal error on that thread, or one while it stays stuck for ten seconds, goes to `errors.log` alone. Errors in actions on the UI thread still show their own dialog.
+- **A library that didn't open.** The classic app shows message boxes and then its setup wizard, and closes if the reader leaves that with nothing set up. Here the page stays in the main window, and Open Library and Create a New Library stand in for the wizard.
 - **Text size.** The sliders, the link between them and live changes are all here, in the toolbar's flyout and Settings. The Greek and English sample lines aren't, and nor is a Cancel that restores the opening sizes. The reader itself shows the result, and half-point steps and keyboard sizing are new here.
 - **AI Translation Settings.** Everything is here, in Settings. The Tools menu's item opens Settings on its General pane rather than AI, and closing without Save stands in for a Cancel button.
 - **Theme.** A theme chosen in the classic app (`theme.txt`) isn't picked up. This app follows Windows until told otherwise.
@@ -80,7 +87,7 @@ The 22 forms with no same-named window are in bold.
 | Ingest | `Features/Setup/IngestWindow.cs` | same | strings |
 | IntertextualAtlas | `Features/Research/Echoes/IntertextualAtlasWindow.cs` | same | strings |
 | LemmaIngest | `Features/Setup/LemmaIngestWindow.cs` | same | strings |
-| Main | `Shell/MainWindow*.cs`, `LibrarySidebar.cs`, `ReaderPane.cs` | partial: see Truly missing | menus, toolbar and context menus read both |
+| Main | `Shell/MainWindow*.cs`, `LibrarySidebar.cs`, `ReaderPane.cs` | same: see Brought across | menus, toolbar and context menus read both |
 | ManuscriptPages | `Features/MedievalHands/ManuscriptPagesWindow.cs` | same | strings |
 | MenotaPlan | `Features/Setup/MenotaPlanWindow.cs` | same | strings |
 | Morphology | `Features/Morphology/MorphologyWindow.cs` | same | strings |
