@@ -498,7 +498,10 @@ public sealed class ReaderPane : UserControl
             text.Bind(TextBlock.ForegroundProperty, text.GetResourceObservable("Cc.InkMuted"));
         }
 
-        text.LineHeight = (text.FontSize > 0 && !double.IsNaN(text.FontSize) ? text.FontSize : FontSizeDip) * 1.38;
+        // Only a size set on this row counts. It has not joined the list yet, so
+        // the size it will inherit does not show, and FontSize answers with
+        // Avalonia's default - which gave every size the spacing of that one.
+        text.LineHeight = (text.IsSet(TextBlock.FontSizeProperty) ? text.FontSize : FontSizeDip) * 1.38;
 
         ToolTip.SetTip(text, TooltipFor(row.Node));
         ToolTip.SetShowDelay(text, 900);

@@ -1,9 +1,13 @@
+using System.Reflection;
 using Avalonia.Controls;
 using Avalonia.Headless.XUnit;
+using Avalonia.LogicalTree;
 using Avalonia.VisualTree;
+using ClassicaCodex.Core.Models;
 using ClassicaCodex.Data;
 using ClassicaCodex.Data.Repositories;
 using ClassicaCodex.Mac.Shell;
+using ClassicaCodex.UI;
 using Xunit;
 
 namespace ClassicaCodex.Mac.Tests;
@@ -55,6 +59,47 @@ public class ReaderBehaviourTests
         Assert.Equal(original.TopIndex, translation.TopIndex);
         Screens.Save(window, "10-linked-scroll");
         window.Close();
+    }
+
+    /// <summary>
+    /// A row is built before it joins the list, so the size it will inherit
+    /// does not show on it yet. Reading FontSize then gave Avalonia's default,
+    /// and every size got the spacing of that one: lines ran into each other at
+    /// the large sizes, and tall scripts such as cuneiform were clipped.
+    /// </summary>
+    [AvaloniaTheory]
+    [InlineData(8f)]
+    [InlineData(11f)]
+    [InlineData(28f)]
+    public void Line_spacing_follows_the_chosen_text_size(float size)
+    {
+        var source = ReadingFontSettings.SourceSize;
+        var translation = ReadingFontSettings.TranslationSize;
+        ReadingFontSettings.SetSource(size);
+
+        try
+        {
+            var chosen = size * 96.0 / 72.0;
+            var pane = new ReaderPane(PaneRole.Original);
+
+            Assert.Equal(chosen * 1.38, Passage(pane, TextNodeKinds.Line).LineHeight, 3);
+
+            // A heading sets a size of its own, and is spaced by that one.
+            Assert.Equal(chosen * 1.12 * 1.38, Passage(pane, TextNodeKinds.Head).LineHeight, 3);
+        }
+        finally
+        {
+            ReadingFontSettings.SetSource(source);
+            ReadingFontSettings.SetTranslation(translation);
+        }
+    }
+
+    private static TextBlock Passage(ReaderPane pane, string kind)
+    {
+        var build = typeof(ReaderPane).GetMethod("BuildRow", BindingFlags.NonPublic | BindingFlags.Instance)!;
+        var row = new PassageRow(new TextNode { Text = "μῆνιν ἄειδε θεά", CitationRef = "1.1", NodeKind = kind }, 0, null);
+        var built = (Control)build.Invoke(pane, new object[] { row })!;
+        return built.GetLogicalDescendants().OfType<TextBlock>().Single(text => text.Inlines is { Count: > 0 });
     }
 
     [AvaloniaFact]

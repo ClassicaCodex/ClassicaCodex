@@ -152,6 +152,7 @@ Everything below was tested in the iPad simulator, against a full library of
   2,568 files identical, and the archive about ten times faster
 - Greek, Arabic, Hebrew, Egyptian hieroglyphs and cuneiform, all with the
   system's own fonts
+- Text sizes from 11 to 28 points, in Greek, English and wrapped cuneiform
 
 A sweep opens every window it can reach, in both orientations of an 11-inch iPad.
 It reached 79 of the 82 window classes with no crashes, and none took more than
@@ -162,7 +163,8 @@ repository.
 
 ## What does not work yet
 
-- **Wrapped cuneiform is clipped.** Rows are too short for the signs.
+- **A word wider than a pane splits across two lines.** This happens at the largest
+  text sizes with the sidebar open on a smaller iPad.
 - **Most tools have been opened and not used.** A tool laid out for a desktop
   window fits now, but few of the buttons inside have been pressed. Five windows
   need a live session to reach, and the translation workbench needs a translation
