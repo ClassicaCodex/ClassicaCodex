@@ -768,20 +768,26 @@ Terms
    The English translations are in the public domain. The Greek texts are the Online Critical Pseudepigrapha's encodings of public-domain editions, under CC BY 4.0; its other texts, which rest on modern editions, and its recent English versions are not installed.
 """),
 
-        ("Rabbinic texts: Talmud and midrash", """
-The rabbinic texts in which the demons and angels of the Hebrew Bible's readers live. Install it from Setup; it is about 20 MB.
+        ("Rabbinic texts: Mishnah, Talmud, Targum and midrash", """
+The core of rabbinic literature, with the texts in which the demons and angels of the Hebrew Bible's readers live. Install it from Setup; it is about 140 MB. A library that installed the smaller version of this step shows it as unfinished, and running it again adds the rest.
 
 What is in it
-   Five tractates of the Babylonian Talmud — Berakhot, Shabbat, Pesachim, Hagigah and Gittin, which hold most of its demon lore: Lilith, Agrat bat Mahlat, Ashmedai and Solomon, the demons who are like angels in three ways and like men in three. Pirkei de-Rabbi Eliezer, with the fall of Samael. And eight tracts of Eisenstein's Otzar Midrashim (1915): the Alphabet of Ben Sira, where the story of Lilith and the three healing angels is told; Hekhalot; the Metatron texts; the Book of Raziel; Eden and Gehinnom; and the midrashim on King Solomon.
+   The Mishnah, all 63 tractates. The Tosefta, 61 tractates. The Babylonian Talmud, all 37. The Jerusalem Talmud, all 39. The 15 minor tractates, Avot de-Rabbi Natan among them. The Targumim: Onkelos, Jonathan on the Prophets, Pseudo-Jonathan, the Jerusalem Targum, and the Targumim to the Writings. Pirkei de-Rabbi Eliezer, and eight tracts of Eisenstein's Otzar Midrashim: the Alphabet of Ben Sira, where Lilith is, Hekhalot, the Metatron texts, the Book of Raziel, Eden and Gehinnom, and the midrashim on King Solomon.
 
 Citations
-   The Talmud by folio, side and segment, as it is cited: Berakhot 6a.10. The midrashim by chapter and paragraph, and the Otzar tracts by part and paragraph.
+   The Babylonian Talmud by folio, side and segment, as it is cited: Berakhot 6a.10. The Mishnah by chapter and mishnah, 1.1. The Tosefta by chapter and halakhah. The Jerusalem Talmud by chapter, halakhah and segment, 1.1.1, which is Sefaria's division and not the Venice folio. The Targumim by chapter and verse, as in the Bible. The midrashim by chapter and paragraph, and the Otzar tracts by part and paragraph.
+
+Two Hebrew editions
+   The Mishnah comes in the printed text and, for 61 tractates, in Codex Kaufmann, and the Tosefta in the Vilna text and, for 33 tractates, Lieberman's edition of Codex Vienna. Choose between them in the edition menu. The Tosefta's English follows the Vilna numbering, which Lieberman's does not always share, so read it beside the Vilna text.
 
 Translations
-   Lazarus Goldschmidt's German translation of 1929 is beside every tractate. A. Cohen's English of Berakhot (1921) and Sefaria's community English of Hagigah are there too. There is no free English of Shabbat, Pesachim or Gittin: the complete modern English is non-commercial, and this library installs nothing under a non-commercial licence that it can avoid. Pirkei de-Rabbi Eliezer has Friedlander's English of 1916; the Otzar tracts have Sefaria's community English where it has reached them.
+   The Mishnah in Joshua Kulp's English and, for 61 tractates, Lazarus Goldschmidt's German of 1929. The Jerusalem Talmud in Heinrich Guggenheimer's English, with his notes left out. The minor tractates in A. Cohen's English, all but the second recension of Avot de-Rabbi Natan. Goldschmidt's German is beside every tractate of the Babylonian Talmud, but English only beside Berakhot, Hagigah, Sukkah, Megillah and Makkot: the complete modern English is non-commercial, and is left out for that reason. Sefaria's community English of the Tosefta is included for the 32 tractates where it reaches at least half the text. The Targumim have English only where a free one exists: Etheridge on Pseudo-Jonathan and the Jerusalem Targum, Pauli on Isaiah, Ginsburg on Ecclesiastes, and Sefaria's community English on Ezekiel and Jonah.
+
+What is not here
+   The great midrashim. Midrash Rabbah, Sifra, the Mekhilta and the Zohar have open English, but Sefaria gives no licence for most of their Hebrew and Aramaic, so they wait until that is settled. Word Study has no dictionary for rabbinic Hebrew or Aramaic; search finds these texts by the form of the word.
 
 Terms
-   The Talmud text is the Vilna edition as transcribed on Hebrew Wikisource, CC BY-SA. Everything else is in the public domain or CC0. Each file's licence is checked as it is read, and a version Sefaria has relicensed is skipped and reported rather than installed.
+   The Babylonian Talmud is the Vilna edition as transcribed on Hebrew Wikisource, CC BY-SA. Guggenheimer's Jerusalem Talmud, Kulp's Mishnah, Lieberman's Tosefta and Cohen's minor tractates are CC BY. Everything else is in the public domain or CC0. Each file's licence is checked as it is read, and a version Sefaria has relicensed is skipped and reported rather than installed.
 """),
 
         ("The Quran", """

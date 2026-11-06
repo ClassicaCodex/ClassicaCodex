@@ -11,7 +11,8 @@
       "tools\\BfmCatalogue\\BfmCatalogue.csproj",
       "tools\\CatmusCatalogue\\CatmusCatalogue.csproj",
       "tools\\CatmusManifests\\CatmusManifests.csproj",
-      "tools\\MacSampleLibrary\\MacSampleLibrary.csproj"
+      "tools\\MacSampleLibrary\\MacSampleLibrary.csproj",
+      "tools\\RabbinicCatalogue\\RabbinicCatalogue.csproj"
     ]
   }
 }

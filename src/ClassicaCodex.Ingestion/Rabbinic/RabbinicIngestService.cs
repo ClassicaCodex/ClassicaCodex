@@ -1,4 +1,6 @@
+using System.Text.RegularExpressions;
 using ClassicaCodex.Core.Models;
+using ClassicaCodex.Core.Rabbinic;
 using ClassicaCodex.Data.Repositories;
 using ClassicaCodex.Ingestion.Pseudepigrapha;
 using ClassicaCodex.Ingestion.Sefaria;
@@ -11,19 +13,46 @@ namespace ClassicaCodex.Ingestion.Rabbinic;
 /// </summary>
 public sealed record RabbinicVersion(
     string LanguageFolder, string VersionTitle, string Licence, EditionKind Kind, string Language,
-    string? Translator, string UrnSuffix);
+    string? Translator, string UrnSuffix)
+{
+    /// <summary>Its path in Sefaria's export, for a version from the shipped catalogue.</summary>
+    public string? ExportPath { get; init; }
+
+    /// <summary>What tells it from another original in the same language; see EditionLabels.</summary>
+    public string? Orthography { get; init; }
+}
 
 /// <summary>A work, where Sefaria files it, and which of its versions to take.</summary>
 /// <param name="Node">For a text with named parts, the part this work is; null for the whole text.</param>
 public sealed record RabbinicWork(
     string Slug, string Title, string CategoryPath, string SefariaTitle, string? Node, bool IsTalmud,
-    IReadOnlyList<RabbinicVersion> Versions);
+    IReadOnlyList<RabbinicVersion> Versions)
+{
+    /// <summary>The body of literature it belongs to, for a work from the shipped catalogue.</summary>
+    public RabbinicCorpus? Corpus { get; init; }
+
+    /// <summary>How it is cited, where that is not its corpus's usual way.</summary>
+    public string? CitationScheme { get; init; }
+}
+
+/// <summary>A body of rabbinic literature: what it is filed under and how it is cited.</summary>
+public sealed record RabbinicCorpus(string AuthorUrn, string AuthorName, string CitationScheme, bool IsTalmud);
 
 /// <summary>
-/// The rabbinic texts where the demons and angels of the Hebrew Bible's
-/// readers live: five tractates of the Babylonian Talmud, Pirkei de-Rabbi
-/// Eliezer, and the tracts of Eisenstein's Otzar Midrashim that tell of Lilith,
-/// Metatron, the palaces of heaven and Solomon's demons.
+/// Rabbinic literature, in two parts.
+///
+/// <b>The corpus</b> comes from the shipped catalogue, RabbinicCatalogue: the
+/// Mishnah, the Tosefta, the Jerusalem Talmud, the minor tractates, the
+/// Targumim, and the Babylonian Talmud around the tractates below. Which
+/// version of each was decided by tools/RabbinicCatalogue, which reads the
+/// licence at the head of every candidate file.
+///
+/// <b>The demonology</b> is listed by hand here and was installed first: the
+/// rabbinic texts where the demons and angels of the Hebrew Bible's readers
+/// live. Five tractates of the Babylonian Talmud, Pirkei de-Rabbi Eliezer, and
+/// the tracts of Eisenstein's Otzar Midrashim that tell of Lilith, Metatron,
+/// the palaces of heaven and Solomon's demons. Its URNs and citations stay as
+/// they are: the AI translations are filed line for line against them.
 ///
 /// <b>The tractates are the ones the demons are in.</b> Berakhot 6a says no
 /// creature could bear to see them. Shabbat 151b forbids sleeping alone in a
@@ -48,6 +77,29 @@ public class RabbinicIngestService
     private const string Aramaic = "arc";
     private const string Hebrew = "heb";
 
+    /// <summary>
+    /// Keyed as the catalogue names them. Every Babylonian tractate shares its
+    /// author whichever list it came from, so the five demon tractates and the
+    /// other thirty-two sit together in the library.
+    /// </summary>
+    private static readonly IReadOnlyDictionary<string, RabbinicCorpus> Corpora =
+        new Dictionary<string, RabbinicCorpus>(StringComparer.Ordinal)
+        {
+            ["mishnah"] = new("urn:rabbinic:mishnah", "Mishnah", "Chapter.Mishnah", false),
+            ["tosefta"] = new("urn:rabbinic:tosefta", "Tosefta", "Chapter.Halakhah", false),
+            ["bavli"] = new("urn:rabbinic:babylonian-talmud", "Babylonian Talmud", "Folio.Segment", true),
+            ["yerushalmi"] = new("urn:rabbinic:jerusalem-talmud", "Jerusalem Talmud", "Chapter.Halakhah.Segment", false),
+            ["minor"] = new("urn:rabbinic:minor-tractates", "Minor Tractates", "Chapter.Paragraph", false),
+            ["targum"] = new("urn:rabbinic:targum", "Targum", "Chapter.Verse", false)
+        };
+
+    /// <summary>
+    /// Dan Be'eri's own numbers in the Kaufmann text, small Hebrew letters
+    /// inside the passage. They do not match the standard numbering the
+    /// citations follow, and in the text they would index as words.
+    /// </summary>
+    private static readonly Regex KaufmannNumeral = new(@"<small>[א-ת]{1,3}</small>", RegexOptions.Compiled);
+
     private static RabbinicVersion Vilna => new(
         "Hebrew", "Wikisource Talmud Bavli", "CC-BY-SA", EditionKind.Original, Aramaic, null, "vilna");
 
@@ -55,7 +107,41 @@ public class RabbinicIngestService
         "English", "Talmud Bavli. German trans. by Lazarus Goldschmidt, 1929 [de]", "Public Domain",
         EditionKind.Translation, "deu", "Lazarus Goldschmidt (1929)", "goldschmidt");
 
-    public static readonly IReadOnlyList<RabbinicWork> Works = new[]
+    /// <summary>Everything the step installs: the demonology first, then the corpus.</summary>
+    public static readonly IReadOnlyList<RabbinicWork> Works = Demonology().Concat(FromCatalogue()).ToList();
+
+    /// <summary>
+    /// What a finished install holds, near enough. A library that finished the
+    /// step when it was 33 downloads has a completion stamp and thirty-odd
+    /// editions; this is what tells the setup wizard it has more to fetch. Not
+    /// every version in the list becomes an edition - a community translation
+    /// may not have reached a tract, a licence may have changed - so it asks
+    /// for nine in ten rather than all of them.
+    /// </summary>
+    public static int EditionsWhenComplete => Works.Sum(w => w.Versions.Count) * 9 / 10;
+
+    private static IEnumerable<RabbinicWork> FromCatalogue() =>
+        RabbinicCatalogue.Texts.GroupBy(t => t.Slug).Select(versions =>
+        {
+            var first = versions.First();
+            var corpus = Corpora[first.Corpus];
+
+            return new RabbinicWork(first.Slug, first.Title, string.Empty, first.Slug, null, corpus.IsTalmud,
+                versions.Select(t => new RabbinicVersion(
+                    string.Empty, t.VersionTitle, t.Licence,
+                    t.IsTranslation ? EditionKind.Translation : EditionKind.Original,
+                    t.Language, t.Translator, t.Suffix)
+                {
+                    ExportPath = t.ExportPath,
+                    Orthography = t.Orthography
+                }).ToList())
+            {
+                Corpus = corpus,
+                CitationScheme = first.CitationScheme
+            };
+        });
+
+    private static IEnumerable<RabbinicWork> Demonology() => new[]
     {
         new RabbinicWork("berakhot", "Berakhot", "Talmud/Bavli/Seder Zeraim", "Berakhot", null, true, new[]
         {
@@ -152,8 +238,9 @@ public class RabbinicIngestService
 
     private async Task<int> InstallAsync(string root, RabbinicWork work, CancellationToken ct)
     {
-        var (authorUrn, authorName) = work.IsTalmud
-            ? ("urn:rabbinic:babylonian-talmud", "Babylonian Talmud")
+        var corpus = work.Corpus ?? (work.IsTalmud ? Corpora["bavli"] : null);
+        var (authorUrn, authorName) = corpus != null
+            ? (corpus.AuthorUrn, corpus.AuthorName)
             : work.Node != null
                 ? ("urn:rabbinic:otzar-midrashim", "Otzar Midrashim")
                 : ($"urn:rabbinic:{work.Slug}", work.Title);
@@ -169,7 +256,9 @@ public class RabbinicIngestService
             AuthorId = authorId,
             CtsUrn = workUrn,
             Title = work.Title,
-            CitationScheme = work.IsTalmud ? "Folio.Segment" : "Chapter.Paragraph"
+            CitationScheme = work.CitationScheme
+                             ?? work.Corpus?.CitationScheme
+                             ?? (work.IsTalmud ? "Folio.Segment" : "Chapter.Paragraph")
         }, ct);
 
         var total = 0;
@@ -178,9 +267,11 @@ public class RabbinicIngestService
             var file = Path.Combine(root, work.SefariaTitle, $"{version.UrnSuffix}.json");
             if (!File.Exists(file))
             {
-                await _downloader.DownloadAsync(
-                    SefariaExportLoader.UrlFor(work.CategoryPath, work.SefariaTitle, version.LanguageFolder, version.VersionTitle),
-                    file, new Progress<string>(_ => { }), ct);
+                var url = version.ExportPath != null
+                    ? SefariaExportLoader.Root + version.ExportPath
+                    : SefariaExportLoader.UrlFor(work.CategoryPath, work.SefariaTitle, version.LanguageFolder, version.VersionTitle);
+
+                await _downloader.DownloadAsync(url, file, new Progress<string>(_ => { }), ct);
             }
 
             using var export = SefariaExportLoader.Load(file);
@@ -196,7 +287,10 @@ public class RabbinicIngestService
 
             var passages = work.IsTalmud
                 ? SefariaExportLoader.FlattenTalmud(node.Value)
-                : SefariaExportLoader.Flatten(node.Value);
+                : SefariaExportLoader.Flatten(node.Value, PrepareFor(version));
+
+            // Etheridge's Numbers holds a bare underscore for 54 verses it lacks.
+            passages.RemoveAll(p => !p.Text.Any(char.IsLetterOrDigit));
 
             // A tract the community translation has not reached is left out,
             // not installed as an empty pane.
@@ -211,6 +305,7 @@ public class RabbinicIngestService
                 Language = version.Language,
                 Translator = version.Translator,
                 SourcePath = editionUrn,
+                Orthography = version.Orthography,
                 Collection = CollectionKey
             }, ct);
 
@@ -231,4 +326,7 @@ public class RabbinicIngestService
 
         return total;
     }
+
+    internal static Func<string, string>? PrepareFor(RabbinicVersion version) =>
+        version.Orthography == "kaufmann" ? markup => KaufmannNumeral.Replace(markup, string.Empty) : null;
 }

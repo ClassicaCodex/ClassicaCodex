@@ -144,7 +144,7 @@ public static class SetupDataSourceCatalog
         /// <summary>1 Enoch, the Testament of Solomon, Jubilees and the other books outside the Bible.</summary>
         public const string Pseudepigrapha = PseudepigraphaIngestService.CollectionKey;
 
-        /// <summary>Talmud tractates, Pirkei de-Rabbi Eliezer and tracts of Otzar Midrashim.</summary>
+        /// <summary>The Mishnah, the Tosefta, both Talmuds, the Targumim and some midrash.</summary>
         public const string Rabbinic = RabbinicIngestService.CollectionKey;
 
         /// <summary>The Quran in Arabic, Uthmani and simple, with Pickthall's English.</summary>
@@ -194,7 +194,7 @@ public static class SetupDataSourceCatalog
         CollectionKeys.HebrewBible => "Hebrew Bible (Leningrad Codex)",
         CollectionKeys.EarlyEnglishSpirits => "Early English Books: devils, spirits and angels (EEBO-TCP)",
         CollectionKeys.Pseudepigrapha => "Pseudepigrapha: Enoch, Solomon, Jubilees",
-        CollectionKeys.Rabbinic => "Rabbinic texts: Talmud and midrash",
+        CollectionKeys.Rabbinic => "Rabbinic texts: Mishnah, Talmud, Targum and midrash",
         CollectionKeys.Quran => "The Quran (Arabic, with Pickthall's English)",
         CollectionKeys.Aquinas => "Aquinas, Summa Theologiae, First Part (English)",
         CollectionKeys.Dionysius => "Pseudo-Dionysius the Areopagite (Parker's English)",
@@ -1436,9 +1436,9 @@ public static class SetupDataSourceCatalog
 
             new SetupDataSource
             {
-                Title = "Rabbinic texts: Talmud and midrash on angels and demons",
+                Title = "Rabbinic texts: Mishnah, Talmud, Targum and midrash",
                 RepoUrl = "https://www.sefaria.org",
-                DisplayNote = "about 20 MB in 33 downloads",
+                DisplayNote = "about 140 MB in about 630 downloads",
                 DefaultDestination = Path.Combine(dataRoot, "rabbinic"),
                 FetchMode = SetupFetchMode.SelfManaged,
 
@@ -1448,20 +1448,23 @@ public static class SetupDataSourceCatalog
                 },
 
                 PlainLanguageDescription =
-                    "Five tractates of the Babylonian Talmud - Berakhot, Shabbat, Pesachim, Hagigah and "
-                    + "Gittin, the ones the demons are in - with Pirkei de-Rabbi Eliezer and eight tracts of "
-                    + "Eisenstein's Otzar Midrashim: the Alphabet of Ben Sira, where Lilith is, Hekhalot, the "
-                    + "Metatron texts, the Book of Raziel, Eden and Gehinnom, and the midrashim on King "
-                    + "Solomon. "
-                    + "The Talmud is the Vilna text as transcribed on Hebrew Wikisource (CC BY-SA), cited by "
-                    + "folio, side and segment (Berakhot 6a.10), with Lazarus Goldschmidt's German "
-                    + "translation of 1929 beside every tractate, A. Cohen's English of Berakhot (1921) and "
-                    + "Sefaria's community English of Hagigah. There is no free English of Shabbat, Pesachim "
-                    + "or Gittin to give you: the complete modern English is non-commercial, and is left "
-                    + "out for that reason. Pirkei de-Rabbi Eliezer comes in Hebrew and in Friedlander's "
-                    + "English of 1916; the Otzar tracts in Hebrew, and in English where Sefaria's "
-                    + "community translation has reached them. Everything is fetched from Sefaria, and each "
-                    + "file's licence is checked as it is read.",
+                    "The core of rabbinic literature. The Mishnah, all 63 tractates, in the printed Hebrew and for 61 of them "
+                    + "Codex Kaufmann, with Joshua Kulp's English and Lazarus Goldschmidt's German. The Tosefta, in "
+                    + "the Vilna text and, for 33 tractates, Lieberman's edition of Codex Vienna, with Sefaria's "
+                    + "community English where it reaches at least half a tractate. The Jerusalem Talmud, all 39 "
+                    + "tractates, in Heinrich Guggenheimer's edition and English. All 37 tractates of the "
+                    + "Babylonian Talmud, the Vilna text as transcribed on Hebrew Wikisource, cited by folio, side "
+                    + "and segment (Berakhot 6a.10), with Goldschmidt's German of 1929. The 15 minor tractates, 14 "
+                    + "of them in A. Cohen's English. The Targumim: Onkelos, Jonathan on the Prophets, Pseudo-Jonathan, the "
+                    + "Jerusalem Targum and the Targumim to the Writings. With them, the texts the demons are in: "
+                    + "Pirkei de-Rabbi Eliezer and eight tracts of Eisenstein's Otzar Midrashim, among them the "
+                    + "Alphabet of Ben Sira, where Lilith is, and Hekhalot. "
+                    + "Only five tractates of the Babylonian Talmud have a free English to give you: the complete "
+                    + "modern English is non-commercial, and is left out for that reason. Midrash Rabbah and the "
+                    + "Zohar are not here yet, because Sefaria gives no licence for most of their Hebrew and "
+                    + "Aramaic. Everything is fetched from Sefaria, and each file's licence is checked as it is "
+                    + "read. A library that installed the smaller version of this step can run it again to add "
+                    + "the rest.",
 
                 RunIngest = async (root, progress, ct) =>
                 {
@@ -1475,7 +1478,9 @@ public static class SetupDataSourceCatalog
                 },
 
                 CheckComplete = async () =>
-                    await editionRepo.IsCollectionCompleteAsync(CollectionKeys.Rabbinic),
+                    await editionRepo.IsCollectionCompleteAsync(CollectionKeys.Rabbinic)
+                    && await editionRepo.CountByCollectionAsync(CollectionKeys.Rabbinic)
+                    >= RabbinicIngestService.EditionsWhenComplete,
                 CheckHasSomeContent = async () =>
                     await editionRepo.CountByCollectionAsync(CollectionKeys.Rabbinic) > 0
             },

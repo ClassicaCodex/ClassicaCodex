@@ -202,6 +202,97 @@ public class HebrewBibleLoaderTests
                 + "<sup class=\"footnote-marker\">1</sup><i class=\"footnote\">Heb. the heavens.</i>"));
 
     /// <summary>
+    /// A note with italics inside it comes out whole. Ending at the first
+    /// close left the rest of the note in the text, which is half as many
+    /// words again in Guggenheimer's Jerusalem Talmud.
+    /// </summary>
+    [Fact]
+    public void AFootnoteHoldingItalicsComesOutWhole() =>
+        Assert.Equal(
+            "Others say a short prayer.",
+            SefariaTextLoader.Clean(
+                "Others say<sup class=\"footnote-marker\">206</sup><i class=\"footnote\">Reported in "
+                + "<i>Babylonian</i> style, with <i>no</i> doxology.</i> a short prayer."));
+
+    /// <summary>The Tosefta's translators hang their notes from a plain superscript.</summary>
+    [Fact]
+    public void APlainSuperscriptBeforeANoteGoesWithIt() =>
+        Assert.Equal(
+            "He recites it.",
+            SefariaTextLoader.Clean("He recites<sup>1</sup><i class=\"footnote\">The Shema.</i> it."));
+
+    [Fact]
+    public void AMarkerWithNoNoteLeavesNoDigitBehind() =>
+        Assert.Equal(
+            "He recites it.",
+            SefariaTextLoader.Clean("He recites<sup class=\"footnote-marker\">1</sup> it."));
+
+    /// <summary>A superscript that belongs to no note is the author's, and stays.</summary>
+    [Fact]
+    public void ASuperscriptNotAttachedToANoteIsKept() =>
+        Assert.Equal("Psalm 151a here.", SefariaTextLoader.Clean("Psalm 151<sup>a</sup> here."));
+
+    /// <summary>
+    /// A note that never closes cannot be measured, so nothing is taken: a
+    /// stray note can be seen, and a lost passage cannot.
+    /// </summary>
+    [Fact]
+    public void AnUnclosedNoteLosesNoText() =>
+        Assert.Equal(
+            "Before. the note and the rest",
+            SefariaTextLoader.Clean("Before. <i class=\"footnote\">the note and the rest"));
+
+    /// <summary>
+    /// One unclosed note says nothing about the notes after it, and they still
+    /// go. Goldschmidt's Kiddushin 20b, where the text reads on from the
+    /// unclosed note.
+    /// </summary>
+    [Fact]
+    public void ANoteAfterAnUnclosedOneStillGoes() =>
+        Assert.Equal(
+            "Lev. 27,19. dies lehrt, daß er es in Hälften einlösen könne.",
+            SefariaTextLoader.Clean(
+                "<i class=\"footnote\">Lev. 27,19. dies lehrt, daß er es"
+                + "<sup class=\"footnote-marker\">721</sup><i class=\"footnote\">Das Feld.</i>"
+                + " in Hälften einlösen könne."));
+
+    /// <summary>Cohen's Kallah 5.3 and 5.4 write the class in curly quotes, inside the straight ones.</summary>
+    [Fact]
+    public void ANoteWithCurlyQuotesInItsClassStillGoes() =>
+        Assert.Equal(
+            "let him examine his actions; and speak.",
+            SefariaTextLoader.Clean(
+                "let him examine his actions;<sup class=\"“footnote-marker”\">89</sup>"
+                + "<i class=\"“footnote”\">(89) This phrase occurs in Erub. 13b.</i> and speak."));
+
+    /// <summary>
+    /// Goldschmidt's Mishnah numbers carry the marker's class with no note after
+    /// them. A pattern running from that class to the next note took the
+    /// Mishnah's opening words with it, 19,000 words across the Talmud.
+    /// </summary>
+    [Fact]
+    public void AMishnahNumberDoesNotTakeTheWordsAfterIt() =>
+        Assert.Equal(
+            "VON WANN LIEST MAN es.",
+            SefariaTextLoader.Clean(
+                "<sup class=\"footnote-marker\">i</sup><b>V</b>ON <small>WANN</small> LIEST MAN"
+                + "<sup class=\"footnote-marker\">1</sup><i class=\"footnote\">Das Shema.</i> es."));
+
+    /// <summary>
+    /// Guggenheimer's English has the marker's class on superscripts that are
+    /// no markers at all: the end of an ordinal, a transliterated vowel, the
+    /// top of a fraction. Those are the author's words.
+    /// </summary>
+    [Theory]
+    [InlineData("the 31<sup class=\"footnote-marker\">st</sup> day", "the 31st day")]
+    [InlineData("the 32<sup class=\"footnote-marker\">nd</sup> day", "the 32nd day")]
+    [InlineData("the 30<sup class=\"footnote-marker\">th</sup> day", "the 30th day")]
+    [InlineData("Rav says y<sup class=\"footnote-marker\">e</sup>utu", "Rav says yeutu")]
+    [InlineData("The as is <sup class=\"footnote-marker\">1</sup>/24 of a denar", "The as is 1/24 of a denar")]
+    public void TheMarkerClassOnPartOfAWordKeepsTheWord(string markup, string expected) =>
+        Assert.Equal(expected, SefariaTextLoader.Clean(markup));
+
+    /// <summary>
     /// Hebrew's final letters are the same letters at the end of a word, so a
     /// search typed with the medial forms - the stem of every plural of
     /// "angel" - finds the singular.
