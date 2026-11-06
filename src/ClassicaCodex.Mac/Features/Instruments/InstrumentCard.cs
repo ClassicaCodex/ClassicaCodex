@@ -170,7 +170,7 @@ internal abstract class InstrumentCard : FeatureWindow
                 throw new FileNotFoundException($"The {_pageName} page is missing from this build.", path);
 
             if (!ExternalLinks.Opener(path))
-                throw new InvalidOperationException("macOS did not hand the page to a browser.");
+                throw new InvalidOperationException("The system did not hand the page to a browser.");
         }
         catch (Exception ex)
         {

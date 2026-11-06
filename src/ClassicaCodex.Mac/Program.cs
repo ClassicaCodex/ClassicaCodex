@@ -24,5 +24,6 @@ internal static class Program
     public static AppBuilder BuildAvaloniaApp() =>
         AppBuilder.Configure<App>()
             .UsePlatformDetect()
-            .With(new MacOSPlatformOptions { ShowInDock = true });
+            .With(new MacOSPlatformOptions { ShowInDock = true })
+            .With(new X11PlatformOptions { WmClass = "classica-codex" });
 }

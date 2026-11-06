@@ -83,7 +83,7 @@ public static class CrashLog
             if (directory != null) Directory.CreateDirectory(directory);
 
             File.AppendAllText(LogFile,
-                $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] (Mac) while {context}{Environment.NewLine}{ex}{Environment.NewLine}{Environment.NewLine}");
+                $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] ({(OperatingSystem.IsLinux() ? "Linux" : "Mac")}) while {context}{Environment.NewLine}{ex}{Environment.NewLine}{Environment.NewLine}");
         }
         catch (Exception)
         {

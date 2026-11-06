@@ -5,6 +5,7 @@ using Avalonia.Media;
 using Avalonia.Styling;
 using ClassicaCodex.Data.Repositories;
 using ClassicaCodex.Mac.Common;
+using ClassicaCodex.Mac.Platform;
 using ClassicaCodex.UI;
 
 namespace ClassicaCodex.Mac.Shell;
@@ -31,7 +32,7 @@ public sealed class WelcomeView : UserControl
         var title = new TextBlock { Text = "Classica Codex", Classes = { "display" }, FontSize = 46 };
         var subtitle = new TextBlock
         {
-            Text = "The Greek and Latin classics, their translations and dictionaries, and the languages around them - read side by side, searched, and studied on your own Mac.",
+            Text = SystemWords.Say("The Greek and Latin classics, their translations and dictionaries, and the languages around them - read side by side, searched, and studied on your own Mac."),
             TextWrapping = TextWrapping.Wrap,
             MaxWidth = 500,
             HorizontalAlignment = HorizontalAlignment.Left,

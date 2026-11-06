@@ -18,19 +18,28 @@ namespace ClassicaCodex.Mac.Platform;
 /// The text goes to <c>say</c> on standard input rather than as an argument,
 /// so a long passage is not limited by the command line and nothing in it
 /// can be read as an option.
+///
+/// Linux has no engine every desktop can be relied on for, and espeak-ng is
+/// the one every distribution packages, so it stands in for <c>say</c> where
+/// it is installed, with the same caveats. Without it Read Aloud is not offered.
 /// </summary>
 public static class SpeechService
 {
     private static Process? _current;
     private static IReadOnlyList<InstalledVoiceToken>? _voices;
 
-    public static bool IsAvailable => OperatingSystem.IsMacOS() && File.Exists("/usr/bin/say");
+    private const string Say = "/usr/bin/say";
+
+    private static readonly Lazy<string?> Espeak = new(() => OperatingSystem.IsLinux() ? SystemTools.Find("espeak-ng", "espeak") : null);
+
+    public static bool IsAvailable => OperatingSystem.IsMacOS() ? File.Exists(Say) : Espeak.Value != null;
 
     public static bool IsSpeaking => _current is { HasExited: false };
 
     /// <summary>
     /// The installed voices, as <c>say -v ?</c> lists them: a name, a locale,
-    /// and a sample sentence after a '#'.
+    /// and a sample sentence after a '#'. espeak-ng's list is laid out
+    /// differently; see <see cref="ParseEspeakVoices"/>.
     /// </summary>
     public static IReadOnlyList<InstalledVoiceToken> GetInstalledVoices()
     {
@@ -39,7 +48,8 @@ public static class SpeechService
 
         try
         {
-            var start = new ProcessStartInfo("/usr/bin/say", "-v ?")
+            var linux = Espeak.Value;
+            var start = new ProcessStartInfo(linux ?? Say, linux != null ? "--voices" : "-v ?")
             {
                 RedirectStandardOutput = true,
                 UseShellExecute = false
@@ -50,7 +60,7 @@ public static class SpeechService
 
             var output = process.StandardOutput.ReadToEnd();
             process.WaitForExit(5000);
-            return _voices = ParseVoices(output);
+            return _voices = linux != null ? ParseEspeakVoices(output) : ParseVoices(output);
         }
         catch (Exception ex) when (ex is IOException or InvalidOperationException or System.ComponentModel.Win32Exception)
         {
@@ -80,6 +90,28 @@ public static class SpeechService
         return voices;
     }
 
+    private static readonly Regex EspeakLine = new(@"^\s*\d+\s+(?<language>\S+)\s+\S+\s+(?<name>\S+)\s+\S+", RegexOptions.Compiled);
+
+    /// <summary>
+    /// espeak-ng --voices: a heading, then a priority, a language, age and
+    /// gender, a name and a file on each line. The language is what -v takes.
+    /// </summary>
+    internal static IReadOnlyList<InstalledVoiceToken> ParseEspeakVoices(string output)
+    {
+        var voices = new List<InstalledVoiceToken>();
+
+        foreach (var line in output.Split('\n'))
+        {
+            var match = EspeakLine.Match(line);
+            if (!match.Success) continue;
+
+            var display = match.Groups["name"].Value.Replace('_', ' ');
+            voices.Add(new InstalledVoiceToken(match.Groups["language"].Value, display, string.Empty));
+        }
+
+        return voices;
+    }
+
     public static void SetVoice(string voiceName) => SpeechSettings.SetPreferredVoice(voiceName);
 
     public static void Speak(string text, string? language)
@@ -92,11 +124,19 @@ public static class SpeechService
             ? GreekPhoneticTransliterator.ToPhoneticLatin(text)
             : text;
 
-        var start = new ProcessStartInfo("/usr/bin/say")
+        var linux = Espeak.Value;
+        var start = new ProcessStartInfo(linux ?? Say)
         {
             RedirectStandardInput = true,
             UseShellExecute = false
         };
+
+        if (linux != null)
+        {
+            start.ArgumentList.Add("--stdin");
+            start.ArgumentList.Add("-b");
+            start.ArgumentList.Add("1");
+        }
 
         var voice = SpeechSettings.PreferredVoiceName;
         if (!string.IsNullOrWhiteSpace(voice) && GetInstalledVoices().Any(v => v.Name == voice))

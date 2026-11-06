@@ -1,3 +1,4 @@
+using ClassicaCodex.Mac.Platform;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
@@ -137,7 +138,7 @@ public sealed class MenotaPlanWindow : FeatureWindow
 
         editRow.Children.Add(new TextBlock
         {
-            Text = "Merge, split, or set an author on a selection. ⇧-click or ⌘-click to select several rows.",
+            Text = SystemWords.Say("Merge, split, or set an author on a selection. ⇧-click or ⌘-click to select several rows."),
             Classes = { "caption" },
             VerticalAlignment = VerticalAlignment.Center,
             Margin = new Thickness(6, 0, 0, 6)
@@ -268,7 +269,7 @@ public sealed class MenotaPlanWindow : FeatureWindow
 
         if (rows.Count < 2)
         {
-            await Alert.Info(this, "Merge", "Select two or more rows to merge. Click a row, then ⇧-click another.");
+            await Alert.Info(this, "Merge", SystemWords.Say("Select two or more rows to merge. Click a row, then ⇧-click another."));
             return;
         }
 

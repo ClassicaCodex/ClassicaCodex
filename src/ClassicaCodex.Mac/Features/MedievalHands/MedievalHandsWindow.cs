@@ -13,6 +13,7 @@ using ClassicaCodex.Data.Repositories;
 using ClassicaCodex.Ingestion.Catmus;
 using ClassicaCodex.Mac.Common;
 using ClassicaCodex.Mac.Features.WordStudy;
+using ClassicaCodex.Mac.Platform;
 using ClassicaCodex.UI;
 
 namespace ClassicaCodex.Mac.Features.MedievalHands;
@@ -291,8 +292,8 @@ public sealed class MedievalHandsWindow : FeatureWindow
         };
         _zoomPercent = new TextBlock { Classes = { "caption" }, VerticalAlignment = VerticalAlignment.Center, MinWidth = 38, TextAlignment = TextAlignment.Right };
 
-        var zoomOut = ZoomButton("Minus", "Zoom out (⌘-)", () => _specimen.ZoomOut());
-        var zoomIn = ZoomButton("Plus", "Zoom in (⌘+)", () => _specimen.ZoomIn());
+        var zoomOut = ZoomButton("Minus", SystemWords.Say("Zoom out (⌘-)"), () => _specimen.ZoomOut());
+        var zoomIn = ZoomButton("Plus", SystemWords.Say("Zoom in (⌘+)"), () => _specimen.ZoomIn());
         var zoomRow = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 4, Children = { _zoomPercent, zoomOut, zoomIn, _zoom } };
 
         // The transcription sits under the photograph in a size meant to be

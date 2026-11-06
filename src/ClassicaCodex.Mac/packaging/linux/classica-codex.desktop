@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=Classica Codex
+GenericName=Classical Text Reader
+Comment=The Greek and Latin classics and the languages around them, read side by side
+Exec="__HERE__/classica-codex"
+Icon=__HERE__/classica-codex.png
+Terminal=false
+Categories=Education;Languages;Literature;
+StartupWMClass=classica-codex

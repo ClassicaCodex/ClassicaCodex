@@ -1,0 +1,61 @@
+# The Avalonia front end on real Linux: the tests with a live keyring and the
+# Noto fonts, then the tarball, unpacked and started on a virtual display. The
+# photographs of it running are attached to the run.
+name: Linux
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  linux:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: System packages
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            xvfb openbox xdotool imagemagick dbus dbus-x11 gnome-keyring libsecret-tools \
+            espeak-ng fonts-noto-core fonts-dejavu-core
+
+      - name: Build
+        run: dotnet build ClassicaCodex.Mac.slnf -c Release
+
+      - name: Test
+        run: |
+          dbus-run-session -- bash -c '
+            echo -n ci | gnome-keyring-daemon --daemonize --unlock --components=secrets
+            CC_EXPECT_KEYRING=1 CC_EXPECT_NOTO=1 dotnet test ClassicaCodex.Mac.slnf -c Release --no-build
+          '
+
+      - name: Tarball
+        run: src/ClassicaCodex.Mac/packaging/build-linux.sh x64
+
+      - name: A small library
+        run: |
+          git clone --quiet --depth 1 --filter=blob:none --sparse https://github.com/PerseusDL/canonical-greekLit "$RUNNER_TEMP/greek"
+          git -C "$RUNNER_TEMP/greek" sparse-checkout set data/tlg0012
+          git clone --quiet --depth 1 --filter=blob:none --sparse https://github.com/PerseusDL/canonical-latinLit "$RUNNER_TEMP/latin"
+          git -C "$RUNNER_TEMP/latin" sparse-checkout set data/phi0690
+          dotnet run --project tools/MacSampleLibrary -c Release -- "$RUNNER_TEMP/library.db" \
+            --greek "$RUNNER_TEMP/greek/data" --latin "$RUNNER_TEMP/latin/data"
+
+      - name: Start it and press its keys
+        run: |
+          src/ClassicaCodex.Mac/packaging/linux/smoke-test.sh \
+            src/ClassicaCodex.Mac/bin/linux-app/*.tar.gz "$RUNNER_TEMP/library.db" "$RUNNER_TEMP/photos"
+
+      - name: Keep the photographs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-photographs
+          path: ${{ runner.temp }}/photos
+          if-no-files-found: ignore

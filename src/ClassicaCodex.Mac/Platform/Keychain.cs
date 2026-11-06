@@ -16,6 +16,9 @@ namespace ClassicaCodex.Mac.Platform;
 /// SecItemAdd and friends, but still present in every macOS and far simpler
 /// to call: three strings in, a buffer out. An app that is not sandboxed
 /// needs no entitlement to use them.
+///
+/// On Linux the same three calls go to <see cref="SecretService"/>, the
+/// desktop's keyring, under the same names.
 /// </summary>
 internal static class Keychain
 {
@@ -26,12 +29,13 @@ internal static class Keychain
     /// <summary>The service name the items are filed under in Keychain Access.</summary>
     internal const string Service = "Classica Codex";
 
-    public static bool IsAvailable => OperatingSystem.IsMacOS();
+    public static bool IsAvailable => OperatingSystem.IsMacOS() || SecretService.IsAvailable;
 
     /// <summary>The secret stored for <paramref name="account"/>, or null if there is none.</summary>
     public static string? Read(string account)
     {
         if (!IsAvailable) return null;
+        if (!OperatingSystem.IsMacOS()) return SecretService.Read(Service, account);
 
         var service = Encoding.UTF8.GetBytes(Service);
         var name = Encoding.UTF8.GetBytes(account);
@@ -64,6 +68,7 @@ internal static class Keychain
     public static bool Write(string account, string? secret)
     {
         if (!IsAvailable) return false;
+        if (!OperatingSystem.IsMacOS()) return SecretService.Write(Service, account, secret);
 
         var service = Encoding.UTF8.GetBytes(Service);
         var name = Encoding.UTF8.GetBytes(account);

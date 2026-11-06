@@ -1,0 +1,4 @@
+#!/bin/sh
+# Starts Classica Codex from wherever this folder was unpacked.
+here="$(dirname "$(readlink -f "$0")")"
+exec "$here/lib/ClassicaCodex.Mac" "$@"

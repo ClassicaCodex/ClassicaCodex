@@ -1,4 +1,5 @@
 using ClassicaCodex.Data;
+using ClassicaCodex.Mac.Platform;
 using ClassicaCodex.UI;
 
 namespace ClassicaCodex.Mac.Features.Help;
@@ -99,6 +100,9 @@ internal static class HelpOutline
             .Replace("%ERRORS_LOG%", Home(CrashLog.LogFile))
             .Replace("%SKIPPED_LOG%", Home(Path.Combine(preferences, "ingest-skipped.log")));
     }
+
+    /// <summary>A topic as it is shown: its folders filled in, and worded for this system.</summary>
+    public static string ForDisplay(string body) => SystemWords.Say(Expand(body));
 
     /// <summary>Whether a line is one of the folders <see cref="Expand"/> writes in, whatever shape it has.</summary>
     public static bool IsFolder(string text) =>
