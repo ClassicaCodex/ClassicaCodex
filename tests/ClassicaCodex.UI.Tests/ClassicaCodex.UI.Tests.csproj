@@ -6,7 +6,7 @@
        of it could be tested at all. The app is WinForms and Windows-only, so
        a Windows-only test project gives nothing away. -->
   <PropertyGroup>
-    <TargetFramework>net8.0-windows</TargetFramework>
+    <TargetFramework>net10.0-windows</TargetFramework>
     <UseWindowsForms>true</UseWindowsForms>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>

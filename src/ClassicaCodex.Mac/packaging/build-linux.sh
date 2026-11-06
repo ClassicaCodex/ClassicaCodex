@@ -5,7 +5,7 @@
 #   src/ClassicaCodex.Mac/packaging/build-linux.sh            # x64
 #   src/ClassicaCodex.Mac/packaging/build-linux.sh arm64
 #
-# Needs the .NET 8 SDK (or newer). Writes to src/ClassicaCodex.Mac/bin/linux-app/,
+# Needs the .NET 10 SDK (or newer). Writes to src/ClassicaCodex.Mac/bin/linux-app/,
 # which git ignores.
 #
 # The app is self-contained - the .NET runtime travels inside it - so unpacking
