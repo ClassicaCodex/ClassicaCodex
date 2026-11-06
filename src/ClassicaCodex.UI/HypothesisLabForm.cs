@@ -96,7 +96,7 @@ public sealed class HypothesisLabForm : ScaledForm
         _overview.Columns.Clear();_overview.Rows.Clear();_overview.Columns.Add(new DataGridViewTextBoxColumn{HeaderText="Kind",Width=90});_overview.Columns.Add(new DataGridViewTextBoxColumn{HeaderText="Research source",Width=260});
         var assessments=new Dictionary<long,Dictionary<(HypothesisSourceKind,long),ResearchHypothesisAssessment>>();
         foreach(var hypothesis in _hypothesisData){_overview.Columns.Add(new DataGridViewTextBoxColumn{HeaderText=hypothesis.Title,Width=165});assessments[hypothesis.ResearchHypothesisId]=(await _repo.GetAssessmentsAsync(hypothesis.ResearchHypothesisId)).ToDictionary(a=>(a.SourceKind,a.SourceId));}
-        foreach(var source in _sources){var values=new object?[2+_hypothesisData.Count];values[0]=source.Kind.ToString();values[1]=source.Title;for(var i=0;i<_hypothesisData.Count;i++){if(assessments[_hypothesisData[i].ResearchHypothesisId].TryGetValue((source.Kind,source.Id),out var a))values[i+2]=$"{a.Relationship} · {a.Strength}";}var row=_overview.Rows[_overview.Rows.Add(values)];row.Cells[1].ToolTipText=source.Detail;}
+        foreach(var source in _sources){var values=new object?[2+_hypothesisData.Count];values[0]=source.Kind.ToString();values[1]=source.Title;for(var i=0;i<_hypothesisData.Count;i++){if(assessments[_hypothesisData[i].ResearchHypothesisId].TryGetValue((source.Kind,source.Id),out var a))values[i+2]=$"{a.Relationship} · {a.Strength}";}var row=_overview.Rows[_overview.Rows.Add(values!)];row.Cells[1].ToolTipText=source.Detail;}
     }
 
     private void NewHypothesis(){_hypotheses.ClearSelected();_editingHypothesis=new ResearchHypothesis{ResearchProjectId=_project.ResearchProjectId,SortOrder=_hypothesisData.Count};PopulateHypothesis();}
