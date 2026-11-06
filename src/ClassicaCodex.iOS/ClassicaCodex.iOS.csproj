@@ -1,0 +1,102 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    A proof of concept: the Mac front end, running on an iPad. It holds almost
+    no code of its own. It compiles the files in ..\ClassicaCodex.Mac where
+    they are, so a change there reaches the iPad, and adds what a device with
+    no windows needs: PageWindow, PageHost and a touch layout of the main window.
+
+    It is not in ClassicaCodex.sln, because building it needs the .NET iOS
+    workload. See README.md in this folder.
+  -->
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0-ios</TargetFramework>
+    <SupportedOSPlatformVersion>17.0</SupportedOSPlatformVersion>
+    <RuntimeIdentifier>iossimulator-arm64</RuntimeIdentifier>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <ApplicationId>org.classicacodex.ipad</ApplicationId>
+    <ApplicationTitle>Classica Codex</ApplicationTitle>
+    <ApplicationDisplayVersion>0.1</ApplicationDisplayVersion>
+    <ApplicationVersion>1</ApplicationVersion>
+
+    <!-- This workload asks for Xcode 27.1 exactly, and this Mac has 27.2. It
+         may build on the newer one, but Microsoft does not promise it does. A
+         release build should use the Xcode the workload names. -->
+    <ValidateXcodeVersion>false</ValidateXcodeVersion>
+
+    <!-- The Mac's name, because its XAML and artwork load themselves as
+         avares://ClassicaCodex.Mac/... and this build shares those files. -->
+    <RootNamespace>ClassicaCodex.Mac</RootNamespace>
+    <AssemblyName>ClassicaCodex.Mac</AssemblyName>
+
+    <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
+    <AvaloniaBuildTelemetry>false</AvaloniaBuildTelemetry>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Avalonia" Version="12.1.4" />
+    <PackageReference Include="Avalonia.iOS" Version="12.1.4" />
+    <PackageReference Include="Avalonia.Themes.Fluent" Version="12.1.4" />
+    <PackageReference Include="Avalonia.Controls.DataGrid" Version="12.1.2" />
+
+    <!-- For the Mac project's Windows files, which come along with the rest.
+         Nothing calls them on iOS, as nothing does on a Mac. -->
+    <PackageReference Include="System.Speech" Version="8.0.0" />
+    <PackageReference Include="System.Security.Cryptography.ProtectedData" Version="8.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\ClassicaCodex.Core\ClassicaCodex.Core.csproj" />
+    <ProjectReference Include="..\ClassicaCodex.Data\ClassicaCodex.Data.csproj" />
+    <ProjectReference Include="..\ClassicaCodex.Ingestion\ClassicaCodex.Ingestion.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- The iOS SDK's implicit usings would put UIKit and Foundation in scope
+         of every shared file, which were written without them in mind. -->
+    <Using Remove="CoreFoundation" />
+    <Using Remove="Foundation" />
+    <Using Remove="UIKit" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Every file of the Mac front end, except the desktop entry point. -->
+    <Compile Include="..\ClassicaCodex.Mac\**\*.cs"
+             Exclude="..\ClassicaCodex.Mac\bin\**;..\ClassicaCodex.Mac\obj\**;..\ClassicaCodex.Mac\Program.cs"
+             Link="Mac\%(RecursiveDir)%(Filename)%(Extension)" />
+
+    <!-- The same plain-logic files from the Windows folder that the Mac links. -->
+    <Compile Include="..\ClassicaCodex.UI\AncientWorldCoastline.cs" Link="Shared\AncientWorldCoastline.cs" />
+    <Compile Include="..\ClassicaCodex.UI\CitationMarginSettings.cs" Link="Shared\CitationMarginSettings.cs" />
+    <Compile Include="..\ClassicaCodex.UI\DataFolderSettings.cs" Link="Shared\DataFolderSettings.cs" />
+    <Compile Include="..\ClassicaCodex.UI\EditionLabels.cs" Link="Shared\EditionLabels.cs" />
+    <Compile Include="..\ClassicaCodex.UI\GreekPhoneticTransliterator.cs" Link="Shared\GreekPhoneticTransliterator.cs" />
+    <Compile Include="..\ClassicaCodex.UI\NaturalEarthCoastline.cs" Link="Shared\NaturalEarthCoastline.cs" />
+    <Compile Include="..\ClassicaCodex.UI\NodeKindVisibility.cs" Link="Shared\NodeKindVisibility.cs" />
+    <Compile Include="..\ClassicaCodex.UI\PaneSyncSettings.cs" Link="Shared\PaneSyncSettings.cs" />
+    <Compile Include="..\ClassicaCodex.UI\PreferredCollectionSettings.cs" Link="Shared\PreferredCollectionSettings.cs" />
+    <Compile Include="..\ClassicaCodex.UI\ReaderPaneRules.cs" Link="Shared\ReaderPaneRules.cs" />
+    <Compile Include="..\ClassicaCodex.UI\ReadingFontSettings.cs" Link="Shared\ReadingFontSettings.cs" />
+    <Compile Include="..\ClassicaCodex.UI\ReadingPosition.cs" Link="Shared\ReadingPosition.cs" />
+    <Compile Include="..\ClassicaCodex.UI\SearchEras.cs" Link="Shared\SearchEras.cs" />
+    <Compile Include="..\ClassicaCodex.UI\SpeechSettings.cs" Link="Shared\SpeechSettings.cs" />
+    <Compile Include="..\ClassicaCodex.UI\SetupDataSource.cs" Link="Shared\SetupDataSource.cs" />
+    <Compile Include="..\ClassicaCodex.UI\SetupDataSourceCatalog.cs" Link="Shared\SetupDataSourceCatalog.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- The Mac's XAML, except MainWindow.axaml: a Window cannot be the root of
+         anything here, so Shell\MainWindow.axaml in this folder replaces it. -->
+    <AvaloniaXaml Include="..\ClassicaCodex.Mac\App.axaml" Link="App.axaml" />
+    <AvaloniaXaml Include="..\ClassicaCodex.Mac\Theme\*.axaml" Link="Theme\%(Filename)%(Extension)" />
+    <AvaloniaResource Include="..\ClassicaCodex.Mac\Assets\**"
+                      Exclude="..\ClassicaCodex.Mac\Assets\Art\*.md;..\ClassicaCodex.Mac\Assets\Art\*.json"
+                      Link="Assets\%(RecursiveDir)%(Filename)%(Extension)" />
+  </ItemGroup>
+
+  <Import Project="..\ClassicaCodex.Mac\Features\*\*.props" />
+
+</Project>

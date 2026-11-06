@@ -1,3 +1,4 @@
+using Avalonia.Controls;
 using ClassicaCodex.Core.Models;
 using ClassicaCodex.Data.Repositories;
 using ClassicaCodex.Mac.Common;
@@ -92,7 +93,7 @@ public static class ResearchFeature
     /// Cross-Language Echo and the Corpus Investigator.
     /// </summary>
     /// <returns>True if the reader saved them.</returns>
-    public static async Task<bool> CaptureEchoAsync(Avalonia.Controls.Window owner, ClassicaCodex.Core.EchoCaptureRequest request, long? defaultProjectId = null)
+    public static async Task<bool> CaptureEchoAsync(Window owner, ClassicaCodex.Core.EchoCaptureRequest request, long? defaultProjectId = null)
     {
         var capture = new EchoCaptureWindow(request, defaultProjectId);
         await capture.ShowDialog(owner);

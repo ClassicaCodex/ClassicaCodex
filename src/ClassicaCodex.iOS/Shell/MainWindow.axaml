@@ -1,0 +1,93 @@
+<ios:PageWindow xmlns="https://github.com/avaloniaui"
+                xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                xmlns:shell="using:ClassicaCodex.Mac.Shell"
+                xmlns:ios="using:ClassicaCodex.iOS"
+                x:Class="ClassicaCodex.Mac.Shell.MainWindow">
+
+  <!--
+    The Mac's MainWindow.axaml with a page for its root instead of a Window.
+    The names are the same, because the shared MainWindow code finds its
+    controls by them. The drag areas and the title row stay, hidden, for the
+    same reason. Toolbar buttons have a 44-point minimum, Apple's touch target.
+  -->
+  <ios:PageWindow.Styles>
+    <Style Selector="Button.toolbar, ToggleButton.toolbar">
+      <Setter Property="MinWidth" Value="44" />
+      <Setter Property="MinHeight" Value="44" />
+    </Style>
+  </ios:PageWindow.Styles>
+
+  <DockPanel>
+    <NativeMenuBar DockPanel.Dock="Top" x:Name="FallbackMenuBar" IsVisible="False" />
+
+    <Grid x:Name="Columns" ColumnDefinitions="270,Auto,*">
+
+      <Border x:Name="SidebarHost" Grid.Column="0"
+              Background="{DynamicResource Cc.Sidebar}"
+              BorderBrush="{DynamicResource Cc.Rule}" BorderThickness="0,0,1,0">
+        <DockPanel>
+          <Panel x:Name="SidebarTitleRow" DockPanel.Dock="Top" IsVisible="False">
+            <Border x:Name="SidebarDragArea" />
+          </Panel>
+          <shell:LibrarySidebar x:Name="Sidebar" />
+        </DockPanel>
+      </Border>
+
+      <GridSplitter x:Name="SidebarSplitter" Grid.Column="1" Width="11" Margin="-5,0,-5,0"
+                    ResizeDirection="Columns" Background="Transparent" />
+
+      <DockPanel Grid.Column="2" Background="{DynamicResource Cc.Window}">
+
+        <Panel x:Name="Toolbar" DockPanel.Dock="Top" Height="56">
+          <Border x:Name="ToolbarDragArea" Background="{DynamicResource Cc.Toolbar}"
+                  BorderBrush="{DynamicResource Cc.Rule}" BorderThickness="0,0,0,1" />
+
+          <DockPanel x:Name="ToolbarContent" Margin="10,0,12,0" LastChildFill="True">
+            <StackPanel x:Name="ToolbarLeft" DockPanel.Dock="Left" Orientation="Horizontal" Spacing="2" VerticalAlignment="Center">
+              <Button x:Name="SidebarToggle" Classes="toolbar">
+                <PathIcon Data="{StaticResource Glyph.Sidebar}" />
+              </Button>
+              <Button x:Name="BackButton" Classes="toolbar" IsEnabled="False">
+                <PathIcon Data="{StaticResource Glyph.Back}" />
+              </Button>
+              <Button x:Name="ForwardButton" Classes="toolbar" IsEnabled="False">
+                <PathIcon Data="{StaticResource Glyph.Forward}" />
+              </Button>
+            </StackPanel>
+
+            <StackPanel x:Name="ToolbarRight" DockPanel.Dock="Right" Orientation="Horizontal" Spacing="2" VerticalAlignment="Center">
+              <Button x:Name="BookmarksButton" Classes="toolbar">
+                <PathIcon Data="{StaticResource Glyph.Bookmarks}" />
+              </Button>
+              <Button x:Name="TagsButton" Classes="toolbar">
+                <PathIcon Data="{StaticResource Glyph.Tags}" />
+              </Button>
+              <ToggleButton x:Name="LinkPanesButton" Classes="toolbar">
+                <PathIcon x:Name="LinkPanesIcon" Data="{StaticResource Glyph.Linked}" />
+              </ToggleButton>
+              <Button x:Name="TextSizeButton" Classes="toolbar">
+                <PathIcon Data="{StaticResource Glyph.TextSize}" />
+              </Button>
+              <Button x:Name="AppearanceButton" Classes="toolbar">
+                <PathIcon x:Name="AppearanceIcon" Data="{StaticResource Glyph.Appearance}" />
+              </Button>
+              <Button x:Name="SearchButton" Classes="toolbar">
+                <PathIcon Data="{StaticResource Glyph.Search}" Width="18" Height="18" />
+              </Button>
+              <Button x:Name="GalleryButton" Classes="toolbar">
+                <PathIcon Data="{StaticResource Glyph.Gallery}" />
+              </Button>
+            </StackPanel>
+
+            <StackPanel x:Name="TitleBlock" VerticalAlignment="Center" Margin="10,0" IsHitTestVisible="False">
+              <TextBlock x:Name="WorkTitle" Classes="h3" FontSize="14" TextTrimming="CharacterEllipsis" />
+              <TextBlock x:Name="WorkSubtitle" Classes="caption" TextTrimming="CharacterEllipsis" />
+            </StackPanel>
+          </DockPanel>
+        </Panel>
+
+        <Panel x:Name="ContentHost" />
+      </DockPanel>
+    </Grid>
+  </DockPanel>
+</ios:PageWindow>
