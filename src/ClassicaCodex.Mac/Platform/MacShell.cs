@@ -9,12 +9,22 @@ namespace ClassicaCodex.Mac.Platform;
 /// Through <c>open</c>, which is what the Finder itself does on a double-
 /// click, so whatever the reader has chosen as their browser or PDF viewer
 /// is what appears. On Linux xdg-open does the same job, and on Windows the
-/// shell itself, which is also what a double-click goes through.
+/// shell itself, which is also what a double-click goes through. On an iPad
+/// neither is possible, and <see cref="OpenInstead"/> does the job.
 /// </summary>
 public static class MacShell
 {
+    /// <summary>
+    /// What to call in place of starting a process, which iOS does not allow.
+    /// The iPad app sets it as it starts, because this file is also compiled
+    /// for the Mac and cannot name UIKit itself.
+    /// </summary>
+    public static Func<string, bool>? OpenInstead { get; set; }
+
     public static bool Open(string pathOrUrl)
     {
+        if (OpenInstead is { } open) return open(pathOrUrl);
+
         try
         {
             if (OperatingSystem.IsWindows())
@@ -40,7 +50,8 @@ public static class MacShell
     /// <summary>Shows a file selected in a Finder or File Explorer window.</summary>
     public static bool Reveal(string path)
     {
-        if (!OperatingSystem.IsMacOS() && !OperatingSystem.IsWindows()) return Open(Path.GetDirectoryName(path) ?? path);
+        if (OpenInstead != null || (!OperatingSystem.IsMacOS() && !OperatingSystem.IsWindows()))
+            return Open(Path.GetDirectoryName(path) ?? path);
 
         try
         {

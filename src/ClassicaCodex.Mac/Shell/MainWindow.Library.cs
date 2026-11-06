@@ -22,7 +22,12 @@ public partial class MainWindow
     /// <summary>Asks where a new, empty library should go, creates it, and offers setup.</summary>
     public async Task CreateLibraryAsync()
     {
-        var path = await Files.SaveLibraryAsync(this, "Create a New Library", "classicacodex.db", startIn: null, showOverwritePrompt: true);
+        // No panel on an iPad. There is only the one place it would work, and
+        // iOS's panel makes the file it is naming, which the check below then
+        // takes for a library already there.
+        var path = MacDataFolder.OnDevice
+            ? MacDataFolder.DeviceLibrary
+            : await Files.SaveLibraryAsync(this, "Create a New Library", "classicacodex.db", startIn: null, showOverwritePrompt: true);
         if (path == null) return;
 
         if (File.Exists(path))

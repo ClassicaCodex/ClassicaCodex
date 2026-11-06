@@ -193,6 +193,8 @@ public sealed class WordIndexWindow : FeatureWindow
 
         try
         {
+            using var awake = SetupRunner.StayAwake?.Invoke();
+
             var service = new WordIndexService();
             var token = _cts.Token;
             await Task.Run(() => service.BuildAsync(progress, token), token);

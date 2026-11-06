@@ -2,7 +2,11 @@ using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using ClassicaCodex.Data;
 using ClassicaCodex.Mac;
+using ClassicaCodex.Mac.Features.Setup;
+using ClassicaCodex.Mac.Platform;
 using ClassicaCodex.Mac.Shell;
+using ClassicaCodex.UI;
+using Foundation;
 
 namespace ClassicaCodex.iOS;
 
@@ -13,19 +17,22 @@ namespace ClassicaCodex.iOS;
 /// </summary>
 public sealed class MobileApp : App
 {
-    private const string LibraryFileName = "classicacodex.db";
-
     public override async void OnFrameworkInitializationCompleted()
     {
         if (ApplicationLifetime is ISingleViewApplicationLifetime single)
         {
+            CrashLog.Install();
+            MacShell.OpenInstead = DeviceShell.Open;
+            Keychain.StoreInstead = new DeviceKeychain();
+            SetupRunner.StayAwake = DeviceScreen.StayAwake;
+            PrepareDownloadFolder();
+
             TouchGestures.Install();
 
             var host = new PageHost();
             single.MainView = host;
 
-            var library = Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), LibraryFileName);
+            var library = MacDataFolder.DeviceLibrary;
             if (File.Exists(library))
             {
                 try
@@ -43,5 +50,31 @@ public sealed class MobileApp : App
         }
 
         base.OnFrameworkInitializationCompleted();
+    }
+
+    /// <summary>
+    /// Settles the folder before anything reads it, and keeps it out of iCloud
+    /// backups, which would otherwise take everything in Documents. What is in
+    /// it can be fetched again. The library beside it is left alone, because
+    /// it holds the reader's bookmarks and notes.
+    ///
+    /// The flag goes on the folder because that covers what is put in it
+    /// later, and on every launch because it goes if the folder does.
+    /// </summary>
+    private static void PrepareDownloadFolder()
+    {
+        try
+        {
+            MacDataFolder.AdoptProposalIfUnchosen();
+            Directory.CreateDirectory(DataFolderSettings.Root);
+
+            using var folder = NSUrl.FromFilename(DataFolderSettings.Root);
+            if (!folder.SetResource(NSUrl.IsExcludedFromBackupKey, NSNumber.FromBoolean(true), out var error))
+                CrashLog.Write(new IOException(error?.LocalizedDescription), "keeping the downloads out of backups");
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            CrashLog.Write(ex, "preparing the download folder");
+        }
     }
 }

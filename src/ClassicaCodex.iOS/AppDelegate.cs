@@ -1,4 +1,5 @@
 using Avalonia.iOS;
+using ClassicaCodex.Mac;
 using Foundation;
 using UIKit;
 
@@ -13,13 +14,7 @@ public static class Program
 {
     public static void Main(string[] args)
     {
-        AppDomain.CurrentDomain.UnhandledException += (_, e) => Console.Error.WriteLine($"UNHANDLED: {e.ExceptionObject}");
-        TaskScheduler.UnobservedTaskException += (_, e) =>
-        {
-            Console.Error.WriteLine($"UNOBSERVED: {e.Exception}");
-            e.SetObserved();
-        };
-
+        CrashLog.WatchBackgroundWork();
         UIApplication.Main(args, null, typeof(AppDelegate));
     }
 }

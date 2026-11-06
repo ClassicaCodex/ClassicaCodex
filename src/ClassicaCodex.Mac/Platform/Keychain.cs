@@ -21,6 +21,9 @@ namespace ClassicaCodex.Mac.Platform;
 /// desktop's keyring, under the same names. On Windows this class is not
 /// used at all: <see cref="TranslationSettings"/> goes to
 /// <see cref="WindowsKeyFile"/>, the file the Windows app already keeps.
+///
+/// iOS has a keychain, but not these calls, so on an iPad they go to
+/// <see cref="StoreInstead"/>.
 /// </summary>
 internal static class Keychain
 {
@@ -31,11 +34,19 @@ internal static class Keychain
     /// <summary>The service name the items are filed under in Keychain Access.</summary>
     internal const string Service = "Classica Codex";
 
-    public static bool IsAvailable => OperatingSystem.IsMacOS() || SecretService.IsAvailable;
+    /// <summary>
+    /// What to use in place of the calls below. The iPad app sets it as it
+    /// starts, because this file is also compiled for the Mac and cannot name
+    /// the iOS SDK itself.
+    /// </summary>
+    internal static ISecretStore? StoreInstead { get; set; }
+
+    public static bool IsAvailable => StoreInstead != null || OperatingSystem.IsMacOS() || SecretService.IsAvailable;
 
     /// <summary>The secret stored for <paramref name="account"/>, or null if there is none.</summary>
     public static string? Read(string account)
     {
+        if (StoreInstead is { } store) return store.Read(Service, account);
         if (!IsAvailable) return null;
         if (!OperatingSystem.IsMacOS()) return SecretService.Read(Service, account);
 
@@ -69,6 +80,7 @@ internal static class Keychain
     /// <returns>False when the keychain refused, so the caller can say so.</returns>
     public static bool Write(string account, string? secret)
     {
+        if (StoreInstead is { } store) return store.Write(Service, account, secret);
         if (!IsAvailable) return false;
         if (!OperatingSystem.IsMacOS()) return SecretService.Write(Service, account, secret);
 
@@ -132,4 +144,13 @@ internal static class Keychain
 
     [DllImport(CoreFoundation)]
     private static extern void CFRelease(IntPtr cf);
+}
+
+/// <summary>A system's place for secrets, by the names <see cref="Keychain"/> uses.</summary>
+internal interface ISecretStore
+{
+    string? Read(string service, string account);
+
+    /// <summary>Null or empty removes the item. False when the store refused.</summary>
+    bool Write(string service, string account, string? secret);
 }

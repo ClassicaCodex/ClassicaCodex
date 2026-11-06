@@ -25,6 +25,13 @@ namespace ClassicaCodex.Mac.Features.Setup;
 /// which would also be safe: the Menota step asks the reader to save files
 /// into this folder by hand, and Library is hidden in the Finder.
 ///
+/// <b>An iPad is the exception.</b> Its home folder is the app's own container,
+/// whose top level cannot be written to, and the path to the container changes
+/// when the app is updated, so a folder saved on an earlier run may not be
+/// there either. It gets Documents whatever has been saved: the app can write
+/// there, and the Files app shows it, which the Menota step needs. The iPad app
+/// keeps the folder out of iCloud backups itself - see MobileApp.
+///
 /// None of this edits the shared file. The proposal is applied by setting
 /// DataFolderSettings.Root, which is what every step reads.
 /// </summary>
@@ -39,6 +46,19 @@ internal static class MacDataFolder
     /// tests run on is not a Mac with iCloud signed in.
     /// </summary>
     internal static string? HomeOverride { get; set; }
+
+    /// <summary>
+    /// Whether this is an iPad. Settable so the tests can ask what one would be
+    /// told, because the simulator's container can be written to and a real
+    /// iPad's cannot: the failure this guards against never showed there.
+    /// </summary>
+    internal static bool OnDevice { get; set; } = OperatingSystem.IsIOS();
+
+    /// <summary>
+    /// The one file an iPad opens as it starts. A library anywhere else would be
+    /// lost at the next launch, because a path to one cannot be kept.
+    /// </summary>
+    public static string DeviceLibrary => Path.Combine(Home, "Documents", "classicacodex.db");
 
     /// <summary>The Mac's proposal: a folder in the home folder, never synced.</summary>
     public static string Unsynced(string? home = null) => Path.Combine(home ?? Home, "ClassicaCodexData");
@@ -55,6 +75,10 @@ internal static class MacDataFolder
     /// </summary>
     public static string Proposed(string? home = null)
     {
+        // Ahead of the folder chosen before, which is the one rule above that
+        // does not hold on an iPad. See the note on this class.
+        if (OnDevice) return DataFolderSettings.DefaultRoot;
+
         if (DataFolderSettings.IsCustom) return DataFolderSettings.Root;
 
         // Windows has its own answer in SuggestedRoot, behind Root, and the

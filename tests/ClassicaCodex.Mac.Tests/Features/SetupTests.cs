@@ -244,6 +244,63 @@ public class SetupTests
     }
 
     [AvaloniaFact]
+    public void An_iPad_keeps_its_downloads_in_Documents_whatever_was_saved_before()
+    {
+        using var scratch = new Scratch();
+        MacDataFolder.OnDevice = true;
+
+        // The first iPad build saved the Mac's proposal, the top of its app
+        // container, where it could not write. A saved folder is not kept here.
+        DataFolderSettings.Root = MacDataFolder.Unsynced(scratch.Home);
+
+        Assert.Equal(DataFolderSettings.DefaultRoot, MacDataFolder.Proposed());
+        MacDataFolder.AdoptProposalIfUnchosen();
+        Assert.Equal(DataFolderSettings.DefaultRoot, DataFolderSettings.Root);
+    }
+
+    [AvaloniaFact]
+    public async Task A_new_library_on_an_iPad_goes_where_the_app_looks_and_setup_opens()
+    {
+        using var scratch = new Scratch();
+        MacDataFolder.OnDevice = true;
+        Directory.CreateDirectory(Path.GetDirectoryName(MacDataFolder.DeviceLibrary)!);
+
+        var main = await scratch.MainAsync();
+        await main.CreateLibraryAsync();
+        await Screens.Settle();
+
+        Assert.True(File.Exists(MacDataFolder.DeviceLibrary));
+        Assert.Equal(MacDataFolder.DeviceLibrary, DbConnectionFactory.DatabasePath);
+        Assert.NotEmpty(main.OwnedWindows);
+
+        foreach (var window in main.OwnedWindows.ToList()) window.Close();
+        await Screens.Settle();
+        main.Close();
+    }
+
+    [AvaloniaFact]
+    public async Task Creating_a_library_on_an_iPad_never_writes_over_the_one_there()
+    {
+        using var scratch = new Scratch();
+        MacDataFolder.OnDevice = true;
+        Directory.CreateDirectory(Path.GetDirectoryName(MacDataFolder.DeviceLibrary)!);
+        await File.WriteAllTextAsync(MacDataFolder.DeviceLibrary, "a reader's library");
+
+        var main = await scratch.MainAsync();
+
+        // Not awaited: it waits on the warning this test is here to see.
+        var creating = main.CreateLibraryAsync();
+        await Screens.Settle();
+
+        Assert.NotEmpty(main.OwnedWindows);
+        Assert.Equal("a reader's library", await File.ReadAllTextAsync(MacDataFolder.DeviceLibrary));
+
+        foreach (var window in main.OwnedWindows.ToList()) window.Close();
+        await creating;
+        main.Close();
+    }
+
+    [AvaloniaFact]
     public async Task The_download_folder_step_warns_about_icloud_and_takes_an_unsynced_folder()
     {
         using var scratch = new Scratch();
@@ -737,6 +794,7 @@ public class SetupTests
         public void Dispose()
         {
             MacDataFolder.HomeOverride = null;
+            MacDataFolder.OnDevice = false;
             DataFolderSettings.StopKeepingToThisSession();
 
             // Left on the library in this folder, every later test's

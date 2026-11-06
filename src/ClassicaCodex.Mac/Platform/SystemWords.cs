@@ -3,7 +3,7 @@ namespace ClassicaCodex.Mac.Platform;
 /// <summary>
 /// What the app says on a system that is not a Mac. The windows and the Help
 /// are written the way a Mac does things - ⌘ keys, the Finder, the keychain -
-/// and <see cref="Say"/> rewords a string for Linux or Windows as it is shown,
+/// and <see cref="Say"/> rewords a string for Linux, Windows or an iPad as it is shown,
 /// so the Mac text stays the one that is written and kept up to date.
 ///
 /// One table for all of them, so the Help and the window it describes cannot
@@ -22,6 +22,7 @@ internal static class SystemWords
     public static string Say(string text) =>
         IsMac ? text
         : OperatingSystem.IsWindows() ? ForWindows(text)
+        : OperatingSystem.IsIOS() ? ForDevice(text)
         : ForLinux(text);
 
     internal static string ForLinux(string text)
@@ -31,12 +32,36 @@ internal static class SystemWords
         return text;
     }
 
+    /// <summary>
+    /// The Linux wording is the nearest an iPad has, so it starts from that,
+    /// and <see cref="DevicePhrases"/> goes first for what would be untrue there.
+    /// </summary>
+    internal static string ForDevice(string text)
+    {
+        foreach (var (mac, device) in DevicePhrases) text = text.Replace(mac, device, StringComparison.Ordinal);
+        return ForLinux(text);
+    }
+
     internal static string ForWindows(string text)
     {
         foreach (var (mac, pc) in Keys) text = text.Replace(mac, pc, StringComparison.Ordinal);
         foreach (var (mac, _, windows) in Phrases) text = text.Replace(mac, windows, StringComparison.Ordinal);
         return text;
     }
+
+    private static readonly (string Mac, string Device)[] DevicePhrases =
+    {
+        ("Show it in the Finder?", "Show it in Files?"),
+        ("Show in Finder", "Show in Files"),
+        ("Keys are kept in your login keychain, under \"Classica Codex\" in Keychain Access - where macOS keeps every other app's passwords - rather than in a file. Another account on the same Mac can't read them.",
+            "Keys are kept in this iPad's keychain, where iOS keeps every other app's passwords, rather than in a file. They stay on this iPad and are left out of its backups."),
+        ("Saved. The keys are in your login keychain, under “Classica Codex” in Keychain Access.",
+            "Saved. The keys are in this iPad's keychain."),
+        ("The keychain refused to store a key - check Keychain Access and try again.",
+            "The keychain refused to store a key. Try again."),
+        ("and two to three hours on a decent connection with everything selected - mostly unattended, and the Greek word-form data is about an hour of that on its own.",
+            "and about half an hour for the main Greek and Latin collections on a good connection. Keep Classica Codex on screen while a step runs: iOS pauses an app that is switched away from, and the step would then have to start again.")
+    };
 
     /// <summary>The same on any PC keyboard. The chords go first, so that ⇧⌘ doesn't become "Shift+Ctrl+".</summary>
     private static readonly (string Mac, string Pc)[] Keys =

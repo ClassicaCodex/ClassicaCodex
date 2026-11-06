@@ -235,7 +235,7 @@ public class GitCorpusFetchService
     }
 
     /// <summary>Where a mirrored folder is, refusing one that is not a folder inside the output folder.</summary>
-    private static string MirroredFolderPath(string outputFolder, string folder)
+    internal static string MirroredFolderPath(string outputFolder, string folder)
     {
         var root = Path.GetFullPath(outputFolder);
         var path = Path.GetFullPath(Path.Combine(root, folder));
@@ -265,7 +265,7 @@ public class GitCorpusFetchService
     /// that does see case the cost is the old file kept beside the new, which
     /// is what every fetch did before.
     /// </summary>
-    private static int RemoveFilesNotInTree(
+    internal static int RemoveFilesNotInTree(
         IReadOnlyList<string> folders, IReadOnlyList<string> extensions, ISet<string> written)
     {
         var removed = 0;
@@ -285,7 +285,7 @@ public class GitCorpusFetchService
     }
 
     /// <summary>Replaces every character NTFS won't allow in a filename with an underscore.</summary>
-    private static string SanitizeFileName(string name)
+    internal static string SanitizeFileName(string name)
     {
         var invalid = Path.GetInvalidFileNameChars();
         var sb = new StringBuilder(name.Length);

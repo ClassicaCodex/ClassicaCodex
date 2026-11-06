@@ -34,6 +34,13 @@ internal sealed class MacWindowHandle : System.Windows.Forms.IWin32Window
 /// </summary>
 internal static class SetupRunner
 {
+    /// <summary>
+    /// Holds the device awake for as long as what it returns is not disposed.
+    /// The iPad app sets it as it starts, because a step can run for far longer
+    /// than an iPad's auto-lock, and iOS suspends an app when the screen locks.
+    /// </summary>
+    public static Func<IDisposable>? StayAwake { get; set; }
+
     /// <param name="fetch">
     /// False for a secondary action, which works on files already sitting in
     /// the destination folder and must not re-download anything to do it.
@@ -51,6 +58,8 @@ internal static class SetupRunner
         string installingLabel,
         CancellationToken cancellationToken)
     {
+        using var awake = StayAwake?.Invoke();
+
         status(fetch ? fetchingLabel : "Working...");
 
         if (fetch)
@@ -65,6 +74,17 @@ internal static class SetupRunner
                 case SetupFetchMode.DirectDownload:
                     await new FileDownloadService().DownloadAsync(
                         source.RepoUrl, Path.Combine(destination, source.DownloadFileName!), progress, cancellationToken);
+                    break;
+
+                // An iPad has no git. See GitHubArchiveFetchService.
+                case SetupFetchMode.GitClone when MacDataFolder.OnDevice:
+                    await new GitHubArchiveFetchService
+                    {
+                        FileExtensions = source.ClonedFileExtensions,
+                        MirroredFolders = source.MirroredFolders
+                    }.FetchAsync(
+                        source.RepoUrl, destination,
+                        new Progress<FetchProgress>(p => status(p.Message)), cancellationToken);
                     break;
 
                 default:
@@ -102,7 +122,7 @@ internal static class SetupRunner
     {
         var headline = ex switch
         {
-            LibGit2SharpException =>
+            LibGit2SharpException or HttpRequestException =>
                 $"Couldn't download {stepTitle} - check your internet connection, then try again.",
 
             // macOS answers a folder it is protecting - Desktop, Documents,

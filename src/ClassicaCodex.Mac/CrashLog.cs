@@ -38,6 +38,23 @@ public static class CrashLog
         return new Removal(() => Dispatcher.UIThread.UnhandledException -= Handle);
     }
 
+    /// <summary>
+    /// Logs what fails away from any click: on another thread, or in a task
+    /// nobody was waiting for. Nothing is shown, because nobody asked for it.
+    /// </summary>
+    public static void WatchBackgroundWork()
+    {
+        AppDomain.CurrentDomain.UnhandledException += (_, e) =>
+        {
+            if (e.ExceptionObject is Exception ex) Write(ex, "running (unhandled)");
+        };
+        TaskScheduler.UnobservedTaskException += (_, e) =>
+        {
+            Write(e.Exception, "running a background task");
+            e.SetObserved();
+        };
+    }
+
     private sealed class Removal(Action remove) : IDisposable
     {
         public void Dispose() => remove();
@@ -80,7 +97,10 @@ public static class CrashLog
     /// writes to, so that a report shows which of the two it came from.
     /// </summary>
     private static string SystemName =>
-        OperatingSystem.IsWindows() ? "Avalonia on Windows" : OperatingSystem.IsLinux() ? "Linux" : "Mac";
+        OperatingSystem.IsWindows() ? "Avalonia on Windows"
+        : OperatingSystem.IsLinux() ? "Linux"
+        : OperatingSystem.IsIOS() ? "iPad"
+        : "Mac";
 
     public static void Write(Exception ex, string context)
     {

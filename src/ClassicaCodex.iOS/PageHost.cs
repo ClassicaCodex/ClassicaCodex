@@ -16,6 +16,9 @@ public sealed class PageHost : Panel
 {
     private static PageHost? _current;
 
+    /// <summary>Room kept around a dialog, so it reads as a card on any size of screen.</summary>
+    private const double CardMargin = 24;
+
     private readonly List<(PageWindow Page, Control Frame)> _stack = new();
     private Thickness _safeArea;
 
@@ -170,6 +173,14 @@ public sealed class PageHost : Panel
 
         var dim = new Panel { Background = new SolidColorBrush(Colors.Black, 0.4) };
         dim.Children.Add(card);
+
+        // A size a dialog asks for is honoured only as far as the screen goes.
+        dim.SizeChanged += (_, e) =>
+        {
+            card.MaxWidth = Math.Max(0, e.NewSize.Width - CardMargin);
+            card.MaxHeight = Math.Max(0, e.NewSize.Height - CardMargin);
+        };
+
         return dim;
     }
 }

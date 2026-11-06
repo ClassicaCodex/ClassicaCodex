@@ -282,13 +282,13 @@ public sealed class GuidedSetupWindow : FeatureWindow
         stack.Children.Add(new TextBlock { Text = "Welcome to Classica Codex", Classes = { "display" }, FontSize = 30, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 6, 0, 0) });
         stack.Children.Add(new TextBlock
         {
-            Text = "First, a single file needs a place to live - your library, tags, and bookmarks all go there, "
+            Text = SystemWords.Say("First, a single file needs a place to live - your library, tags, and bookmarks all go there, "
                    + "and it's what the rest of this assistant writes into. After that, a few open data sources need "
                    + "to be downloaded: the ancient texts themselves, dictionaries to look words up in, and some "
                    + "word-form data that makes search smarter. Altogether it's usually about 9 gigabytes, and two to "
                    + "three hours on a decent connection with everything selected - mostly unattended, and the Greek "
                    + "word-form data is about an hour of that on its own. You only need to do this once, and you can "
-                   + "skip any step and come back to it later.",
+                   + "skip any step and come back to it later."),
             TextWrapping = TextWrapping.Wrap,
             FontSize = 13.5,
             LineHeight = 21
@@ -1287,6 +1287,8 @@ public sealed class GuidedSetupWindow : FeatureWindow
 
         try
         {
+            using var awake = SetupRunner.StayAwake?.Invoke();
+
             var service = new WordIndexService();
             var token = _cts.Token;
             await Task.Run(() => service.BuildAsync(progress, token), token);
