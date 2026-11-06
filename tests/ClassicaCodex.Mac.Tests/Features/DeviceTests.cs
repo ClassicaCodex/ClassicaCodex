@@ -101,6 +101,22 @@ public class DeviceTests
     public void An_iPad_says_what_is_true_of_an_iPad(string mac, string device) =>
         Assert.Equal(device, SystemWords.ForDevice(mac));
 
+    [Theory]
+    [InlineData("PASSAGES · DOUBLE-CLICK TO JUMP", "PASSAGES · DOUBLE-TAP TO JUMP")]
+    [InlineData("Type a word and press Return. Double-click a result to open it in the reader.", "Type a word and press Return. Double-tap a result to open it in the reader.")]
+    [InlineData("No tags yet - right-click a line in the reader to add one.", "No tags yet - touch and hold a line in the reader to add one.")]
+    [InlineData("Click a place to see its passages here.", "Tap a place to see its passages here.")]
+    [InlineData("Merge, split, or set an author on a selection. ⇧-click or ⌘-click to select several rows.", "Merge, split, or set an author on a selection.")]
+    public void A_finger_is_told_what_a_finger_can_do(string mouse, string finger) =>
+        Assert.Equal(finger, SystemWords.ForTouch(mouse));
+
+    [Theory]
+    [InlineData("the click of the latch, and a mouse ran to the wheel")]
+    [InlineData("He heard one click a moment before the door gave way.")]
+    [InlineData("μῆνιν ἄειδε θεὰ Πηληϊάδεω Ἀχιλῆος")]
+    public void A_text_being_read_is_never_reworded(string line) =>
+        Assert.Equal(line, SystemWords.ForTouch(line));
+
     private sealed class FakeStore : ISecretStore
     {
         private readonly Dictionary<string, string> _items = new();

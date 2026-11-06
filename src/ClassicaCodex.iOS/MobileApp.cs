@@ -28,6 +28,8 @@ public sealed class MobileApp : App
             PrepareDownloadFolder();
 
             TouchGestures.Install();
+            TouchTargets.Install(Styles);
+            TouchWords.Install();
 
             var host = new PageHost();
             single.MainView = host;

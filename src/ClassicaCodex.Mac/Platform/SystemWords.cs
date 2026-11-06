@@ -38,8 +38,28 @@ internal static class SystemWords
     /// </summary>
     internal static string ForDevice(string text)
     {
+        text = ForTouch(text);
         foreach (var (mac, device) in DevicePhrases) text = text.Replace(mac, device, StringComparison.Ordinal);
         return ForLinux(text);
+    }
+
+    /// <summary>
+    /// A line of the interface as it should read under a finger. The iPad app
+    /// runs this over everything shown, not only what passes through
+    /// <see cref="Say"/>, which most instructions do not, so it also sees every
+    /// line of every text in the reader. That is why
+    /// <see cref="TouchPhrases"/> holds whole phrases of the interface, and
+    /// never a bare "click": a translation can use that word.
+    /// </summary>
+    internal static string ForTouch(string text)
+    {
+        if (!text.Contains("lick", StringComparison.OrdinalIgnoreCase)
+            && !text.Contains("LICK", StringComparison.Ordinal)
+            && !text.Contains("File menu", StringComparison.Ordinal)
+            && !text.Contains("mouse wheel", StringComparison.Ordinal)) return text;
+
+        foreach (var (mouse, finger) in TouchPhrases) text = text.Replace(mouse, finger, StringComparison.Ordinal);
+        return text;
     }
 
     internal static string ForWindows(string text)
@@ -52,6 +72,9 @@ internal static class SystemWords
     private static readonly (string Mac, string Device)[] DevicePhrases =
     {
         ("Show it in the Finder?", "Show it in Files?"),
+        ("Following macOS switches between them with the system, at sunset if you have it set that way.",
+            "Following the system switches between them with this iPad's appearance setting."),
+        ("⌘Return to bookmark", string.Empty),
         ("Show in Finder", "Show in Files"),
         ("Keys are kept in your login keychain, under \"Classica Codex\" in Keychain Access - where macOS keeps every other app's passwords - rather than in a file. Another account on the same Mac can't read them.",
             "Keys are kept in this iPad's keychain, where iOS keeps every other app's passwords, rather than in a file. They stay on this iPad and are left out of its backups."),
@@ -61,6 +84,40 @@ internal static class SystemWords
             "The keychain refused to store a key. Try again."),
         ("and two to three hours on a decent connection with everything selected - mostly unattended, and the Greek word-form data is about an hour of that on its own.",
             "and about half an hour for the main Greek and Latin collections on a good connection. Keep Classica Codex on screen while a step runs: iOS pauses an app that is switched away from, and the step would then have to start again.")
+    };
+
+    private static readonly (string Mouse, string Finger)[] TouchPhrases =
+    {
+        ("DOUBLE-CLICK", "DOUBLE-TAP"),
+        ("Double-click", "Double-tap"),
+        ("double-click", "double-tap"),
+        ("Right-click", "Touch and hold"),
+        ("right-click", "touch and hold"),
+        ("CLICK A WORD", "TAP A WORD"),
+        ("Click a word", "Tap a word"),
+        ("Click any word", "Tap any word"),
+        ("Click any place", "Tap any place"),
+        ("Click a place", "Tap a place"),
+        ("Click a tag", "Tap a tag"),
+        ("Click a node", "Tap a node"),
+        ("Click an author", "Tap an author"),
+        ("Click to unlink", "Tap to unlink"),
+        ("Click to link", "Tap to link"),
+        ("click the photo", "tap the photo"),
+        ("click a face", "tap a face"),
+        ("collections - click to", "collections - tap to"),
+        ("click one to", "tap one to"),
+        ("you click the corresponding", "you tap the corresponding"),
+        ("you click one of the two buttons", "you tap one of the two buttons"),
+        ("clicking Next", "tapping Next"),
+        ("or click Choose", "or tap Choose"),
+        ("Select two or more rows to merge. Click a row, then ⇧-click another.", "Select two or more rows to merge."),
+        (" ⇧-click or ⌘-click to select several rows.", string.Empty),
+        ("Pinch to zoom (or scroll, with a mouse wheel), drag or swipe with two fingers to pan", "Pinch to zoom, drag with two fingers to pan"),
+        ("choose Setup from the File menu afterward", "open Setup from All Tools afterward"),
+        ("Setup is always there in the File menu and among the tools in the sidebar", "Setup is always there among the tools in the sidebar"),
+        ("open Setup from the Tools list or the File menu", "open Setup from the Tools list"),
+        ("(Setup, in the File menu)", "(Setup, among the tools)")
     };
 
     /// <summary>The same on any PC keyboard. The chords go first, so that ⇧⌘ doesn't become "Shift+Ctrl+".</summary>

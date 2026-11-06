@@ -7,6 +7,7 @@ using ClassicaCodex.Core;
 using ClassicaCodex.Core.Models;
 using ClassicaCodex.Data.Repositories;
 using ClassicaCodex.Mac.Common;
+using ClassicaCodex.Mac.Features.Setup;
 using ClassicaCodex.UI;
 
 namespace ClassicaCodex.Mac.Shell;
@@ -258,6 +259,10 @@ public partial class MainWindow
         var work = Sidebar.FindWork(workId);
         if (work == null) return false;
 
+        // On a device a tool covers the reader, so a jump that stayed behind
+        // it would look like nothing had happened.
+        if (MacDataFolder.OnDevice) Activate();
+
         if (_openWork?.WorkId == workId && _readerView.IsVisible) return true;
 
         _readerHasNavigated = true;
@@ -304,7 +309,7 @@ public partial class MainWindow
         if (row < 0) return false;
 
         pane.SelectOnly(row);
-        Dispatcher.UIThread.Post(() => pane.ScrollToTop(Math.Max(0, row - 2)), DispatcherPriority.Background);
+        Dispatcher.UIThread.Post(() => pane.ScrollToPassage(row), DispatcherPriority.Background);
         return true;
     }
 

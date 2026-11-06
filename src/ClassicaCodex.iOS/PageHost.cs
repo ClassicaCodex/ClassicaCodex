@@ -1,8 +1,10 @@
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Controls.Primitives;
 using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Threading;
+using Avalonia.VisualTree;
 
 namespace ClassicaCodex.iOS;
 
@@ -11,6 +13,10 @@ namespace ClassicaCodex.iOS;
 /// bottom page. Anything the shared code calls Show on goes on top with a Close
 /// bar, because Escape and ⌘W are not there to rely on, and anything it calls
 /// ShowDialog on goes on top as a card.
+///
+/// A jump to a passage brings the main window forward over the tool it came
+/// from, which stays as it was underneath, so a search is not lost by looking
+/// at one of its results. The way back floats over the reader while one waits.
 /// </summary>
 public sealed class PageHost : Panel
 {
@@ -20,12 +26,47 @@ public sealed class PageHost : Panel
     private const double CardMargin = 24;
 
     private readonly List<(PageWindow Page, Control Frame)> _stack = new();
+    private readonly Button _wayBack;
+    private readonly StackPanel _wayBackBar;
+    private PageWindow? _home;
     private Thickness _safeArea;
 
     public PageHost()
     {
         _current = this;
         this.Bind(BackgroundProperty, this.GetResourceObservable("Cc.Toolbar"));
+
+        _wayBack = new Button { Classes = { "accent" }, MaxWidth = 420, Padding = new Thickness(18, 0) };
+        _wayBack.Click += (_, _) =>
+        {
+            if (PageBehindReader is { } page) BringToFront(page);
+        };
+
+        var dismiss = new Button { Content = "✕", MinWidth = 44 };
+        dismiss.Click += (_, _) => PageBehindReader?.Close();
+
+        _wayBackBar = new StackPanel
+        {
+            Orientation = Orientation.Horizontal,
+            Spacing = 8,
+            HorizontalAlignment = HorizontalAlignment.Center,
+            VerticalAlignment = VerticalAlignment.Bottom,
+            ZIndex = 1,
+            IsVisible = false,
+            Children = { _wayBack, dismiss }
+        };
+        Children.Add(_wayBackBar);
+    }
+
+    /// <summary>The tool a jump left behind, when the reader is what is showing.</summary>
+    private PageWindow? PageBehindReader =>
+        _stack.Count > 1 && ReferenceEquals(_stack[^1].Page, _home) ? _stack[^2].Page : null;
+
+    private void ShowWayBack()
+    {
+        var page = PageBehindReader;
+        _wayBackBar.IsVisible = page != null;
+        if (page != null) _wayBack.Content = new TextBlock { Text = "‹ Back to " + page.Title, TextTrimming = TextTrimming.CharacterEllipsis };
     }
 
     /// <summary>
@@ -45,7 +86,8 @@ public sealed class PageHost : Panel
     private void ApplySafeArea(Thickness padding)
     {
         _safeArea = padding;
-        foreach (var child in Children) child.Margin = padding;
+        foreach (var entry in _stack) entry.Frame.Margin = padding;
+        _wayBackBar.Margin = new Thickness(0, 0, 0, padding.Bottom + 16);
     }
 
     public static PageHost Current =>
@@ -69,9 +111,11 @@ public sealed class PageHost : Panel
             : page.IsDialog ? DialogFrame(page) : PageFrame(page);
 
         if (_stack.Count > 0) _stack[^1].Page.RaiseDeactivated();
+        _home ??= page;
         _stack.Add((page, frame));
         frame.Margin = _safeArea;
         Children.Add(frame);
+        ShowWayBack();
 
         // Opened means laid out and showing, and the shared code relies on
         // that: the main window's handler starts reading the library.
@@ -91,6 +135,7 @@ public sealed class PageHost : Panel
         Children.Remove(_stack[index].Frame);
         _stack.RemoveAt(index);
         if (wasTop && _stack.Count > 0) _stack[^1].Page.RaiseActivated();
+        ShowWayBack();
     }
 
     public void BringToFront(PageWindow page)
@@ -105,6 +150,7 @@ public sealed class PageHost : Panel
         Children.Remove(entry.Frame);
         Children.Add(entry.Frame);
         page.RaiseActivated();
+        ShowWayBack();
     }
 
     /// <summary>A tool: the whole screen, under a bar with its title and a way back.</summary>
@@ -141,10 +187,55 @@ public sealed class PageHost : Panel
         barBorder.Bind(Border.BorderBrushProperty, barBorder.GetResourceObservable("Cc.Rule"));
         DockPanel.SetDock(barBorder, Dock.Top);
 
-        var dock = new DockPanel { Children = { barBorder, page } };
+        var scroller = new ScrollViewer
+        {
+            HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled,
+            VerticalScrollBarVisibility = ScrollBarVisibility.Disabled,
+            Content = page
+        };
+        scroller.SizeChanged += (_, _) => FitWidth(page, scroller);
+
+        // A list showing its selected row is not a reason to move the page.
+        page.AddHandler(RequestBringIntoViewEvent, (_, e) => e.Handled = true);
+
+        var dock = new DockPanel { Children = { barBorder, scroller } };
         dock.Bind(BackgroundProperty, dock.GetResourceObservable("Cc.Window"));
         return dock;
     }
+
+    /// <summary>
+    /// Lets a tool built for a wide window scroll sideways when it does not fit,
+    /// which a few of the research tools do not in portrait. Decided by looking,
+    /// because many tools ask for a wider window than they need and fold up
+    /// neatly in a narrower one, and those are better left alone.
+    /// </summary>
+    private static void FitWidth(PageWindow page, ScrollViewer scroller)
+    {
+        Layoutable laidOut = page;
+        laidOut.Width = double.NaN;
+        scroller.HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled;
+
+        Dispatcher.UIThread.Post(() =>
+        {
+            if (page.MinWidth <= scroller.Bounds.Width || !RunsOffRight(page)) return;
+
+            laidOut.Width = page.MinWidth;
+            scroller.HorizontalScrollBarVisibility = ScrollBarVisibility.Auto;
+        }, DispatcherPriority.Background);
+    }
+
+    private static bool RunsOffRight(PageWindow page) =>
+        page.GetVisualDescendants().OfType<Control>().Any(control =>
+            control is TextBlock or Button or ComboBox
+            && control.IsEffectivelyVisible
+            && control.Bounds.Width > 0
+            && control.TranslatePoint(new Point(control.Bounds.Width, 0), page) is { } corner
+            && corner.X > page.Bounds.Width + 2
+            && !control.GetVisualAncestors().Any(ScrollsItsOwnContent));
+
+    private static bool ScrollsItsOwnContent(Visual visual) =>
+        visual is ListBox or TextBox or TreeView or ComboBox or DataGrid
+        || visual is ScrollViewer { HorizontalScrollBarVisibility: not ScrollBarVisibility.Disabled };
 
     /// <summary>A dialog: a card over a dimmed page, as big as it asks for and no bigger than the screen.</summary>
     private static Control DialogFrame(PageWindow page)

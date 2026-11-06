@@ -364,6 +364,21 @@ public sealed class ReaderPane : UserControl
         }
     }
 
+    /// <summary>
+    /// Scrolls to a passage with the two before it above, for the run-up to it.
+    /// Two lines of verse are a glance, but two paragraphs of prose in a narrow
+    /// pane can fill it and leave the passage itself below the edge, with
+    /// nothing on screen to show that the jump landed. Then it goes to the top.
+    /// </summary>
+    public void ScrollToPassage(int index)
+    {
+        ScrollToTop(Math.Max(0, index - 2));
+        if (_scroller == null) return;
+
+        var position = _list.ContainerFromIndex(index)?.TranslatePoint(new Point(0, 0), _scroller);
+        if (position == null || position.Value.Y > _scroller.Viewport.Height / 2) ScrollToTop(index);
+    }
+
     /// <summary>The citation of the selected passage, as the footer shows it.</summary>
     public string ReferenceText => _reference.Text ?? string.Empty;
 

@@ -12,8 +12,10 @@ What it adds is what a device with no windows needs:
 |---|---|
 | `GlobalUsings.cs` | Sends `Window` and `TopLevel` to `PageWindow` for every shared file. This is why the 83 tool windows needed no changes. |
 | `PageWindow.cs` | Offers the members of `Window` that the shared code uses. |
-| `PageHost.cs` | The app's one view. Shows a tool as a full-screen page and a dialog as a card, and keeps both clear of the status bar. |
+| `PageHost.cs` | The app's one view. Shows a tool as a full-screen page and a dialog as a card, and keeps both clear of the status bar. A jump to a passage brings the reader over the tool, which stays as it was, with a way back floating over the reader. A tool too wide for the screen scrolls sideways. |
 | `TouchGestures.cs` | Selects the line under a long-press, because the line menu acts on the selected line. |
+| `TouchTargets.cs` | Makes every control big enough for a finger, as styles added after the theme. |
+| `TouchWords.cs` | Rewords the interface for a finger as it is shown, using `SystemWords.ForTouch`. |
 | `Shell/MainWindow.axaml` | The Mac's main window with a page for its root, and 44-point toolbar buttons. |
 | `MobileApp.cs`, `AppDelegate.cs` | Start the app, connect the two files below, settle the download folder and open the library in its Documents folder. |
 | `DeviceShell.cs` | Opens links in the browser and folders in the Files app. A Mac does this by starting `open`, and iOS does not let an app start a process. |
@@ -35,7 +37,11 @@ The Mac code knows about the iPad in a few places:
   `ClassicaCodex.Ingestion`, because LibGit2 has no iOS library. It reads GitHub's
   archive of a repository as it arrives, and writes the same files by the same rules.
 - `SystemWords` has a short table of what would be untrue on an iPad. Everything
-  else there reads as it does on Linux.
+  else there reads as it does on Linux. `ForTouch` also sees every line of every
+  text in the reader, so it holds whole phrases of the interface and never a bare
+  "click", which a translation can use.
+- `MainWindow.OpenWorkAsync` brings the reader forward on a device, because a tool
+  covers it and a jump would otherwise look as if nothing had happened.
 
 ## Building it
 
@@ -139,24 +145,38 @@ Everything below was tested in the iPad simulator, against a full library of
 - A key saved in Settings surviving a reinstall, and then being removed
 - Steps run from Advanced Setup, and from Guided Setup starting with no library:
   Create a New Library, install a step, and the work appears in the library
+- A double-tap on a search result, the passage highlighted in the reader, and the
+  way back to the results as they were
+- Long-press menus in Search, swiping a table, and exporting passages
 - Git and the archive fetch compared on four real repositories, on a Mac: all
   2,568 files identical, and the archive about ten times faster
 - Greek, Arabic, Hebrew, Egyptian hieroglyphs and cuneiform, all with the
   system's own fonts
 
+A sweep opens every window it can reach, in both orientations of an 11-inch iPad.
+It reached 79 of the 82 window classes with no crashes, and none took more than
+0.7 seconds. Controls under 30 points fell from 377 of 1,058 to under a tenth. The
+sweep mostly opens windows and looks at them, and it fills the research windows
+from a blank project, so it says little about using them. It is not in the
+repository.
+
 ## What does not work yet
 
 - **Wrapped cuneiform is clipped.** Rows are too short for the signs.
-- **Most tools have not been opened.** All 83 compile, and only Word Study,
-  Search and the bookmark dialog have been run. A tool laid out for a desktop
-  window will not necessarily fit, and some need another layout.
+- **Most tools have been opened and not used.** A tool laid out for a desktop
+  window fits now, but few of the buttons inside have been pressed. Five windows
+  need a live session to reach, and the translation workbench needs a translation
+  under way.
+- **Saving outside the app is unproven on a real iPad.** It writes to a plain path,
+  and the simulator is not sandboxed. iCloud Drive may refuse it.
+- **Medieval Hands shows boxes** for scribes' abbreviations, until a font such as
+  Junicode comes with the app.
+- **A long-press on a row of the library sidebar** opened no menu, and pushed the
+  list sideways.
 - **The on-screen keyboard covers the lower part of a page.** Nothing moves out
   of its way yet.
 - **Typing on iOS's own Greek keyboard has not been tried.** Search ignores
   accents, so it should not need polytonic input, but nobody has checked.
-- **Going to a passage from a tool page stays on the tool page.** The reader
-  moves behind it. The double-tap that does this has not been tested.
-- **Desktop words are still on screen**, such as "right-click" and "Ctrl+Enter".
 - **Read Aloud does nothing**, because `say` does not exist on iOS. It needs
   AVSpeechSynthesizer.
 - **BFM is unproven.** It is let through iOS's block on plain http, but the site
