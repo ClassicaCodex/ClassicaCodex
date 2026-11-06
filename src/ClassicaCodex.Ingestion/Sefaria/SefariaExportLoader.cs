@@ -83,14 +83,16 @@ public static class SefariaExportLoader
     /// one schema, so the positions agree between the Hebrew and the English
     /// even where one of them leaves a part empty.
     /// </summary>
-    public static List<SefariaPassage> Flatten(JsonElement node)
+    /// <param name="prepare">Applied to each passage's markup before it is cleaned, for what only one version needs.</param>
+    public static List<SefariaPassage> Flatten(JsonElement node, Func<string, string>? prepare = null)
     {
         var passages = new List<SefariaPassage>();
-        Walk(node, null, passages);
+        Walk(node, null, passages, prepare);
         return passages;
     }
 
-    private static void Walk(JsonElement node, string? prefix, List<SefariaPassage> passages)
+    private static void Walk(
+        JsonElement node, string? prefix, List<SefariaPassage> passages, Func<string, string>? prepare)
     {
         switch (node.ValueKind)
         {
@@ -100,7 +102,7 @@ public static class SefariaExportLoader
                 foreach (var child in node.EnumerateArray())
                 {
                     i++;
-                    Walk(child, Join(prefix, i), passages);
+                    Walk(child, Join(prefix, i), passages, prepare);
                 }
 
                 break;
@@ -114,7 +116,7 @@ public static class SefariaExportLoader
                     i++;
                     var citation = Join(prefix, i);
                     var before = passages.Count;
-                    Walk(part.Value, citation, passages);
+                    Walk(part.Value, citation, passages, prepare);
 
                     // A title only for a part that has text in this version,
                     // so an empty part leaves no orphaned heading behind.
@@ -127,7 +129,8 @@ public static class SefariaExportLoader
 
             case JsonValueKind.String:
             {
-                var text = SefariaTextLoader.Clean(node.GetString() ?? string.Empty);
+                var markup = node.GetString() ?? string.Empty;
+                var text = SefariaTextLoader.Clean(prepare == null ? markup : prepare(markup));
                 if (text.Length > 0 && prefix != null) passages.Add(new SefariaPassage(prefix, text));
                 break;
             }

@@ -73,6 +73,14 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- Which versions of the Mishnah, the Tosefta, both Talmuds, the minor
+         tractates and the Targumim the rabbinic step installs, chosen by
+         licence. Built by tools/RabbinicCatalogue from Sefaria's index. The
+         texts are not here, only what to fetch and under what terms. -->
+    <EmbeddedResource Include="Rabbinic\RabbinicTexts.tsv" />
+  </ItemGroup>
+
+  <ItemGroup>
     <!-- Reconcile() is the fix for Create Translation silently saving an
          empty edition. It's an internal detail of how a model's reply is
          matched back to real passages, not public API - but it's exactly the

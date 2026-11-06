@@ -1,4 +1,5 @@
 using System.Net;
+using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 
@@ -90,9 +91,25 @@ public static class SefariaTextLoader
         }
     }
 
-    private static readonly Regex Footnote = new(
-        @"<sup[^>]*class=""footnote-marker""[^>]*>.*?</sup>\s*<i[^>]*class=""footnote""[^>]*>.*?</i>",
-        RegexOptions.Compiled | RegexOptions.Singleline);
+    /// <summary>The curly quotes are Cohen's Kallah, inside the straight ones.</summary>
+    private static readonly Regex FootnoteOpen = new(
+        @"<i\b[^>]*class=""[“”]?footnote[“”]?""[^>]*>", RegexOptions.Compiled);
+
+    private static readonly Regex ItalicTag = new(@"<(/?)i\b[^>]*>", RegexOptions.Compiled);
+
+    /// <summary>The number a note hangs from, immediately before the note.</summary>
+    private static readonly Regex MarkerBeforeNote = new(@"<sup\b[^>]*>[^<]*</sup>\s*\z", RegexOptions.Compiled);
+
+    /// <summary>
+    /// A marker whose note the source left out, a bare digit in the text
+    /// otherwise, and Goldschmidt's Mishnah numbers, which have the same class.
+    /// Guggenheimer's English has it on superscripts that are no markers at
+    /// all, so an ordinal's ending, a transliterated vowel and the top of a
+    /// fraction are left to stay in their words.
+    /// </summary>
+    private static readonly Regex OrphanMarker = new(
+        @"<sup\b[^>]*class=""footnote-marker""[^>]*>(?!(?:st|nd|rd|th|e)</sup>)[^<]*</sup>(?!/)",
+        RegexOptions.Compiled);
 
     private static readonly Regex Break = new(@"<br\s*/?>", RegexOptions.Compiled | RegexOptions.IgnoreCase);
     private static readonly Regex Tag = new(@"<[^>]+>", RegexOptions.Compiled);
@@ -106,11 +123,65 @@ public static class SefariaTextLoader
     /// </summary>
     public static string Clean(string html)
     {
-        var text = Footnote.Replace(html, string.Empty);
+        var text = OrphanMarker.Replace(RemoveFootnotes(html), string.Empty);
         text = Break.Replace(text, " ");
         text = Tag.Replace(text, string.Empty);
         text = WebUtility.HtmlDecode(text);
         return Whitespace.Replace(text, " ").Trim();
+    }
+
+    /// <summary>
+    /// Takes out each footnote whole, by counting tags rather than stopping at
+    /// the first close.
+    ///
+    /// <b>A note can hold italics of its own</b> - a book's title, a Greek word
+    /// - and a pattern that ends at the first <c>&lt;/i&gt;</c> ends there
+    /// too, leaving the rest of the note in the text as if the author had
+    /// written it. Guggenheimer's Jerusalem Talmud measured half as long again
+    /// that way: 2.02 million words of English where the translation is 1.37
+    /// million.
+    /// </summary>
+    private static string RemoveFootnotes(string html)
+    {
+        var open = FootnoteOpen.Match(html);
+        if (!open.Success) return html;
+
+        var text = new StringBuilder(html.Length);
+        var position = 0;
+
+        while (open.Success)
+        {
+            var end = EndOfItalic(html, open.Index + open.Length);
+
+            // Never closed, so there is no telling where the note stops. Its
+            // words stay: a stray note is visible, and silently losing the
+            // rest of the passage would not be. Notes after it can still go.
+            if (end < 0)
+            {
+                open = FootnoteOpen.Match(html, open.Index + open.Length);
+                continue;
+            }
+
+            text.Append(MarkerBeforeNote.Replace(html[position..open.Index], string.Empty));
+            position = end;
+            open = FootnoteOpen.Match(html, end);
+        }
+
+        return text.Append(html, position, html.Length - position).ToString();
+    }
+
+    /// <summary>Where the italic opened just before <paramref name="start"/> closes, or -1.</summary>
+    private static int EndOfItalic(string html, int start)
+    {
+        var depth = 1;
+
+        for (var tag = ItalicTag.Match(html, start); tag.Success; tag = tag.NextMatch())
+        {
+            depth += tag.Groups[1].Length > 0 ? -1 : 1;
+            if (depth == 0) return tag.Index + tag.Length;
+        }
+
+        return -1;
     }
 
     private static string StringOrEmpty(JsonElement element, string name) =>
