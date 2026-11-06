@@ -37,6 +37,16 @@ mkdir -p "$stage/lib"
 dotnet publish "$project" -c Release -r "$rid" --self-contained true \
   -p:UseAppHost=true -p:DebugType=none -o "$stage/lib"
 
+# What must not be in it, for the reason given in publish-release.ps1. deps.json
+# must not name it either: a file named there and missing from the folder stops
+# the app before it starts.
+for unwanted in PdfSharp.WPFonts PdfSharp.Snippets PdfSharp.Quality; do
+  if [ -e "$stage/lib/$unwanted.dll" ] || grep -q "$unwanted" "$stage/lib/ClassicaCodex.Mac.deps.json"; then
+    echo "$unwanted is in the download." >&2
+    exit 1
+  fi
+done
+
 cp "$here/linux/classica-codex" "$here/linux/install.sh" "$here/linux/classica-codex.desktop" "$here/linux/README.txt" "$stage/"
 cp "$repo/src/ClassicaCodex.Mac/Assets/Art/app-icon-1024.png" "$stage/classica-codex.png"
 cp "$repo/LICENSE" "$repo/THIRD-PARTY-NOTICES.md" "$repo/src/ClassicaCodex.Mac/THIRD-PARTY-NOTICES-MAC.md" "$stage/"

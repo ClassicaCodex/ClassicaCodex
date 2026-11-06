@@ -80,6 +80,16 @@ mkdir -p "$out"
 dotnet publish "$project" -c Release -r "$rid" --self-contained true \
   -p:UseAppHost=true -p:DebugType=none -o "$publish"
 
+# What must not be in it, for the reason given in publish-release.ps1. deps.json
+# must not name it either: a file named there and missing from the folder stops
+# the app before it starts.
+for unwanted in PdfSharp.WPFonts PdfSharp.Snippets PdfSharp.Quality; do
+  if [ -e "$publish/$unwanted.dll" ] || grep -q "$unwanted" "$publish/ClassicaCodex.Mac.deps.json"; then
+    echo "$unwanted is in the download." >&2
+    exit 1
+  fi
+done
+
 mkdir -p "$app/Contents/MacOS" "$app/Contents/Resources"
 cp -R "$publish/." "$app/Contents/MacOS/"
 sed "s/__VERSION__/$version/g" "$here/Info.plist" > "$app/Contents/Info.plist"
