@@ -21,6 +21,7 @@
     <ApplicationTitle>Classica Codex</ApplicationTitle>
     <ApplicationDisplayVersion>0.1</ApplicationDisplayVersion>
     <ApplicationVersion>1</ApplicationVersion>
+    <AppIcon>AppIcon</AppIcon>
 
     <!-- This workload asks for Xcode 27.1 exactly, and this Mac has 27.2. It
          may build on the newer one, but Microsoft does not promise it does. A
