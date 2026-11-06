@@ -86,7 +86,7 @@ public class WindowsTests
     {
         if (!OnWindows()) return;
 
-        var file = Path.Combine(PreferencesFolder.Root, "translate-settings.txt");
+        var file = KeyFile();
         File.Delete(file);
         ForgetWhatTheWindowsAppRead();
 
@@ -113,9 +113,7 @@ public class WindowsTests
     {
         if (!OnWindows()) return;
 
-        var file = Path.Combine(PreferencesFolder.Root, "translate-settings.txt");
-        Directory.CreateDirectory(PreferencesFolder.Root);
-        File.WriteAllLines(file, new[] { "dpapi:bm90IGEga2V5", "sk-ant-from-before-encryption", "noconfirm" });
+        File.WriteAllLines(KeyFile(), new[] { "dpapi:bm90IGEga2V5", "sk-ant-from-before-encryption", "noconfirm" });
 
         Assert.Equal((null, "sk-ant-from-before-encryption", false), WindowsKeyFile.Read());
     }
@@ -125,7 +123,7 @@ public class WindowsTests
     {
         if (!OnWindows()) return;
 
-        File.Delete(Path.Combine(PreferencesFolder.Root, "translate-settings.txt"));
+        File.Delete(KeyFile());
 
         Assert.Equal((null, null, true), WindowsKeyFile.Read());
     }
@@ -176,6 +174,13 @@ public class WindowsTests
         sound.Dispose();
 
         Assert.Empty(Directory.GetDirectories(Path.GetTempPath(), $"ClassicaCodex-BronzeAndThunder-{Environment.ProcessId}"));
+    }
+
+    /// <summary>Where the key file goes, in a folder that exists whichever test runs first.</summary>
+    private static string KeyFile()
+    {
+        Directory.CreateDirectory(PreferencesFolder.Root);
+        return Path.Combine(PreferencesFolder.Root, "translate-settings.txt");
     }
 
     private static void ForgetWhatTheWindowsAppRead() =>
