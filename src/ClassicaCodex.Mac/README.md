@@ -24,7 +24,7 @@ library.
 
 ## Building it
 
-You need the [.NET SDK](https://dotnet.microsoft.com/download), version 8 or
+You need the [.NET SDK](https://dotnet.microsoft.com/download), version 10 or
 newer, on a Mac with Apple silicon or Intel.
 
 ```

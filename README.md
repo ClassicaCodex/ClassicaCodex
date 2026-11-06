@@ -338,7 +338,7 @@ A Mac app lives in [`src/ClassicaCodex.Mac`](src/ClassicaCodex.Mac/README.md). I
 
 ### Building from source
 
-Not necessary to use the app — the release ZIP is self-contained. If you want to build it anyway, you'll need the [.NET 8 SDK](https://dotnet.microsoft.com/download/dotnet/8.0). Clone the repo and either open `ClassicaCodex.sln` in Visual Studio 2022 or later, or run `dotnet build` from the command line. Everything after that is the same setup wizard.
+Not necessary to use the app — the release ZIP is self-contained. If you want to build it anyway, you'll need the [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0). Clone the repo and either open `ClassicaCodex.sln` in Visual Studio 2026 or later, or run `dotnet build` from the command line. Everything after that is the same setup wizard.
 
 ### Checking display scaling
 

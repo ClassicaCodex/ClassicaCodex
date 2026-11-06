@@ -6,7 +6,7 @@
 #   src/ClassicaCodex.Mac/packaging/build-app.sh x64        # Intel
 #   src/ClassicaCodex.Mac/packaging/build-app.sh arm64      # Apple silicon
 #
-# Needs the .NET 8 SDK (or newer) and the tools every Mac has: sips,
+# Needs the .NET 10 SDK (or newer) and the tools every Mac has: sips,
 # iconutil, codesign, hdiutil. Writes to src/ClassicaCodex.Mac/bin/mac-app/, which git ignores.
 #
 # The app is self-contained - the .NET runtime travels inside it - and how it

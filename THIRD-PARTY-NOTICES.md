@@ -11,18 +11,19 @@ carry the version of the binary actually bundled.
 
 | Component | Version | Licence | Copyright |
 |---|---|---|---|
-| .NET runtime and libraries | 8.0.30 | MIT | © Microsoft Corporation |
-| Microsoft.Data.Sqlite, Microsoft.Data.Sqlite.Core | 8.0.8 | MIT | © Microsoft Corporation |
+| .NET runtime and libraries | 10.0.14 | MIT | © Microsoft Corporation |
+| Microsoft.Data.Sqlite, Microsoft.Data.Sqlite.Core | 10.0.14 | MIT | © Microsoft Corporation |
 | Microsoft.Extensions.Logging.Abstractions | 8.0.3 | MIT | © Microsoft Corporation |
 | Microsoft.Extensions.DependencyInjection.Abstractions | 8.0.2 | MIT | © Microsoft Corporation |
-| System.Speech | 8.0.0 | MIT | © Microsoft Corporation |
-| System.Security.Cryptography.ProtectedData | 8.0.0 | MIT | © Microsoft Corporation |
+| System.Speech | 10.0.14 | MIT | © Microsoft Corporation |
+| System.Security.Cryptography.ProtectedData | 10.0.14 | MIT | © Microsoft Corporation |
+| System.IO.Packaging, System.Security.Cryptography.Pkcs | 10.0.14 | MIT | © Microsoft Corporation |
 | DocumentFormat.OpenXml, DocumentFormat.OpenXml.Framework | 3.0.2 | MIT | © Microsoft Corporation |
 | PDFsharp | 6.2.4 | MIT | © PDFsharp Team, empira Software GmbH |
 | LibGit2Sharp | 0.32.0 | MIT | © LibGit2Sharp contributors |
-| SQLitePCLRaw (core, bundle_e_sqlite3, provider.e_sqlite3, lib.e_sqlite3) | 2.1.6 | Apache-2.0 | © 2014-2023 SourceGear, LLC |
+| SQLitePCLRaw (core, bundle_e_sqlite3, provider.e_sqlite3, lib.e_sqlite3) | 2.1.13 | Apache-2.0 | © 2014-2024 SourceGear, LLC |
 | libgit2 (`git2-5853918.dll`, via LibGit2Sharp.NativeBinaries 2.0.324) | 1.8.6 | GPLv2 with linking exception | © the libgit2 contributors |
-| SQLite (`e_sqlite3.dll`, via SQLitePCLRaw) | 3.41.2 | Public domain | — |
+| SQLite (`e_sqlite3.dll`, via SQLitePCLRaw) | 3.53.3 | Public domain | — |
 
 ## libgit2, and the source you are entitled to
 
@@ -44,21 +45,11 @@ machine-readable copy of that source** — open an issue at
 ## The .NET runtime's own notices
 
 A self-contained build bundles the .NET runtime, and the runtime bundles other
-people's code in turn — zlib, Brotli and others, statically linked into the
+people's code in turn — zlib-ng, Brotli and others, statically linked into the
 executable rather than shipped as separate files. Those notices are reproduced
-verbatim in **`THIRD-PARTY-NOTICES-DOTNET.txt`**, beside this file: forty-four
+verbatim in **`THIRD-PARTY-NOTICES-DOTNET.txt`**, beside this file: forty-six
 sections, several of them BSD-family terms that ask to be reproduced in binary
 redistributions such as this one.
-
-Two native binaries in that bundle come from Microsoft's WindowsDesktop
-runtime pack and describe themselves as parts of other Microsoft products
-rather than of .NET: `vcruntime140_cor3.dll`, which identifies as the Microsoft
-C Runtime Library, and `D3DCompiler_47_cor3.dll`, which identifies as the
-Direct3D HLSL compiler for redistribution. Both are redistributed here under
-the runtime pack's MIT licence, which is the only licence that pack carries and
-under which Microsoft both authored and published them; neither carries terms
-of its own. They are named here because the table above would otherwise imply
-they are .NET Foundation code, and they are not.
 
 ## Fonts, and what is deliberately not here
 

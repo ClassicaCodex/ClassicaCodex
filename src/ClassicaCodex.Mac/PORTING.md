@@ -4,7 +4,7 @@
 for macOS over the same libraries the Windows app uses. Everything that knows
 what a passage, an edition or a lemma is lives in `ClassicaCodex.Core`,
 `ClassicaCodex.Data` and `ClassicaCodex.Ingestion`, which target plain
-`net8.0`; this project draws the windows.
+`net10.0`; this project draws the windows.
 
 ## Building and running
 
