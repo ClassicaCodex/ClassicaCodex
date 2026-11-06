@@ -58,10 +58,6 @@
          mechanism for now. No network, no API key, no cost: it just asks
          whatever voice is already installed on the machine to speak. -->
     <PackageReference Include="System.Speech" Version="10.0.14" />
-    <!-- DPAPI (ProtectedData) isn't in the .NET base library the way it was
-         in .NET Framework - it ships separately. Used only by
-         TranslationSettings, to keep API keys off disk in plaintext. -->
-    <PackageReference Include="System.Security.Cryptography.ProtectedData" Version="10.0.14" />
   </ItemGroup>
 
   <ItemGroup>
