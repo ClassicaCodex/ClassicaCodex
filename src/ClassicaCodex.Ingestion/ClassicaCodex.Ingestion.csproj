@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
+    <TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable>
     <Version>3.6.15</Version>
     <AssemblyVersion>3.6.15.0</AssemblyVersion>
@@ -48,9 +48,15 @@
     <PackageReference Include="LibGit2Sharp" Version="0.32.0" />
     <!-- CATMuS publishes its manuscripts as Parquet and nothing else; its own
          row-streaming API answers HTTP 500 on every request. MIT licensed,
-         targets net8.0, no native dependency. -->
+         targets net10.0, no native dependency. -->
     <PackageReference Include="Parquet.Net" Version="6.1.0" />
     <PackageReference Include="PDFsharp" Version="6.2.4" />
+    <!-- Nothing here calls these two. OpenXml 3.0.2 and PDFsharp, even its
+         latest, ask for the 8.0 versions, which have known vulnerabilities.
+         NuGet audits transitive packages on net10.0, and windows.yml builds
+         with warnings as errors, so these lift both past the fixes. -->
+    <PackageReference Include="System.IO.Packaging" Version="10.0.14" />
+    <PackageReference Include="System.Security.Cryptography.Pkcs" Version="10.0.14" />
   </ItemGroup>
 
 </Project>

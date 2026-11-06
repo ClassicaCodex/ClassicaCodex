@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
-    <TargetFramework>net8.0-windows</TargetFramework>
+    <TargetFramework>net10.0-windows</TargetFramework>
     <UseWindowsForms>true</UseWindowsForms>
     <Nullable>enable</Nullable>
     <Version>3.16.1</Version>
@@ -25,9 +25,15 @@
          here explains the parameters that need explaining and leaves the
          obvious ones alone. Satisfying it would mean a tag for every
          cancellationToken in the codebase - noise that would bury the
-         structural warnings above, which are the ones worth reading. -->
+         structural warnings above, which are the ones worth reading.
+         WFO1000 ("property does not configure the code serialization") is
+         suppressed because it is about what the Visual Studio designer writes
+         into a .Designer.cs. This project has none: every window here is
+         laid out in code, so no property of a form or control is ever
+         serialized. It is an error from .NET 9 on, and answering it would
+         mean an attribute on each property, saying nothing to anyone. -->
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
-    <NoWarn>$(NoWarn);CS1591;CS1573</NoWarn>
+    <NoWarn>$(NoWarn);CS1591;CS1573;WFO1000</NoWarn>
     <ApplicationIcon>app.ico</ApplicationIcon>
   </PropertyGroup>
 
@@ -51,11 +57,7 @@
     <!-- Windows' own offline speech synthesis (SAPI) - Read Aloud's only
          mechanism for now. No network, no API key, no cost: it just asks
          whatever voice is already installed on the machine to speak. -->
-    <PackageReference Include="System.Speech" Version="8.0.0" />
-    <!-- DPAPI (ProtectedData) isn't in the .NET 8 base library the way it was
-         in .NET Framework - it ships separately. Used only by
-         TranslationSettings, to keep API keys off disk in plaintext. -->
-    <PackageReference Include="System.Security.Cryptography.ProtectedData" Version="8.0.0" />
+    <PackageReference Include="System.Speech" Version="10.0.14" />
   </ItemGroup>
 
   <ItemGroup>
@@ -82,10 +84,10 @@
 
     <!-- The runtime's own notices, carried verbatim from the runtime pack.
          A self-contained build bundles the .NET runtime, and the runtime
-         bundles other people's code in turn - zlib and Brotli among them,
+         bundles other people's code in turn - zlib-ng and Brotli among them,
          statically linked into the executable rather than shipped as separate
          files, which is why no System.IO.Compression.Native.dll appears in the
-         download. Several of this file's forty-four sections are BSD-family
+         download. Several of this file's forty-six sections are BSD-family
          notices whose terms ask that they be reproduced in binary
          redistributions. Ours is not the only notice file that has to travel
          with the download. -->

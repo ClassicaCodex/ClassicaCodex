@@ -79,7 +79,7 @@ public class WindowsFontResolver : IFontResolver
     {
         var map = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
-        // This project targets plain net8.0 while the app above it is
+        // This project targets plain net10.0 while the app above it is
         // Windows-only, so the registry read is a call the compiler can see
         // reaching platforms that have no registry. It never does in practice,
         // but the guard says so in a way the analyzer can check, and an empty

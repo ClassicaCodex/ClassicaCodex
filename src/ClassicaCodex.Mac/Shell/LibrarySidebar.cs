@@ -209,7 +209,10 @@ public sealed class LibrarySidebar : UserControl
     /// <summary>The menu for a work row, supplied by the main window, which owns the actions.</summary>
     public ContextMenu? WorkMenu { get; set; }
 
-    /// <summary>The work selected in the tree, if a work row is selected.</summary>
+    /// <summary>
+    /// The work selected in the tree, if a work row is selected - which may
+    /// be a row that a filter is hiding for the moment.
+    /// </summary>
     public Work? SelectedWork => (_tree.SelectedItem as WorkNode)?.Work;
 
     public bool IsFavorite(Work work) => _favoriteUrns.Contains(work.CtsUrn);
@@ -332,6 +335,13 @@ public sealed class LibrarySidebar : UserControl
             if (node == null) return false;
         }
 
+        ShowRow(node, select);
+        return true;
+    }
+
+    /// <summary>Opens a row's author and, if asked, selects the row. Touches no filter.</summary>
+    private void ShowRow(WorkNode node, bool select)
+    {
         if (node.Parent != null && _tree.TreeContainerFromItem(node.Parent) is TreeViewItem authorItem)
         {
             authorItem.IsExpanded = true;
@@ -354,8 +364,6 @@ public sealed class LibrarySidebar : UserControl
                 if (_tree.TreeContainerFromItem(node) is Control row) row.BringIntoView();
             }, DispatcherPriority.Background);
         }
-
-        return true;
     }
 
     private WorkNode? FindNode(int workId) =>
@@ -504,7 +512,12 @@ public sealed class LibrarySidebar : UserControl
             _suppressSelection = false;
         }
 
-        if (selectedId != null) Reveal(selectedId.Value, select: true);
+        // Only if the work is still showing. Reveal is for going somewhere and
+        // clears what stands in the way; here the filter is what the reader
+        // just asked for, so it stands. The tree keeps hold of a selection
+        // that has left its items, which is how a work filtered out of sight
+        // is selected again here once the filter lets it back.
+        if (selectedId != null && FindNode(selectedId.Value) is { } selected) ShowRow(selected, select: true);
 
         var workCount = _worksByAuthor.Values.Sum(w => w.Count);
         _status.Text = _allAuthors.Count == 0 ? string.Empty : $"{_allAuthors.Count:N0} authors · {workCount:N0} works";
