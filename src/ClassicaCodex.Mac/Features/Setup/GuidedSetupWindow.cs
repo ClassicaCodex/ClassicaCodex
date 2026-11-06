@@ -185,10 +185,17 @@ public sealed class GuidedSetupWindow : FeatureWindow
         RenderStep();
         Opened += async (_, _) =>
         {
-            await RefreshAllCompletionAsync();
+            OpeningRefresh = RefreshAllCompletionAsync();
+            await OpeningRefresh;
             RenderStep();
         };
     }
+
+    /// <summary>
+    /// The refresh started as the window opens, which outlives closing it.
+    /// A test waits for it before the library it is reading goes away.
+    /// </summary>
+    internal Task OpeningRefresh { get; private set; } = Task.CompletedTask;
 
     /// <summary>The step showing now - for tests, and for the sidebar.</summary>
     internal int CurrentStep => _currentStep;

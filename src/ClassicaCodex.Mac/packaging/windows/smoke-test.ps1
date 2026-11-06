@@ -128,8 +128,6 @@ function Press($process, [string] $keys, [string] $photo, [string] $expected) {
     }
 }
 
-try { Set-DisplayResolution -Width 1440 -Height 900 -Force } catch { Write-Host 'The screen stays at its own size.' }
-
 # As the classic app leaves things: a library chosen, a passage open, an
 # encrypted key. Opens on Greek, so the first photograph shows polytonic text.
 [System.IO.File]::WriteAllText((Join-Path $preferences 'database-path.txt'), $Library)

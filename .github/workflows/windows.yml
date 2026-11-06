@@ -23,6 +23,13 @@ jobs:
         with:
           dotnet-version: 8.0.x
 
+      - name: A screen the size of a reader's
+        shell: pwsh
+        run: |
+          try { Set-DisplayResolution -Width 1920 -Height 1080 -Force } catch { Write-Warning $_ }
+          Add-Type -AssemblyName System.Windows.Forms
+          [System.Windows.Forms.Screen]::PrimaryScreen.Bounds | Out-String | Write-Host
+
       - name: Build
         run: dotnet build ClassicaCodex.Mac.slnf -c Release -warnaserror
 
@@ -82,6 +89,15 @@ jobs:
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: 8.0.x
+
+      # TheWindowMarginsScale makes a real form at 200%, and Windows holds a
+      # window to the size of the screen, which here starts at 1024 x 768.
+      - name: A screen the size of a reader's
+        shell: pwsh
+        run: |
+          try { Set-DisplayResolution -Width 1920 -Height 1080 -Force } catch { Write-Warning $_ }
+          Add-Type -AssemblyName System.Windows.Forms
+          [System.Windows.Forms.Screen]::PrimaryScreen.Bounds | Out-String | Write-Host
 
       - name: Test
         run: dotnet test tests/ClassicaCodex.UI.Tests -c Release
