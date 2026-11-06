@@ -17,9 +17,16 @@ internal static class WindowsVoices
 {
     private static readonly Lazy<SpeechSynthesizer?> Synthesizer = new(Create);
 
+    private static Prompt? _speaking;
+
     public static bool IsAvailable => Synthesizer.Value != null;
 
-    public static bool IsSpeaking => Synthesizer.Value?.State == SynthesizerState.Speaking;
+    /// <summary>
+    /// Asked of the prompt rather than the synthesizer, whose state changes a
+    /// moment after SpeakAsync returns: the window that asks straight away
+    /// would be told nothing is playing, and take away its Stop button.
+    /// </summary>
+    public static bool IsSpeaking => _speaking is { IsCompleted: false };
 
     private static SpeechSynthesizer? Create()
     {
@@ -57,7 +64,7 @@ internal static class WindowsVoices
 
         // Starting a passage replaces the last one rather than queuing behind it.
         synthesizer.SpeakAsyncCancelAll();
-        synthesizer.SpeakAsync(text);
+        _speaking = synthesizer.SpeakAsync(text);
     }
 
     public static void Stop() => Synthesizer.Value?.SpeakAsyncCancelAll();

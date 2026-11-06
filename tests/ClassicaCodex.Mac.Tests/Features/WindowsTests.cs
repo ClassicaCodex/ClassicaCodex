@@ -161,6 +161,7 @@ public class WindowsTests
         Assert.NotEmpty(SpeechService.GetInstalledVoices());
 
         SpeechService.Speak("arma virumque cano", "lat");
+        Assert.True(SpeechService.IsSpeaking);
         SpeechService.Stop();
     }
 
