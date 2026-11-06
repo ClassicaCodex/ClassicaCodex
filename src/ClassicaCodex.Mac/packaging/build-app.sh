@@ -96,6 +96,14 @@ done
 iconutil -c icns "$iconset" -o "$app/Contents/Resources/ClassicaCodex.icns"
 rm -rf "$iconset"
 
+# The licence and the third-party notices, which travel with the download as
+# they do in the Windows zip. They go in Resources, where the bundle's own
+# signature seals them, because macOS counts everything in Contents/MacOS as
+# code. This comes before the signing, which would otherwise not cover them.
+cp "$repo/LICENSE" "$repo/THIRD-PARTY-NOTICES.md" "$repo/THIRD-PARTY-NOTICES-DOTNET.txt" \
+  "$repo/THIRD-PARTY-NOTICES-LIBGIT2.txt" "$repo/src/ClassicaCodex.Mac/THIRD-PARTY-NOTICES-MAC.md" \
+  "$app/Contents/Resources/"
+
 if [ "$identity" = "-" ]; then
   codesign --force --deep --sign - "$app"
 else

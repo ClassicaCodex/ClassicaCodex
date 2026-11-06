@@ -39,7 +39,8 @@ dotnet publish "$project" -c Release -r "$rid" --self-contained true \
 
 cp "$here/linux/classica-codex" "$here/linux/install.sh" "$here/linux/classica-codex.desktop" "$here/linux/README.txt" "$stage/"
 cp "$repo/src/ClassicaCodex.Mac/Assets/Art/app-icon-1024.png" "$stage/classica-codex.png"
-cp "$repo/LICENSE" "$repo/THIRD-PARTY-NOTICES.md" "$repo/src/ClassicaCodex.Mac/THIRD-PARTY-NOTICES-MAC.md" "$stage/"
+cp "$repo/LICENSE" "$repo/THIRD-PARTY-NOTICES.md" "$repo/THIRD-PARTY-NOTICES-DOTNET.txt" \
+  "$repo/THIRD-PARTY-NOTICES-LIBGIT2.txt" "$repo/src/ClassicaCodex.Mac/THIRD-PARTY-NOTICES-MAC.md" "$stage/"
 chmod +x "$stage/classica-codex" "$stage/install.sh" "$stage/lib/ClassicaCodex.Mac"
 
 # COPYFILE_DISABLE keeps a Mac's tar from adding its ._ files.
