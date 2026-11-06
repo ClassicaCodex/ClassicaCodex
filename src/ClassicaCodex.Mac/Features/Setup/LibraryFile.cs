@@ -7,6 +7,13 @@ using ClassicaCodex.Mac.Shell;
 namespace ClassicaCodex.Mac.Features.Setup;
 
 /// <summary>
+/// What stopped the remembered library opening at launch: nothing there at
+/// <paramref name="Path"/> if <paramref name="Failure"/> is null, and
+/// otherwise a file that wouldn't open, and why.
+/// </summary>
+internal sealed record LibraryProblem(string Path, string? Failure);
+
+/// <summary>
 /// Choosing the library file from inside setup - the guided Library File step
 /// and Advanced Setup's Library File button, which on Windows are the
 /// Database step and the Database Location dialog.
@@ -23,6 +30,42 @@ internal static class LibraryFile
 {
     /// <summary>The file the step offers: the one open now, else the one last used, else the default.</summary>
     public static string Current => DbConnectionFactory.DatabasePath ?? DbConnectionFactory.PreferredDatabasePath;
+
+    /// <summary>
+    /// Opens the library the reader last used, as Windows does in Program.cs,
+    /// and brings its schema up to date - the same migrations the Windows app
+    /// runs, so a library copied from the PC opens here as it is. Returns what
+    /// stopped it, or null if it opened or there is nothing to open yet.
+    ///
+    /// A library that has been chosen and is not there is not a first run,
+    /// and must not be treated as one. The commonest way to get there is an
+    /// external drive left unplugged, and the general first-run page says
+    /// nothing about that drive. What it offers instead writes a new path over
+    /// the remembered one, for both apps on Windows, at which point plugging
+    /// the drive back in no longer helps.
+    /// </summary>
+    public static async Task<LibraryProblem?> OpenRememberedAsync()
+    {
+        var remembered = DbConnectionFactory.PreferredDatabasePath;
+
+        try
+        {
+            if (!DbConnectionFactory.TryConfigureFromPreferred())
+            {
+                return MacDataFolder.SamePath(remembered, DbConnectionFactory.DefaultDatabasePath)
+                    ? null
+                    : new LibraryProblem(remembered, null);
+            }
+
+            await SchemaInitializer.EnsureSchemaAsync();
+            return null;
+        }
+        catch (Exception ex)
+        {
+            CrashLog.Write(ex, "opening the library at launch");
+            return new LibraryProblem(remembered, ex.Message);
+        }
+    }
 
     /// <summary>
     /// Makes <paramref name="path"/> the library - opening it if it exists,

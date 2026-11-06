@@ -4,7 +4,7 @@ using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
 using Avalonia.Platform;
 using Avalonia.Styling;
-using ClassicaCodex.Data;
+using ClassicaCodex.Mac.Features.Setup;
 using ClassicaCodex.Mac.Shell;
 
 namespace ClassicaCodex.Mac;
@@ -32,21 +32,10 @@ public partial class App : Application
     {
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
-            // The library the reader last used, if it is still where it was.
-            // Its schema is brought up to date before any window reads from it -
-            // the same migrations the Windows app runs, so a library copied from
-            // the PC opens here as it is.
-            if (DbConnectionFactory.TryConfigureFromPreferred())
-            {
-                try
-                {
-                    await SchemaInitializer.EnsureSchemaAsync();
-                }
-                catch (Exception ex)
-                {
-                    CrashLog.Write(ex, "upgrading the library at launch");
-                }
-            }
+            // Before any window reads from it. What stops it is for the main
+            // window to say: an alert here, with no window yet, would end the
+            // app when it was closed.
+            var problem = await LibraryFile.OpenRememberedAsync();
 
             // The PDF writer's fonts, found once in the background: the shared
             // writer looks them up in the Windows registry, and the Mac's own
@@ -58,7 +47,7 @@ public partial class App : Application
                 catch (Exception ex) { CrashLog.Write(ex, "finding fonts for PDF export"); }
             });
 
-            desktop.MainWindow = new MainWindow();
+            desktop.MainWindow = new MainWindow { LibraryProblem = problem };
             desktop.ShutdownMode = ShutdownMode.OnMainWindowClose;
         }
 

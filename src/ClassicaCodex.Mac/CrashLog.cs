@@ -17,6 +17,13 @@ public static class CrashLog
 {
     public static string LogFile => Path.Combine(PreferencesFolder.Root, "errors.log");
 
+    /// <summary>The details and where to send them, which end every report.</summary>
+    private static string Details =>
+        "Details were written to:\n" + LogFile + "\n\n"
+        + "If this keeps happening, please report it with that file attached at " + ProjectLinks.Issues;
+
+    private static readonly object FatalLock = new();
+
     private static bool _reporting;
 
     /// <summary>
@@ -43,6 +50,66 @@ public static class CrashLog
         public void Dispose() => remove();
     }
 
+    /// <summary>
+    /// Does what the Windows CrashReporter does with an error nothing caught
+    /// on a background thread, an ingest task, say. The runtime ends the
+    /// process when this returns, so the most it can do is leave a log and say
+    /// so, and the saying is the UI thread's. This thread waits for the reader
+    /// to answer, and that wait is all that keeps the app there.
+    ///
+    /// It has no one to wait for if this is the UI thread, or if that thread
+    /// is stuck, perhaps on the very work that failed: the log is all those
+    /// leave. Nearly everything on the UI thread reaches Install's handler.
+    /// </summary>
+    public static void ReportFatal(Exception ex, int waitForUiThreadMilliseconds = 10_000)
+    {
+        Write(ex, "running (fatal)");
+
+        if (Dispatcher.UIThread.CheckAccess()) return;
+
+        // A second thread failing beside this one waits here too. If it went
+        // on and returned, the process would end under the first one's dialog.
+        lock (FatalLock)
+        {
+            var showing = new ManualResetEventSlim();
+            var answered = new ManualResetEventSlim();
+
+            Dispatcher.UIThread.Post(async () =>
+            {
+                showing.Set();
+
+                try
+                {
+                    await Alert.Error(ActiveWindow, "Classica Codex - closing",
+                        "Classica Codex hit an error it can't recover from and has to close.\n\n"
+                        + Innermost(ex).Message + "\n\n"
+                        + Details);
+                }
+                catch (Exception)
+                {
+                    // The log is already written; there is nothing sensible left to try.
+                }
+                finally
+                {
+                    answered.Set();
+                }
+            });
+
+            if (showing.Wait(waitForUiThreadMilliseconds)) answered.Wait();
+        }
+    }
+
+    private static Window? ActiveWindow =>
+        (Application.Current?.ApplicationLifetime as IClassicDesktopStyleApplicationLifetime)?
+            .Windows.FirstOrDefault(window => window.IsActive);
+
+    /// <summary>The innermost message, which is nearly always the useful one.</summary>
+    private static Exception Innermost(Exception ex)
+    {
+        while (ex.InnerException != null) ex = ex.InnerException;
+        return ex;
+    }
+
     private static async Task ReportAsync(Exception ex)
     {
         // One box at a time: a failure that repeats on every redraw should
@@ -52,18 +119,11 @@ public static class CrashLog
 
         try
         {
-            var inner = ex;
-            while (inner.InnerException != null) inner = inner.InnerException;
-
-            var owner = (Application.Current?.ApplicationLifetime as IClassicDesktopStyleApplicationLifetime)?
-                .Windows.FirstOrDefault(window => window.IsActive);
-
-            await Alert.Warn(owner, "Classica Codex",
+            await Alert.Warn(ActiveWindow, "Classica Codex",
                 "Something went wrong with that action.\n\n"
-                + inner.Message + "\n\n"
+                + Innermost(ex).Message + "\n\n"
                 + "The rest of the app is still running - your library, tags and bookmarks are untouched.\n\n"
-                + "Details were written to:\n" + LogFile + "\n\n"
-                + "If this keeps happening, please report it with that file attached at " + ProjectLinks.Issues);
+                + Details);
         }
         catch (Exception)
         {

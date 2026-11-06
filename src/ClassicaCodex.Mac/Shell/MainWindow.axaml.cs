@@ -6,6 +6,7 @@ using Avalonia.Styling;
 using ClassicaCodex.Core.Models;
 using ClassicaCodex.Data;
 using ClassicaCodex.Mac.Common;
+using ClassicaCodex.Mac.Features.Setup;
 using ClassicaCodex.Mac.Platform;
 using ClassicaCodex.UI;
 
@@ -26,6 +27,9 @@ public partial class MainWindow : Window, IReaderHost
 {
     /// <summary>The main window, for dialogs raised from code that has no window of its own.</summary>
     public static MainWindow? Current { get; private set; }
+
+    /// <summary>What stopped the remembered library opening, for the page that says so.</summary>
+    internal LibraryProblem? LibraryProblem { get; set; }
 
     private readonly ReaderPane _originalPane = new(PaneRole.Original);
     private readonly ReaderPane _translationPane = new(PaneRole.Translation);
@@ -293,8 +297,9 @@ public partial class MainWindow : Window, IReaderHost
     /// </summary>
     private async Task StartAsync()
     {
-        if (!DbConnectionFactory.IsConfigured)
+        if (LibraryProblem != null || !DbConnectionFactory.IsConfigured)
         {
+            _noLibrary.Show(LibraryProblem);
             ShowContent(_noLibrary);
             return;
         }

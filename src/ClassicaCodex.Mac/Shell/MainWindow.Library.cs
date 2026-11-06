@@ -36,9 +36,23 @@ public partial class MainWindow
     }
 
     /// <summary>
+    /// Looks again for the library that wasn't there at launch, or wouldn't
+    /// open, once the drive is plugged in or the other program has let it go.
+    /// </summary>
+    public async Task RetryLibraryAsync()
+    {
+        LibraryProblem = await LibraryFile.OpenRememberedAsync();
+        await StartAsync();
+    }
+
+    /// <summary>
     /// Points the app at a library file, brings its schema up to date - the
     /// same migrations the Windows app runs, so a library copied from the PC
     /// opens here as it is - and reloads everything that shows it.
+    ///
+    /// The path is remembered only once it has opened: a file that won't open
+    /// must not take the place of a library waiting on a drive that isn't
+    /// plugged in.
     /// </summary>
     public async Task<bool> SwitchLibraryAsync(string path, bool isNew)
     {
@@ -46,17 +60,19 @@ public partial class MainWindow
 
         try
         {
-            DbConnectionFactory.Configure(path);
+            DbConnectionFactory.Configure(path, remember: false);
             await SchemaInitializer.EnsureSchemaAsync();
+            DbConnectionFactory.Configure(path);
         }
         catch (Exception ex)
         {
-            if (previous != null) DbConnectionFactory.Configure(previous);
+            if (previous != null) DbConnectionFactory.Configure(previous, remember: false);
             await Alert.Error(this, isNew ? "Couldn't create the library" : "Couldn't open the library",
                 $"{ex.Message}\n\nThe file was {path}.");
             return false;
         }
 
+        LibraryProblem = null;
         _openWork = null;
         _history.Clear();
         _historyIndex = -1;

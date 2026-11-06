@@ -1,10 +1,14 @@
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
+using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
+using Avalonia.Input;
+using Avalonia.Input.Raw;
 using Avalonia.Media;
 using Avalonia.Styling;
 using Avalonia.VisualTree;
 using ClassicaCodex.Data;
+using ClassicaCodex.Mac.Features.Help;
 using ClassicaCodex.Mac.Features.Search;
 using ClassicaCodex.Mac.Shell;
 using Microsoft.Data.Sqlite;
@@ -27,6 +31,89 @@ public class MainWindowTests
 
         Screens.Save(window, "00-no-library");
         window.Close();
+    }
+
+    /// <summary>
+    /// F1 and the Alt arrows are the classic app's keys. A Mac keeps its own:
+    /// there Option-Left moves the caret by a word, and F1 is the brightness key.
+    /// </summary>
+    [AvaloniaFact]
+    public async Task The_classic_keys_work_off_a_Mac_and_a_Mac_keeps_its_own()
+    {
+        var previousLibrary = DbConnectionFactory.DatabasePath;
+        var folder = Path.Combine(Path.GetTempPath(), "classicacodex-mainwindow-tests", Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(folder);
+        MainWindow? window = null;
+
+        try
+        {
+            DbConnectionFactory.Configure(Path.Combine(folder, "library.db"), remember: false);
+            await SchemaInitializer.EnsureSchemaAsync();
+            await using (var conn = await DbConnectionFactory.OpenConnectionAsync())
+            await using (var cmd = conn.CreateCommand())
+            {
+                cmd.CommandText = @"
+                    INSERT INTO Authors (AuthorId, CtsUrn, Name, Namespace) VALUES
+                        (1, 'urn:cts:greekLit:tlg0085', 'Aeschylus', 'greekLit');
+                    INSERT INTO Works (WorkId, AuthorId, CtsUrn, Title) VALUES
+                        (1, 1, 'urn:cts:greekLit:tlg0085.tlg005', 'Agamemnon'),
+                        (2, 1, 'urn:cts:greekLit:tlg0085.tlg006', 'Libation Bearers');
+                    INSERT INTO Editions (WorkId, CtsUrn, Kind, Collection) VALUES
+                        (1, 'urn:cts:greekLit:tlg0085.tlg005.perseus-grc2', 'Original', 'perseus-greek'),
+                        (2, 'urn:cts:greekLit:tlg0085.tlg006.perseus-grc2', 'Original', 'perseus-greek');";
+                await cmd.ExecuteNonQueryAsync();
+            }
+
+            window = new MainWindow { Width = 1280, Height = 800 };
+            window.Show();
+            await Screens.Settle();
+
+            Assert.True(await window.OpenWorkAsync(1));
+            Assert.True(await window.OpenWorkAsync(2));
+            await Screens.Settle();
+            Assert.Equal(2, window.OpenWork?.WorkId);
+
+            async Task Press(Key key, RawInputModifiers modifiers, PhysicalKey physical)
+            {
+                window.KeyPress(key, modifiers, physical, null);
+                await Screens.Settle();
+            }
+
+            await Press(Key.F1, RawInputModifiers.None, PhysicalKey.F1);
+            await Press(Key.Left, RawInputModifiers.Alt, PhysicalKey.ArrowLeft);
+
+            if (OperatingSystem.IsMacOS())
+            {
+                Assert.Empty(window.OwnedWindows);
+                Assert.Equal(2, window.OpenWork?.WorkId);
+                return;
+            }
+
+            Assert.Single(window.OwnedWindows.OfType<HelpWindow>());
+            foreach (var owned in window.OwnedWindows.ToList()) owned.Close();
+            await Screens.Settle();
+            Assert.Equal(1, window.OpenWork?.WorkId);
+
+            await Press(Key.Right, RawInputModifiers.Alt, PhysicalKey.ArrowRight);
+            Assert.Equal(2, window.OpenWork?.WorkId);
+
+            // The keys the menus used to print still work.
+            await Press(Key.OemOpenBrackets, RawInputModifiers.Control, PhysicalKey.BracketLeft);
+            Assert.Equal(1, window.OpenWork?.WorkId);
+            await Press(Key.OemCloseBrackets, RawInputModifiers.Control, PhysicalKey.BracketRight);
+            Assert.Equal(2, window.OpenWork?.WorkId);
+            await Press(Key.OemQuestion, RawInputModifiers.Control | RawInputModifiers.Shift, PhysicalKey.Slash);
+            Assert.Single(window.OwnedWindows.OfType<HelpWindow>());
+        }
+        finally
+        {
+            foreach (var owned in window?.OwnedWindows.ToList() ?? new()) owned.Close();
+            window?.Close();
+            SqliteConnection.ClearAllPools();
+            if (previousLibrary != null) DbConnectionFactory.Configure(previousLibrary, remember: false);
+            else Screens.ForgetLibrary();
+            Directory.Delete(folder, recursive: true);
+        }
     }
 
     [AvaloniaFact]

@@ -9,7 +9,7 @@ internal static class Program
     {
         AppDomain.CurrentDomain.UnhandledException += (_, e) =>
         {
-            if (e.ExceptionObject is Exception ex) CrashLog.Write(ex, "running (unhandled)");
+            if (e.ExceptionObject is Exception ex) CrashLog.ReportFatal(ex);
         };
         TaskScheduler.UnobservedTaskException += (_, e) =>
         {
