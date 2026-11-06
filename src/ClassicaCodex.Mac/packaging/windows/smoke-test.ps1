@@ -9,18 +9,23 @@
     encrypted key, so it needs a machine with no Classica Codex settings of
     its own. On a reader's machine it would write over theirs.
 
-        smoke-test.ps1 <zip> <library.db> <photo folder> [<classic zip>]
+        smoke-test.ps1 <zip> <library.db> <photo folder> [<classic zip>] [<crash hook>]
 
     With the classic zip it also runs the released classic app before, during
     and after, and fails if this app changes any of that app's files, or if
     either app stops or writes to errors.log.
+
+    The crash hook is tools\BackgroundCrash, built. With it the app is crashed
+    on a background thread, and has to stay open until its dialog is answered
+    and then close.
 #>
 [CmdletBinding()]
 param(
     [Parameter(Mandatory)] [string] $Zip,
     [Parameter(Mandatory)] [string] $Library,
     [Parameter(Mandatory)] [string] $Photos,
-    [string] $ClassicZip
+    [string] $ClassicZip,
+    [string] $CrashHook
 )
 
 $ErrorActionPreference = 'Stop'
@@ -45,9 +50,9 @@ public static class TopWindows
     [DllImport("user32.dll", CharSet = CharSet.Unicode)] private static extern int GetWindowText(IntPtr window, StringBuilder text, int size);
     [DllImport("user32.dll")] public static extern bool SetForegroundWindow(IntPtr window);
 
-    public static string[] Titles(int processId)
+    private static List<KeyValuePair<IntPtr, string>> Visible(int processId)
     {
-        var titles = new List<string>();
+        var windows = new List<KeyValuePair<IntPtr, string>>();
         EnumWindows((window, _) =>
         {
             uint owner;
@@ -55,11 +60,32 @@ public static class TopWindows
             if (owner == processId && IsWindowVisible(window))
             {
                 var text = new StringBuilder(256);
-                if (GetWindowText(window, text, text.Capacity) > 0) titles.Add(text.ToString());
+                GetWindowText(window, text, text.Capacity);
+                windows.Add(new KeyValuePair<IntPtr, string>(window, text.ToString()));
             }
             return true;
         }, IntPtr.Zero);
+        return windows;
+    }
+
+    public static string[] Titles(int processId)
+    {
+        var titles = new List<string>();
+        foreach (var window in Visible(processId))
+        {
+            if (window.Value.Length > 0) titles.Add(window.Value);
+        }
         return titles.ToArray();
+    }
+
+    // An empty title finds an alert, which is the one kind of window without one.
+    public static IntPtr Find(int processId, string title)
+    {
+        foreach (var window in Visible(processId))
+        {
+            if (window.Value == title) return window.Key;
+        }
+        return IntPtr.Zero;
     }
 }
 '@
@@ -113,13 +139,35 @@ function Hashes {
     return $hashes
 }
 
-# A press, which has to land on this window, and the window it should open.
-function Press($process, [string] $keys, [string] $photo, [string] $expected) {
-    $process.Refresh()
-    [void] [TopWindows]::SetForegroundWindow($process.MainWindowHandle)
+# Keys, which have to land on this window, so it is put in front first.
+function Send-To([IntPtr] $window, [string] $keys) {
+    [void] [TopWindows]::SetForegroundWindow($window)
     Start-Sleep -Seconds 1
     [System.Windows.Forms.SendKeys]::SendWait($keys)
     Start-Sleep -Seconds 5
+}
+
+function Find-Window($process, [string] $title) {
+    $window = [TopWindows]::Find($process.Id, $title)
+    if ($window -eq [IntPtr]::Zero) {
+        throw "No window called '$title', and the windows are: $([TopWindows]::Titles($process.Id) -join ', ')"
+    }
+    return $window
+}
+
+function Remember-Library([string] $path) {
+    [System.IO.File]::WriteAllText((Join-Path $preferences 'database-path.txt'), $path)
+}
+
+function Main-Title($process) {
+    $process.Refresh()
+    return $process.MainWindowTitle
+}
+
+# A press on the main window, and the window it should open.
+function Press($process, [string] $keys, [string] $photo, [string] $expected) {
+    $process.Refresh()
+    Send-To $process.MainWindowHandle $keys
     Alive $process "after $keys"
     Photo $photo
     $titles = [TopWindows]::Titles($process.Id)
@@ -128,9 +176,17 @@ function Press($process, [string] $keys, [string] $photo, [string] $expected) {
     }
 }
 
+# Escape on a window, which should close it.
+function Dismiss($process, [string] $title, [string] $photo) {
+    Send-To (Find-Window $process $title) '{ESC}'
+    Alive $process "after Escape on $title"
+    Photo $photo
+    if ([TopWindows]::Titles($process.Id) -contains $title) { throw "Escape should have closed $title." }
+}
+
 # As the classic app leaves things: a library chosen, a passage open, an
 # encrypted key. Opens on Greek, so the first photograph shows polytonic text.
-[System.IO.File]::WriteAllText((Join-Path $preferences 'database-path.txt'), $Library)
+Remember-Library $Library
 
 $query = Join-Path $work 'passage.py'
 Set-Content $query @'
@@ -177,14 +233,29 @@ Photo '02-opened'
 Set-Content (Join-Path $Photos 'windows-open.txt') ([TopWindows]::Titles($app.Id))
 
 Press $app '^,' '03-settings-from-its-key' 'Settings'
-Press $app '{ESC}' '04-settings-closed' ''
+Dismiss $app 'Settings' '04-settings-closed'
 Press $app '^f' '05-search-from-its-key' 'Search'
-Press $app '{ESC}' '06-search-closed' ''
-Press $app '^+t' '07-all-tools-from-its-key' ''
+Dismiss $app 'Search' '06-search-closed'
+Press $app '{F1}' '07-help-from-its-key' 'Classica Codex Help'
+Dismiss $app 'Classica Codex Help' '08-help-closed'
+
+# Back and Forward need somewhere to go: a jump to Virgil from Search, by keys
+# alone. Three Shift+Tabs from the search box reach its results.
+$opened = Main-Title $app
+Press $app '^f' '09-search-for-a-jump' 'Search'
+Send-To (Find-Window $app 'Search') 'arma{ENTER}'
+Send-To (Find-Window $app 'Search') '+{TAB}+{TAB}+{TAB}{DOWN}{ENTER}'
+$jumped = Main-Title $app
+if ($jumped -eq $opened) { throw "A result from Search should have left $opened." }
+Dismiss $app 'Search' '10-jumped'
+Press $app '%{LEFT}' '11-back-from-its-key' $opened
+Press $app '%{RIGHT}' '12-forward-from-its-key' $jumped
+
+Press $app '^+t' '13-all-tools-from-its-key' ''
 
 if ($classic) {
     $both = Start-App $classic 20
-    Photo '08-both-open-on-one-library'
+    Photo '14-both-open-on-one-library'
     Alive $app 'with the classic app open beside it'
     Close-App $both
 }
@@ -213,7 +284,7 @@ if ($harmed) { throw "This app changed the classic app's files:`n$($harmed -join
 
 if ($classic) {
     $running = Start-App $classic 25
-    Photo '09-classic-after'
+    Photo '15-classic-after'
     Close-App $running
 
     if (Test-Path $errors) {
@@ -223,4 +294,46 @@ if ($classic) {
     }
 }
 
-Write-Host 'It ran, and logged nothing.'
+# A library on a drive that isn't plugged in: named, and still remembered.
+$unplugged = Join-Path $work 'unplugged\classicacodex.db'
+Remember-Library $unplugged
+$running = Start-App $exe 15
+Photo '16-library-not-available'
+Close-App $running
+$remembered = (Get-Content (Join-Path $preferences 'database-path.txt') -Raw).Trim()
+if ($remembered -ne $unplugged) { throw "The app forgot where the library was, and now remembers $remembered." }
+if (Test-Path $errors) { throw 'A drive that is not plugged in is not an error, and the app logged one.' }
+
+# A file that is there and won't open, which is reported.
+$broken = Join-Path $work 'broken.db'
+[System.IO.File]::WriteAllText($broken, ('x' * 8192))
+Remember-Library $broken
+$running = Start-App $exe 15
+Photo '17-library-will-not-open'
+Close-App $running
+if (-not (Select-String -Path $errors -Pattern 'opening the library at launch' -Quiet)) { throw 'The library that would not open was not logged.' }
+Remove-Item $errors
+
+# Last, because the log it leaves is the point of it. The runtime ends the
+# process once its crash handler returns, so the process being there at all
+# after the crash means the handler is waiting on the dialog.
+if ($CrashHook) {
+    Remember-Library $Library
+    $env:DOTNET_STARTUP_HOOKS = (Resolve-Path $CrashHook).Path
+    $env:CC_CRASH_AFTER_SECONDS = '15'
+    $crashing = Start-App $exe 30
+    Remove-Item Env:DOTNET_STARTUP_HOOKS, Env:CC_CRASH_AFTER_SECONDS
+
+    Photo '18-crash-dialog'
+    Copy-Item $errors $Photos
+    if (-not (Select-String -Path $errors -Pattern 'running \(fatal\)' -Quiet)) { throw 'The crash was not logged as fatal.' }
+
+    Send-To (Find-Window $crashing '') '{ENTER}'
+    if (-not $crashing.WaitForExit(60000)) {
+        Photo '19-crash-dialog-answered'
+        throw 'The app did not close once its crash dialog was answered.'
+    }
+    Write-Host "Closed after its crash dialog, with exit code $($crashing.ExitCode)."
+}
+
+Write-Host 'It ran, and logged nothing it should not have.'

@@ -37,6 +37,8 @@ Guided Setup (recommended)
 
    On a genuine first run the Mac opens on Choose your library instead. Open Library… takes a library you already have - one copied from a PC opens exactly as it is, with nothing to download again - and Create a New Library… asks where the new file should go and then opens Setup on it.
 
+   A library you have been using that can't be reached when the app starts is not a first run, and the page says so instead: it names the file, which is usually on a drive that isn't plugged in, and Retry looks again. A file that is there and won't open is reported the same way. Choosing another library from that page leaves the old one untouched, but the app will look for the new one from then on.
+
 Advanced Setup
    Everything on one screen instead: every data source as its own row with its own destination folder, downloaded and ingested independently, in whatever order suits. Already have the repositories downloaded yourself? Point straight at those folders instead of fetching them again - same result, no second copy.
 

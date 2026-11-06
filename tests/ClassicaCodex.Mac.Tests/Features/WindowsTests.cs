@@ -39,6 +39,9 @@ public class WindowsTests
     [InlineData("Show it in the Finder?", "Show it in File Explorer?")]
     [InlineData("Follow macOS", "Follow Windows")]
     [InlineData("Appearance: follows macOS", "Appearance: follows Windows")]
+    [InlineData("Back (⌘[)", "Back (Alt+Left)")]
+    [InlineData("Forward (⌘])", "Forward (Alt+Right)")]
+    [InlineData("this app will look for the one you choose from now on", "this app and the classic Windows app will look for the one you choose from now on")]
     [InlineData("More voices: System Settings → Accessibility → Spoken Content → System Voice → Manage Voices.", "More voices: Settings → Time & Language → Speech.")]
     public void Keys_and_names_read_the_Windows_way(string mac, string windows) =>
         Assert.Equal(windows, SystemWords.ForWindows(mac));

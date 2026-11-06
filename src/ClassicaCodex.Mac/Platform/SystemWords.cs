@@ -58,6 +58,13 @@ internal static class SystemWords
     /// <summary>Applied after <see cref="Keys"/>, so a chord in a phrase reads as it does by then.</summary>
     internal static readonly (string Mac, string Linux, string Windows)[] Phrases =
     {
+        // The keys a PC has from the classic app and from every browser, which
+        // the menus print here in place of the Mac's own.
+        ("Back (Ctrl+[)", "Back (Alt+Left)", "Back (Alt+Left)"),
+        ("Forward (Ctrl+])", "Forward (Alt+Right)", "Forward (Alt+Right)"),
+        ("Ctrl+[ and Ctrl+] do the same", "Alt+Left and Alt+Right do the same", "Alt+Left and Alt+Right do the same"),
+        ("Ctrl+? opens this help, and Ctrl+[ and Ctrl+] walk", "F1 opens this help, and Alt+Left and Alt+Right walk", "F1 opens this help, and Alt+Left and Alt+Right walk"),
+
         // The Finder.
         ("To open any of these in the Finder, choose Go > Go to Folder… (Ctrl+Shift+G) and paste the path. Folders inside ~/Library are otherwise hidden in the Finder.",
             "To open any of these, paste the path into your file manager. Folders whose names begin with a dot, such as ~/.local, are hidden there unless you ask to see them.",
@@ -150,6 +157,9 @@ internal static class SystemWords
         // The other app, on the system where there are two.
         ("the Windows app ships with", "the Windows app ships with", "the classic Windows app ships with"),
         ("the same file name the Windows app uses", "the same file name the Windows app uses", "the same file the classic Windows app uses"),
-        ("copied from the PC", "copied from the PC", "copied from another PC")
+        ("copied from the PC", "copied from the PC", "copied from another PC"),
+        ("this app will look for the one you choose from now on",
+            "this app will look for the one you choose from now on",
+            "this app and the classic Windows app will look for the one you choose from now on")
     };
 }

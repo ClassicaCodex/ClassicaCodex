@@ -452,13 +452,15 @@ public partial class MainWindow
     /// takes its key equivalents itself; the menu bar a window draws elsewhere
     /// only prints them, so the window has to be listening for them too. Asks
     /// the item at the moment of the key, so a key does nothing while its
-    /// command is greyed out.
+    /// command is greyed out. A menu prints one key, so a second one is
+    /// passed here as <paramref name="also"/>, and is the window's alone.
     /// </summary>
-    private void BindMenuKey(NativeMenuItem item, Action action)
+    private void BindMenuKey(NativeMenuItem item, Action action, string? also = null)
     {
-        if (OperatingSystem.IsMacOS() || item.Gesture == null) return;
+        var gesture = also != null ? KeyGesture.Parse(also) : item.Gesture;
+        if (OperatingSystem.IsMacOS() || gesture == null) return;
 
-        KeyBindings.Add(new KeyBinding { Gesture = item.Gesture, Command = new MenuKey(action, () => item.IsEnabled) });
+        KeyBindings.Add(new KeyBinding { Gesture = gesture, Command = new MenuKey(action, () => item.IsEnabled) });
     }
 
     private sealed class MenuKey(Action action, Func<bool> enabled) : ICommand
@@ -506,7 +508,8 @@ public partial class MainWindow
             return new NativeMenuItem(header) { Menu = menu };
         }
 
-        var cmd = OperatingSystem.IsMacOS() ? "Cmd" : "Ctrl";
+        var mac = OperatingSystem.IsMacOS();
+        var cmd = mac ? "Cmd" : "Ctrl";
 
         var file = new List<NativeMenuItemBase>
         {
@@ -555,8 +558,15 @@ public partial class MainWindow
                 Command("Parchment (Light)", () => ApplyAppearance(AppearanceChoice.Light)),
                 Command("Lamplight (Dark)", () => ApplyAppearance(AppearanceChoice.Dark)))));
 
-        _backItem = Command("Back", () => _ = GoHistoryAsync(-1), $"{cmd}+OemOpenBrackets");
-        _forwardItem = Command("Forward", () => _ = GoHistoryAsync(1), $"{cmd}+OemCloseBrackets");
+        // Off a Mac these are the classic app's keys, and every browser's. On
+        // a Mac Option-Left and Option-Right move the caret by a word, and F1
+        // is the brightness key, so the window leaves them alone there.
+        Action back = () => _ = GoHistoryAsync(-1);
+        Action forward = () => _ = GoHistoryAsync(1);
+        _backItem = Command("Back", back, mac ? "Cmd+OemOpenBrackets" : "Alt+Left");
+        _forwardItem = Command("Forward", forward, mac ? "Cmd+OemCloseBrackets" : "Alt+Right");
+        BindMenuKey(_backItem, back, "Ctrl+OemOpenBrackets");
+        BindMenuKey(_forwardItem, forward, "Ctrl+OemCloseBrackets");
         bar.Add(Submenu("Go",
             _backItem,
             _forwardItem,
@@ -595,8 +605,12 @@ public partial class MainWindow
             Tool("almagest"),
             Tool("harmonics")));
 
+        Action help = () => OpenTool("help");
+        var helpItem = Command("Classica Codex Help", help, mac ? "Cmd+Shift+OemQuestion" : "F1");
+        BindMenuKey(helpItem, help, "Ctrl+Shift+OemQuestion");
+
         bar.Add(Submenu("Help",
-            Command("Classica Codex Help", () => OpenTool("help"), $"{cmd}+Shift+OemQuestion"),
+            helpItem,
             Tool("starting-points"),
             new NativeMenuItemSeparator(),
             Command("About Classica Codex", () => OpenTool("about"))));

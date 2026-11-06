@@ -48,6 +48,20 @@ public class LinuxTests
     }
 
     [Theory]
+    [InlineData("Linux")]
+    [InlineData("Windows")]
+    public void Help_gives_the_keys_the_menus_print(string system)
+    {
+        var text = string.Concat(HelpTopics.All.Select(topic =>
+            system == "Linux" ? SystemWords.ForLinux(HelpOutline.Expand(topic.Body)) : SystemWords.ForWindows(HelpOutline.Expand(topic.Body))));
+
+        Assert.Contains("F1 opens this help, and Alt+Left and Alt+Right walk back and forward", text);
+        Assert.Contains("Alt+Left and Alt+Right do the same", text);
+        Assert.DoesNotContain("Ctrl+[", text);
+        Assert.DoesNotContain("Ctrl+?", text);
+    }
+
+    [Theory]
     [InlineData("⌘F", "Ctrl+F")]
     [InlineData("⇧⌘C", "Ctrl+Shift+C")]
     [InlineData("⌥⌘S", "Ctrl+Alt+S")]
@@ -56,6 +70,8 @@ public class LinuxTests
     [InlineData("⇧-click or ⌘-click", "Shift-click or Ctrl-click")]
     [InlineData("Show in Finder", "Show in Folder")]
     [InlineData("Follow macOS", "Follow System")]
+    [InlineData("Back (⌘[)", "Back (Alt+Left)")]
+    [InlineData("Forward (⌘])", "Forward (Alt+Right)")]
     public void Keys_and_names_read_the_Linux_way(string mac, string linux) =>
         Assert.Equal(linux, SystemWords.ForLinux(mac));
 
@@ -136,7 +152,7 @@ public class LinuxTests
             return;
         }
 
-        foreach (var chord in new[] { "Ctrl+O", "Ctrl+E", "Ctrl+W", "Ctrl+F", "Ctrl+L", "Ctrl+Shift+C", "Ctrl+Alt+S", "Ctrl+Shift+T", "Ctrl+OemComma", "Ctrl+OemOpenBrackets" })
+        foreach (var chord in new[] { "Ctrl+O", "Ctrl+E", "Ctrl+W", "Ctrl+F", "Ctrl+L", "Ctrl+Shift+C", "Ctrl+Alt+S", "Ctrl+Shift+T", "Ctrl+OemComma", "Ctrl+OemOpenBrackets", "Ctrl+OemCloseBrackets", "Ctrl+Shift+OemQuestion", "F1", "Alt+Left", "Alt+Right" })
         {
             Assert.Contains(KeyGesture.Parse(chord).ToString(), keys);
         }
