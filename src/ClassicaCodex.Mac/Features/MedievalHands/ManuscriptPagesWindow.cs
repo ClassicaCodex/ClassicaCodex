@@ -139,8 +139,8 @@ public sealed class ManuscriptPagesWindow : FeatureWindow
         };
         _zoomPercent = new TextBlock { Classes = { "caption" }, VerticalAlignment = VerticalAlignment.Center, MinWidth = 38, TextAlignment = TextAlignment.Right };
 
-        var zoomOut = NavButton("Minus", "Zoom out (⌘-)", () => _page.ZoomOut());
-        var zoomIn = NavButton("Plus", "Zoom in (⌘+)", () => _page.ZoomIn());
+        var zoomOut = NavButton("Minus", SystemWords.Say("Zoom out (⌘-)"), () => _page.ZoomOut());
+        var zoomIn = NavButton("Plus", SystemWords.Say("Zoom in (⌘+)"), () => _page.ZoomIn());
         var zoomRow = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 4, Children = { _zoomPercent, zoomOut, zoomIn, _zoom } };
 
         var toolbar = new DockPanel { Margin = new Thickness(0, 0, 0, 12) };

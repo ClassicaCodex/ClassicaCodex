@@ -3,6 +3,7 @@ using Avalonia.Controls;
 using Avalonia.Layout;
 using Avalonia.Media;
 using ClassicaCodex.Mac.Common;
+using ClassicaCodex.Mac.Platform;
 
 namespace ClassicaCodex.Mac.Shell;
 
@@ -39,9 +40,9 @@ public sealed class NoLibraryView : UserControl
             Child = new TextBlock
             {
                 TextWrapping = TextWrapping.Wrap,
-                Text = "Already have a library on the PC? It is one file, and the Mac reads it as it is - no setup, no re-download. "
+                Text = SystemWords.Say("Already have a library on the PC? It is one file, and the Mac reads it as it is - no setup, no re-download. "
                        + "On Windows it is classicacodex.db in C:\\Users\\<you>\\AppData\\Local\\ClassicaCodex, unless you chose "
-                       + "another folder during setup. Copy it across (AirDrop, a USB drive, a shared folder) and choose Open Library."
+                       + "another folder during setup. Copy it across (AirDrop, a USB drive, a shared folder) and choose Open Library.")
             }
         };
 

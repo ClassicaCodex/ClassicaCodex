@@ -334,7 +334,7 @@ Shakespeare, Holinshed, Hakluyt, Sidney, James I, Wilson and Peacham are all imp
 
 The Windows app is built on WinForms, which doesn't run elsewhere.
 
-A Mac app lives in [`src/ClassicaCodex.Mac`](src/ClassicaCodex.Mac/README.md). It shares the same libraries, setup wizard and tools, and has its own design and artwork. Libraries open on both. Its first release is a preview — see [On a Mac](#on-a-mac) — and its README explains how to build the `.app` yourself. No Linux build exists.
+A Mac app lives in [`src/ClassicaCodex.Mac`](src/ClassicaCodex.Mac/README.md). It shares the same libraries, setup wizard and tools, and has its own design and artwork. Libraries open on both. Its first release is a preview — see [On a Mac](#on-a-mac) — and its README explains how to build the `.app` yourself. The same app runs on Linux too, as a preview you build yourself for now: see [On Linux](src/ClassicaCodex.Mac/README.md#on-linux).
 
 ### Building from source
 

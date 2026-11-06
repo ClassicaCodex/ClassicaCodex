@@ -1,6 +1,7 @@
 using Avalonia.Controls;
 using Avalonia.Threading;
 using ClassicaCodex.Ingestion;
+using ClassicaCodex.Mac.Platform;
 using ClassicaCodex.UI;
 using LibGit2Sharp;
 
@@ -109,9 +110,9 @@ internal static class SetupRunner
             // which arrives here as this. The fix is a switch in System
             // Settings, and nothing in the raw message says so.
             UnauthorizedAccessException =>
-                $"macOS wouldn't let Classica Codex save files for {stepTitle}. Choose another download " +
+                SystemWords.Say($"macOS wouldn't let Classica Codex save files for {stepTitle}. Choose another download " +
                 "folder (Advanced Setup, or the Download Folder step), or allow access to this one in " +
-                "System Settings → Privacy & Security → Files and Folders.",
+                "System Settings → Privacy & Security → Files and Folders."),
 
             IOException =>
                 $"Ran into a problem saving {stepTitle} to disk - check you have enough free space, " +

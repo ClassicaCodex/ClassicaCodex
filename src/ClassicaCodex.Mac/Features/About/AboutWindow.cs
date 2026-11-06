@@ -4,6 +4,7 @@ using Avalonia.Layout;
 using Avalonia.Media;
 using ClassicaCodex.Mac.Common;
 using ClassicaCodex.Mac.Features.Help;
+using ClassicaCodex.Mac.Platform;
 
 namespace ClassicaCodex.Mac.Features.About;
 
@@ -266,10 +267,10 @@ public sealed class AboutWindow : FeatureWindow
         // What the Mac front end adds to what the Windows app is built from:
         // the interface framework and the glyphs. Their full notices are in
         // THIRD-PARTY-NOTICES-MAC.md; this says they are there.
-        body.Children.Add(Prose.Heading("The Mac App", 19, top: 18));
+        body.Children.Add(Prose.Heading(SystemWords.Say("The Mac App"), 19, top: 18));
         body.Children.Add(Prose.Paragraph(
-            "The same shared libraries as the Windows app, reading the same library file, with a Mac " +
-            "interface of its own.", muted: true, bottom: 12));
+            SystemWords.Say("The same shared libraries as the Windows app, reading the same library file, with a Mac " +
+            "interface of its own."), muted: true, bottom: 12));
 
         AddCredit(body, "Avalonia", "The interface framework, version 12.", "MIT License",
             "https://github.com/AvaloniaUI/Avalonia");

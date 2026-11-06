@@ -152,7 +152,7 @@ internal sealed class CriticCardWindow : Window
 
         KeyDown += (_, e) =>
         {
-            if (e.Key == Key.Escape || (e.Key == Key.W && e.KeyModifiers.HasFlag(KeyModifiers.Meta)))
+            if (e.Key == Key.Escape || (e.Key == Key.W && (e.KeyModifiers.HasFlag(KeyModifiers.Meta) || e.KeyModifiers.HasFlag(KeyModifiers.Control))))
             {
                 Close();
                 e.Handled = true;

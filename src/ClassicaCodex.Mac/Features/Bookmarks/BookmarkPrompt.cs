@@ -4,6 +4,7 @@ using Avalonia.Input;
 using Avalonia.Layout;
 using Avalonia.Media;
 using ClassicaCodex.Mac.Features.Tags;
+using ClassicaCodex.Mac.Platform;
 
 namespace ClassicaCodex.Mac.Features.Bookmarks;
 
@@ -71,7 +72,7 @@ internal static class BookmarkPrompt
         layout.Children.Add(TagPrompt.Preview(previewText));
         layout.Children.Add(new TextBlock { Text = "Note (optional):", Margin = new Thickness(0, 10, 0, 0) });
         layout.Children.Add(noteBox);
-        layout.Children.Add(new TextBlock { Text = "⌘Return to bookmark", Classes = { "caption" }, HorizontalAlignment = HorizontalAlignment.Left });
+        layout.Children.Add(new TextBlock { Text = SystemWords.Say("⌘Return to bookmark"), Classes = { "caption" }, HorizontalAlignment = HorizontalAlignment.Left });
         layout.Children.Add(buttons);
         window.Content = layout;
 

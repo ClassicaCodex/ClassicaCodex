@@ -147,7 +147,7 @@ public sealed class HelpWindow : FeatureWindow
         var titles = HelpTopics.All
             .Where(t => query.Length == 0
                         || t.Title.Contains(query, StringComparison.CurrentCultureIgnoreCase)
-                        || HelpOutline.Expand(t.Body).Contains(query, StringComparison.CurrentCultureIgnoreCase))
+                        || HelpOutline.ForDisplay(t.Body).Contains(query, StringComparison.CurrentCultureIgnoreCase))
             .Select(t => t.Title)
             .ToList();
 
@@ -173,7 +173,7 @@ public sealed class HelpWindow : FeatureWindow
         _page.Children.Add(heading);
         _page.Children.Add(Prose.Rule(10, 18));
 
-        var blocks = HelpOutline.Parse(HelpOutline.Expand(topic.Body.Trim()));
+        var blocks = HelpOutline.Parse(HelpOutline.ForDisplay(topic.Body.Trim()));
         for (var i = 0; i < blocks.Count; i++)
         {
             var block = blocks[i];

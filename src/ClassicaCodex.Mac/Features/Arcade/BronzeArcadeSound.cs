@@ -1,6 +1,7 @@
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Text;
+using ClassicaCodex.Mac.Platform;
 
 namespace ClassicaCodex.Mac.Features.Arcade;
 
@@ -21,14 +22,22 @@ namespace ClassicaCodex.Mac.Features.Arcade;
 /// players. If the tones cannot be written - a full or read-only temporary
 /// folder - macOS's own sounds stand in, the nearest in character.
 ///
-/// Sound is optional: a machine without an audio device, or without afplay
-/// (anything that is not a Mac), simply plays nothing. On by default, as on
-/// Windows; the game's sound switch and its saved setting decide after that.
+/// On Linux the same WAV files go to whichever player the desktop has:
+/// PipeWire's, PulseAudio's or ALSA's.
+///
+/// Sound is optional: a machine without an audio device, or without any of
+/// these players, simply plays nothing. On by default, as on Windows; the
+/// game's sound switch and its saved setting decide after that.
 /// </summary>
 internal sealed class BronzeArcadeSound : IDisposable
 {
     private static readonly (int Frequency, double Seconds)[] Effects = { (440, .06), (180, .09), (70, .14), (660, .3) };
     private static readonly string[] SystemStandIns = { "Tink", "Pop", "Basso", "Glass" };
+
+    private static readonly Lazy<string?> Player = new(() =>
+        OperatingSystem.IsMacOS() ? "/usr/bin/afplay"
+        : OperatingSystem.IsLinux() ? SystemTools.Find("pw-play", "paplay", "aplay")
+        : null);
 
     private string? _folder;
     private string?[]? _clips;
@@ -39,14 +48,16 @@ internal sealed class BronzeArcadeSound : IDisposable
 
     public void Play(int index)
     {
-        if (!Enabled || _disposed || !OperatingSystem.IsMacOS()) return;
+        if (!Enabled || _disposed || Player.Value is not { } player) return;
 
         try
         {
-            var file = Clip(index) ?? $"/System/Library/Sounds/{SystemStandIns[index]}.aiff";
+            var file = Clip(index) ?? (OperatingSystem.IsMacOS() ? $"/System/Library/Sounds/{SystemStandIns[index]}.aiff" : null);
+            if (file == null) return;
             Stop();
 
-            var start = new ProcessStartInfo("/usr/bin/afplay") { UseShellExecute = false, CreateNoWindow = true };
+            var start = new ProcessStartInfo(player) { UseShellExecute = false, CreateNoWindow = true };
+            if (Path.GetFileName(player) == "aplay") start.ArgumentList.Add("--quiet");
             start.ArgumentList.Add(file);
             _playing = Process.Start(start);
         }

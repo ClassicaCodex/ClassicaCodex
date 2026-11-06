@@ -7,6 +7,7 @@ using ClassicaCodex.Data;
 using ClassicaCodex.Data.Repositories;
 using ClassicaCodex.Ingestion;
 using ClassicaCodex.Mac.Common;
+using ClassicaCodex.Mac.Platform;
 using ClassicaCodex.Mac.Shell;
 using ClassicaCodex.UI;
 
@@ -775,7 +776,7 @@ public sealed class GuidedSetupWindow : FeatureWindow
         {
             _tileHost.Content = Art.Tile("setup", "Download", 60);
             _titleLabel.Text = "Download Folder";
-            _descriptionLabel.Text =
+            _descriptionLabel.Text = SystemWords.Say(
                 "Everything downloaded in the steps after this one goes here: the texts themselves, the "
                 + "dictionaries, and the word-form data. All of it together comes to about nine gigabytes, most of "
                 + "that the Greek and Latin word-form data, so if your Mac's disk is short of room this is the thing "
@@ -783,7 +784,7 @@ public sealed class GuidedSetupWindow : FeatureWindow
                 + "Keep it outside iCloud Drive, Dropbox and the like: these are working copies of public data that "
                 + "can be fetched again at any time, and uploading tens of thousands of them would fill a cloud plan "
                 + "for nothing. Your own library, tags and bookmarks live in the library file from the last step, "
-                + "not here.";
+                + "not here.");
             _pathBox.Text = DataFolderSettings.Root;
             _actionButton.Content = "Use This Folder";
             _statusLabel.Text = _dataFolderComplete
@@ -1127,7 +1128,7 @@ public sealed class GuidedSetupWindow : FeatureWindow
     {
         if (!Directory.Exists(DataFolderSettings.DefaultRoot) && !_sourceComplete.Any(c => c)) return;
 
-        await Alert.Info(this, "Downloads already on disk",
+        await Alert.Info(this, "Downloads already on disk", SystemWords.Say(
             "Anything you have already downloaded stays where it is - nothing is moved or deleted, and your "
             + "library is unaffected, because the texts you have ingested are in the library file rather than in "
             + "these folders.\n\n"
@@ -1139,7 +1140,7 @@ public sealed class GuidedSetupWindow : FeatureWindow
             + "the texts back out of this folder rather than fetching anything, so it will find nothing in an empty "
             + "one. And if you imported Medieval Nordic manuscripts, their files and the work divisions you "
             + "confirmed are in the old folder too; those are your own decisions rather than a download, and worth "
-            + "copying across in the Finder rather than redoing.");
+            + "copying across in the Finder rather than redoing."));
     }
 
     /// <param name="fetch">

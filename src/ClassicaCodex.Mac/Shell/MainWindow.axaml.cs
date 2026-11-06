@@ -6,6 +6,7 @@ using Avalonia.Styling;
 using ClassicaCodex.Core.Models;
 using ClassicaCodex.Data;
 using ClassicaCodex.Mac.Common;
+using ClassicaCodex.Mac.Platform;
 using ClassicaCodex.UI;
 
 namespace ClassicaCodex.Mac.Shell;
@@ -48,6 +49,7 @@ public partial class MainWindow : Window, IReaderHost
         if (Art.AppIcon() is { } icon) Icon = new WindowIcon(icon);
 
         ConfigureChrome();
+        SayToolbarKeys();
         WireToolbar();
         WireSidebar();
         WireReader();
@@ -67,12 +69,26 @@ public partial class MainWindow : Window, IReaderHost
     /// elsewhere, which is how the headless tests photograph the Mac layout
     /// from a Linux machine.
     /// </summary>
-    public static bool UnifiedTitleBar =>
-        OperatingSystem.IsMacOS() || Environment.GetEnvironmentVariable("CC_MAC_LOOK") == "1";
+    public static bool UnifiedTitleBar => SystemWords.IsMac;
+
+    /// <summary>The tips written in the markup name Mac keys.</summary>
+    private void SayToolbarKeys()
+    {
+        foreach (var button in new Control[] { SidebarToggle, BackButton, ForwardButton, SearchButton, GalleryButton })
+        {
+            if (ToolTip.GetTip(button) is string tip) ToolTip.SetTip(button, SystemWords.Say(tip));
+        }
+    }
 
     private void ConfigureChrome()
     {
-        if (!UnifiedTitleBar) return;
+        if (!UnifiedTitleBar)
+        {
+            // The strip that holds the traffic lights, which the system's own
+            // title bar makes unnecessary here.
+            SidebarTitleRow.IsVisible = false;
+            return;
+        }
 
         ExtendClientAreaToDecorationsHint = true;
         ExtendClientAreaTitleBarHeightHint = (double)Application.Current!.FindResource("Cc.TitleBarHeight")!;
@@ -158,7 +174,7 @@ public partial class MainWindow : Window, IReaderHost
         {
             AppearanceChoice.Light => "Appearance: Parchment (light)",
             AppearanceChoice.Dark => "Appearance: Lamplight (dark)",
-            _ => "Appearance: follows macOS"
+            _ => SystemWords.Say("Appearance: follows macOS")
         });
     }
 
@@ -236,21 +252,6 @@ public partial class MainWindow : Window, IReaderHost
         {
             e.Handled = true;
             return;
-        }
-
-        // On a Mac these come from the menu bar's key equivalents. Elsewhere
-        // there may be no global menu to deliver them, so the window answers.
-        if (OperatingSystem.IsMacOS()) return;
-
-        var command = e.KeyModifiers.HasFlag(KeyModifiers.Control) || e.KeyModifiers.HasFlag(KeyModifiers.Meta);
-        if (!command) return;
-
-        switch (e.Key)
-        {
-            case Key.F: OpenTool("search"); e.Handled = true; break;
-            case Key.L: FocusLibraryFilter(); e.Handled = true; break;
-            case Key.OemOpenBrackets: _ = GoHistoryAsync(-1); e.Handled = true; break;
-            case Key.OemCloseBrackets: _ = GoHistoryAsync(1); e.Handled = true; break;
         }
     }
 

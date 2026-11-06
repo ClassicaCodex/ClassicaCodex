@@ -184,6 +184,22 @@ which draws a medallion until Codex's painting for that key arrives.
 - Fonts for cuneiform, hieroglyphs, Hebrew, Arabic: `Platform.ScriptFonts`.
 - Opening a URL, a file or a folder: `Platform.MacShell`.
 
+### Linux specifics
+
+The front end runs on Linux too, so a Mac word in the interface needs a Linux
+one. Write the text the Mac way and pass it through `SystemWords.Say`, adding
+the phrase to the table in `Platform/SystemWords.cs` if it is new: ⌘, the
+Finder and the keychain are all there. The Help goes through the same table,
+and `LinuxTests` fails on any Mac word left in a topic.
+
+Keys are the same chords with Ctrl: test for `Meta` or `Control`, as
+`PassageResults.IsCommand` does, not `Meta` alone. A key added to the menu bar
+needs nothing more, since `BindMenuKey` also binds it on the window, where the
+menu that a window draws won't answer it.
+
+A system feature that has no Linux equivalent everyone has goes through
+`SystemTools.Find`, and a missing tool turns off that feature alone.
+
 ### Tests
 
 One file per feature in `tests/ClassicaCodex.Mac.Tests/Features/`, with

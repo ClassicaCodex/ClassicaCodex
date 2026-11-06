@@ -98,6 +98,43 @@ to be copied across when a collection adds one.
 - **Light and dark** follow the system appearance unless **View →
   Appearance** says otherwise.
 
+## On Linux
+
+The same project runs on Linux, as a preview. There is no release to
+download yet, so you build it yourself:
+
+```
+src/ClassicaCodex.Mac/packaging/build-linux.sh            # x64
+src/ClassicaCodex.Mac/packaging/build-linux.sh arm64
+```
+
+That works on Linux or a Mac, and writes a tarball to
+`src/ClassicaCodex.Mac/bin/linux-app/`. Unpack it anywhere and run
+`./classica-codex`; `./install.sh` adds it to the application menu. It
+carries its own copy of .NET, so it needs only fontconfig, libX11 and ICU from
+the system, which most desktops have. Wayland desktops run it through XWayland.
+
+Everything shared works as it does on a Mac: the library, Setup and the
+tools. What a Mac does through the system depends here on what is installed,
+and each of these turns on one thing only:
+
+| | |
+|---|---|
+| The ancient scripts | the Noto fonts (`fonts-noto-core` on Debian and Ubuntu); without them, cuneiform, hieroglyphs, Hebrew and Arabic show boxes |
+| Read Aloud | `espeak-ng` |
+| Saving API keys | `secret-tool` and a keyring; without them a key lasts until the app quits, and is never written to a file |
+| Arcade sound | `pw-play`, `paplay` or `aplay` |
+
+The window draws its own menu bar, with Ctrl in place of ⌘, and Help and the
+windows are worded for Linux. Settings is in the File menu. The library and
+settings are kept in `~/.local/share/ClassicaCodex`.
+
+`.github/workflows/linux.yml` runs the tests on Linux, then starts the tarball
+on a virtual display and presses its keys, keeping photographs of the result.
+
+The project is still called `ClassicaCodex.Mac`, which only a developer sees:
+the tarball's launcher is `classica-codex`.
+
 ## Everyday keys
 
 | | |

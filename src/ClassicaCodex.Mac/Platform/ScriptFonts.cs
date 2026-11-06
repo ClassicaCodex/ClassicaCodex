@@ -14,6 +14,7 @@ namespace ClassicaCodex.Mac.Platform;
 /// and Noto Sans Egyptian Hieroglyphs with the system, Geeza Pro for Arabic,
 /// and a Times New Roman that carries Hebrew with its points. So on a Mac the
 /// ancient scripts work out of the box, which on Windows they mostly do too.
+/// On Linux they are the Noto fonts, where the distribution has them installed.
 /// </summary>
 internal static class ScriptFonts
 {
@@ -44,7 +45,7 @@ internal static class ScriptFonts
     private static readonly Script Hebrew = new(
         "Hebrew",
         new[] { (0x0591, 0x05F4), (0xFB1D, 0xFB4F) },
-        new[] { "SBL Hebrew", "Ezra SIL", "Taamey Frank CLM", "Times New Roman", "Arial Hebrew", "DejaVu Sans" },
+        new[] { "SBL Hebrew", "Ezra SIL", "Taamey Frank CLM", "Times New Roman", "Arial Hebrew", "Noto Serif Hebrew", "DejaVu Sans" },
         RightToLeft: true);
 
     private static readonly Script Arabic = new(
@@ -128,8 +129,9 @@ internal static class ScriptFonts
 
         // Nothing named is installed: hand back the first anyway. Unlike GDI,
         // the text engine falls back glyph by glyph through the system's own
-        // cascade, so naming a missing face costs nothing and CoreText will
-        // still find the signs if anything on the machine has them.
+        // cascade, so naming a missing face costs nothing and CoreText, or
+        // fontconfig on Linux, will still find the signs if anything on the
+        // machine has them.
         return families.Count > 0 ? families[0] : null;
     }
 

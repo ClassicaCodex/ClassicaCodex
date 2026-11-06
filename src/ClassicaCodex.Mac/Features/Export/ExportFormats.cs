@@ -121,7 +121,7 @@ internal static class ExportFiles
     /// <summary>The Windows "open the containing folder?" - here, the file selected in a Finder window.</summary>
     public static async Task OfferToRevealAsync(Window owner, string path)
     {
-        if (await Alert.Confirm(owner, "Done", $"Exported to {path}.\n\nShow it in the Finder?", "Show in Finder", "Close", AlertKind.Info))
+        if (await Alert.Confirm(owner, "Done", $"Exported to {path}.\n\n{SystemWords.Say("Show it in the Finder?")}", SystemWords.Say("Show in Finder"), "Close", AlertKind.Info))
             MacShell.Reveal(path);
     }
 }

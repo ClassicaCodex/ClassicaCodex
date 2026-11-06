@@ -109,10 +109,10 @@ public sealed class SettingsWindow : FeatureWindow
         var root = new StackPanel();
 
         var appearance = Section("Appearance",
-            "Parchment is the light theme the Windows app ships with; Lamplight is its dark counterpart. Following macOS switches between them with the system, at sunset if you have it set that way.");
+            SystemWords.Say("Parchment is the light theme the Windows app ships with; Lamplight is its dark counterpart. Following macOS switches between them with the system, at sunset if you have it set that way."));
         foreach (var (label, choice) in new[]
                  {
-                     ("Follow macOS", AppearanceChoice.System),
+                     (SystemWords.Say("Follow macOS"), AppearanceChoice.System),
                      ("Parchment (light)", AppearanceChoice.Light),
                      ("Lamplight (dark)", AppearanceChoice.Dark)
                  })
@@ -301,11 +301,11 @@ public sealed class SettingsWindow : FeatureWindow
         save.Click += (_, _) =>
         {
             var stored = TranslationSettings.Save(anthropic.Text, gemini.Text, confirm.IsChecked == true);
-            status.Text = stored
+            status.Text = SystemWords.Say(stored
                 ? "Saved. The keys are in your login keychain, under “Classica Codex” in Keychain Access."
                 : TranslationSettings.CanStoreKeys
                     ? "The keychain refused to store a key - check Keychain Access and try again."
-                    : "This system has no keychain to keep the keys in, so they apply until Classica Codex quits.";
+                    : "This system has no keychain to keep the keys in, so they apply until Classica Codex quits.");
         };
 
         root.Children.Add(save);
@@ -357,13 +357,13 @@ public sealed class SettingsWindow : FeatureWindow
         var root = new StackPanel();
 
         var voice = Section("Read Aloud",
-            "Hands a passage to the voices macOS already has. There is no ancient Greek or Latin voice to be had, so this is an approximation and says so: "
+            SystemWords.Say("Hands a passage to the voices macOS already has.") + " There is no ancient Greek or Latin voice to be had, so this is an approximation and says so: "
             + "Greek is transliterated into Latin letters first, and Latin goes through as it stands and comes back in a modern accent. "
             + "Useful for hearing the shape of a line, not for pronunciation. Entirely offline.");
 
         if (!SpeechService.IsAvailable)
         {
-            voice.Children.Add(new TextBlock { Text = "Speech is not available on this system.", Classes = { "warning" } });
+            voice.Children.Add(new TextBlock { Text = SystemWords.Say("Speech is not available on this system."), Classes = { "warning" } });
             root.Children.Add(voice);
             return root;
         }
@@ -397,7 +397,7 @@ public sealed class SettingsWindow : FeatureWindow
         voice.Children.Add(buttons);
         voice.Children.Add(new TextBlock
         {
-            Text = "More voices: System Settings → Accessibility → Spoken Content → System Voice → Manage Voices.",
+            Text = SystemWords.Say("More voices: System Settings → Accessibility → Spoken Content → System Voice → Manage Voices."),
             Classes = { "caption" },
             TextWrapping = TextWrapping.Wrap
         });
@@ -415,7 +415,7 @@ public sealed class SettingsWindow : FeatureWindow
         var path = DbConnectionFactory.DatabasePath ?? "No library is open.";
         library.Children.Add(new SelectableTextBlock { Text = path, Classes = { "mono" }, TextWrapping = TextWrapping.Wrap });
 
-        var reveal = new Button { Content = "Show in Finder", IsEnabled = DbConnectionFactory.IsConfigured };
+        var reveal = new Button { Content = SystemWords.Say("Show in Finder"), IsEnabled = DbConnectionFactory.IsConfigured };
         reveal.Click += (_, _) => { if (DbConnectionFactory.DatabasePath is { } p) MacShell.Reveal(p); };
         var open = new Button { Content = "Open Another Library…" };
         open.Click += async (_, _) =>
@@ -449,7 +449,7 @@ public sealed class SettingsWindow : FeatureWindow
         var downloads = Section("Downloads for setup",
             "Where the setup wizard keeps what it downloads before ingesting it - about 9 GB with everything selected. Setup itself is where this is changed, so it can check the space and the folder first.");
         downloads.Children.Add(new SelectableTextBlock { Text = DataFolderSettings.Root, Classes = { "mono" }, TextWrapping = TextWrapping.Wrap });
-        var revealDownloads = new Button { Content = "Show in Finder" };
+        var revealDownloads = new Button { Content = SystemWords.Say("Show in Finder") };
         revealDownloads.Click += (_, _) => MacShell.Open(Directory.Exists(DataFolderSettings.Root) ? DataFolderSettings.Root : Path.GetDirectoryName(DataFolderSettings.Root) ?? DataFolderSettings.Root);
         downloads.Children.Add(revealDownloads);
         root.Children.Add(downloads);
@@ -457,7 +457,7 @@ public sealed class SettingsWindow : FeatureWindow
         var log = Section("If something goes wrong",
             "Errors are written to a log beside the preferences - the same file name the Windows app uses. Attaching it to an issue helps more than a description.");
         log.Children.Add(new SelectableTextBlock { Text = CrashLog.LogFile, Classes = { "mono" }, TextWrapping = TextWrapping.Wrap });
-        var revealLog = new Button { Content = "Show in Finder", IsEnabled = File.Exists(CrashLog.LogFile) };
+        var revealLog = new Button { Content = SystemWords.Say("Show in Finder"), IsEnabled = File.Exists(CrashLog.LogFile) };
         revealLog.Click += (_, _) => MacShell.Reveal(CrashLog.LogFile);
         log.Children.Add(revealLog);
         root.Children.Add(log);

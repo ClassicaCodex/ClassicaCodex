@@ -1,3 +1,4 @@
+using System.Windows.Input;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
@@ -74,7 +75,7 @@ public partial class MainWindow
         var appearance = new MenuFlyout { Placement = PlacementMode.BottomEdgeAlignedRight };
         foreach (var (label, choice) in new[]
                  {
-                     ("Follow macOS", AppearanceChoice.System),
+                     (SystemWords.Say("Follow macOS"), AppearanceChoice.System),
                      ("Parchment (light)", AppearanceChoice.Light),
                      ("Lamplight (dark)", AppearanceChoice.Dark)
                  })
@@ -447,6 +448,29 @@ public partial class MainWindow
     }
 
     /// <summary>
+    /// A menu item's key, where the menu won't answer it. A Mac's global menu
+    /// takes its key equivalents itself; the menu bar a window draws elsewhere
+    /// only prints them, so the window has to be listening for them too. Asks
+    /// the item at the moment of the key, so a key does nothing while its
+    /// command is greyed out.
+    /// </summary>
+    private void BindMenuKey(NativeMenuItem item, Action action)
+    {
+        if (OperatingSystem.IsMacOS() || item.Gesture == null) return;
+
+        KeyBindings.Add(new KeyBinding { Gesture = item.Gesture, Command = new MenuKey(action, () => item.IsEnabled) });
+    }
+
+    private sealed class MenuKey(Action action, Func<bool> enabled) : ICommand
+    {
+        public event EventHandler? CanExecuteChanged { add { } remove { } }
+
+        public bool CanExecute(object? parameter) => enabled();
+
+        public void Execute(object? parameter) => action();
+    }
+
+    /// <summary>
     /// The menu bar. On a Mac this is the global menu at the top of the
     /// screen; elsewhere the window draws it as an ordinary menu bar.
     /// </summary>
@@ -457,7 +481,12 @@ public partial class MainWindow
         NativeMenuItem Command(string header, Action action, string? gesture = null)
         {
             var item = new NativeMenuItem(header);
-            if (gesture != null) item.Gesture = KeyGesture.Parse(gesture);
+            if (gesture != null)
+            {
+                item.Gesture = KeyGesture.Parse(gesture);
+                BindMenuKey(item, action);
+            }
+
             item.Click += (_, _) => action();
             return item;
         }
@@ -479,14 +508,22 @@ public partial class MainWindow
 
         var cmd = OperatingSystem.IsMacOS() ? "Cmd" : "Ctrl";
 
-        bar.Add(Submenu("File",
+        var file = new List<NativeMenuItemBase>
+        {
             Command("Open Library…", () => _ = OpenLibraryAsync(), $"{cmd}+O"),
             Command("New Library…", () => _ = CreateLibraryAsync(), $"{cmd}+Shift+N"),
             new NativeMenuItemSeparator(),
             Tool("setup"),
             new NativeMenuItemSeparator(),
             Command("Export Passage…", () => _ = ExportSelectedAsync(), $"{cmd}+E"),
-            Command("Close Window", () => Close(), $"{cmd}+W")));
+            Command("Close Window", () => Close(), $"{cmd}+W")
+        };
+
+        // A Mac keeps Settings in the application menu, which is in App.axaml
+        // and is shown nowhere else.
+        if (!OperatingSystem.IsMacOS()) file.Insert(4, Tool("settings", $"{cmd}+OemComma"));
+
+        bar.Add(Submenu("File", file.ToArray()));
 
         bar.Add(Submenu("Edit",
             Command("Copy Passage", () => _ = CopySelectedAsync(), $"{cmd}+Shift+C"),
@@ -514,7 +551,7 @@ public partial class MainWindow
             Command("Default Text Size", () => StepTextSize(0), $"{cmd}+D0"),
             new NativeMenuItemSeparator(),
             Submenu("Appearance",
-                Command("Follow macOS", () => ApplyAppearance(AppearanceChoice.System)),
+                Command(SystemWords.Say("Follow macOS"), () => ApplyAppearance(AppearanceChoice.System)),
                 Command("Parchment (Light)", () => ApplyAppearance(AppearanceChoice.Light)),
                 Command("Lamplight (Dark)", () => ApplyAppearance(AppearanceChoice.Dark)))));
 

@@ -1,3 +1,4 @@
+using ClassicaCodex.Mac.Platform;
 using System.Diagnostics;
 using System.Numerics;
 using System.Text;
@@ -38,8 +39,8 @@ namespace ClassicaCodex.Mac.Features.Arcade;
 internal sealed partial class BronzeArcadeWindow : Window
 {
     /// <summary>The main window's chords, which open the arcade and hand it the reader's selection (Shell/MainWindow.Arcade.cs).</summary>
-    internal const string SubmitChord = "⌃⇧Return";
-    internal const string OpenChord = "⌃⇧F12";
+    internal static string SubmitChord => SystemWords.Say("⌃⇧Return");
+    internal static string OpenChord => SystemWords.Say("⌃⇧F12");
 
     private static readonly Color Night = Color.FromRgb(9, 8, 20);
 
