@@ -761,11 +761,11 @@ public sealed class GuidedSetupWindow : FeatureWindow
         {
             _tileHost.Content = Art.Tile("authors", "Database", 60);
             _titleLabel.Text = "Library File";
-            _descriptionLabel.Text =
+            _descriptionLabel.Text = SystemWords.Say(
                 "This is the one file everything else in setup writes into - your library, tags, and bookmarks, "
                 + "plus everything you download next. The file below works fine for almost everyone; only change it "
                 + "if you want your library to live somewhere specific - on another disk, say. A library copied from "
-                + "the PC can be chosen here too, with Open Existing, and is used as it is.";
+                + "the PC can be chosen here too, with Open Existing, and is used as it is.");
             _pathBox.Text = LibraryFile.Current;
             _actionButton.Content = _databaseComplete ? "Use This Library File" : "Prepare Library File";
             _statusLabel.Text = _databaseComplete

@@ -135,6 +135,46 @@ on a virtual display and presses its keys, keeping photographs of the result.
 The project is still called `ClassicaCodex.Mac`, which only a developer sees:
 the tarball's launcher is `classica-codex`.
 
+## On Windows
+
+The same project runs on Windows, as a preview beside the classic Windows app,
+which stays as it is. There is no release yet. To build a zip on Windows:
+
+```
+src\ClassicaCodex.Mac\packaging\build-windows.ps1                    # x64
+src\ClassicaCodex.Mac\packaging\build-windows.ps1 -Architecture arm64
+```
+
+If PowerShell refuses to run a script, start it with
+`powershell -ExecutionPolicy Bypass -File <the script>`.
+
+That writes a zip to `src\ClassicaCodex.Mac\bin\windows-app\`. Unzip it
+anywhere and run `Classica Codex.exe`. It carries its own copy of .NET, needs
+Windows 10 or later, and isn't code-signed, so SmartScreen warns about it as it
+does about the classic download.
+
+It keeps its settings in `%LOCALAPPDATA%\ClassicaCodex`, the classic app's own
+folder, so a reader of that app needs no migration:
+
+| | |
+|---|---|
+| Used by both, as they stand | the library, the reading position, text sizes, linked panes, hidden node kinds, the favourite collection, the download folder, the voice, category shapes, arcade saves, `errors.log`, `ingest-skipped.log` |
+| API keys | the classic app's `translate-settings.txt`, read and written in its own format, encrypted with DPAPI for the Windows account |
+| This app's own | `mac-settings.json`: appearance, sidebar, window placement |
+| The classic app's own | `theme.txt`, so a dark theme chosen there isn't picked up here, and `layout-cache` |
+
+Read Aloud uses Windows' voices through SAPI, PDF export reads the fonts in
+`%WINDIR%\Fonts` and the reader's own fonts folder, and Segoe UI Historic draws
+the ancient scripts. The window draws its own menu bar, with Ctrl in place of
+⌘, and Help and the windows are worded for Windows.
+
+[WINDOWS-PARITY.md](WINDOWS-PARITY.md) goes through the classic app window by
+window. Every tool has a counterpart, but a few behaviours don't yet.
+
+`.github/workflows/windows.yml` runs the tests on Windows, including the
+classic app's own UI tests, then starts the zip on the runner's desktop beside
+the released classic app and keeps photographs of the result.
+
 ## Everyday keys
 
 | | |

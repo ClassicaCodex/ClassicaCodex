@@ -1346,7 +1346,7 @@ public sealed class SearchWindow : FeatureWindow
     {
         var menu = new ContextMenu();
 
-        var copy = new MenuItem { Header = "Copy", Icon = Glyphs.Icon("Copy", 14), InputGesture = new KeyGesture(Key.C, KeyModifiers.Meta) };
+        var copy = new MenuItem { Header = "Copy", Icon = Glyphs.Icon("Copy", 14), InputGesture = new KeyGesture(Key.C, WordStudy.WordStudyWindow.CommandKey) };
         copy.Click += async (_, _) => await CopySelectedAsync();
 
         var open = new MenuItem { Header = "Open in Reader", Icon = Glyphs.Icon("OpenExternal", 14) };

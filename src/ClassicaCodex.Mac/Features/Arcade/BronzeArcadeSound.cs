@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using System.Diagnostics;
+using System.Runtime.InteropServices;
 using System.Text;
 using ClassicaCodex.Mac.Platform;
 
@@ -23,7 +24,8 @@ namespace ClassicaCodex.Mac.Features.Arcade;
 /// folder - macOS's own sounds stand in, the nearest in character.
 ///
 /// On Linux the same WAV files go to whichever player the desktop has:
-/// PipeWire's, PulseAudio's or ALSA's.
+/// PipeWire's, PulseAudio's or ALSA's. On Windows they go to PlaySound, the
+/// call under SoundPlayer, which starts no process and needs no package.
 ///
 /// Sound is optional: a machine without an audio device, or without any of
 /// these players, simply plays nothing. On by default, as on Windows; the
@@ -48,7 +50,15 @@ internal sealed class BronzeArcadeSound : IDisposable
 
     public void Play(int index)
     {
-        if (!Enabled || _disposed || Player.Value is not { } player) return;
+        if (!Enabled || _disposed) return;
+
+        if (OperatingSystem.IsWindows())
+        {
+            if (Clip(index) is { } clip) PlaySound(clip, IntPtr.Zero, SoundFilename | SoundAsync | SoundNoDefault);
+            return;
+        }
+
+        if (Player.Value is not { } player) return;
 
         try
         {
@@ -116,6 +126,12 @@ internal sealed class BronzeArcadeSound : IDisposable
 
     private void Stop()
     {
+        if (OperatingSystem.IsWindows())
+        {
+            PlaySound(null, IntPtr.Zero, 0);
+            return;
+        }
+
         var playing = _playing;
         _playing = null;
         if (playing == null) return;
@@ -149,4 +165,13 @@ internal sealed class BronzeArcadeSound : IDisposable
             // A few hundred bytes left in the temporary folder, which the system clears.
         }
     }
+
+    private const uint SoundAsync = 0x0001;
+    private const uint SoundNoDefault = 0x0002;
+    private const uint SoundFilename = 0x00020000;
+
+    /// <summary>False if it could not play, which is the same as no sound.</summary>
+    [DllImport("winmm.dll", EntryPoint = "PlaySoundW", CharSet = CharSet.Unicode)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool PlaySound(string? sound, IntPtr module, uint flags);
 }

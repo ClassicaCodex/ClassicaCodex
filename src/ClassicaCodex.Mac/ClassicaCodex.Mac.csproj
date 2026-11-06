@@ -16,11 +16,26 @@
     <AvaloniaBuildTelemetry>false</AvaloniaBuildTelemetry>
   </PropertyGroup>
 
+  <!-- What Windows shows of an executable: its icon, and the names Task
+       Manager and a pinned taskbar button read from its version resource,
+       which would otherwise say ClassicaCodex.Mac. -->
+  <PropertyGroup Condition="$([MSBuild]::IsOSPlatform('Windows')) Or $(RuntimeIdentifier.StartsWith('win'))">
+    <ApplicationIcon>Assets\app.ico</ApplicationIcon>
+    <ApplicationManifest>packaging\windows\app.manifest</ApplicationManifest>
+    <Product>Classica Codex</Product>
+    <AssemblyTitle>Classica Codex</AssemblyTitle>
+  </PropertyGroup>
+
   <ItemGroup>
     <PackageReference Include="Avalonia" Version="12.1.4" />
     <PackageReference Include="Avalonia.Desktop" Version="12.1.4" />
     <PackageReference Include="Avalonia.Themes.Fluent" Version="12.1.4" />
     <PackageReference Include="Avalonia.Controls.DataGrid" Version="12.1.2" />
+
+    <!-- Read Aloud and the API keys on Windows, as in the Windows app. They
+         build on any system, and elsewhere nothing calls them. -->
+    <PackageReference Include="System.Speech" Version="8.0.0" />
+    <PackageReference Include="System.Security.Cryptography.ProtectedData" Version="8.0.0" />
   </ItemGroup>
 
   <ItemGroup>
@@ -86,6 +101,40 @@
   <ItemGroup>
     <InternalsVisibleTo Include="ClassicaCodex.Mac.Tests" />
   </ItemGroup>
+
+  <!-- PDFsharp's sample fonts stay out of a Windows download, for the reasons
+       given at ExcludeProprietaryFonts in ClassicaCodex.UI.csproj, along with
+       the two assemblies that use them and SkiaSharp's 84 MB of debug symbols.
+
+       That target removes them from the list of files to publish, which is
+       enough for its single executable. This download is a folder, with a
+       deps.json beside the executable, and a file named there and missing from
+       the folder stops the app before it starts. Marking them this early takes
+       them out of both, provided publish writes a deps.json of its own rather
+       than reusing the one from the build, which is the second target. If the
+       SDK ever renames that property, build-windows.ps1 fails on the deps.json. -->
+  <Target Name="LeaveOutOfWindowsDownload"
+          AfterTargets="ResolvePackageAssets"
+          Condition="$(RuntimeIdentifier.StartsWith('win'))">
+    <ItemGroup>
+      <RuntimeCopyLocalItems Condition="'%(Filename)' == 'PdfSharp.WPFonts'
+                                     Or '%(Filename)' == 'PdfSharp.Snippets'
+                                     Or '%(Filename)' == 'PdfSharp.Quality'">
+        <CopyToPublishDirectory>false</CopyToPublishDirectory>
+      </RuntimeCopyLocalItems>
+      <NativeCopyLocalItems Condition="'%(Extension)' == '.pdb'">
+        <CopyToPublishDirectory>false</CopyToPublishDirectory>
+      </NativeCopyLocalItems>
+    </ItemGroup>
+  </Target>
+
+  <Target Name="WriteDepsFileForWindowsDownload"
+          AfterTargets="_ComputeUseBuildDependencyFile"
+          Condition="$(RuntimeIdentifier.StartsWith('win'))">
+    <PropertyGroup>
+      <_UseBuildDependencyFile>false</_UseBuildDependencyFile>
+    </PropertyGroup>
+  </Target>
 
   <!-- A feature that needs a shared file of its own from the Windows folder,
        or content to copy beside the app, says so in a .props file in its own

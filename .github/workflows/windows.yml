@@ -1,0 +1,87 @@
+# The Avalonia front end on real Windows: the tests with DPAPI, SAPI and the
+# Windows fonts, then the zip, unzipped and started on the runner's desktop
+# beside the released classic app. The photographs of it running are attached
+# to the run. The classic app's own UI tests run in a job of their own.
+name: Windows
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+env:
+  # The classic release the preview has to live beside.
+  CLASSIC_RELEASE: v3.16.1
+
+jobs:
+  avalonia:
+    runs-on: windows-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Build
+        run: dotnet build ClassicaCodex.Mac.slnf -c Release -warnaserror
+
+      - name: Test
+        env:
+          CC_EXPECT_WINDOWS: 1
+        run: dotnet test ClassicaCodex.Mac.slnf -c Release --no-build
+
+      - name: Zip
+        run: src/ClassicaCodex.Mac/packaging/build-windows.ps1
+
+      - name: Zip for arm64
+        run: src/ClassicaCodex.Mac/packaging/build-windows.ps1 -Architecture arm64
+
+      - name: A small library
+        shell: bash
+        run: |
+          git clone --quiet --depth 1 --filter=blob:none --sparse https://github.com/PerseusDL/canonical-greekLit "$RUNNER_TEMP/greek"
+          git -C "$RUNNER_TEMP/greek" sparse-checkout set data/tlg0012
+          git clone --quiet --depth 1 --filter=blob:none --sparse https://github.com/PerseusDL/canonical-latinLit "$RUNNER_TEMP/latin"
+          git -C "$RUNNER_TEMP/latin" sparse-checkout set data/phi0690
+          dotnet run --project tools/MacSampleLibrary -c Release -- "$RUNNER_TEMP/library.db" \
+            --greek "$RUNNER_TEMP/greek/data" --latin "$RUNNER_TEMP/latin/data"
+
+      - name: The classic app, as released
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release download $env:CLASSIC_RELEASE --pattern '*-win-x64.zip' --output "$env:RUNNER_TEMP\classic.zip"
+
+      - name: Start it beside the classic app and press its keys
+        run: |
+          $zip = Get-ChildItem src/ClassicaCodex.Mac/bin/windows-app -Filter '*-win-x64.zip'
+          src/ClassicaCodex.Mac/packaging/windows/smoke-test.ps1 $zip.FullName "$env:RUNNER_TEMP\library.db" "$env:RUNNER_TEMP\photos" "$env:RUNNER_TEMP\classic.zip"
+
+      - name: Keep the photographs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-photographs
+          path: ${{ runner.temp }}/photos
+          if-no-files-found: ignore
+
+      - name: Keep the zips
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-zips
+          path: src/ClassicaCodex.Mac/bin/windows-app/*.zip
+          compression-level: 0
+
+  classic-ui-tests:
+    runs-on: windows-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Test
+        run: dotnet test tests/ClassicaCodex.UI.Tests -c Release

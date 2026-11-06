@@ -88,6 +88,7 @@ internal static class HelpOutline
     /// Worked out rather than written down, because where .NET puts
     /// application data on a Mac is .NET's decision, and a help page that
     /// names a folder the app does not use sends the reader to an empty one.
+    /// Windows has no ~, so there the paths stay whole.
     /// </summary>
     public static string Expand(string body)
     {
@@ -110,6 +111,8 @@ internal static class HelpOutline
 
     private static string Home(string path)
     {
+        if (OperatingSystem.IsWindows()) return path;
+
         var home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
         return !string.IsNullOrEmpty(home) && path.StartsWith(home + Path.DirectorySeparatorChar, StringComparison.Ordinal)
             ? "~" + path[home.Length..]

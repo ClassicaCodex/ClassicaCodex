@@ -17,6 +17,7 @@ using ClassicaCodex.UI;
 using Microsoft.Data.Sqlite;
 using Xunit;
 using ClassicaCodex.Mac.Features.Export;
+using TranslationSettings = ClassicaCodex.Mac.Platform.TranslationSettings;
 
 namespace ClassicaCodex.Mac.Tests.Features;
 

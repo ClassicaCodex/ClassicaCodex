@@ -12,6 +12,9 @@ namespace ClassicaCodex.Mac.Platform;
 /// secret and stays in a plain file beside the other preferences; absent
 /// means confirm, so a fresh install asks before it sends anything.
 ///
+/// On Windows all three live in the Windows app's own file instead (see
+/// <see cref="WindowsKeyFile"/>), so a reader's keys are already here.
+///
 /// Read once and cached, as on Windows: every send asks whether to confirm,
 /// and a keychain lookup per question would be felt.
 /// </summary>
@@ -32,25 +35,24 @@ public static class TranslationSettings
     public static bool AlwaysConfirmBeforeSending => Load().Confirm;
 
     /// <summary>Whether keys can be kept at all on this machine.</summary>
-    public static bool CanStoreKeys => Keychain.IsAvailable;
+    public static bool CanStoreKeys => OperatingSystem.IsWindows() || Keychain.IsAvailable;
 
-    /// <returns>False if the keychain refused either key.</returns>
+    /// <returns>False if the keychain or the key file refused either key.</returns>
     public static bool Save(string? anthropicKey, string? geminiKey, bool alwaysConfirm)
     {
         var anthropic = NullIfEmpty(anthropicKey?.Trim());
         var gemini = NullIfEmpty(geminiKey?.Trim());
 
-        var stored = Keychain.Write(AnthropicAccount, anthropic) & Keychain.Write(GeminiAccount, gemini);
+        bool stored;
 
-        try
+        if (OperatingSystem.IsWindows())
         {
-            var directory = Path.GetDirectoryName(ConfirmFile);
-            if (directory != null) Directory.CreateDirectory(directory);
-            File.WriteAllText(ConfirmFile, alwaysConfirm ? "confirm" : "noconfirm");
+            stored = WindowsKeyFile.Write(anthropic, gemini, alwaysConfirm);
         }
-        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        else
         {
-            // The switch still applies for this session.
+            stored = Keychain.Write(AnthropicAccount, anthropic) & Keychain.Write(GeminiAccount, gemini);
+            WriteConfirm(alwaysConfirm);
         }
 
         lock (CacheLock)
@@ -65,7 +67,23 @@ public static class TranslationSettings
     {
         lock (CacheLock)
         {
-            return _cached ??= (Keychain.Read(AnthropicAccount), Keychain.Read(GeminiAccount), ReadConfirm());
+            return _cached ??= OperatingSystem.IsWindows()
+                ? WindowsKeyFile.Read()
+                : (Keychain.Read(AnthropicAccount), Keychain.Read(GeminiAccount), ReadConfirm());
+        }
+    }
+
+    private static void WriteConfirm(bool alwaysConfirm)
+    {
+        try
+        {
+            var directory = Path.GetDirectoryName(ConfirmFile);
+            if (directory != null) Directory.CreateDirectory(directory);
+            File.WriteAllText(ConfirmFile, alwaysConfirm ? "confirm" : "noconfirm");
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            // The switch still applies for this session.
         }
     }
 

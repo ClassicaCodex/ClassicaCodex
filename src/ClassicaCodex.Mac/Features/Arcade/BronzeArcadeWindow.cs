@@ -84,7 +84,7 @@ internal sealed partial class BronzeArcadeWindow : Window
         AddArcadeStyles();
 
         _start = new ArcadeAction("Begin adventure", BronzeIcons.Get("BeginAdventure"), StartOrContinue, primary: true);
-        _submit = new ArcadeAction("Check selected passage", BronzeIcons.Get("CheckPassage"), () => _ = SubmitReaderSelectionAsync(), primary: true, keyCap: "⌃⇧↩")
+        _submit = new ArcadeAction("Check selected passage", BronzeIcons.Get("CheckPassage"), () => _ = SubmitReaderSelectionAsync(), primary: true, keyCap: SystemWords.Say("⌃⇧↩"))
         { Tip = $"Check the line selected in the reader ({SubmitChord} from either window)." };
         _hint = new ArcadeAction("Oracle hint", BronzeIcons.Get("OracleHint"), () => _ = ShowHintAsync(), primary: true);
         _read = new ArcadeAction("Library", Art.AppIcon(), ReturnToLibrary, primary: false) { Tip = "Back to the library (F6). The battle pauses while you read." };

@@ -365,11 +365,14 @@ public sealed class TranslatePassageWindow : FeatureWindow
 
     /// <summary>
     /// System Settings › Accessibility › Spoken Content, where macOS keeps
-    /// its voices. If this system doesn't know the address the link is
-    /// simply inert - not worth an alert over.
+    /// its voices, or Settings › Time &amp; Language › Speech on Windows. If
+    /// this system doesn't know the address the link is simply inert - not
+    /// worth an alert over.
     /// </summary>
     private static void OpenSpokenContentSettings() =>
-        MacShell.Open("x-apple.systempreferences:com.apple.preference.universalaccess?SpeakableItems");
+        MacShell.Open(OperatingSystem.IsWindows()
+            ? "ms-settings:speech"
+            : "x-apple.systempreferences:com.apple.preference.universalaccess?SpeakableItems");
 
     internal async Task LoadIngestedMatchAsync()
     {

@@ -411,7 +411,7 @@ public sealed class SettingsWindow : FeatureWindow
         var root = new StackPanel();
 
         var library = Section("This library",
-            "Everything - the texts, the dictionaries, your tags, bookmarks and research - is in this one file. A library copied from the PC opens here as it is.");
+            SystemWords.Say("Everything - the texts, the dictionaries, your tags, bookmarks and research - is in this one file. A library copied from the PC opens here as it is."));
         var path = DbConnectionFactory.DatabasePath ?? "No library is open.";
         library.Children.Add(new SelectableTextBlock { Text = path, Classes = { "mono" }, TextWrapping = TextWrapping.Wrap });
 
@@ -455,7 +455,7 @@ public sealed class SettingsWindow : FeatureWindow
         root.Children.Add(downloads);
 
         var log = Section("If something goes wrong",
-            "Errors are written to a log beside the preferences - the same file name the Windows app uses. Attaching it to an issue helps more than a description.");
+            SystemWords.Say("Errors are written to a log beside the preferences - the same file name the Windows app uses. Attaching it to an issue helps more than a description."));
         log.Children.Add(new SelectableTextBlock { Text = CrashLog.LogFile, Classes = { "mono" }, TextWrapping = TextWrapping.Wrap });
         var revealLog = new Button { Content = SystemWords.Say("Show in Finder"), IsEnabled = File.Exists(CrashLog.LogFile) };
         revealLog.Click += (_, _) => MacShell.Reveal(CrashLog.LogFile);

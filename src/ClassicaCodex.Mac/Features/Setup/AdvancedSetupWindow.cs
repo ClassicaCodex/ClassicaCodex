@@ -7,6 +7,7 @@ using ClassicaCodex.Data.Repositories;
 using ClassicaCodex.Ingestion;
 using ClassicaCodex.Mac.Common;
 using ClassicaCodex.Mac.Features.Settings;
+using ClassicaCodex.Mac.Platform;
 using ClassicaCodex.Mac.Shell;
 using ClassicaCodex.UI;
 
@@ -749,9 +750,9 @@ public sealed class AdvancedSetupWindow : FeatureWindow
 
         var layout = new StackPanel { Margin = new Thickness(22, 18), Spacing = 12, MaxWidth = 560 };
         layout.Children.Add(new TextBlock { Text = "Library File", Classes = { "h2" } });
-        layout.Children.Add(SetupLook.Text(
+        layout.Children.Add(SetupLook.Text(SystemWords.Say(
             "The one file that holds the library, tags and bookmarks. Choose an existing one - a library copied from the PC is "
-            + "used as it is - or name a new one to start an empty library.", "muted"));
+            + "used as it is - or name a new one to start an empty library."), "muted"));
         layout.Children.Add(box);
         layout.Children.Add(pick);
         layout.Children.Add(confirm);

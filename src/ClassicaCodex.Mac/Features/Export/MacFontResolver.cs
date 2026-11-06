@@ -45,13 +45,22 @@ internal sealed class FontCatalog
 
     /// <summary>
     /// Where a Mac keeps fonts - the system's, the machine's, the reader's -
-    /// and then where a Linux machine does, so the export can be exercised
-    /// by the headless tests on a machine that is not a Mac.
+    /// and then where a Linux machine does. Windows has two: the system's,
+    /// and the one a font goes to when one person installs it for themselves.
     /// </summary>
     public static IReadOnlyList<string> SystemDirectories
     {
         get
         {
+            if (OperatingSystem.IsWindows())
+            {
+                return new[]
+                {
+                    System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Windows), "Fonts"),
+                    System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Microsoft", "Windows", "Fonts")
+                };
+            }
+
             var home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
             return new[]
             {

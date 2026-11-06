@@ -75,6 +75,13 @@ public static class CrashLog
         }
     }
 
+    /// <summary>
+    /// Said in full on Windows, where the log is the one the Windows app
+    /// writes to, so that a report shows which of the two it came from.
+    /// </summary>
+    private static string SystemName =>
+        OperatingSystem.IsWindows() ? "Avalonia on Windows" : OperatingSystem.IsLinux() ? "Linux" : "Mac";
+
     public static void Write(Exception ex, string context)
     {
         try
@@ -83,7 +90,7 @@ public static class CrashLog
             if (directory != null) Directory.CreateDirectory(directory);
 
             File.AppendAllText(LogFile,
-                $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] ({(OperatingSystem.IsLinux() ? "Linux" : "Mac")}) while {context}{Environment.NewLine}{ex}{Environment.NewLine}{Environment.NewLine}");
+                $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] ({SystemName}) while {context}{Environment.NewLine}{ex}{Environment.NewLine}{Environment.NewLine}");
         }
         catch (Exception)
         {
