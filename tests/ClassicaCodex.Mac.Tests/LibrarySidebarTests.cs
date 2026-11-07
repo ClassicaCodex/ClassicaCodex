@@ -1,6 +1,7 @@
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 using Avalonia.Headless.XUnit;
+using Avalonia.Input;
 using Avalonia.VisualTree;
 using ClassicaCodex.Data;
 using ClassicaCodex.Mac.Shell;
@@ -21,6 +22,22 @@ public class LibrarySidebarTests
 {
     private const int Agamemnon = 1;
     private const int Iliad = 3;
+
+    [AvaloniaFact]
+    public void Fictional_Ancient_Reactions_is_only_listed_for_a_work_with_a_debate()
+    {
+        var sidebar = new LibrarySidebar();
+        var listed = () => sidebar.BuildToolItems().OfType<ToolEntry>().Select(tool => tool.Key).ToList();
+
+        Assert.DoesNotContain("reactions", listed());
+        Assert.Contains("research", listed());
+
+        sidebar.OfferReactions(true);
+        Assert.Contains("reactions", listed());
+
+        sidebar.OfferReactions(false);
+        Assert.DoesNotContain("reactions", listed());
+    }
 
     private sealed class Library : IAsyncDisposable
     {
@@ -147,6 +164,32 @@ public class LibrarySidebarTests
         Assert.True(await library.Window!.OpenWorkAsync(workId));
         await Screens.Settle();
         return (library.Window, sidebar);
+    }
+
+    [AvaloniaFact]
+    public async Task A_works_menu_offers_reactions_only_if_it_has_a_debate()
+    {
+        const int CivilWar = 4;
+
+        await using var library = new Library();
+        var (window, sidebar) = await OpenAsync(library, Iliad);
+        var reactions = sidebar.WorkMenu!.Items.OfType<MenuItem>()
+            .Single(item => item.Header as string == "Fictional Ancient Reactions…");
+
+        void AskForTheMenu(int workId)
+        {
+            var row = Assert.IsType<TreeViewItem>(sidebar.Tree.TreeContainerFromItem(Row(sidebar, workId)));
+            row.RaiseEvent(new ContextRequestedEventArgs());
+            sidebar.WorkMenu!.Close();
+        }
+
+        AskForTheMenu(Iliad);
+        Assert.True(reactions.IsVisible);
+
+        Assert.True(await window.OpenWorkAsync(CivilWar));
+        await Screens.Settle();
+        AskForTheMenu(CivilWar);
+        Assert.False(reactions.IsVisible);
     }
 
     [AvaloniaFact]

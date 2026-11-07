@@ -4,6 +4,7 @@ using Avalonia.Layout;
 using Avalonia.Platform.Storage;
 using ClassicaCodex.Ingestion;
 using ClassicaCodex.Mac.Common;
+using ClassicaCodex.Mac.Features.Setup;
 using ClassicaCodex.Mac.Platform;
 
 namespace ClassicaCodex.Mac.Features.Export;
@@ -121,7 +122,11 @@ internal static class ExportFiles
     /// <summary>The Windows "open the containing folder?" - here, the file selected in a Finder window.</summary>
     public static async Task OfferToRevealAsync(Window owner, string path)
     {
-        if (await Alert.Confirm(owner, "Done", $"Exported to {path}.\n\n{SystemWords.Say("Show it in the Finder?")}", SystemWords.Say("Show in Finder"), "Close", AlertKind.Info))
+        var where = MacDataFolder.OnDevice
+            ? $"Exported {Path.GetFileName(path)} to the Exports folder, in this app's folder in the Files app."
+            : $"Exported to {path}.";
+
+        if (await Alert.Confirm(owner, "Done", $"{where}\n\n{SystemWords.Say("Show it in the Finder?")}", SystemWords.Say("Show in Finder"), "Close", AlertKind.Info))
             MacShell.Reveal(path);
     }
 }

@@ -278,14 +278,16 @@ public sealed class SettingsWindow : FeatureWindow
         var anthropic = KeyBox(TranslationSettings.AnthropicApiKey);
         var gemini = KeyBox(TranslationSettings.GeminiApiKey);
 
-        var claude = Section("Anthropic (Claude)", SystemWords.Say(
-            "A separate developer account from claude.ai or a Claude Pro or Max subscription - even if you already pay for one of those, this needs its own setup. "
-            + "Requires a payment method; no ongoing free tier, though a single passage costs a small fraction of a cent."));
-        claude.Children.Add(Setup.MacDataFolder.OnDevice
-            ? Links(("Get an API key →", "https://console.anthropic.com"))
-            : Links(("Get an API key →", "https://console.anthropic.com"), ("See current pricing →", "https://www.anthropic.com/pricing")));
-        claude.Children.Add(KeyRow(anthropic));
-        root.Children.Add(claude);
+        // Google only on an iPad: the Anthropic route has not been tried on one.
+        if (!Setup.MacDataFolder.OnDevice)
+        {
+            var claude = Section("Anthropic (Claude)", SystemWords.Say(
+                "A separate developer account from claude.ai or a Claude Pro or Max subscription - even if you already pay for one of those, this needs its own setup. "
+                + "Requires a payment method; no ongoing free tier, though a single passage costs a small fraction of a cent."));
+            claude.Children.Add(Links(("Get an API key →", "https://console.anthropic.com"), ("See current pricing →", "https://www.anthropic.com/pricing")));
+            claude.Children.Add(KeyRow(anthropic));
+            root.Children.Add(claude);
+        }
 
         var google = Section(SystemWords.Say("Google (Gemini) - free, no card required"), SystemWords.Say(
             "A genuinely free tier through Google AI Studio - no payment method, no expiration. The trade-off: Google's free tier may use what you send it to improve their models, "
@@ -296,7 +298,7 @@ public sealed class SettingsWindow : FeatureWindow
 
         var confirm = new CheckBox
         {
-            Content = "Ask for confirmation every time before sending a passage (either provider)",
+            Content = SystemWords.Say("Ask for confirmation every time before sending a passage (either provider)"),
             IsChecked = TranslationSettings.AlwaysConfirmBeforeSending
         };
         root.Children.Add(confirm);
@@ -307,8 +309,7 @@ public sealed class SettingsWindow : FeatureWindow
         {
             if (Setup.MacDataFolder.OnDevice)
             {
-                var allowed = await AskToUseAsync(anthropic, TranslationSettings.AnthropicApiKey, "Anthropic", "the company that makes Claude", string.Empty);
-                allowed &= await AskToUseAsync(gemini, TranslationSettings.GeminiApiKey, "Google", "through its Gemini service",
+                var allowed = await AskToUseAsync(gemini, TranslationSettings.GeminiApiKey, "Google", "through its Gemini service",
                     " By allowing this, you confirm you are 18 or older, as Google's terms require. They also require Google's "
                     + "paid tier in the EEA, Switzerland and the UK. Google's free tier may use what you send to improve its "
                     + "products, and its reviewers may read it.");
@@ -320,7 +321,7 @@ public sealed class SettingsWindow : FeatureWindow
                 }
             }
 
-            var stored = TranslationSettings.Save(anthropic.Text, gemini.Text, confirm.IsChecked == true);
+            var stored = TranslationSettings.Save(Setup.MacDataFolder.OnDevice ? null : anthropic.Text, gemini.Text, confirm.IsChecked == true);
             status.Text = SystemWords.Say(stored
                 ? "Saved. The keys are in your login keychain, under “Classica Codex” in Keychain Access."
                 : TranslationSettings.CanStoreKeys

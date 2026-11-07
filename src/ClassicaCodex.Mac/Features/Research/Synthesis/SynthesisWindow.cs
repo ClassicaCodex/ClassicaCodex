@@ -410,7 +410,7 @@ internal sealed class SynthesisWindow : ResearchWindow
         var path = await Files.SaveAsync(this, "Export research dossier",
             Ui.SafeName(_project.Name, "project") + "-research-dossier.md", Markdown, Files.Text);
         if (path == null) return;
-        await ExportDossierToAsync(path);
+        if (await ExportDossierToAsync(path)) await Files.TellSavedAsync(this, path);
     }
 
     /// <summary>Writes the project's dossier to <paramref name="path"/> and records the export in the log.</summary>

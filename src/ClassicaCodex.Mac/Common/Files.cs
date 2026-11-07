@@ -1,5 +1,7 @@
 using Avalonia.Controls;
 using Avalonia.Platform.Storage;
+using ClassicaCodex.Mac.Features.Export;
+using ClassicaCodex.Mac.Features.Setup;
 
 namespace ClassicaCodex.Mac.Common;
 
@@ -19,6 +21,8 @@ public static class Files
     public static async Task<string?> SaveAsync(Window owner, string title, string suggestedName, params FilePickerFileType[] types)
     {
         var safe = string.Join("_", suggestedName.Split(Path.GetInvalidFileNameChars()));
+        if (MacDataFolder.OnDevice) return DeviceFiles.NewExport(safe);
+
         var file = await owner.StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
         {
             Title = title,
@@ -29,6 +33,13 @@ public static class Files
 
         return file?.TryGetLocalPath();
     }
+
+    /// <summary>
+    /// An iPad saves with no panel, so this is how the reader learns where the
+    /// file went. Everywhere else the panel has already said.
+    /// </summary>
+    public static Task TellSavedAsync(Window owner, string path) =>
+        MacDataFolder.OnDevice ? ExportFiles.OfferToRevealAsync(owner, path) : Task.CompletedTask;
 
     /// <summary>
     /// Asks where a new library should go; null if the reader cancelled.
@@ -70,7 +81,9 @@ public static class Files
             FileTypeFilter = types
         });
 
-        return files.Count == 0 ? null : files[0].TryGetLocalPath();
+        if (files.Count == 0) return null;
+
+        return MacDataFolder.OnDevice ? await DeviceFiles.KeepAsync(files[0]) : files[0].TryGetLocalPath();
     }
 
     /// <summary>Asks for a folder; null if the reader cancelled.</summary>

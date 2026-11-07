@@ -1216,30 +1216,38 @@ public static class GeminiTranslationService
         return $"Gemini API returned {(int)statusCode} ({statusCode}).";
     }
 
-    private static string ExtractTranslatedText(string responseBody)
+    /// <summary>
+    /// Text from a reply. A prompt Google refuses comes back with no candidates
+    /// at all, and an answer its filters stop comes back as a candidate with no
+    /// content, so both are read with care. Classical texts reach those filters
+    /// often enough that this needs saying plainly, not a missing-key error.
+    /// </summary>
+    internal static string ExtractTranslatedText(string responseBody)
     {
         using var doc = JsonDocument.Parse(responseBody);
 
         // candidates[0].content.parts[*].text, joined - a response can carry
         // more than one part, though a plain text prompt like this one
         // almost always returns exactly one.
-        var candidates = doc.RootElement.GetProperty("candidates");
-        if (candidates.GetArrayLength() == 0)
-        {
-            throw new InvalidOperationException(
-                "Gemini returned no candidates - the passage may have tripped a safety filter.");
-        }
+        if (!doc.RootElement.TryGetProperty("candidates", out var candidates) || candidates.GetArrayLength() == 0)
+            throw new InvalidOperationException(NoTextReturned);
 
-        var parts = candidates[0].GetProperty("content").GetProperty("parts");
         var text = new StringBuilder();
-        foreach (var part in parts.EnumerateArray())
+        if (candidates[0].TryGetProperty("content", out var content) && content.TryGetProperty("parts", out var parts))
         {
-            if (part.TryGetProperty("text", out var textProp))
+            foreach (var part in parts.EnumerateArray())
             {
-                text.Append(textProp.GetString());
+                if (part.TryGetProperty("text", out var textProp))
+                {
+                    text.Append(textProp.GetString());
+                }
             }
         }
 
-        return text.ToString().Trim();
+        var result = text.ToString().Trim();
+        return result.Length > 0 ? result : throw new InvalidOperationException(NoTextReturned);
     }
+
+    private const string NoTextReturned =
+        "Gemini returned no text for this passage, which usually means its safety filters declined it.";
 }

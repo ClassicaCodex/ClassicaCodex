@@ -201,6 +201,7 @@ internal sealed partial class ResearchBibliographyWindow : ResearchWindow
             Details = Path.GetFileName(path)
         });
         _status.Text = $"Exported {selected.Count} source(s) to {Path.GetFileName(path)}.";
+        await Files.TellSavedAsync(this, path);
     }
 
     private void ShowPreview()

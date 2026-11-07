@@ -442,7 +442,10 @@ internal sealed class CompareTranslationsWindow : FeatureWindow
         catch (Exception ex)
         {
             await Alert.Warn(this, "Export failed", $"Export failed: {ex.Message}");
+            return;
         }
+
+        await Files.TellSavedAsync(this, path);
     }
 
     private static string SafeFileName(string title)

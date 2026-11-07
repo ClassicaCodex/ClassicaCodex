@@ -36,6 +36,13 @@ public static class ToolCatalog
     public static IReadOnlyList<ToolEntry> Offered =>
         MacDataFolder.OnDevice ? All.Where(tool => tool.Key != "harmonics").ToList() : All;
 
+    /// <summary>
+    /// The tools to offer with the work that is open. Most works have no staged
+    /// debate, so Fictional Ancient Reactions only appears for one that does.
+    /// </summary>
+    public static IReadOnlyList<ToolEntry> OfferedFor(bool workHasDebate) =>
+        workHasDebate ? Offered : Offered.Where(tool => tool.Key != "reactions").ToList();
+
     public static IReadOnlyList<ToolEntry> All { get; } = new ToolEntry[]
     {
         new("search", "Search", "Every passage, every edition", "Search", "search", ToolSection.Reading),

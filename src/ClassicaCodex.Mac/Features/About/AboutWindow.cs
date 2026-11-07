@@ -251,9 +251,9 @@ public sealed class AboutWindow : FeatureWindow
             muted: true, bottom: 12));
 
         body.Children.Add(Prose.Bullet(
-            "AI translation - Claude or Gemini",
-            "Sends the selected passage only after you request a translation. Both providers require your " +
-            "own API key."));
+            SystemWords.Say("AI translation - Claude or Gemini"),
+            SystemWords.Say("Sends the selected passage only after you request a translation. Both providers require your " +
+            "own API key.")));
 
         body.Children.Add(Prose.Bullet(
             "Research Bench AI - Gemini",
@@ -298,6 +298,13 @@ public sealed class AboutWindow : FeatureWindow
             "https://github.com/AvaloniaUI/Avalonia");
         AddCredit(body, "Phosphor Icons", "The toolbar and menu glyphs, version 2.1.1.", "MIT License",
             "https://github.com/phosphor-icons/core");
+
+        if (Setup.MacDataFolder.OnDevice)
+        {
+            var notices = new Button { Content = "Open-Source Notices", Margin = new Thickness(0, 6, 0, 0) };
+            notices.Click += (_, _) => new NoticesWindow().Show(this);
+            body.Children.Add(notices);
+        }
 
         var root = new DockPanel();
         var header = BuildHeader();

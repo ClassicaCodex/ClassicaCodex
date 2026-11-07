@@ -101,7 +101,10 @@ public static class TableExport
         catch (Exception ex)
         {
             await Alert.Error(owner, "Export failed", $"Could not write the file.\n\n{ex.Message}");
+            return;
         }
+
+        await Files.TellSavedAsync(owner, path);
     }
 
     /// <summary>Writes a table to <paramref name="path"/> in the format the extension names.</summary>

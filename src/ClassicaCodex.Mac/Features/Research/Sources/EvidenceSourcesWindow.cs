@@ -155,6 +155,7 @@ internal sealed class EvidenceSourcesWindow : ResearchWindow
     private async Task ReloadFilesAsync(long select = 0)
     {
         var items = await _repo.GetAttachmentsAsync(_evidence.EvidenceItemId);
+        foreach (var item in items) item.FilePath = DeviceFiles.Here(item.FilePath);
         _files.ItemsSource = items;
         if (select > 0) _files.SelectedItem = items.FirstOrDefault(x => x.EvidenceAttachmentId == select);
         else if (items.Count > 0) _files.SelectedIndex = 0;

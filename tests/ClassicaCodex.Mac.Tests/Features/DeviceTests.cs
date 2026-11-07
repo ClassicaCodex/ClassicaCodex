@@ -3,6 +3,7 @@ using Avalonia.Headless.XUnit;
 using Avalonia.VisualTree;
 using ClassicaCodex.Data.Repositories;
 using ClassicaCodex.Ingestion;
+using ClassicaCodex.Mac.Common;
 using ClassicaCodex.Mac.Features.About;
 using ClassicaCodex.Mac.Features.Help;
 using ClassicaCodex.Mac.Features.Setup;
@@ -135,7 +136,8 @@ public class DeviceTests
         Assert.DoesNotContain("Genuinely free", device);
         Assert.Contains("18 or older", device);
         Assert.Contains("the EEA, Switzerland and the UK", device);
-        Assert.Contains("under Anthropic's own terms", device);
+        Assert.DoesNotContain("Anthropic", device);
+        Assert.DoesNotContain("Claude Pro", device);
     }
 
     [Fact]
@@ -168,11 +170,13 @@ public class DeviceTests
     [InlineData("Getting started", "A tool opens as a full page, with Back at its top left.")]
     [InlineData("Tags and the Myth Network", "a folder called Figures in this app's folder in the Files app")]
     [InlineData("Research Bench", "choose Research Bench in the sidebar's Tools list")]
-    [InlineData("Exporting passages", "Choose a place inside the Classica Codex folder")]
+    [InlineData("Exporting passages", "Each goes to the Exports folder, in this app's folder in the Files app")]
+    [InlineData("Where your data lives", "Exports and Imported")]
+    [InlineData("Research Bench", "The app keeps its own copy in the Imported folder")]
     [InlineData("Translate", "keep Classica Codex on screen while it runs")]
     [InlineData("Medieval Hands", "Once fetched they are on this iPad")]
     [InlineData("Getting started", "It leaves out Greek Lemma Data and Latin Lemma Data")]
-    [InlineData("Word Study and dictionaries", "Word Study is on the menu once the library has lemma data")]
+    [InlineData("Word Study and dictionaries", "Until that is in, the menu item says so.")]
     public void The_Help_on_an_iPad_says_where_things_are_there(string topic, string said) =>
         Assert.Contains(said, SystemWords.ForDevice(HelpOutline.Expand(HelpTopics.All.Single(t => t.Title == topic).Body)));
 
@@ -184,6 +188,103 @@ public class DeviceTests
     [InlineData("You can turn this confirmation off in AI Translation Settings.", "You can turn this confirmation off in the AI tab of Settings.")]
     public void An_iPad_does_not_claim_to_be_offline_apart_from_AI(string mac, string device) =>
         Assert.Equal(device, SystemWords.ForDevice(mac));
+
+    [Fact]
+    public async Task An_iPad_exports_into_its_own_folder_and_never_over_an_earlier_file()
+    {
+        await OnAnIpad(async folder =>
+        {
+            var first = await Files.SaveAsync(null!, "Export", "Homer: Iliad.txt", Files.Text);
+            await File.WriteAllTextAsync(first!, "μῆνιν");
+            var second = await Files.SaveAsync(null!, "Export", "Homer: Iliad.txt", Files.Text);
+
+            Assert.Equal(Path.Combine(folder, "Documents", "Exports"), Path.GetDirectoryName(first));
+            Assert.NotEqual(first, second);
+            Assert.False(File.Exists(second));
+        });
+    }
+
+    [Fact]
+    public async Task A_picked_file_is_copied_in_and_picking_it_again_gives_the_same_copy()
+    {
+        await OnAnIpad(async folder =>
+        {
+            using var paper = new MemoryStream(new byte[] { 1, 2, 3 });
+            using var again = new MemoryStream(new byte[] { 1, 2, 3 });
+            using var other = new MemoryStream(new byte[] { 4, 5, 6 });
+
+            var kept = await DeviceFiles.KeepAsync(paper, "paper.pdf");
+
+            Assert.Equal(Path.Combine(folder, "Documents", "Imported", "paper.pdf"), kept);
+            Assert.Equal(new byte[] { 1, 2, 3 }, await File.ReadAllBytesAsync(kept));
+            Assert.Equal(kept, await DeviceFiles.KeepAsync(again, "paper.pdf"));
+            Assert.EndsWith("paper 2.pdf", await DeviceFiles.KeepAsync(other, "paper.pdf"));
+            Assert.Equal(2, Directory.GetFiles(DeviceFiles.Imported).Length);
+        });
+    }
+
+    [Fact]
+    public async Task An_attachment_is_found_again_after_an_update_moves_the_app()
+    {
+        await OnAnIpad(folder =>
+        {
+            Assert.Equal(
+                Path.Combine(folder, "Documents", "Imported", "paper.pdf"),
+                DeviceFiles.Here("/private/var/mobile/Containers/Data/Application/OLD/Documents/Imported/paper.pdf"));
+            return Task.CompletedTask;
+        });
+
+        Assert.Equal("/Users/me/Documents/paper.pdf", DeviceFiles.Here("/Users/me/Documents/paper.pdf"));
+    }
+
+    private static async Task OnAnIpad(Func<string, Task> test)
+    {
+        var folder = Path.Combine(Path.GetTempPath(), "device-files-" + Guid.NewGuid().ToString("N"));
+        MacDataFolder.OnDevice = true;
+        MacDataFolder.HomeOverride = folder;
+        try
+        {
+            await test(folder);
+        }
+        finally
+        {
+            MacDataFolder.OnDevice = false;
+            MacDataFolder.HomeOverride = null;
+            if (Directory.Exists(folder)) Directory.Delete(folder, recursive: true);
+        }
+    }
+
+    [Theory]
+    [InlineData("grc", true, "Greek Lemma Data")]
+    [InlineData("lat", true, "Latin Lemma Data")]
+    [InlineData("eng", true, null)]
+    [InlineData("grc", false, null)]
+    public void Word_Study_says_what_it_needs_on_an_iPad(string language, bool onDevice, string? step)
+    {
+        MacDataFolder.OnDevice = onDevice;
+        try
+        {
+            Assert.Equal(step, MainWindow.LemmaDataFor(language));
+        }
+        finally
+        {
+            MacDataFolder.OnDevice = false;
+        }
+    }
+
+    [Fact]
+    public async Task The_open_source_notices_are_read_in_order_and_point_online_if_missing()
+    {
+        await OnAnIpad(async folder =>
+        {
+            Directory.CreateDirectory(folder);
+            Assert.Contains("github.com/ClassicaCodex", NoticesWindow.Read(folder));
+
+            await File.WriteAllTextAsync(Path.Combine(folder, NoticesWindow.FileNames[1]), "second");
+            await File.WriteAllTextAsync(Path.Combine(folder, NoticesWindow.FileNames[0]), "first");
+            Assert.Equal("first\n\nsecond", NoticesWindow.Read(folder));
+        });
+    }
 
     [AvaloniaFact]
     public void Apple_requires_the_privacy_policy_to_be_linked_inside_the_app()

@@ -705,7 +705,10 @@ public sealed class PassageExportWindow : FeatureWindow
         catch (Exception ex)
         {
             SetStatus($"Couldn't write the reference: {ex.Message}", warning: true);
+            return;
         }
+
+        await Files.TellSavedAsync(this, fileName);
     }
 
     private async Task ExportAsync()

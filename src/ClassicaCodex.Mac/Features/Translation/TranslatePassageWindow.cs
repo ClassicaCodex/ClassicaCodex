@@ -213,7 +213,7 @@ public sealed class TranslatePassageWindow : FeatureWindow
                 _node.Text, _sourceLanguage, _targetLanguage, _authorName, _workTitle, _node.CitationRef, key, ct));
 
         var aiButtons = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
-        aiButtons.Children.Add(_claude);
+        if (!Setup.MacDataFolder.OnDevice) aiButtons.Children.Add(_claude);
         aiButtons.Children.Add(_gemini);
 
         _aiStatus = new TextBlock { Classes = { "caption" }, TextWrapping = TextWrapping.Wrap };

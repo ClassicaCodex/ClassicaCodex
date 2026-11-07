@@ -212,8 +212,17 @@ public sealed class LibrarySidebar : UserControl
     /// <summary>Raised when a tool in the Tools list is chosen.</summary>
     public event Action<ToolEntry>? ToolInvoked;
 
+    private bool _offerReactions;
+
     /// <summary>The menu for a work row, supplied by the main window, which owns the actions.</summary>
     public ContextMenu? WorkMenu { get; set; }
+
+    /// <summary>
+    /// Fits the menu to the work it is opening on. The menu's own Opening event
+    /// is no use here: it fires when a menu is attached to a control, and this
+    /// one is opened by hand on whichever row was asked for.
+    /// </summary>
+    public Action<Work>? WorkMenuOpening { get; set; }
 
     /// <summary>
     /// The work selected in the tree, if a work row is selected - which may
@@ -571,6 +580,7 @@ public sealed class LibrarySidebar : UserControl
             _suppressSelection = false;
         }
 
+        WorkMenuOpening?.Invoke(node.Work);
         WorkMenu.Open(row);
         e.Handled = true;
     }
@@ -619,10 +629,19 @@ public sealed class LibrarySidebar : UserControl
         }
     }
 
-    private static List<object> BuildToolItems()
+    /// <summary>Says whether the open work has a staged debate, which decides if the list offers one.</summary>
+    public void OfferReactions(bool offer)
+    {
+        if (offer == _offerReactions) return;
+
+        _offerReactions = offer;
+        _tools.ItemsSource = BuildToolItems();
+    }
+
+    internal List<object> BuildToolItems()
     {
         var items = new List<object>();
-        foreach (var group in ToolCatalog.Offered.GroupBy(t => t.Section))
+        foreach (var group in ToolCatalog.OfferedFor(_offerReactions).GroupBy(t => t.Section))
         {
             items.Add(group.Key);
             items.AddRange(group);

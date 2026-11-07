@@ -11,6 +11,25 @@ namespace ClassicaCodex.Data.Tests;
 /// </summary>
 public class GeminiReplyShapeTests
 {
+    [Theory]
+    [InlineData("""{"promptFeedback":{"blockReason":"SAFETY"}}""")]
+    [InlineData("""{"candidates":[]}""")]
+    [InlineData("""{"candidates":[{"finishReason":"SAFETY"}]}""")]
+    [InlineData("""{"candidates":[{"content":{"parts":[]},"finishReason":"PROHIBITED_CONTENT"}]}""")]
+    public void AReplyWithNoTextSaysSoInsteadOfFailingOnAMissingProperty(string reply)
+    {
+        var refused = Assert.Throws<InvalidOperationException>(() => GeminiTranslationService.ExtractTranslatedText(reply));
+
+        Assert.Contains("safety filters", refused.Message);
+    }
+
+    [Fact]
+    public void EveryPartOfAReplyIsJoined()
+    {
+        Assert.Equal("Sing, goddess", GeminiTranslationService.ExtractTranslatedText(
+            """{"candidates":[{"content":{"parts":[{"text":"Sing, "},{"text":"goddess\n"}]}}]}"""));
+    }
+
     [Fact]
     public void AListWhereTheParallelAnalysisAskedForTextIsReadAsText()
     {

@@ -12,8 +12,8 @@ internal static partial class SystemWords
     /// <summary>Where a file sits, as a person with the Files app would find it.</summary>
     private const string LogsFolder = "in the ClassicaCodex folder, inside this app's folder in the Files app";
 
-    /// <summary>A plain path outside the app's own folder is refused once the picker has closed.</summary>
-    private const string KeepInAppFolder = "Keep the file in this app's folder in the Files app: iPadOS doesn't let the app reach one kept elsewhere.";
+    /// <summary>Where a picked file ends up. See DeviceFiles.</summary>
+    private const string ImportedFolder = "in the Imported folder, in this app's folder in the Files app";
 
     private static string RewritePassages(string text)
     {
@@ -50,6 +50,8 @@ internal static partial class SystemWords
 
             """),
         ("Keyboard shortcuts\n", "Where you left off\n", string.Empty),
+        ("   An optional online-assisted part of Classica Codex. Two providers", "   Gemini (Google)\n",
+            "   An optional online-assisted part of Classica Codex, through Google's Gemini.\n\n"),
         ("The library is a single SQLite file.", "None of the texts, dictionaries, or linguistic data belong to this app",
             """
             Everything is on this iPad, and the files are in this app's folder in the Files app.
@@ -62,6 +64,9 @@ internal static partial class SystemWords
 
             ClassicaCodex
                Preferences and the error log, in small files.
+
+            Exports and Imported
+               What you export, and the app's own copies of files you import or attach. They are included when you back up this iPad.
 
             API keys
                Kept in this iPad's keychain rather than in a file. They stay on this iPad and are left out of its backups.
@@ -127,8 +132,8 @@ internal static partial class SystemWords
             """),
 
         ("Touch and hold a line and choose Word Study, then tap any word in it.",
-            "Touch and hold a line and choose Word Study, then tap any word in it. Word Study is on the menu once the library "
-            + "has lemma data for that language: Greek Lemma Data or Latin Lemma Data, under Choose Collections in Setup."),
+            "Touch and hold a line and choose Word Study, then tap any word in it. It needs lemma data for that language: "
+            + "Greek Lemma Data or Latin Lemma Data, under Choose Collections in Setup. Until that is in, the menu item says so."),
         (", and so does View > Link the Two Pages: linked panes", ": linked panes"),
         (" - the same three the Windows app draws, so a line marked on either machine reads the same on both.", "."),
         ("put a PNG in a \"Figures\" folder beside your database file, named for the tag.",
@@ -139,12 +144,10 @@ internal static partial class SystemWords
         ("or choose Research Bench… in the Research menu.", "or choose Research Bench in the sidebar's Tools list."),
         ("; the Zotero route requires Zotero's local integration to be available.", "."),
         ("Source files & page notes attaches a local PDF to evidence without putting the PDF inside the database.",
-            "Source files & page notes attaches a PDF to evidence without putting the PDF inside the database. " + KeepInAppFolder),
-        ("imports structured citations without flattening their fields.",
-            "imports structured citations without flattening their fields. " + KeepInAppFolder),
+            $"Source files & page notes attaches a PDF to evidence without putting the PDF inside the database. The app keeps its own copy {ImportedFolder}."),
         ("There are two exports, for two different shapes of thing.",
-            "There are two exports, for two different shapes of thing. Each asks where to save. Choose a place inside the "
-            + "Classica Codex folder, under On My iPad: iPadOS can refuse the app a file saved anywhere else."),
+            "There are two exports, for two different shapes of thing. Each goes to the Exports folder, in this app's folder "
+            + "in the Files app, and the app offers to show it there. From Files you can move it, or share it to another app."),
         ("The README lists which is which.", "The project's README on GitHub lists which is which."),
 
         ("the hieroglyph font that ships with macOS has not caught up with all of them. Nothing is wrong with the text — installing a font with wider coverage, such as Aegyptus or NewGardiner (double-tap it to add it with Font Book), fills them in.",
@@ -179,6 +182,8 @@ internal static partial class SystemWords
         ("In Setup, under Tools, open Word Index.", "Open Setup, tap Choose Collections and go on to Build Word Index."),
         ("nothing leaves this machine", "nothing leaves this iPad"),
         ("hitting the free tier's daily limit", "hitting a daily limit"),
+
+        ("Whichever you pick needs an internet connection.", "It needs an internet connection."),
 
         ("Tools menu", "Tools list"),
     };

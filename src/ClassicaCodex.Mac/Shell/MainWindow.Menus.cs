@@ -56,6 +56,7 @@ public partial class MainWindow
     private NativeMenuItem? _linkItem;
     private NativeMenuItem? _marginItem;
     private NativeMenuItem? _sidebarItem;
+    private NativeMenuItem? _reactionsItem;
     private readonly List<(NativeMenuItem Item, bool NeedsWork)> _workItems = new();
 
     private void WireToolbar()
@@ -204,7 +205,13 @@ public partial class MainWindow
         // on the same rule as Fictional Ancient Reactions and View Preface -
         // see ReaderPaneCapabilities, which is why the rule is about the data
         // and not the collection.
-        var wordStudy = Item("Word Study…", "WordStudy", p => { WordStudyFeature.Open(this, p); return Task.CompletedTask; });
+        var wordStudy = Item("Word Study…", "WordStudy", p =>
+        {
+            if (!CapabilitiesOf(pane).HasLexicon) return OfferLemmaDataAsync(pane.Edition?.Language);
+
+            WordStudyFeature.Open(this, p);
+            return Task.CompletedTask;
+        });
         var editorNotes = Item("Editor's Notes…", "EditorNotes", p => { ApparatusFeature.Open(this, p); return Task.CompletedTask; });
         menu.Items.Add(wordStudy);
         menu.Items.Add(editorNotes);
@@ -260,7 +267,7 @@ public partial class MainWindow
             preface.IsVisible = _prefaces.TryGetValue(pane, out var p) && p != null;
 
             var capabilities = CapabilitiesOf(pane);
-            wordStudy.IsVisible = capabilities.HasLexicon;
+            wordStudy.IsVisible = capabilities.HasLexicon || LemmaDataFor(pane.Edition?.Language) != null;
             editorNotes.IsVisible = capabilities.HasApparatus;
 
             var page = SourceWebPageFor(pane);
@@ -275,7 +282,30 @@ public partial class MainWindow
         return menu;
     }
 
-    private bool OpenWorkHasDebate() =>
+    /// <summary>
+    /// The Setup step Word Study is waiting for on an iPad, where Quick Start
+    /// leaves it out. A reader there has no other way to learn the tool exists.
+    /// </summary>
+    internal static string? LemmaDataFor(string? language) => (MacDataFolder.OnDevice, language) switch
+    {
+        (true, "grc") => "Greek Lemma Data",
+        (true, "lat") => "Latin Lemma Data",
+        _ => null
+    };
+
+    private async Task OfferLemmaDataAsync(string? language)
+    {
+        if (LemmaDataFor(language) is not { } step) return;
+
+        var size = language == "grc" ? "about 3.6 GB, and takes about an hour" : "about 2 GB, and takes a few minutes";
+        var open = await Alert.Confirm(this, "Word Study",
+            $"Word Study needs {step}, which Quick Start leaves out. It is {size}. You can add it under Choose Collections in Setup.",
+            "Open Setup", "Not Now");
+
+        if (open) SetupFeature.Open(this);
+    }
+
+    internal bool OpenWorkHasDebate() =>
         _openWork is { } work && ReactionsFeature.HasDebate(Sidebar.AuthorNameFor(work), work);
 
     private void SetCitationMargin(bool enabled)
@@ -372,10 +402,8 @@ public partial class MainWindow
         var favourite = Item("Add to Favourites", "Star", w => Sidebar.ToggleFavoriteAsync(w));
         menu.Items.Add(favourite);
 
-        menu.Opening += (_, _) =>
+        Sidebar.WorkMenuOpening = work =>
         {
-            if (Sidebar.SelectedWork is not { } work) return;
-
             favourite.Header = Sidebar.IsFavorite(work) ? "Remove from Favourites" : "Add to Favourites";
             reactions.IsVisible = ReactionsFeature.HasDebate(Sidebar.AuthorNameFor(work), work);
             attribution.Header = work.AttributionStatus switch
@@ -588,7 +616,7 @@ public partial class MainWindow
 
         bar.Add(Submenu("Research",
             Tool("research"),
-            Tool("reactions")));
+            _reactionsItem = Tool("reactions")));
 
         bar.Add(Submenu("Instruments",
             Tool("antikythera"),
@@ -624,6 +652,10 @@ public partial class MainWindow
         if (_linkItem != null) _linkItem.IsChecked = _panesLinked;
         if (_marginItem != null) _marginItem.IsChecked = CitationMarginSettings.Enabled;
         if (_sidebarItem != null) _sidebarItem.Header = MacSettings.Current.SidebarVisible ? "Hide Sidebar" : "Show Sidebar";
+
+        var hasDebate = OpenWorkHasDebate();
+        Sidebar.OfferReactions(hasDebate);
+        if (_reactionsItem != null) _reactionsItem.IsVisible = hasDebate;
     }
 
     private ReaderPane? FocusedPane =>

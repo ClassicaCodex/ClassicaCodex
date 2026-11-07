@@ -19,7 +19,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <ApplicationId>org.classicacodex.ipad</ApplicationId>
     <ApplicationTitle>Classica Codex</ApplicationTitle>
-    <ApplicationDisplayVersion>0.1</ApplicationDisplayVersion>
+    <ApplicationDisplayVersion>1.0</ApplicationDisplayVersion>
     <ApplicationVersion>1</ApplicationVersion>
     <AppIcon>AppIcon</AppIcon>
 
@@ -102,7 +102,30 @@
     <!-- Apple refuses an upload without it. The entries are what the .NET
          runtime itself needs, and the app collects nothing. -->
     <BundleResource Include="PrivacyInfo.xcprivacy" LogicalName="PrivacyInfo.xcprivacy" />
+
+    <!-- Read by Features\About\NoticesWindow. -->
+    <BundleResource Include="..\..\THIRD-PARTY-NOTICES.md" LogicalName="THIRD-PARTY-NOTICES.md" />
+    <BundleResource Include="..\ClassicaCodex.Mac\THIRD-PARTY-NOTICES-MAC.md" LogicalName="THIRD-PARTY-NOTICES-MAC.md" />
+    <BundleResource Include="..\..\THIRD-PARTY-NOTICES-DOTNET.txt" LogicalName="THIRD-PARTY-NOTICES-DOTNET.txt" />
   </ItemGroup>
+
+  <!-- PDFsharp's package brings Microsoft's Segoe WP typefaces, which nothing
+       here may redistribute, and two assemblies that hold every reference to
+       them. The desktop builds leave out the same three: see
+       ExcludeProprietaryFonts in ClassicaCodex.UI.csproj. An iPad build copies,
+       trims and compiles what this list holds, so they go before any of that. -->
+  <Target Name="LeaveOutProprietaryFonts" AfterTargets="ComputeResolvedFilesToPublishList">
+    <ItemGroup>
+      <_ProprietaryAssemblies Include="@(ResolvedFileToPublish)"
+                              Condition="'%(Filename)' == 'PdfSharp.WPFonts'
+                                      Or '%(Filename)' == 'PdfSharp.Snippets'
+                                      Or '%(Filename)' == 'PdfSharp.Quality'" />
+      <ResolvedFileToPublish Remove="@(_ProprietaryAssemblies)" />
+    </ItemGroup>
+
+    <Error Condition="'@(_ProprietaryAssemblies)' == ''"
+           Text="LeaveOutProprietaryFonts matched nothing. Either PDFsharp stopped shipping these assemblies, or they were renamed and are about to go out." />
+  </Target>
 
   <Import Project="..\ClassicaCodex.Mac\Features\*\*.props" />
 

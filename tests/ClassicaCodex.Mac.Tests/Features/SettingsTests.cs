@@ -4,6 +4,7 @@ using Avalonia.Styling;
 using Avalonia.VisualTree;
 using ClassicaCodex.Data;
 using ClassicaCodex.Mac.Features.Settings;
+using ClassicaCodex.Mac.Features.Setup;
 using ClassicaCodex.Mac.Platform;
 using ClassicaCodex.Mac.Shell;
 using ClassicaCodex.UI;
@@ -18,12 +19,13 @@ public class SettingsTests
     /// pane really shows. Here that is the Mac text, which is what an iPad rewords.
     /// </summary>
     [AvaloniaFact]
-    public async Task The_AI_pane_on_an_iPad_gives_each_companys_terms_and_no_free_tier()
+    public async Task The_AI_pane_on_an_iPad_gives_Googles_terms_and_no_other_company()
     {
         var main = new MainWindow { Width = 1200, Height = 800 };
         main.Show();
         await Screens.Settle();
 
+        MacDataFolder.OnDevice = true;
         var settings = new SettingsWindow(main, SettingsWindow.Ai);
         settings.Show(main);
         await Screens.Settle(3);
@@ -35,13 +37,15 @@ public class SettingsTests
             .ToList();
 
         settings.Close();
+        MacDataFolder.OnDevice = false;
         main.Close();
 
         Assert.DoesNotContain(shown, line => line.Contains("genuinely free", StringComparison.OrdinalIgnoreCase));
         Assert.DoesNotContain(shown, line => line.Contains("no card required", StringComparison.Ordinal));
         Assert.Contains("Get an API key →", shown);
         Assert.Contains(shown, line => line.Contains("18 or older", StringComparison.Ordinal));
-        Assert.Contains(shown, line => line.Contains("under Anthropic's own terms", StringComparison.Ordinal));
+        Assert.DoesNotContain(shown, line => line.Contains("Anthropic", StringComparison.Ordinal));
+        Assert.DoesNotContain(shown, line => line.Contains("either", StringComparison.Ordinal));
     }
 
     [AvaloniaFact]

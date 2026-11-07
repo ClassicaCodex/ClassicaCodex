@@ -22,6 +22,11 @@ public sealed class MobileApp : App
         if (ApplicationLifetime is ISingleViewApplicationLifetime single)
         {
             CrashLog.Install();
+
+            // Here rather than at the first export: the Files app shows a folder
+            // made a moment before the jump to it as empty.
+            Directory.CreateDirectory(ClassicaCodex.Mac.Common.DeviceFiles.Exports);
+
             MacShell.OpenInstead = DeviceShell.Open;
             Keychain.StoreInstead = new DeviceKeychain();
             SetupRunner.StayAwake = DeviceScreen.StayAwake;
