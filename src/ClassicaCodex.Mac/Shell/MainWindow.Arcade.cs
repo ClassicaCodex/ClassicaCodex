@@ -54,6 +54,10 @@ public partial class MainWindow
     /// <summary>The arcade's two chords, on every platform: they are in no menu, being a secret.</summary>
     private bool HandleArcadeKeys(KeyEventArgs e)
     {
+        // Not on a device: it needs a keyboard to play, and Apple does not
+        // accept hidden features.
+        if (Features.Setup.MacDataFolder.OnDevice) return false;
+
         var chord = e.KeyModifiers.HasFlag(KeyModifiers.Control) && e.KeyModifiers.HasFlag(KeyModifiers.Shift);
         if (!chord) return false;
 

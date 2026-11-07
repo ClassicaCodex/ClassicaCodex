@@ -27,7 +27,7 @@ public sealed class ToolGalleryWindow : FeatureWindow
             Margin = new Thickness(0, 0, 0, 10)
         });
 
-        foreach (var section in ToolCatalog.All.GroupBy(t => t.Section))
+        foreach (var section in ToolCatalog.Offered.GroupBy(t => t.Section))
         {
             stack.Children.Add(new TextBlock { Text = ToolCatalog.Title(section.Key), Classes = { "section" }, Margin = new Thickness(2, 14, 0, 6) });
 

@@ -32,14 +32,23 @@ public static class SpeechService
 
     private const string Say = "/usr/bin/say";
 
+    /// <summary>
+    /// What to use in place of a process, which iOS does not allow. The iPad
+    /// app sets it as it starts, because this file is also compiled for the
+    /// Mac and cannot name the iOS SDK.
+    /// </summary>
+    internal static ISpeechEngine? EngineInstead { get; set; }
+
     private static readonly Lazy<string?> Espeak = new(() => OperatingSystem.IsLinux() ? SystemTools.Find("espeak-ng", "espeak") : null);
 
     public static bool IsAvailable =>
-        OperatingSystem.IsWindows() ? WindowsVoices.IsAvailable
+        EngineInstead != null ? true
+        : OperatingSystem.IsWindows() ? WindowsVoices.IsAvailable
         : OperatingSystem.IsMacOS() ? File.Exists(Say)
         : Espeak.Value != null;
 
-    public static bool IsSpeaking => OperatingSystem.IsWindows() ? WindowsVoices.IsSpeaking : _current is { HasExited: false };
+    public static bool IsSpeaking => EngineInstead is { } engine ? engine.IsSpeaking
+        : OperatingSystem.IsWindows() ? WindowsVoices.IsSpeaking : _current is { HasExited: false };
 
     /// <summary>
     /// The installed voices, as <c>say -v ?</c> lists them: a name, a locale,
@@ -50,6 +59,7 @@ public static class SpeechService
     {
         if (_voices != null) return _voices;
         if (!IsAvailable) return _voices = Array.Empty<InstalledVoiceToken>();
+        if (EngineInstead is { } engine) return _voices = engine.Voices();
         if (OperatingSystem.IsWindows()) return _voices = WindowsVoices.Installed();
 
         try
@@ -134,6 +144,12 @@ public static class SpeechService
             ? GreekPhoneticTransliterator.ToPhoneticLatin(text)
             : text;
 
+        if (EngineInstead is { } engine)
+        {
+            engine.Speak(toSpeak, SpeechSettings.PreferredVoiceName);
+            return;
+        }
+
         if (OperatingSystem.IsWindows())
         {
             WindowsVoices.Speak(toSpeak);
@@ -177,6 +193,12 @@ public static class SpeechService
 
     public static void Stop()
     {
+        if (EngineInstead is { } engine)
+        {
+            engine.Stop();
+            return;
+        }
+
         if (OperatingSystem.IsWindows())
         {
             WindowsVoices.Stop();
@@ -197,3 +219,15 @@ public static class SpeechService
 }
 
 public record InstalledVoiceToken(string Name, string CultureDisplayName, string Gender);
+
+/// <summary>A system's own speech, for one that has no command to start.</summary>
+internal interface ISpeechEngine
+{
+    bool IsSpeaking { get; }
+
+    IReadOnlyList<InstalledVoiceToken> Voices();
+
+    void Speak(string text, string? voiceName);
+
+    void Stop();
+}

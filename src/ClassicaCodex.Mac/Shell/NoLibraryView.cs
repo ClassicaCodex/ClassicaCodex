@@ -3,6 +3,7 @@ using Avalonia.Controls;
 using Avalonia.Layout;
 using Avalonia.Media;
 using ClassicaCodex.Mac.Common;
+using ClassicaCodex.Mac.Features.Setup;
 using ClassicaCodex.Mac.Platform;
 
 namespace ClassicaCodex.Mac.Shell;
@@ -22,6 +23,27 @@ public sealed class NoLibraryView : UserControl
             ? new Image { Source = painting, Width = 240, Height = 180, Stretch = Stretch.Uniform, HorizontalAlignment = HorizontalAlignment.Left, Margin = new Thickness(-16, 0, 0, -8) }
             : Art.Tile("authors", "Library", 84);
         tile.HorizontalAlignment = HorizontalAlignment.Left;
+
+        if (MacDataFolder.OnDevice)
+        {
+            var begin = new Button { Content = "Set Up Your Library", Classes = { "accent" }, MinWidth = 200 };
+            begin.Click += async (_, _) => await main.CreateLibraryAsync();
+
+            var welcome = new StackPanel { Spacing = 12, MaxWidth = 560, Margin = new Thickness(56), VerticalAlignment = VerticalAlignment.Center };
+            welcome.Children.Add(tile);
+            welcome.Children.Add(new TextBlock { Text = "Welcome to Classica Codex", Classes = { "display" }, FontSize = 34, TextWrapping = TextWrapping.Wrap });
+            welcome.Children.Add(new TextBlock
+            {
+                Text = "The Greek and Latin classics, their translations and dictionaries, on this iPad. The first step "
+                       + "is to download them. After that, reading and searching need no connection.",
+                TextWrapping = TextWrapping.Wrap,
+                FontSize = 14,
+                Classes = { "muted" }
+            });
+            welcome.Children.Add(begin);
+            Content = new ScrollViewer { Content = welcome };
+            return;
+        }
 
         var open = new Button { Content = "Open Library…", Classes = { "accent" }, MinWidth = 150 };
         open.Click += async (_, _) => await main.OpenLibraryAsync();

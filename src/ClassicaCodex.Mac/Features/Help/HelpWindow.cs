@@ -145,6 +145,7 @@ public sealed class HelpWindow : FeatureWindow
         var current = _topicList.SelectedItem as string;
 
         var titles = HelpTopics.All
+            .Where(t => !Setup.MacDataFolder.OnDevice || t.Title != "Ptolemy's Harmony")
             .Where(t => query.Length == 0
                         || t.Title.Contains(query, StringComparison.CurrentCultureIgnoreCase)
                         || HelpOutline.ForDisplay(t.Body).Contains(query, StringComparison.CurrentCultureIgnoreCase))

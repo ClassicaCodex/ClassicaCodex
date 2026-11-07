@@ -33,12 +33,20 @@ public static class SetupFeature
             return;
         }
 
+        var quickStart = false;
+
         try
         {
             var mode = await SetupChoiceWindow.AskAsync(host.Window, LibraryIsEmpty(host));
             if (mode == null) return;
 
-            _open = mode == SetupMode.Guided ? new GuidedSetupWindow(host) : new AdvancedSetupWindow(host);
+            quickStart = mode == SetupMode.QuickStart;
+            _open = mode switch
+            {
+                SetupMode.QuickStart => new QuickStartWindow(host),
+                SetupMode.Guided => new GuidedSetupWindow(host),
+                _ => new AdvancedSetupWindow(host)
+            };
             await _open.ShowDialog(host.Window);
         }
         catch (Exception ex)
@@ -54,6 +62,13 @@ public static class SetupFeature
         // Each step reloads the library as it finishes; this is for whatever
         // finished without one - a library file chosen, a step cancelled.
         if (DbConnectionFactory.IsConfigured) await host.ReloadLibraryAsync();
+
+        // Quick Start is for someone who wants to read something, so they do.
+        if (quickStart && host.Window is MainWindow { OpenWork: null } main
+            && main.LibraryWorks.FirstOrDefault(work => work.Title == "Iliad") is { } iliad)
+        {
+            await host.OpenWorkAsync(iliad.WorkId);
+        }
     }
 
     /// <summary>A library with nothing in it - or no library at all - is the case Guided exists for.</summary>

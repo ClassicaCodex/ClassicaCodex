@@ -1,3 +1,5 @@
+using ClassicaCodex.Mac.Features.Setup;
+
 namespace ClassicaCodex.Mac.Shell;
 
 /// <summary>Where a tool sits in the sidebar's list and the Tools menu.</summary>
@@ -27,6 +29,13 @@ public sealed record ToolEntry(
 /// </summary>
 public static class ToolCatalog
 {
+    /// <summary>
+    /// The tools to offer. Ptolemy's Harmony has no page an iPad can open yet,
+    /// so it stays off the lists there rather than sit as a dead end.
+    /// </summary>
+    public static IReadOnlyList<ToolEntry> Offered =>
+        MacDataFolder.OnDevice ? All.Where(tool => tool.Key != "harmonics").ToList() : All;
+
     public static IReadOnlyList<ToolEntry> All { get; } = new ToolEntry[]
     {
         new("search", "Search", "Every passage, every edition", "Search", "search", ToolSection.Reading),

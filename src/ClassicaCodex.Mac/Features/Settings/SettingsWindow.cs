@@ -278,7 +278,9 @@ public sealed class SettingsWindow : FeatureWindow
         var claude = Section("Anthropic (Claude)",
             "A separate developer account from claude.ai or a Claude Pro or Max subscription - even if you already pay for one of those, this needs its own setup. "
             + "Requires a payment method; no ongoing free tier, though a single passage costs a small fraction of a cent.");
-        claude.Children.Add(Links(("Get an API key →", "https://console.anthropic.com"), ("See current pricing →", "https://www.anthropic.com/pricing")));
+        claude.Children.Add(Setup.MacDataFolder.OnDevice
+            ? Links(("Get an API key →", "https://console.anthropic.com"))
+            : Links(("Get an API key →", "https://console.anthropic.com"), ("See current pricing →", "https://www.anthropic.com/pricing")));
         claude.Children.Add(KeyRow(anthropic));
         root.Children.Add(claude);
 
@@ -298,8 +300,21 @@ public sealed class SettingsWindow : FeatureWindow
 
         var status = new TextBlock { Classes = { "caption" }, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 10, 0, 0) };
         var save = new Button { Content = "Save", Classes = { "accent" }, MinWidth = 96, HorizontalAlignment = HorizontalAlignment.Right, Margin = new Thickness(0, 18, 0, 0) };
-        save.Click += (_, _) =>
+        save.Click += async (_, _) =>
         {
+            if (Setup.MacDataFolder.OnDevice)
+            {
+                var allowed = await AskToUseAsync(anthropic, TranslationSettings.AnthropicApiKey, "Anthropic", "the company that makes Claude", string.Empty);
+                allowed &= await AskToUseAsync(gemini, TranslationSettings.GeminiApiKey, "Google", "through its Gemini service",
+                    " Google's free tier may use what you send to improve its models.");
+
+                if (!allowed)
+                {
+                    status.Text = "That key was not saved, so nothing will be sent there.";
+                    return;
+                }
+            }
+
             var stored = TranslationSettings.Save(anthropic.Text, gemini.Text, confirm.IsChecked == true);
             status.Text = SystemWords.Say(stored
                 ? "Saved. The keys are in your login keychain, under “Classica Codex” in Keychain Access."
@@ -337,6 +352,27 @@ public sealed class SettingsWindow : FeatureWindow
         stack.Children.Add(box);
         stack.Children.Add(row);
         return stack;
+    }
+
+    /// <summary>
+    /// Asks before a new key is kept, because a key is what lets anything go
+    /// to that company, and Apple requires explicit permission for that. Every
+    /// AI feature needs a key, so this one question covers them all. Refused,
+    /// the box goes back to what it held.
+    /// </summary>
+    private async Task<bool> AskToUseAsync(TextBox box, string? saved, string company, string who, string caveat)
+    {
+        var key = box.Text?.Trim();
+        if (string.IsNullOrEmpty(key) || key == saved) return true;
+
+        var allowed = await Alert.Confirm(this, $"Allow Classica Codex to use {company}?",
+            $"When you press a button that uses AI, this app sends what that button needs to {company}, {who}: the "
+            + "passage or word in question, and for the research tools, your research notes. It goes from this iPad "
+            + $"on your own key, and nothing is sent until you press such a button.{caveat}",
+            confirm: "Allow", cancel: "Don't Allow");
+
+        if (!allowed) box.Text = saved ?? string.Empty;
+        return allowed;
     }
 
     private static Control Links(params (string Text, string Url)[] links)
@@ -437,7 +473,8 @@ public sealed class SettingsWindow : FeatureWindow
         };
 
         var buttons = new WrapPanel { Orientation = Orientation.Horizontal };
-        foreach (var b in new[] { reveal, open, create })
+        // A device has the one library, in the one place it looks.
+        foreach (var b in Setup.MacDataFolder.OnDevice ? new[] { reveal } : new[] { reveal, open, create })
         {
             b.Margin = new Thickness(0, 0, 8, 8);
             buttons.Children.Add(b);

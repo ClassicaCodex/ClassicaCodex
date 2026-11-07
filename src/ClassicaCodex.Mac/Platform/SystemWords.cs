@@ -72,6 +72,16 @@ internal static class SystemWords
     private static readonly (string Mac, string Device)[] DevicePhrases =
     {
         ("Show it in the Finder?", "Show it in Files?"),
+        ("hear the line in a macOS voice", "hear the line in one of this iPad's voices"),
+        ("Speaks the selected passage using whatever voices macOS already has installed - completely offline",
+            "Speaks the selected passage using whatever voices this iPad already has - completely offline"),
+        ("macOS has voices for modern Greek but none for the ancient language",
+            "iOS has voices for modern Greek but none for the ancient language"),
+        ("The voices are the Mac's own, from System Settings > Accessibility > Spoken Content > System voice > Manage Voices. This app can't add voices macOS doesn't already have - add one there and it will appear here.",
+            "The voices are the iPad's own. More can be added in its Settings app, under Accessibility, and they will appear here."),
+        ("Hands a passage to the voices macOS already has.", "Hands a passage to the voices on this iPad."),
+        ("More voices: System Settings → Accessibility → Spoken Content → System Voice → Manage Voices.",
+            "More voices can be added in the iPad's Settings app, under Accessibility."),
         ("Following macOS switches between them with the system, at sunset if you have it set that way.",
             "Following the system switches between them with this iPad's appearance setting."),
         ("⌘Return to bookmark", string.Empty),

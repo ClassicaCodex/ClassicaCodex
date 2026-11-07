@@ -25,6 +25,7 @@ public sealed class MobileApp : App
             MacShell.OpenInstead = DeviceShell.Open;
             Keychain.StoreInstead = new DeviceKeychain();
             SetupRunner.StayAwake = DeviceScreen.StayAwake;
+            SpeechService.EngineInstead = new DeviceSpeech();
             PrepareDownloadFolder();
 
             TouchGestures.Install();

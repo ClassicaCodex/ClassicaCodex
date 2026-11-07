@@ -98,6 +98,12 @@
                       Link="Assets\%(RecursiveDir)%(Filename)%(Extension)" />
   </ItemGroup>
 
+  <ItemGroup>
+    <!-- Apple refuses an upload without it. The entries are what the .NET
+         runtime itself needs, and the app collects nothing. -->
+    <BundleResource Include="PrivacyInfo.xcprivacy" LogicalName="PrivacyInfo.xcprivacy" />
+  </ItemGroup>
+
   <Import Project="..\ClassicaCodex.Mac\Features\*\*.props" />
 
 </Project>

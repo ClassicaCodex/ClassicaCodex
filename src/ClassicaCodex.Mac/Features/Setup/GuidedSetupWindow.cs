@@ -300,7 +300,7 @@ public sealed class GuidedSetupWindow : FeatureWindow
             FontSize = 13.5,
             LineHeight = 21
         });
-        stack.Children.Add(new Border
+        if (!MacDataFolder.OnDevice) stack.Children.Add(new Border
         {
             Classes = { "notice" },
             Margin = new Thickness(0, 8, 0, 0),
@@ -466,6 +466,9 @@ public sealed class GuidedSetupWindow : FeatureWindow
             };
             ToolTip.SetTip(button, StepName(step));
 
+            // A device has one library in one folder, so these ask nothing.
+            button.IsVisible = !MacDataFolder.OnDevice || step is not (DatabaseStepIndex or DataFolderStepIndex);
+
             var target = step;
             button.Click += async (_, _) => await GoToStepAsync(target);
 
@@ -546,6 +549,9 @@ public sealed class GuidedSetupWindow : FeatureWindow
     /// </summary>
     internal async Task GoToStepAsync(int target)
     {
+        if (MacDataFolder.OnDevice && target is DatabaseStepIndex or DataFolderStepIndex)
+            target = target > _currentStep ? FirstSourceStepIndex : 0;
+
         if (_stepRunning || target < 0 || target >= TotalSteps || target == _currentStep)
         {
             RenderStep();

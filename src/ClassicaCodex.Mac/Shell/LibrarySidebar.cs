@@ -144,6 +144,12 @@ public sealed class LibrarySidebar : UserControl
                 (item, _) => BuildTreeRow(item),
                 item => item is AuthorNode author ? author.Works : Array.Empty<object>())
         };
+
+        // Selecting a long title would slide the whole list sideways on a
+        // device, leaving the start of every row off the edge.
+        if (Features.Setup.MacDataFolder.OnDevice)
+            ScrollViewer.SetHorizontalScrollBarVisibility(_tree, Avalonia.Controls.Primitives.ScrollBarVisibility.Disabled);
+
         _tree.SelectionChanged += OnTreeSelectionChanged;
         _tree.ContextRequested += OnTreeContextRequested;
         _tree.DoubleTapped += (_, _) =>
@@ -616,7 +622,7 @@ public sealed class LibrarySidebar : UserControl
     private static List<object> BuildToolItems()
     {
         var items = new List<object>();
-        foreach (var group in ToolCatalog.All.GroupBy(t => t.Section))
+        foreach (var group in ToolCatalog.Offered.GroupBy(t => t.Section))
         {
             items.Add(group.Key);
             items.AddRange(group);

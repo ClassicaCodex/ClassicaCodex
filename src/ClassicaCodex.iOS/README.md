@@ -21,7 +21,16 @@ What it adds is what a device with no windows needs:
 | `MobileApp.cs`, `AppDelegate.cs` | Start the app, connect the two files below, settle the download folder and open the library in its Documents folder. |
 | `DeviceShell.cs` | Opens links in the browser and folders in the Files app. A Mac does this by starting `open`, and iOS does not let an app start a process. |
 | `DeviceKeychain.cs` | Keeps the API keys in the iOS keychain. |
+| `DeviceSpeech.cs` | Read Aloud through the iPad's own voices, as a Mac starts `say`. |
+| `PrivacyInfo.xcprivacy` | The privacy manifest Apple requires. It holds what the .NET runtime needs and declares that nothing is collected. |
 | `DeviceScreen.cs` | Keeps the screen on during a setup step, because iOS suspends an app when the screen locks. |
+
+On a first run the app offers Quick Start, which installs the Greek and Latin
+classics, the dictionaries and the word index in one go, using about 2 GB, and
+opens the Iliad. Everything else is under Setup. The arcade is off, the file
+controls a device has no use for are hidden, and Harmony stays off the tool lists
+until it has a public page. Saving an API key asks permission first, naming the
+company, because a key is what lets anything be sent there.
 
 The Mac code knows about the iPad in a few places:
 
@@ -132,6 +141,7 @@ that iPad:
   collections match a library built on a desktop
 - An error in an action going to the log, with the app still running
 - A link handed to iOS, which accepted it, and the Files app reported as reachable
+- By hand: a jump from Search, the API key link, and an export saved to iCloud Drive
 
 Everything below was tested in the iPad simulator, against a full library of
 3.4 GB:
@@ -146,6 +156,9 @@ Everything below was tested in the iPad simulator, against a full library of
 - A key saved in Settings surviving a reinstall, and then being removed
 - Steps run from Advanced Setup, and from Guided Setup starting with no library:
   Create a New Library, install a step, and the work appears in the library
+- A first run from an empty app: Quick Start took about 10 minutes in a debug build
+- The on-screen keyboard, with a dialog staying clear of it in landscape
+- The permission question for AI, refused and allowed
 - A double-tap on a search result, the passage highlighted in the reader, and the
   way back to the results as they were
 - Long-press menus in Search, swiping a table, and exporting passages
@@ -170,18 +183,10 @@ repository.
   window fits now, but few of the buttons inside have been pressed. Five windows
   need a live session to reach, and the translation workbench needs a translation
   under way.
-- **Saving outside the app is unproven on a real iPad.** It writes to a plain path,
-  and the simulator is not sandboxed. iCloud Drive may refuse it.
 - **Medieval Hands shows boxes** for scribes' abbreviations, until a font such as
   Junicode comes with the app.
-- **A long-press on a row of the library sidebar** opened no menu, and pushed the
-  list sideways.
-- **The on-screen keyboard covers the lower part of a page.** Nothing moves out
-  of its way yet.
 - **Typing on iOS's own Greek keyboard has not been tried.** Search ignores
   accents, so it should not need polytonic input, but nobody has checked.
-- **Read Aloud does nothing**, because `say` does not exist on iOS. It needs
-  AVSpeechSynthesizer.
 - **BFM is unproven.** It is let through iOS's block on plain http, but the site
   was not answering when this was written.
 - **A setup step stops if the app leaves the screen.** The screen is kept on while

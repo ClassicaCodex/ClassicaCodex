@@ -7,11 +7,12 @@ using ClassicaCodex.Mac.Common;
 
 namespace ClassicaCodex.Mac.Features.Setup;
 
-/// <summary>The two ways into setup.</summary>
+/// <summary>The ways into setup.</summary>
 public enum SetupMode
 {
     Guided,
-    Advanced
+    Advanced,
+    QuickStart
 }
 
 /// <summary>
@@ -23,6 +24,10 @@ public enum SetupMode
 /// Guided is the default button, as it is on Windows, and the obvious one on
 /// an empty library, which is what this says when it is opened on one -
 /// straight after a new library is created, most often.
+///
+/// A device gets Quick Start first, and no Advanced Setup, which is all folders
+/// and addresses that mean nothing there. Quick Start's card says how much it
+/// will download, because Apple asks for that before a first download.
 /// </summary>
 public sealed class SetupChoiceWindow : Window
 {
@@ -40,12 +45,16 @@ public sealed class SetupChoiceWindow : Window
         ShowInTaskbar = false;
         WindowStartupLocation = WindowStartupLocation.CenterOwner;
 
+        var onDevice = MacDataFolder.OnDevice;
+
         _guided = Choice(
-            "setup", "Setup", "Guided Setup", "Recommended",
-            "One step at a time, plain language, no file paths or technical detail. The right choice for a first-time "
-            + "setup, or anyone who'd rather not think about where things go.",
+            "setup", "Setup", onDevice ? "Choose Collections" : "Guided Setup", onDevice ? null : "Recommended",
+            onDevice
+                ? "Every collection, one step at a time, so you can pick the ones you want. The main collections use about 12 GB of space."
+                : "One step at a time, plain language, no file paths or technical detail. The right choice for a first-time "
+                  + "setup, or anyone who'd rather not think about where things go.",
             SetupMode.Guided);
-        _guided.IsDefault = true;
+        _guided.IsDefault = !onDevice;
 
         _advanced = Choice(
             "settings", "Sliders", "Advanced Setup", null,
@@ -53,9 +62,17 @@ public sealed class SetupChoiceWindow : Window
             + "have the files downloaded, or want more control over where they go.",
             SetupMode.Advanced);
 
+        var quick = Choice(
+            "authors", "Library", "Quick Start", "Recommended",
+            "The Greek and Latin classics with their translations, and the dictionaries. Uses about 2 GB of space, and "
+            + "takes about ten minutes on a good connection.",
+            SetupMode.QuickStart);
+        quick.IsDefault = onDevice;
+
         var cards = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 14 };
+        if (onDevice) cards.Children.Add(quick);
         cards.Children.Add(_guided);
-        cards.Children.Add(_advanced);
+        if (!onDevice) cards.Children.Add(_advanced);
 
         var cancel = new Button { HorizontalContentAlignment = HorizontalAlignment.Center, Content = "Cancel", MinWidth = 90, IsCancel = true, HorizontalAlignment = HorizontalAlignment.Right };
         cancel.Click += (_, _) => Close();
@@ -63,7 +80,9 @@ public sealed class SetupChoiceWindow : Window
         var layout = new StackPanel { Margin = new Thickness(26, 22, 26, 18), Spacing = 14 };
         layout.Children.Add(new TextBlock { Text = "How would you like to set things up?", Classes = { "h1" } });
         layout.Children.Add(new Border { MaxWidth = 594, HorizontalAlignment = HorizontalAlignment.Left, Child = SetupLook.Text(
-            libraryIsEmpty
+            onDevice
+                ? "Everything comes from its original open source, and is downloaded to this iPad."
+                : libraryIsEmpty
                 ? "Your library is empty, so Guided Setup is the place to start: it begins with where the library and the downloads go, then takes the collections one at a time."
                 : "Your library already has texts in it. Either way shows what is installed and what is still to come, and installs nothing until you press its button.",
             "muted") });
@@ -78,7 +97,7 @@ public sealed class SetupChoiceWindow : Window
             e.Handled = true;
         };
 
-        Opened += (_, _) => _guided.Focus();
+        Opened += (_, _) => (onDevice ? quick : _guided).Focus();
     }
 
     /// <summary>Asks, and returns the choice, or null if the window was closed without one.</summary>

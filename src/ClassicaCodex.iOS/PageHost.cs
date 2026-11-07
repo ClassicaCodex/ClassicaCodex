@@ -1,5 +1,6 @@
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Controls.Platform;
 using Avalonia.Controls.Primitives;
 using Avalonia.Layout;
 using Avalonia.Media;
@@ -30,6 +31,7 @@ public sealed class PageHost : Panel
     private readonly StackPanel _wayBackBar;
     private PageWindow? _home;
     private Thickness _safeArea;
+    private double _keyboard;
 
     public PageHost()
     {
@@ -72,21 +74,37 @@ public sealed class PageHost : Panel
     /// <summary>
     /// Keeps every page clear of the status bar and the home indicator. Set on
     /// the pages rather than on this panel, so the bars still show the page colour.
+    /// The on-screen keyboard counts too: a page ends where it begins, or the
+    /// field being typed in can be underneath it.
     /// </summary>
     protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
     {
         base.OnAttachedToVisualTree(e);
 
-        if (Avalonia.Controls.TopLevel.GetTopLevel(this)?.InsetsManager is not { } insets) return;
+        var top = Avalonia.Controls.TopLevel.GetTopLevel(this);
+
+        if (top?.InputPane is { } keyboard)
+        {
+            keyboard.StateChanged += (_, args) =>
+            {
+                _keyboard = args.NewState == InputPaneState.Open ? Math.Max(0, Bounds.Height - args.EndRect.Top) : 0;
+                ApplySafeArea(_safeArea);
+            };
+        }
+
+        if (top?.InsetsManager is not { } insets) return;
 
         ApplySafeArea(insets.SafeAreaPadding);
         insets.SafeAreaChanged += (_, args) => ApplySafeArea(args.SafeAreaPadding);
     }
 
+    private Thickness FrameMargin =>
+        new(_safeArea.Left, _safeArea.Top, _safeArea.Right, Math.Max(_safeArea.Bottom, _keyboard));
+
     private void ApplySafeArea(Thickness padding)
     {
         _safeArea = padding;
-        foreach (var entry in _stack) entry.Frame.Margin = padding;
+        foreach (var entry in _stack) entry.Frame.Margin = FrameMargin;
         _wayBackBar.Margin = new Thickness(0, 0, 0, padding.Bottom + 16);
     }
 
@@ -113,7 +131,7 @@ public sealed class PageHost : Panel
         if (_stack.Count > 0) _stack[^1].Page.RaiseDeactivated();
         _home ??= page;
         _stack.Add((page, frame));
-        frame.Margin = _safeArea;
+        frame.Margin = FrameMargin;
         Children.Add(frame);
         ShowWayBack();
 

@@ -125,6 +125,8 @@ public sealed class TranslatePassageWindow : FeatureWindow
         };
 
         var moreVoices = new Button { Content = "Get more voices…", Classes = { "link" }, VerticalAlignment = VerticalAlignment.Center };
+        // The address opens System Settings, which an iPad does not have.
+        moreVoices.IsVisible = !Setup.MacDataFolder.OnDevice;
         moreVoices.Click += (_, _) => OpenSpokenContentSettings();
 
         var voiceRow = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 10 };

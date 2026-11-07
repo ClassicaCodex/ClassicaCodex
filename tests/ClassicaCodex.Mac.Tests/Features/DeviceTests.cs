@@ -1,6 +1,11 @@
+using Avalonia.Controls;
+using Avalonia.Headless.XUnit;
+using Avalonia.VisualTree;
 using ClassicaCodex.Data.Repositories;
 using ClassicaCodex.Ingestion;
+using ClassicaCodex.Mac.Features.Setup;
 using ClassicaCodex.Mac.Platform;
+using ClassicaCodex.Mac.Shell;
 using ClassicaCodex.UI;
 using Xunit;
 
@@ -116,6 +121,80 @@ public class DeviceTests
     [InlineData("μῆνιν ἄειδε θεὰ Πηληϊάδεω Ἀχιλῆος")]
     public void A_text_being_read_is_never_reworded(string line) =>
         Assert.Equal(line, SystemWords.ForTouch(line));
+
+    [Fact]
+    public void Harmony_stays_off_the_lists_until_it_has_a_page_a_device_can_open()
+    {
+        Assert.Contains(ToolCatalog.Offered, tool => tool.Key == "harmonics");
+
+        MacDataFolder.OnDevice = true;
+        try
+        {
+            Assert.DoesNotContain(ToolCatalog.Offered, tool => tool.Key == "harmonics");
+            Assert.Contains(ToolCatalog.Offered, tool => tool.Key == "antikythera");
+        }
+        finally
+        {
+            MacDataFolder.OnDevice = false;
+        }
+    }
+
+    [AvaloniaFact]
+    public void A_device_is_offered_Quick_Start_and_says_how_much_it_will_download()
+    {
+        MacDataFolder.OnDevice = true;
+        try
+        {
+            var chooser = new SetupChoiceWindow(libraryIsEmpty: true);
+            chooser.Show();
+
+            var said = chooser.GetVisualDescendants().OfType<TextBlock>().Select(text => text.Text).ToList();
+            Assert.Contains("Quick Start", said);
+            Assert.Contains(said, text => text != null && text.Contains("about 2 GB of space"));
+            Assert.DoesNotContain("Advanced Setup", said);
+            chooser.Close();
+        }
+        finally
+        {
+            MacDataFolder.OnDevice = false;
+        }
+    }
+
+    [Fact]
+    public void Speech_goes_to_the_device_and_Greek_is_transliterated_first()
+    {
+        var engine = new FakeSpeech();
+        SpeechService.EngineInstead = engine;
+
+        try
+        {
+            Assert.True(SpeechService.IsAvailable);
+
+            SpeechService.Speak("μῆνιν", "grc");
+            var spoken = Assert.Single(engine.Spoken);
+            Assert.DoesNotContain("μ", spoken);
+            Assert.True(engine.Stopped > 0);
+        }
+        finally
+        {
+            SpeechService.EngineInstead = null;
+        }
+    }
+
+    private sealed class FakeSpeech : ISpeechEngine
+    {
+        public List<string> Spoken { get; } = new();
+
+        public int Stopped { get; private set; }
+
+        public bool IsSpeaking => false;
+
+        public IReadOnlyList<InstalledVoiceToken> Voices() => Array.Empty<InstalledVoiceToken>();
+
+        public void Speak(string text, string? voiceName) => Spoken.Add(text);
+
+        public void Stop() => Stopped++;
+    }
 
     private sealed class FakeStore : ISecretStore
     {
