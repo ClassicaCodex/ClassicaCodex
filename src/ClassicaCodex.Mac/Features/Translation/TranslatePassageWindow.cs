@@ -191,8 +191,9 @@ public sealed class TranslatePassageWindow : FeatureWindow
         // AI translation.
         var warning = new TextBlock
         {
-            Text = "Sends this passage over the internet - the only part of Classica Codex that isn't " +
-                   "offline. Nothing is sent unless you click one of the two buttons below.",
+            Text = SystemWords.Say(
+                "Sends this passage over the internet - the only part of Classica Codex that isn't " +
+                "offline. Nothing is sent unless you click one of the two buttons below."),
             TextWrapping = TextWrapping.Wrap,
             Classes = { "warning" }
         };
@@ -473,7 +474,7 @@ public sealed class TranslatePassageWindow : FeatureWindow
         _claude.IsEnabled = true;
 
         var hasGeminiKey = !string.IsNullOrWhiteSpace(TranslationSettings.GeminiApiKey);
-        _geminiLabel.Set(hasGeminiKey ? "Translate" : "Key", hasGeminiKey ? "Translate with Gemini (free)" : "Configure Gemini Key…");
+        _geminiLabel.Set(hasGeminiKey ? "Translate" : "Key", hasGeminiKey ? SystemWords.Say("Translate with Gemini (free)") : "Configure Gemini Key…");
         _gemini.IsEnabled = true;
     }
 
@@ -495,10 +496,11 @@ public sealed class TranslatePassageWindow : FeatureWindow
         {
             var confirmed = await Alert.Confirm(this,
                 $"Send to {providerName}'s API?",
-                $"This will send the selected passage (about {_node.Text.Length} characters) to " +
-                $"{providerName}'s API over the internet, so it can be translated. This is the one " +
-                "thing in Classica Codex that isn't offline.\n\n" +
-                "Continue? (You can turn this confirmation off in AI Translation Settings.)",
+                SystemWords.Say(
+                    $"This will send the selected passage (about {_node.Text.Length} characters) to " +
+                    $"{providerName}'s API over the internet, so it can be translated. This is the one " +
+                    "thing in Classica Codex that isn't offline.\n\n" +
+                    "Continue? (You can turn this confirmation off in AI Translation Settings.)"),
                 "Send", "Cancel", AlertKind.Warning);
 
             if (!confirmed) return;

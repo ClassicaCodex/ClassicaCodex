@@ -75,7 +75,7 @@ internal sealed class QuickStartWindow : FeatureWindow
 
         var layout = new StackPanel { Margin = new Thickness(26, 22), Spacing = 14 };
         layout.Children.Add(new TextBlock { Text = "Setting up your library", Classes = { "h1" } });
-        layout.Children.Add(SetupLook.Text("Keep Classica Codex on screen until this finishes. iOS pauses an app that is switched away from.", "muted"));
+        layout.Children.Add(SetupLook.Text("Keep Classica Codex on screen until this finishes. iPadOS pauses an app that is switched away from.", "muted"));
         layout.Children.Add(rows);
         layout.Children.Add(_progress);
         layout.Children.Add(_status);

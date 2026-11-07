@@ -482,7 +482,8 @@ public sealed class TranslationWorkbenchWindow : FeatureWindow
             Text = MacKeys ? "⌘↩ save and next   ⌘[ ⌘] move   ⌘S save   ⌘L go to" : "Ctrl+Enter save and next   Ctrl+[ ] move   Ctrl+S save   Ctrl+L go to",
             Classes = { "faint" },
             FontSize = 11.5,
-            VerticalAlignment = VerticalAlignment.Center
+            VerticalAlignment = VerticalAlignment.Center,
+            IsVisible = !Setup.MacDataFolder.OnDevice
         };
 
         _statusLabel = new TextBlock { Classes = { "caption" }, VerticalAlignment = VerticalAlignment.Center, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(16, 0) };
@@ -1243,9 +1244,10 @@ public sealed class TranslationWorkbenchWindow : FeatureWindow
         if (!TranslationSettings.AlwaysConfirmBeforeSending) return true;
 
         return await Alert.Confirm(this, "Send to Gemini's API?",
-            $"This will send {what} (about {characters:N0} characters) to Gemini's API over the " +
-            "internet. This is the one thing in Classica Codex that isn't offline.\n\n" +
-            "Continue? (You can turn this confirmation off in AI Translation Settings.)",
+            SystemWords.Say(
+                $"This will send {what} (about {characters:N0} characters) to Gemini's API over the " +
+                "internet. This is the one thing in Classica Codex that isn't offline.\n\n" +
+                "Continue? (You can turn this confirmation off in AI Translation Settings.)"),
             "Send", "Cancel", AlertKind.Warning);
     }
 

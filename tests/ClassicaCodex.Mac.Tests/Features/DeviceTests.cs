@@ -3,6 +3,8 @@ using Avalonia.Headless.XUnit;
 using Avalonia.VisualTree;
 using ClassicaCodex.Data.Repositories;
 using ClassicaCodex.Ingestion;
+using ClassicaCodex.Mac.Features.About;
+using ClassicaCodex.Mac.Features.Help;
 using ClassicaCodex.Mac.Features.Setup;
 using ClassicaCodex.Mac.Platform;
 using ClassicaCodex.Mac.Shell;
@@ -102,7 +104,7 @@ public class DeviceTests
     [InlineData("Saved. The keys are in your login keychain, under “Classica Codex” in Keychain Access.", "Saved. The keys are in this iPad's keychain.")]
     [InlineData("Follow macOS", "Follow System")]
     [InlineData("usually about 9 gigabytes, and two to three hours on a decent connection with everything selected - mostly unattended, and the Greek word-form data is about an hour of that on its own.",
-        "usually about 9 gigabytes, and about half an hour for the main Greek and Latin collections on a good connection. Keep Classica Codex on screen while a step runs: iOS pauses an app that is switched away from, and the step would then have to start again.")]
+        "usually about 9 gigabytes, and about half an hour for the main Greek and Latin collections on a good connection. Keep Classica Codex on screen while a step runs: iPadOS pauses an app that is switched away from, and the step would then have to start again.")]
     public void An_iPad_says_what_is_true_of_an_iPad(string mac, string device) =>
         Assert.Equal(device, SystemWords.ForDevice(mac));
 
@@ -114,6 +116,99 @@ public class DeviceTests
     [InlineData("Merge, split, or set an author on a selection. ⇧-click or ⌘-click to select several rows.", "Merge, split, or set an author on a selection.")]
     public void A_finger_is_told_what_a_finger_can_do(string mouse, string finger) =>
         Assert.Equal(finger, SystemWords.ForTouch(mouse));
+
+    [Theory]
+    [InlineData("Google (Gemini) - free, no card required", "Google (Gemini)")]
+    [InlineData("Get a free API key →", "Get an API key →")]
+    [InlineData("Translate with Gemini (free)", "Translate with Gemini")]
+    [InlineData("Find Echoes with Gemini (free)", "Find Echoes with Gemini")]
+    public void An_iPad_does_not_sell_a_developer_account_as_free(string mac, string device) =>
+        Assert.Equal(device, SystemWords.ForDevice(mac));
+
+    [Fact]
+    public void The_Help_on_an_iPad_gives_Googles_limits_instead_of_the_free_tier()
+    {
+        var mac = HelpTopics.All.Single(topic => topic.Title == "Translate").Body;
+        var device = SystemWords.ForDevice(mac);
+
+        Assert.Contains("Genuinely free", mac);
+        Assert.DoesNotContain("Genuinely free", device);
+        Assert.Contains("18 or older", device);
+        Assert.Contains("the EEA, Switzerland and the UK", device);
+        Assert.Contains("under Anthropic's own terms", device);
+    }
+
+    [Fact]
+    public void The_Help_on_an_iPad_describes_a_touch_screen_and_not_a_desktop()
+    {
+        var left = HelpTopics.All
+            .Where(topic => topic.Title != "Ptolemy's Harmony")
+            .SelectMany(topic => SystemWords.ForDevice(HelpOutline.Expand(topic.Body)).Split('\n')
+                .Where(line => DesktopWords.Any(word => line.Contains(word, StringComparison.Ordinal)))
+                .Select(line => $"{topic.Title}: {line.Trim()}"))
+            .ToList();
+
+        Assert.Empty(left);
+    }
+
+    private static readonly string[] DesktopWords =
+    {
+        "Ctrl+", "Alt+", "Option-", "⌘", "⇧", "⌥", "File >", "Go >", "menu bar", "Tools menu", "Go menu", "View menu",
+        "Help menu", "Instruments menu", "Hover", "hover", "Control-click", " click", "Click ", "clicking", "It works offline",
+        "Finder", "file manager", "Time Machine", "View >", "Research menu", "Font Book", "your computer", "your desktop", "your Mac",
+        "Windows", "macOS", "either machine", "touch and holding", "Zotero's local", "iOS ", "The README", "Advanced Setup", "Guided Setup", "this machine", "another machine",
+        "%DATABASE%", "%DOWNLOADS%", "%PREFERENCES%", "%ERRORS_LOG%", "%SKIPPED_LOG%", "/var/", "~/",
+    };
+
+    [Theory]
+    [InlineData("Where your data lives", "classicacodex.db")]
+    [InlineData("When something looks wrong", "errors.log, in the ClassicaCodex folder")]
+    [InlineData("Getting started", "Quick Start (recommended)")]
+    [InlineData("The Antikythera Mechanism", "It needs a connection")]
+    [InlineData("Getting started", "A tool opens as a full page, with Back at its top left.")]
+    [InlineData("Tags and the Myth Network", "a folder called Figures in this app's folder in the Files app")]
+    [InlineData("Research Bench", "choose Research Bench in the sidebar's Tools list")]
+    [InlineData("Exporting passages", "Choose a place inside the Classica Codex folder")]
+    [InlineData("Translate", "keep Classica Codex on screen while it runs")]
+    [InlineData("Medieval Hands", "Once fetched they are on this iPad")]
+    [InlineData("Getting started", "It leaves out Greek Lemma Data and Latin Lemma Data")]
+    [InlineData("Word Study and dictionaries", "Word Study is on the menu once the library has lemma data")]
+    public void The_Help_on_an_iPad_says_where_things_are_there(string topic, string said) =>
+        Assert.Contains(said, SystemWords.ForDevice(HelpOutline.Expand(HelpTopics.All.Single(t => t.Title == topic).Body)));
+
+    [Theory]
+    [InlineData("Sends this passage over the internet - the only part of Classica Codex that isn't offline. Nothing is sent.",
+        "Sends this passage over the internet. Nothing is sent.")]
+    [InlineData("so it can be translated. This is the one thing in Classica Codex that isn't offline.\n\nContinue?",
+        "so it can be translated.\n\nContinue?")]
+    [InlineData("You can turn this confirmation off in AI Translation Settings.", "You can turn this confirmation off in the AI tab of Settings.")]
+    public void An_iPad_does_not_claim_to_be_offline_apart_from_AI(string mac, string device) =>
+        Assert.Equal(device, SystemWords.ForDevice(mac));
+
+    [AvaloniaFact]
+    public void Apple_requires_the_privacy_policy_to_be_linked_inside_the_app()
+    {
+        var shown = new Func<Window, bool>(window => window.GetVisualDescendants()
+            .Any(part => part is TextBlock { Text: ProjectLinks.PrivacyPolicy } or Button { Content: ProjectLinks.PrivacyPolicy }));
+
+        var desktop = new AboutWindow();
+        desktop.Show();
+        Assert.False(shown(desktop));
+        desktop.Close();
+
+        MacDataFolder.OnDevice = true;
+        try
+        {
+            var device = new AboutWindow();
+            device.Show();
+            Assert.True(shown(device));
+            device.Close();
+        }
+        finally
+        {
+            MacDataFolder.OnDevice = false;
+        }
+    }
 
     [Theory]
     [InlineData("the click of the latch, and a mouse ran to the wheel")]

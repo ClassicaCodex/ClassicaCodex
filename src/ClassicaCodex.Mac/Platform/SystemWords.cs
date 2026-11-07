@@ -14,7 +14,7 @@ namespace ClassicaCodex.Mac.Platform;
 /// CC_MAC_LOOK keeps the Mac wording on any machine, as it keeps the Mac
 /// title bar: it is how the headless tests see the same window on Linux.
 /// </summary>
-internal static class SystemWords
+internal static partial class SystemWords
 {
     public static bool IsMac => OperatingSystem.IsMacOS() || Environment.GetEnvironmentVariable("CC_MAC_LOOK") == "1";
 
@@ -38,8 +38,9 @@ internal static class SystemWords
     /// </summary>
     internal static string ForDevice(string text)
     {
-        text = ForTouch(text);
+        text = RewritePassages(ForTouch(text));
         foreach (var (mac, device) in DevicePhrases) text = text.Replace(mac, device, StringComparison.Ordinal);
+        foreach (var (mac, device) in DeviceHelpPhrases) text = text.Replace(mac, device, StringComparison.Ordinal);
         return ForLinux(text);
     }
 
@@ -69,14 +70,46 @@ internal static class SystemWords
         return text;
     }
 
+    /// <summary>
+    /// What an iPad says about a Google key. An App Store app reaches readers
+    /// who are not developers, and Google's Gemini API terms limit who may use
+    /// the service and where, so the iPad states those limits where the Mac
+    /// recommends the free tier.
+    /// </summary>
+    private const string GoogleTerms =
+        "A developer account of your own, under Google's terms. They require you to be 18 or older, and to use "
+        + "Google's paid tier in the EEA, Switzerland and the UK. Google's free tier may use what you send it to "
+        + "improve its products, and its reviewers may read it";
+
     private static readonly (string Mac, string Device)[] DevicePhrases =
     {
+        ("The rest of Classica Codex works entirely offline. The AI features are the one exception, and they can use either of two providers below - set up whichever suits.",
+            "The AI features can use either of two providers below - set up whichever suits."),
+        ("Classica Codex is offline-first. These optional actions use online services only when you ask:",
+            "Once Setup has downloaded your library, reading works offline. These optional actions use online services only when you ask:"),
+        (" - the only part of Classica Codex that isn't offline.", "."),
+        (" This is the one thing in Classica Codex that isn't offline.", string.Empty),
+        ("hitting today's free-tier limit", "hitting today's usage limit"),
+        ("today's free-tier usage limit", "today's usage limit"),
+        ("in AI Translation Settings", "in the AI tab of Settings"),
+        ("Google (Gemini) - free, no card required", "Google (Gemini)"),
+        ("A genuinely free tier through Google AI Studio - no payment method, no expiration. The trade-off: Google's free tier may use what you send it to improve their models, so \"free\" isn't the same guarantee as \"private\" here.",
+            GoogleTerms + ", so don't send anything confidential."),
+        ("Genuinely free - no payment method, no expiration, through Google AI Studio. The tradeoff: Google's free tier may use what you send it to improve their models, so this one isn't private the way Claude's API is.",
+            GoogleTerms + ", so this one isn't private the way Claude's API is."),
+        ("Get a free API key →", "Get an API key →"),
+        ("Translate with Gemini (free)", "Translate with Gemini"),
+        ("Find Echoes with Gemini (free)", "Find Echoes with Gemini"),
+        ("though a single passage costs a small fraction of a cent.",
+            "though a single passage costs a small fraction of a cent. It's your account, under Anthropic's own terms."),
+        ("or a Claude Pro/Max subscription even if you already have one.",
+            "or a Claude Pro/Max subscription even if you already have one. It's your account, under Anthropic's own terms."),
         ("Show it in the Finder?", "Show it in Files?"),
         ("hear the line in a macOS voice", "hear the line in one of this iPad's voices"),
         ("Speaks the selected passage using whatever voices macOS already has installed - completely offline",
             "Speaks the selected passage using whatever voices this iPad already has - completely offline"),
         ("macOS has voices for modern Greek but none for the ancient language",
-            "iOS has voices for modern Greek but none for the ancient language"),
+            "iPadOS has voices for modern Greek but none for the ancient language"),
         ("The voices are the Mac's own, from System Settings > Accessibility > Spoken Content > System voice > Manage Voices. This app can't add voices macOS doesn't already have - add one there and it will appear here.",
             "The voices are the iPad's own. More can be added in its Settings app, under Accessibility, and they will appear here."),
         ("Hands a passage to the voices macOS already has.", "Hands a passage to the voices on this iPad."),
@@ -87,13 +120,13 @@ internal static class SystemWords
         ("⌘Return to bookmark", string.Empty),
         ("Show in Finder", "Show in Files"),
         ("Keys are kept in your login keychain, under \"Classica Codex\" in Keychain Access - where macOS keeps every other app's passwords - rather than in a file. Another account on the same Mac can't read them.",
-            "Keys are kept in this iPad's keychain, where iOS keeps every other app's passwords, rather than in a file. They stay on this iPad and are left out of its backups."),
+            "Keys are kept in this iPad's keychain, where iPadOS keeps every other app's passwords, rather than in a file. They stay on this iPad and are left out of its backups."),
         ("Saved. The keys are in your login keychain, under “Classica Codex” in Keychain Access.",
             "Saved. The keys are in this iPad's keychain."),
         ("The keychain refused to store a key - check Keychain Access and try again.",
             "The keychain refused to store a key. Try again."),
         ("and two to three hours on a decent connection with everything selected - mostly unattended, and the Greek word-form data is about an hour of that on its own.",
-            "and about half an hour for the main Greek and Latin collections on a good connection. Keep Classica Codex on screen while a step runs: iOS pauses an app that is switched away from, and the step would then have to start again.")
+            "and about half an hour for the main Greek and Latin collections on a good connection. Keep Classica Codex on screen while a step runs: iPadOS pauses an app that is switched away from, and the step would then have to start again.")
     };
 
     private static readonly (string Mouse, string Finger)[] TouchPhrases =
@@ -102,6 +135,7 @@ internal static class SystemWords
         ("Double-click", "Double-tap"),
         ("double-click", "double-tap"),
         ("Right-click", "Touch and hold"),
+        ("right-clicking", "touching and holding"),
         ("right-click", "touch and hold"),
         ("CLICK A WORD", "TAP A WORD"),
         ("Click a word", "Tap a word"),

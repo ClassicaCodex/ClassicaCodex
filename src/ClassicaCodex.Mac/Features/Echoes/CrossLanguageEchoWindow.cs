@@ -341,7 +341,7 @@ internal sealed class CrossLanguageEchoWindow : FeatureWindow
         _findLabel.Text = !hasKey ? "Configure Gemini Key…"
             : !SourceIsReadingText
                 ? $"{NodeKindVisibility.Label(_sourceNode.NodeKind)} can't be echoed - pick a line of text"
-            : hasSelection ? "Find Echoes with Gemini (free)"
+            : hasSelection ? SystemWords.Say("Find Echoes with Gemini (free)")
             : "Pick a work above first";
         _findIcon.Data = Glyphs.Get(hasKey ? "Sparkle" : "Key");
     }
@@ -370,10 +370,11 @@ internal sealed class CrossLanguageEchoWindow : FeatureWindow
         if (TranslationSettings.AlwaysConfirmBeforeSending)
         {
             var confirmed = await Alert.Confirm(this, "Send to Gemini's API?",
-                $"This will send the selected passage, and the text of {selected.Edition.AuthorName}'s " +
-                $"{selected.Edition.WorkTitle}, to Gemini's API over the internet to look for echoes. This " +
-                "is the same kind of network use Translate already discloses.\n\n" +
-                "Continue? (You can turn this confirmation off in AI Translation Settings.)",
+                SystemWords.Say(
+                    $"This will send the selected passage, and the text of {selected.Edition.AuthorName}'s " +
+                    $"{selected.Edition.WorkTitle}, to Gemini's API over the internet to look for echoes. This " +
+                    "is the same kind of network use Translate already discloses.\n\n" +
+                    "Continue? (You can turn this confirmation off in AI Translation Settings.)"),
                 "Send", "Cancel", AlertKind.Warning);
 
             if (!confirmed) return;

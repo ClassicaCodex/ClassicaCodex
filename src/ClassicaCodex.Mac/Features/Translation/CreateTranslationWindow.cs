@@ -109,11 +109,12 @@ public sealed class CreateTranslationWindow : FeatureWindow
 
         var disclosure = new TextBlock
         {
-            Text = "Sends this work to Gemini's API over the internet, in batches - the only part of " +
-                   "Classica Codex that isn't offline. A long work can mean dozens of requests and several " +
-                   "minutes. Progress is saved after every batch automatically, so closing this window (or " +
-                   "hitting today's free-tier limit) never loses what's already translated - reopen this " +
-                   "later to pick up exactly where it left off.",
+            Text = SystemWords.Say(
+                "Sends this work to Gemini's API over the internet, in batches - the only part of " +
+                "Classica Codex that isn't offline. A long work can mean dozens of requests and several " +
+                "minutes. Progress is saved after every batch automatically, so closing this window (or " +
+                "hitting today's free-tier limit) never loses what's already translated - reopen this " +
+                "later to pick up exactly where it left off."),
             TextWrapping = TextWrapping.Wrap,
             Classes = { "warning" }
         };
@@ -157,7 +158,7 @@ public sealed class CreateTranslationWindow : FeatureWindow
 
         // Wide enough for its longest label, so the footer doesn't shift as
         // the count of remaining lines changes under it.
-        _translateLabel = new IconLabel("Sparkle", "Translate with Gemini (free)");
+        _translateLabel = new IconLabel("Sparkle", SystemWords.Say("Translate with Gemini (free)"));
         _translate = new Button { Content = _translateLabel, Classes = { "accent" }, IsEnabled = false, MinWidth = 290, HorizontalContentAlignment = HorizontalAlignment.Center };
         _translate.Click += async (_, _) => await OnTranslateAsync();
 
@@ -325,7 +326,7 @@ public sealed class CreateTranslationWindow : FeatureWindow
         var remaining = _sourceNodes.Count - translated;
         _translate.IsEnabled = remaining > 0 && _cancellation == null;
         _translateLabel.Text = remaining == _sourceNodes.Count
-            ? "Translate with Gemini (free)"
+            ? SystemWords.Say("Translate with Gemini (free)")
             : $"Translate Remaining {remaining:N0} Line(s)";
         _saveNow.IsEnabled = translated > 0;
         _translatedHeader.Text = $"TRANSLATION ({translated:N0} OF {_sourceNodes.Count:N0} LINES)";
@@ -351,11 +352,12 @@ public sealed class CreateTranslationWindow : FeatureWindow
         // Always asked, whatever the confirmation setting: this is minutes of
         // requests, not one.
         var confirmed = await Alert.Confirm(this, "Send to Gemini's API?",
-            $"This will send the remaining {remainingNodes.Count:N0} line(s) of {_workTitle} to Gemini's " +
-            $"API over the internet, in about {plannedBatches.Count} separate requests. This could take several " +
-            "minutes, and may run into today's free-tier usage limit before it finishes - whatever gets " +
-            "translated is saved automatically as it goes, so nothing already done would be lost.\n\n" +
-            "Continue?",
+            SystemWords.Say(
+                $"This will send the remaining {remainingNodes.Count:N0} line(s) of {_workTitle} to Gemini's " +
+                $"API over the internet, in about {plannedBatches.Count} separate requests. This could take several " +
+                "minutes, and may run into today's free-tier usage limit before it finishes - whatever gets " +
+                "translated is saved automatically as it goes, so nothing already done would be lost.\n\n" +
+                "Continue?"),
             "Send", "Cancel", AlertKind.Warning);
         if (!confirmed) return;
 

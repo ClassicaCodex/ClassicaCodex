@@ -266,28 +266,31 @@ public sealed class SettingsWindow : FeatureWindow
 
         root.Children.Add(new TextBlock
         {
-            Text = "The rest of Classica Codex works entirely offline. The AI features are the one exception, and they can use either of two providers below - set up whichever suits. Nothing is sent until you press a button that sends it.",
+            Text = SystemWords.Say("The rest of Classica Codex works entirely offline. The AI features are the one exception, and they can use either of two providers below - set up whichever suits. Nothing is sent until you press a button that sends it."),
             TextWrapping = TextWrapping.Wrap,
             Classes = { "muted" },
             Margin = new Thickness(0, 0, 0, 18)
         });
 
+        if (Setup.MacDataFolder.OnDevice)
+            root.Children.Add(Links(("Privacy policy →", ProjectLinks.PrivacyPolicy)));
+
         var anthropic = KeyBox(TranslationSettings.AnthropicApiKey);
         var gemini = KeyBox(TranslationSettings.GeminiApiKey);
 
-        var claude = Section("Anthropic (Claude)",
+        var claude = Section("Anthropic (Claude)", SystemWords.Say(
             "A separate developer account from claude.ai or a Claude Pro or Max subscription - even if you already pay for one of those, this needs its own setup. "
-            + "Requires a payment method; no ongoing free tier, though a single passage costs a small fraction of a cent.");
+            + "Requires a payment method; no ongoing free tier, though a single passage costs a small fraction of a cent."));
         claude.Children.Add(Setup.MacDataFolder.OnDevice
             ? Links(("Get an API key →", "https://console.anthropic.com"))
             : Links(("Get an API key →", "https://console.anthropic.com"), ("See current pricing →", "https://www.anthropic.com/pricing")));
         claude.Children.Add(KeyRow(anthropic));
         root.Children.Add(claude);
 
-        var google = Section("Google (Gemini) - free, no card required",
+        var google = Section(SystemWords.Say("Google (Gemini) - free, no card required"), SystemWords.Say(
             "A genuinely free tier through Google AI Studio - no payment method, no expiration. The trade-off: Google's free tier may use what you send it to improve their models, "
-            + "so \"free\" isn't the same guarantee as \"private\" here.");
-        google.Children.Add(Links(("Get a free API key →", "https://aistudio.google.com/app/apikey")));
+            + "so \"free\" isn't the same guarantee as \"private\" here."));
+        google.Children.Add(Links((SystemWords.Say("Get a free API key →"), "https://aistudio.google.com/app/apikey")));
         google.Children.Add(KeyRow(gemini));
         root.Children.Add(google);
 
@@ -306,7 +309,9 @@ public sealed class SettingsWindow : FeatureWindow
             {
                 var allowed = await AskToUseAsync(anthropic, TranslationSettings.AnthropicApiKey, "Anthropic", "the company that makes Claude", string.Empty);
                 allowed &= await AskToUseAsync(gemini, TranslationSettings.GeminiApiKey, "Google", "through its Gemini service",
-                    " Google's free tier may use what you send to improve its models.");
+                    " By allowing this, you confirm you are 18 or older, as Google's terms require. They also require Google's "
+                    + "paid tier in the EEA, Switzerland and the UK. Google's free tier may use what you send to improve its "
+                    + "products, and its reviewers may read it.");
 
                 if (!allowed)
                 {

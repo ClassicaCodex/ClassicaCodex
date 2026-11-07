@@ -53,7 +53,7 @@ Pick an author in the library on the left, then a work beneath it. The original-
 Two editions of the same thing
    The menu at the top of each page lists every edition of that work you have. Where a work has several translations, you can switch between translators freely - the other pane stays where it is. The original-language side can carry more than one edition too, when a later collection added an alternate older edition of a work Perseus already had (a couple of Sophocles' plays, among others) - each entry in the menu names which.
 
-   Which of them a work opens on is yours to set. the Default collection menu under General in Settings picks a collection, and any work carried by more than one opens on that collection's edition - Perseus and First1KGreek both have the Agamemnon, CSEL and Patrologia Latina share a good deal of Augustine. It is a preference, not a filter: the other editions stay in the menu in the same order, and only which one is already selected changes. Works that collection doesn't have open exactly as before, so a preference set once needs no maintenance as the library grows.
+   Which of them a work opens on is yours to set. The Default collection menu under General in Settings picks a collection, and any work carried by more than one opens on that collection's edition - Perseus and First1KGreek both have the Agamemnon, CSEL and Patrologia Latina share a good deal of Augustine. It is a preference, not a filter: the other editions stay in the menu in the same order, and only which one is already selected changes. Works that collection doesn't have open exactly as before, so a preference set once needs no maintenance as the library grows.
 
 Collate Editions
    Where a work is held by two collections, Collate Editions in the Tools menu shows what the two editions disagree about. It is the one thing here that needs more than one collection to exist at all: a single corpus gives you one printing of a text and no way to know what it settled.
@@ -518,7 +518,7 @@ Options
    Combine into one continuous passage - merge the lines into flowing text instead of one line per entry
    Include both original and translation - a bilingual document
 
-Formats: plain text, Word (.docx), or PDF.
+Formats: plain text, Word (.docx), PDF, BibTeX or RIS.
 
 Every exported translation carries the edition it came from - "trans. Samuel Butler", "trans. Gemini (AI-generated)", or your own name if it is your workbench translation. Exported text outlives the application that produced it, and whether a rendering is a published translation, your own, or a machine's has to travel with it: that is the point at which text stops being something you are reading and becomes something you are pasting into an essay.
 

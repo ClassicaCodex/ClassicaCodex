@@ -50,6 +50,12 @@ public sealed class AboutWindow : FeatureWindow
         body.Children.Add(Prose.Paragraph("Made by Skirnir Studios.", bottom: 2));
         body.Children.Add(Prose.Link(this, ProjectLinks.Studio, LinkFailure));
 
+        if (Setup.MacDataFolder.OnDevice)
+        {
+            body.Children.Add(Prose.Paragraph("Privacy policy:", bottom: 2));
+            body.Children.Add(Prose.Link(this, ProjectLinks.PrivacyPolicy, LinkFailure));
+        }
+
         body.Children.Add(Prose.Heading("Data Sources & Licensing", 19, top: 16));
         body.Children.Add(Prose.Paragraph(
             "This app doesn't own or claim any of the texts, translations, dictionaries, or linguistic data " +
@@ -241,7 +247,7 @@ public sealed class AboutWindow : FeatureWindow
 
         body.Children.Add(Prose.Heading("Online Services & Privacy", 19, top: 18));
         body.Children.Add(Prose.Paragraph(
-            "Classica Codex is offline-first. These optional actions use online services only when you ask:",
+            SystemWords.Say("Classica Codex is offline-first. These optional actions use online services only when you ask:"),
             muted: true, bottom: 12));
 
         body.Children.Add(Prose.Bullet(
@@ -261,11 +267,24 @@ public sealed class AboutWindow : FeatureWindow
             "or the project database, and it needs no API key. Returned metadata is saved as reading leads, " +
             "not as proof of what a publication argues."));
 
+        if (Setup.MacDataFolder.OnDevice)
+        {
+            body.Children.Add(Prose.Bullet(
+                "Setup - the collections' publishers",
+                "Downloads each collection you choose from the archive that publishes it."));
+
+            body.Children.Add(Prose.Bullet(
+                "Pictures - museums and libraries",
+                "Photographs of objects load from the Perseus Digital Library, and manuscript pages from the " +
+                "libraries that hold them, when you open them."));
+        }
+
         body.Children.Add(Prose.Bullet(
             "You stay in control",
-            "Nothing is sent until you click the corresponding action. Confirmation prompts can remain " +
-            "enabled in AI Translation Settings. Review each provider's current privacy and data-use terms " +
-            "before sending sensitive or unpublished material. See Help for the complete workflow."));
+            SystemWords.Say(
+                "Nothing is sent until you click the corresponding action. Confirmation prompts can remain " +
+                "enabled in AI Translation Settings. Review each provider's current privacy and data-use terms " +
+                "before sending sensitive or unpublished material. See Help for the complete workflow.")));
 
         // What the Mac front end adds to what the Windows app is built from:
         // the interface framework and the glyphs. Their full notices are in
