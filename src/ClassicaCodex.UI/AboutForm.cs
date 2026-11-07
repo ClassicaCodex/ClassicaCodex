@@ -64,6 +64,9 @@ public class AboutForm : ScaledForm
             "one of the data sources it depends on is licensed for non-commercial use only, and that alone " +
             "settles the question.", ref y, 672);
 
+        AddParagraph(scrollHost, "Made by Skirnir Studios.", ref y, 672);
+        AddLink(scrollHost, ProjectLinks.Studio, ref y);
+
         AddHeading(scrollHost, "Data Sources & Licensing", ref y, 14, FontStyle.Bold);
         AddParagraph(scrollHost,
             "This app doesn't own or claim any of the texts, translations, dictionaries, or linguistic data " +
@@ -416,6 +419,18 @@ public class AboutForm : ScaledForm
         y += descriptionLabel.Height + 8;
     }
 
+    private static void AddLink(Control parent, string url, ref int y)
+    {
+        var link = new LinkLabel { Text = url, Left = 16, Top = y, Width = 672 };
+        link.LinkClicked += (_, _) =>
+        {
+            try { Process.Start(new ProcessStartInfo(url) { UseShellExecute = true }); }
+            catch { /* if the shell can't open it, there's nothing more useful to do here */ }
+        };
+        parent.Controls.Add(link);
+        y += PageFont.Height + 6;
+    }
+
     private static void AddSourceSection(
         Control parent, ref int y,
         string title, string description, string sourceLine, string licenseName, string url, string? note,
@@ -459,14 +474,7 @@ public class AboutForm : ScaledForm
         parent.Controls.Add(licenseLabel);
         y += PageFont.Height + 4;
 
-        var link = new LinkLabel { Text = url, Left = 16, Top = y, Width = 672 };
-        link.LinkClicked += (_, _) =>
-        {
-            try { Process.Start(new ProcessStartInfo(url) { UseShellExecute = true }); }
-            catch { /* if the shell can't open it, there's nothing more useful to do here */ }
-        };
-        parent.Controls.Add(link);
-        y += PageFont.Height + 6;
+        AddLink(parent, url, ref y);
 
         if (!string.IsNullOrEmpty(note))
         {

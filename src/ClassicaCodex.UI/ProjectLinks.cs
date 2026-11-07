@@ -24,4 +24,7 @@ internal static class ProjectLinks
     /// handed to whatever browser the reader uses.
     /// </summary>
     internal const string Issues = "https://github.com/ClassicaCodex/ClassicaCodex/issues";
+
+    /// <summary>Who makes the app, for the About pages.</summary>
+    internal const string Studio = "https://skirnirstudios.com";
 }

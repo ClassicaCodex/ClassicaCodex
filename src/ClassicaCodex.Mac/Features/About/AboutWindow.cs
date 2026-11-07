@@ -5,6 +5,7 @@ using Avalonia.Media;
 using ClassicaCodex.Mac.Common;
 using ClassicaCodex.Mac.Features.Help;
 using ClassicaCodex.Mac.Platform;
+using ClassicaCodex.UI;
 
 namespace ClassicaCodex.Mac.Features.About;
 
@@ -46,6 +47,8 @@ public sealed class AboutWindow : FeatureWindow
             "Classica Codex is free and always will be. Part of the reason for that isn't just preference - " +
             "one of the data sources it depends on is licensed for non-commercial use only, and that alone " +
             "settles the question."));
+        body.Children.Add(Prose.Paragraph("Made by Skirnir Studios.", bottom: 2));
+        body.Children.Add(Prose.Link(this, ProjectLinks.Studio, LinkFailure));
 
         body.Children.Add(Prose.Heading("Data Sources & Licensing", 19, top: 16));
         body.Children.Add(Prose.Paragraph(

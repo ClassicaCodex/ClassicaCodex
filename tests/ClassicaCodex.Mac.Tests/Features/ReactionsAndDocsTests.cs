@@ -532,6 +532,40 @@ public class ReactionsAndDocsTests
         return (Math.Max(first, second) + 0.05) / (Math.Min(first, second) + 0.05);
     }
 
+    [AvaloniaFact]
+    public async Task About_names_the_studio_and_links_to_its_site()
+    {
+        var opened = new List<string>();
+        var original = ExternalLinks.Opener;
+        ExternalLinks.Opener = url =>
+        {
+            opened.Add(url);
+            return true;
+        };
+
+        var about = new AboutWindow();
+        about.Show();
+        await Screens.Settle(4);
+
+        try
+        {
+            var text = string.Join("\n", about.GetVisualDescendants().OfType<TextBlock>().Select(t => t.Text));
+            Assert.Contains("Made by Skirnir Studios.", text);
+
+            var link = about.GetVisualDescendants().OfType<Button>()
+                .Single(button => button.Content is TextBlock { Text: "https://skirnirstudios.com" });
+            link.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+            await Screens.Settle(2);
+
+            Assert.Equal(new[] { "https://skirnirstudios.com" }, opened);
+        }
+        finally
+        {
+            ExternalLinks.Opener = original;
+            about.Close();
+        }
+    }
+
     private static double Luminance(Color colour) =>
         0.2126 * Channel(colour.R) + 0.7152 * Channel(colour.G) + 0.0722 * Channel(colour.B);
 
