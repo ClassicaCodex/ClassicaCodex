@@ -1,3 +1,6 @@
+using ClassicaCodex.Mac.Features.Setup;
+using ClassicaCodex.UI;
+
 namespace ClassicaCodex.Mac.Features.Instruments;
 
 /// <summary>
@@ -16,7 +19,8 @@ internal sealed class AntikytheraCard : InstrumentCard
             "Antikythera.html", "Antikythera",
             "Open the mechanism",
             "opening the Antikythera mechanism",
-            "Couldn't open the mechanism: ")
+            "Couldn't open the mechanism: ",
+            ProjectLinks.Antikythera)
     {
         Paragraph(
             "A Greek astronomical calculator, recovered in 1901 from a wreck off the island of "
@@ -27,9 +31,10 @@ internal sealed class AntikytheraCard : InstrumentCard
         Paragraph(
             "This is a working simulation of it. Every wheel turns at the ratio its tooth count "
             + "demands, and every dial reads what the real one read.");
-        Muted(
-            "Opens in your usual browser. It carries everything it needs and asks the network "
-            + "for nothing, so it works offline.");
+        Muted(MacDataFolder.OnDevice
+            ? OpensOnline
+            : "Opens in your usual browser. It carries everything it needs and asks the network "
+              + "for nothing, so it works offline.");
 
         Heading("What you can do with it");
         Paragraph(

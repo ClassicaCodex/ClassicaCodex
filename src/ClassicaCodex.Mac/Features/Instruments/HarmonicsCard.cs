@@ -1,3 +1,5 @@
+using ClassicaCodex.Mac.Features.Setup;
+
 namespace ClassicaCodex.Mac.Features.Instruments;
 
 /// <summary>
@@ -34,6 +36,9 @@ internal sealed class HarmonicsCard : InstrumentCard
             "opening Ptolemy's harmony",
             "Couldn't open it: ")
     {
+        if (MacDataFolder.OnDevice)
+            Muted("This instrument is not on iPad yet. The rest of this page describes it as it runs on a computer.");
+
         // ---- the caution, before the description ---------------------------
         Caution("This one makes sound.");
 

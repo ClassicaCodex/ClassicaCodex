@@ -12,6 +12,7 @@ using ClassicaCodex.Data.Repositories;
 using ClassicaCodex.Mac.Features.About;
 using ClassicaCodex.Mac.Features.Apparatus;
 using ClassicaCodex.Mac.Features.Help;
+using ClassicaCodex.Mac.Features.Setup;
 using ClassicaCodex.Mac.Features.Instruments;
 using ClassicaCodex.Mac.Features.Reactions;
 using ClassicaCodex.Mac.Shell;
@@ -322,6 +323,66 @@ public class ReactionsAndDocsTests
         }
 
         main.Close();
+    }
+
+    /// <summary>
+    /// An iPad has none of the pages and cannot hand a file of its own to a
+    /// browser, so a card opens the public copy. One with no public copy says
+    /// so on its button, rather than failing when it is pressed.
+    /// </summary>
+    [AvaloniaFact]
+    public async Task On_an_iPad_the_instruments_open_their_public_pages()
+    {
+        var host = new Window { Width = 400, Height = 300 };
+        host.Show();
+
+        var opened = new List<string>();
+        var previous = ExternalLinks.Opener;
+        ExternalLinks.Opener = url =>
+        {
+            opened.Add(url);
+            return true;
+        };
+        MacDataFolder.OnDevice = true;
+
+        try
+        {
+            foreach (var (card, page) in new (InstrumentCard Card, string Page)[]
+                     {
+                         (new AntikytheraCard(), "https://skirnirstudios.com/antikythera/"),
+                         (new AlmagestCard(), "https://skirnirstudios.com/ptolemys-cosmos/")
+                     })
+            {
+                card.Show(host);
+                await Screens.Settle(4);
+
+                var said = card.GetVisualDescendants().OfType<TextBlock>().Select(text => text.Text).ToList();
+                Assert.Contains(said, text => text != null && text.Contains("needs an internet connection"));
+                Assert.DoesNotContain(said, text => text != null && text.Contains("works offline"));
+
+                card.OpenButton.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                await Screens.Settle(2);
+
+                Assert.Equal(page, Assert.Single(opened));
+                opened.Clear();
+                card.Close();
+                await Screens.Settle(2);
+            }
+
+            var harmony = new HarmonicsCard();
+            harmony.Show(host);
+            await Screens.Settle(4);
+
+            Assert.False(harmony.OpenButton.IsEnabled);
+            Assert.Equal("Not on iPad yet", harmony.OpenButton.Content);
+            harmony.Close();
+        }
+        finally
+        {
+            MacDataFolder.OnDevice = false;
+            ExternalLinks.Opener = previous;
+            host.Close();
+        }
     }
 
     /// <summary>

@@ -4,6 +4,7 @@ using Avalonia.Layout;
 using Avalonia.Media;
 using ClassicaCodex.Mac.Common;
 using ClassicaCodex.Mac.Features.Help;
+using ClassicaCodex.Mac.Features.Setup;
 
 namespace ClassicaCodex.Mac.Features.Instruments;
 
@@ -26,6 +27,12 @@ namespace ClassicaCodex.Mac.Features.Instruments;
 /// chose a menu item in a library application has not asked for a
 /// planetarium. The card says what they are about to open, and admits how
 /// much of it is reconstruction, before it opens.
+///
+/// <b>An iPad opens the public copy.</b> Another app cannot read a file inside
+/// this one, so there is no handing a local page to the browser, and the app
+/// does not ship the pages. The studio's site has the instruments, and there
+/// they are kept up to date for touch. One with no public copy says so on its
+/// button rather than failing when pressed.
 /// </summary>
 internal abstract class InstrumentCard : FeatureWindow
 {
@@ -35,11 +42,18 @@ internal abstract class InstrumentCard : FeatureWindow
     private readonly string _pageName;
     private readonly string _logContext;
     private readonly string _failurePrefix;
+    private readonly string? _publicPage;
+
+    /// <summary>What a card on a device says, because it can no longer promise to work offline.</summary>
+    protected const string OpensOnline =
+        "Opens on the Skirnir Studios site in your browser, so it needs an internet connection.";
 
     protected InstrumentCard(
         string title, string tagline, string tileKey, string glyph,
-        string pageFile, string pageName, string openLabel, string logContext, string failurePrefix)
+        string pageFile, string pageName, string openLabel, string logContext, string failurePrefix,
+        string? publicPage = null)
     {
+        _publicPage = publicPage;
         _pageFile = pageFile;
         _pageName = pageName;
         _logContext = logContext;
@@ -80,6 +94,12 @@ internal abstract class InstrumentCard : FeatureWindow
             HorizontalContentAlignment = HorizontalAlignment.Center
         };
         OpenButton.Click += async (_, _) => await OpenPageAsync();
+
+        if (MacDataFolder.OnDevice && publicPage == null)
+        {
+            OpenButton.Content = "Not on iPad yet";
+            OpenButton.IsEnabled = false;
+        }
 
         var close = new Button { Content = "Close", MinWidth = 84, HorizontalContentAlignment = HorizontalAlignment.Center };
         close.Click += (_, _) => Close();
@@ -165,8 +185,8 @@ internal abstract class InstrumentCard : FeatureWindow
     {
         try
         {
-            var path = PagePath;
-            if (!File.Exists(path))
+            var path = MacDataFolder.OnDevice ? _publicPage! : PagePath;
+            if (!MacDataFolder.OnDevice && !File.Exists(path))
                 throw new FileNotFoundException($"The {_pageName} page is missing from this build.", path);
 
             if (!ExternalLinks.Opener(path))

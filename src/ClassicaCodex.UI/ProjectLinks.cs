@@ -27,4 +27,8 @@ internal static class ProjectLinks
 
     /// <summary>Who makes the app, for the About pages.</summary>
     internal const string Studio = "https://skirnirstudios.com";
+
+    /// <summary>The instruments, for a device that cannot open the app's own copies.</summary>
+    internal const string Antikythera = Studio + "/antikythera/";
+    internal const string PtolemysCosmos = Studio + "/ptolemys-cosmos/";
 }

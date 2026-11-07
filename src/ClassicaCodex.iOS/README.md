@@ -189,8 +189,11 @@ repository.
   not resume. It has to be run again.
 - **The Choose buttons in Setup do not last.** The download folder goes back to
   Documents the next time the app starts.
-- **The instrument pages are missing**, because `src/ClassicaCodex.UI/Pages` is not
-  bundled, and nothing could show them yet.
+- **Ptolemy's Harmony is not on iPad.** The pages in `src/ClassicaCodex.UI/Pages` are
+  not bundled, because another app cannot read a file inside this one. Antikythera
+  and Ptolemy's Cosmos open from the studio's site instead, so they need the
+  internet. Harmony has no public page yet. When it has, add its address to
+  `ProjectLinks` and pass it to the card, as `AntikytheraCard` does.
 - **An iPhone would need a new reader.** Two panes do not fit, and `UIDeviceFamily`
   in `Info.plist` asks for iPad only for that reason.
 - **Only an M4 iPad has run Setup.** A smaller iPad has less memory and a slower

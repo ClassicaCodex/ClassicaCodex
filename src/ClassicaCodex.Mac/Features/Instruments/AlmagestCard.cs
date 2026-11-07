@@ -1,3 +1,6 @@
+using ClassicaCodex.Mac.Features.Setup;
+using ClassicaCodex.UI;
+
 namespace ClassicaCodex.Mac.Features.Instruments;
 
 /// <summary>
@@ -17,7 +20,8 @@ internal sealed class AlmagestCard : InstrumentCard
             "Almagest.html", "Almagest",
             "Open the planetarium",
             "opening Ptolemy's cosmos",
-            "Couldn't open the planetarium: ")
+            "Couldn't open the planetarium: ",
+            ProjectLinks.PtolemysCosmos)
     {
         Paragraph(
             "The model of the heavens set out in the Almagest at Alexandria around AD 150, "
@@ -26,6 +30,8 @@ internal sealed class AlmagestCard : InstrumentCard
             + "deferent. Between them those two circles produce the thing that broke every "
             + "earlier model: retrograde motion, where a planet stops, turns back on itself for "
             + "weeks, and then goes on.");
+
+        if (MacDataFolder.OnDevice) Muted(OpensOnline);
 
         Paragraph(
             "Nothing here is exaggerated to make the loops bigger. The epicycle radii, the "
