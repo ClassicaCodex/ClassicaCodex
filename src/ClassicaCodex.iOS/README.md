@@ -16,7 +16,7 @@ What it adds is what a device with no windows needs:
 | `TouchGestures.cs` | Selects the line under a long-press, because the line menu acts on the selected line. |
 | `TouchTargets.cs` | Makes every control big enough for a finger, as styles added after the theme. |
 | `TouchWords.cs` | Rewords the interface for a finger as it is shown, using `SystemWords.ForTouch`. |
-| `Assets.xcassets` | The app icon: the Mac's `app-icon-1024.png` with its plaque enlarged to fill the square and the transparency flattened, because iOS rounds the corners itself. `AppIcon` in the project file names it. |
+| `Assets.xcassets` | The app icon, drawn by Codex from the Mac's `app-icon-1024.png`. The art runs to all four edges with no transparency and nothing important in the corners, because iOS cuts the rounded corners itself. `AppIcon` in the project file names it. |
 | `Shell/MainWindow.axaml` | The Mac's main window with a page for its root, and 44-point toolbar buttons. |
 | `MobileApp.cs`, `AppDelegate.cs` | Start the app, connect the two files below, settle the download folder and open the library in its Documents folder. |
 | `DeviceShell.cs` | Opens links in the browser and folders in the Files app. A Mac does this by starting `open`, and iOS does not let an app start a process. |
