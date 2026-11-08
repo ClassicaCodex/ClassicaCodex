@@ -22,6 +22,13 @@ public class FeatureWindow : Window
     /// <summary>Opens a work in the main reader, without choosing a line.</summary>
     public Func<int, Task<bool>>? OnOpenWork { get; set; }
 
+    /// <summary>
+    /// For a dialog whose only way out is the close box on its title bar. A
+    /// device has no title bar, so there it opens as a page with a Close button
+    /// in the page's bar, not as a card with no way to leave it.
+    /// </summary>
+    public bool ClosesFromTitleBar { get; protected set; }
+
     public FeatureWindow()
     {
         WindowStartupLocation = WindowStartupLocation.CenterOwner;

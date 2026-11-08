@@ -6,6 +6,7 @@ using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
+using ClassicaCodex.Mac.Common;
 
 namespace ClassicaCodex.iOS;
 
@@ -13,7 +14,8 @@ namespace ClassicaCodex.iOS;
 /// The app's one view, and the stack of pages in it. The main window is the
 /// bottom page. Anything the shared code calls Show on goes on top with a Close
 /// bar, because Escape and ⌘W are not there to rely on, and anything it calls
-/// ShowDialog on goes on top as a card.
+/// ShowDialog on goes on top as a card, unless the dialog has no button of its
+/// own to close it, when it gets the page and the bar.
 ///
 /// A jump to a passage brings the main window forward over the tool it came
 /// from, which stays as it was underneath, so a search is not lost by looking
@@ -126,7 +128,7 @@ public sealed class PageHost : Panel
 
         var frame = _stack.Count == 0
             ? page
-            : page.IsDialog ? DialogFrame(page) : PageFrame(page);
+            : IsCard(page) ? DialogFrame(page) : PageFrame(page);
 
         if (_stack.Count > 0) _stack[^1].Page.RaiseDeactivated();
         _home ??= page;
@@ -171,12 +173,19 @@ public sealed class PageHost : Panel
         ShowWayBack();
     }
 
-    /// <summary>A tool: the whole screen, under a bar with its title and a way back.</summary>
+    private static bool IsCard(PageWindow page) =>
+        page.IsDialog && page is not FeatureWindow { ClosesFromTitleBar: true };
+
+    /// <summary>
+    /// A tool: the whole screen, under a bar with its title and a way back. A
+    /// dialog on a page says Close, because setup has a Back of its own that
+    /// goes to the step before.
+    /// </summary>
     private static Control PageFrame(PageWindow page)
     {
         var close = new Button
         {
-            Content = "‹ Back",
+            Content = page.IsDialog ? "Close" : "‹ Back",
             MinHeight = 44,
             MinWidth = 80,
             Padding = new Thickness(12, 0),

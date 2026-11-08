@@ -43,6 +43,7 @@ internal sealed class AiProjectSuggestionWindow : ResearchWindow
         _work = work;
         _author = author;
         Title = $"Let AI Suggest a New Project — {work.Title}";
+        ClosesFromTitleBar = true;
         Width = 1250;
         Height = 780;
         MinWidth = 900;

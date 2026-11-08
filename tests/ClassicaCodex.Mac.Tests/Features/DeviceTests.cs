@@ -1,11 +1,14 @@
 using Avalonia.Controls;
 using Avalonia.Headless.XUnit;
 using Avalonia.VisualTree;
+using ClassicaCodex.Core.Models;
 using ClassicaCodex.Data.Repositories;
 using ClassicaCodex.Ingestion;
 using ClassicaCodex.Mac.Common;
 using ClassicaCodex.Mac.Features.About;
 using ClassicaCodex.Mac.Features.Help;
+using ClassicaCodex.Mac.Features.Research.Bench;
+using ClassicaCodex.Mac.Features.Settings;
 using ClassicaCodex.Mac.Features.Setup;
 using ClassicaCodex.Mac.Platform;
 using ClassicaCodex.Mac.Shell;
@@ -284,6 +287,23 @@ public class DeviceTests
             await File.WriteAllTextAsync(Path.Combine(folder, NoticesWindow.FileNames[0]), "first");
             Assert.Equal("first\n\nsecond", NoticesWindow.Read(folder));
         });
+    }
+
+    /// <summary>
+    /// A desktop closes these from the title bar. An iPad has none, and each was
+    /// a card with no way off it, until the page host gave them its bar.
+    /// </summary>
+    [AvaloniaFact]
+    public void A_dialog_that_relies_on_its_title_bar_says_so()
+    {
+        var main = new MainWindow { Width = 1200, Height = 800 };
+
+        Assert.True(new SettingsWindow(main).ClosesFromTitleBar);
+        Assert.True(new GuidedSetupWindow(main).ClosesFromTitleBar);
+        Assert.True(new AiProjectSuggestionWindow(main, new Work { Title = "Iliad" }, "Homer").ClosesFromTitleBar);
+
+        // It has a Close button of its own, so it stays a card.
+        Assert.False(new WordIndexWindow().ClosesFromTitleBar);
     }
 
     [AvaloniaFact]

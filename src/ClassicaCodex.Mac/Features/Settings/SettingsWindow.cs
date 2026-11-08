@@ -43,6 +43,7 @@ public sealed class SettingsWindow : FeatureWindow
     {
         _host = host;
         Title = "Settings";
+        ClosesFromTitleBar = true;
         Width = 620;
         Height = 600;
         MinWidth = 560;

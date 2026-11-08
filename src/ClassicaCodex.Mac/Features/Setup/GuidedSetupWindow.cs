@@ -150,6 +150,7 @@ public sealed class GuidedSetupWindow : FeatureWindow
     public GuidedSetupWindow(IReaderHost host)
     {
         _host = host;
+        ClosesFromTitleBar = true;
         OnNavigate = host.NavigateToPassageAsync;
         OnOpenWork = host.OpenWorkAsync;
 
