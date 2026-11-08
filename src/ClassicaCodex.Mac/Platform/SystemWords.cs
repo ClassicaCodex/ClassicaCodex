@@ -126,7 +126,7 @@ internal static partial class SystemWords
         ("⌘Return to bookmark", string.Empty),
         ("Show in Finder", "Show in Files"),
         ("Keys are kept in your login keychain, under \"Classica Codex\" in Keychain Access - where macOS keeps every other app's passwords - rather than in a file. Another account on the same Mac can't read them.",
-            "Keys are kept in this iPad's keychain, where iPadOS keeps every other app's passwords, rather than in a file. They stay on this iPad and are left out of its backups."),
+            "Keys are kept in this iPad's keychain, where iPadOS keeps passwords, rather than in a file. They stay on this iPad: a backup restored to another one does not bring them."),
         ("Saved. The keys are in your login keychain, under “Classica Codex” in Keychain Access.",
             "Saved. The keys are in this iPad's keychain."),
         ("The keychain refused to store a key - check Keychain Access and try again.",

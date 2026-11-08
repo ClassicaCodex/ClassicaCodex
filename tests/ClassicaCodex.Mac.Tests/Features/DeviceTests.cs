@@ -161,7 +161,7 @@ public class DeviceTests
         "Ctrl+", "Alt+", "Option-", "⌘", "⇧", "⌥", "File >", "Go >", "menu bar", "Tools menu", "Go menu", "View menu",
         "Help menu", "Instruments menu", "Hover", "hover", "Control-click", " click", "Click ", "clicking", "It works offline",
         "Finder", "file manager", "Time Machine", "View >", "Research menu", "Font Book", "your computer", "your desktop", "your Mac",
-        "Windows", "macOS", "either machine", "touch and holding", "Zotero's local", "iOS ", "The README", "Advanced Setup", "Guided Setup", "this machine", "another machine",
+        "Windows", "macOS", "either machine", "touch and holding", "touch and hold menu", "Zotero's local", "iOS ", "The README", "Advanced Setup", "Guided Setup", "this machine", "another machine",
         "%DATABASE%", "%DOWNLOADS%", "%PREFERENCES%", "%ERRORS_LOG%", "%SKIPPED_LOG%", "/var/", "~/",
     };
 
@@ -170,7 +170,10 @@ public class DeviceTests
     [InlineData("When something looks wrong", "errors.log, in the ClassicaCodex folder")]
     [InlineData("Getting started", "Quick Start (recommended)")]
     [InlineData("The Antikythera Mechanism", "It needs a connection")]
-    [InlineData("Getting started", "A tool opens as a full page, with Back at its top left.")]
+    [InlineData("Getting started", "A tool opens as a full page, with Back or Close at its top left.")]
+    [InlineData("Appearance and settings", "Settings\n   In the sidebar's Tools list")]
+    [InlineData("Reading texts", "Marks added from a line's menu appear at once.")]
+    [InlineData("Where your data lives", "press Remove Key in the AI tab of Settings first")]
     [InlineData("Tags and the Myth Network", "a folder called Figures in this app's folder in the Files app")]
     [InlineData("Research Bench", "choose Research Bench in the sidebar's Tools list")]
     [InlineData("Exporting passages", "Each goes to the Exports folder, in this app's folder in the Files app")]

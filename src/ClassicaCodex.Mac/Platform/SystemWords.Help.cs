@@ -51,7 +51,7 @@ internal static partial class SystemWords
             """),
         ("Keyboard shortcuts\n", "Where you left off\n", string.Empty),
         ("   An optional online-assisted part of Classica Codex. Two providers", "   Gemini (Google)\n",
-            "   An optional online-assisted part of Classica Codex, through Google's Gemini.\n\n"),
+            "   Optional, and it works online, through Google's Gemini.\n\n"),
         ("The library is a single SQLite file.", "None of the texts, dictionaries, or linguistic data belong to this app",
             """
             Everything is on this iPad, and the files are in this app's folder in the Files app.
@@ -69,9 +69,9 @@ internal static partial class SystemWords
                What you export, and the app's own copies of files you import or attach. They are included when you back up this iPad.
 
             API keys
-               Kept in this iPad's keychain rather than in a file. They stay on this iPad and are left out of its backups.
+               Kept in this iPad's keychain rather than in a file. They stay on this iPad: a backup restored to another one does not bring them.
 
-            Deleting Classica Codex removes all of this from the iPad. iPadOS can keep keychain items after an app is deleted, so press Remove Key in Settings first.
+            Deleting Classica Codex removes the files above from the iPad. iPadOS can keep a keychain item after its app is deleted, so to remove the key as well, press Remove Key in the AI tab of Settings first.
 
 
             """),
@@ -116,7 +116,8 @@ internal static partial class SystemWords
 
         ("; Bigger Text, Smaller Text and Default Text Size in the View menu do the same on ⌘+, ⌘- and ⌘0.", "."),
         ("Where the library, tags, and bookmarks are stored: one file. File > Open Library… switches to another, and File > New Library… starts an empty one wherever you choose and goes straight on into Setup - so separate libraries are simply separate files. A library copied from a PC opens as it is: the Mac brings its structure up to date the same way the Windows app does, and nothing has to be downloaded again. You're only asked for this on a first run, or if the file has been moved or deleted.",
-            "Where the library, tags, and bookmarks are stored: one file, in this app's folder in the Files app."),
+            "Where the library, tags, and bookmarks are stored: one file, in this app's folder in the Files app.\n\n"
+            + "Settings\n   In the sidebar's Tools list, with tabs for General, Reading, AI, Voice and Library."),
 
         ("In the Tools menu, and in the sidebar's Tools list under Analysis.", "In the sidebar's Tools list, under Analysis."),
         ("Downloads are large and take a while. Run one at a time and let each finish.",
@@ -126,7 +127,7 @@ internal static partial class SystemWords
             Finding your way around
                The first button in the toolbar shows or hides the sidebar, which holds the library and the tools.
 
-               A tool opens as a full page, with Back at its top left. The Help calls these windows. When a result takes you to the reader, a Back button floats over the page to return you to the tool.
+               A tool opens as a full page, with Back or Close at its top left. The Help calls these windows. When a result takes you to the reader, a Back button floats over the page to return you to the tool.
 
                Touch and hold a line, a work or a row for its menu, and double-tap a result to open it. Pinch the Places Map to zoom.
             """),
@@ -134,7 +135,18 @@ internal static partial class SystemWords
         ("Touch and hold a line and choose Word Study, then tap any word in it.",
             "Touch and hold a line and choose Word Study, then tap any word in it. It needs lemma data for that language: "
             + "Greek Lemma Data or Latin Lemma Data, under Choose Collections in Setup. Until that is in, the menu item says so."),
-        (", and so does View > Link the Two Pages: linked panes", ": linked panes"),
+        // The Mac's sentence says twice why linked panes suit verse; the iPad's says it once.
+        (", and so does View > Link the Two Pages: linked panes suit verse, where a translation keeps roughly the original's line structure, but on prose one Greek sentence can become three English ones and the two sides drift apart until the mirroring is dragging you away from the line you were reading.",
+            ", which suits prose, where one Greek sentence can become three English ones and the mirroring would drag you away from the line you were reading."),
+
+        // "Right-click menu" has become "touch and hold menu" by now, which is not a name for anything.
+        ("Marks added from the touch and hold menu appear at once.", "Marks added from a line's menu appear at once."),
+        ("appears on that page's touch and hold menu.", "appears in the menu when you touch and hold that page."),
+        ("straight from a line's touch and hold menu", "straight from a line's menu"),
+        ("Tag lines by hand from the reader's touch and hold menu", "Tag lines by hand from a line's menu in the reader"),
+
+        // There is no other provider on an iPad for this to be an exception to.
+        ("   Gemini only, since this is bulk optional content generation rather than core reading. ", "   "),
         (" - the same three the Windows app draws, so a line marked on either machine reads the same on both.", "."),
         ("put a PNG in a \"Figures\" folder beside your database file, named for the tag.",
             "put a PNG in a folder called Figures in this app's folder in the Files app, named for the tag."),
