@@ -168,6 +168,8 @@ Everything below was tested in the iPad simulator, against a full library of
 - A double-tap on a search result, the passage highlighted in the reader, and the
   way back to the results as they were
 - Long-press menus in Search, swiping a table, and exporting passages
+- The Myth Network's portraits, bundled as they are: the iOS build otherwise
+  runs PNGs through Apple's pngcrush, whose output Skia cannot draw
 - Git and the archive fetch compared on four real repositories, on a Mac: all
   2,568 files identical, and the archive about ten times faster
 - Greek, Arabic, Hebrew, Egyptian hieroglyphs and cuneiform, all with the

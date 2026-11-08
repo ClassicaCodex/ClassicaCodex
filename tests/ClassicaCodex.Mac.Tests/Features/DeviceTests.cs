@@ -309,6 +309,27 @@ public class DeviceTests
         Assert.False(new WordIndexWindow().ClosesFromTitleBar);
     }
 
+    /// <summary>
+    /// FigureImages reads the portraits from a Figures folder beside the app.
+    /// The iPad build has to put them there itself, and leave them as they are:
+    /// it otherwise runs bundled PNGs through Apple's pngcrush, whose output
+    /// Skia cannot read, and every node would quietly draw without its face.
+    /// </summary>
+    [Fact]
+    public void The_iPad_build_bundles_the_Myth_Network_portraits_as_they_are()
+    {
+        var root = new DirectoryInfo(AppContext.BaseDirectory);
+        while (root != null && !File.Exists(Path.Combine(root.FullName, "ClassicaCodex.sln"))) root = root.Parent;
+        Assert.NotNull(root);
+
+        var project = System.Xml.Linq.XDocument.Load(Path.Combine(root!.FullName, "src", "ClassicaCodex.iOS", "ClassicaCodex.iOS.csproj"));
+        var portraits = project.Descendants("BundleResource")
+            .Single(item => ((string?)item.Attribute("Include"))?.Contains(@"Icons\Figures\", StringComparison.Ordinal) == true);
+
+        Assert.Equal("Figures/%(Filename)%(Extension)", (string?)portraits.Attribute("LogicalName"));
+        Assert.Equal("false", (string?)portraits.Attribute("Optimize"));
+    }
+
     [AvaloniaFact]
     public void Apple_requires_the_privacy_policy_to_be_linked_inside_the_app()
     {

@@ -107,6 +107,13 @@
     <BundleResource Include="..\..\THIRD-PARTY-NOTICES.md" LogicalName="THIRD-PARTY-NOTICES.md" />
     <BundleResource Include="..\ClassicaCodex.Mac\THIRD-PARTY-NOTICES-MAC.md" LogicalName="THIRD-PARTY-NOTICES-MAC.md" />
     <BundleResource Include="..\..\THIRD-PARTY-NOTICES-DOTNET.txt" LogicalName="THIRD-PARTY-NOTICES-DOTNET.txt" />
+
+    <!-- The Myth Network's portraits. FigureImages reads them from a Figures
+         folder beside the app, which on a Mac the Mac project copies there.
+         Not optimised: the iOS build otherwise runs bundled PNGs through
+         Apple's pngcrush, which rewrites them in a form only Apple's own
+         decoder reads, and Avalonia draws them with Skia. -->
+    <BundleResource Include="..\ClassicaCodex.UI\Icons\Figures\*.png" LogicalName="Figures/%(Filename)%(Extension)" Optimize="false" />
   </ItemGroup>
 
   <!-- PDFsharp's package brings Microsoft's Segoe WP typefaces, which nothing
