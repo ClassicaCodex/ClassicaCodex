@@ -1228,6 +1228,7 @@ public class TeiParser
             }
 
             inlineChildren.Add(child);
+            var mark = pending.Length;
 
             // Editorial children contribute nothing to the text and are only
             // recorded above, for the apparatus. FlattenElement skips these
@@ -1237,9 +1238,17 @@ public class TeiParser
             // a <note> would read the note's own words straight into the prose.
             // Petronius has 224 of them; unfiltered they added 1,524 letters of
             // nineteenth-century apparatus to the Satyricon's narrative.
-            if (EditorialElements.Contains(child.Name.LocalName)) continue;
+            if (!EditorialElements.Contains(child.Name.LocalName))
+                FlattenElement(child, pending, ref interrupted);
 
-            FlattenElement(child, pending, ref interrupted);
+            // The same rule FlattenElement applies to the children it walks: a
+            // child that added nothing - a skipped <milestone/> or <note>, an
+            // empty <lb/> - stood between the runs on either side of it, and
+            // AppendText decides from that whether they need a space. This
+            // loop used to `continue` past an editorial child without saying
+            // so, and "word<milestone/>next" in a mixed block came out as one
+            // word.
+            if (pending.Length == mark) interrupted = true;
         }
 
         FlushOwnText(element, pending, inlineChildren, citationTrail,
@@ -1491,15 +1500,25 @@ public class TeiParser
     /// &lt;note&gt; anchors, 5,894 &lt;milestone/&gt; and 4,445 &lt;lb/&gt; sit
     /// tight against text on both sides across the corpora, so both halves of
     /// this carry weight.
+    ///
+    /// <b>Punctuation that ends a clause, then a word.</b> The letter-to-letter
+    /// test alone missed the commonest shape in the Loeb translations, where
+    /// the space at a line marker is dropped AFTER the punctuation:
+    ///
+    ///     fulfillment,&lt;milestone n="5" unit="line"/&gt;from the time
+    ///
+    /// read "fulfillment,from". Murray's Iliad lost a space this way in 419 of
+    /// its 425 passages and his Odyssey in 280 of 288 - the translation the
+    /// Iliad opens with. A comma, colon, full stop and the rest never join the
+    /// word after them, so a break there wants the space as much as one
+    /// between two letters does. Hyphens, apostrophes and dashes are left out
+    /// on purpose: each of them can sit inside a word or a compound.
     /// </summary>
     private static void AppendText(StringBuilder sb, string value, ref bool interrupted)
     {
         if (value.Length == 0) return;
 
-        if (interrupted
-            && sb.Length > 0
-            && char.IsLetterOrDigit(sb[sb.Length - 1])
-            && char.IsLetterOrDigit(value[0]))
+        if (interrupted && sb.Length > 0 && NeedsSeparator(sb[sb.Length - 1], value[0]))
         {
             sb.Append(' ');
         }
@@ -1507,6 +1526,22 @@ public class TeiParser
         sb.Append(value);
         interrupted = false;
     }
+
+    /// <summary>
+    /// Whether two runs that met across an element with no text of its own
+    /// would read wrongly run together. See <see cref="AppendText"/>.
+    /// </summary>
+    private static bool NeedsSeparator(char before, char after) =>
+        char.IsLetterOrDigit(before)
+            ? char.IsLetterOrDigit(after)
+            : char.IsLetter(after) && ClausePunctuation.Contains(before);
+
+    /// <summary>
+    /// Punctuation after which a following word always takes a space: Latin
+    /// and English stops and closing brackets, and the Greek ano teleia and
+    /// question mark in both their dedicated and their common code points.
+    /// </summary>
+    private const string ClausePunctuation = ",;:.!?)]··;";
 
     /// <summary>
     /// Walks an element's content, appending text but stepping around

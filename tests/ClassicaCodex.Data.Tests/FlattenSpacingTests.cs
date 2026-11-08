@@ -116,6 +116,60 @@ public class FlattenSpacingTests
     }
 
     /// <summary>
+    /// The Loeb translations drop the space at a line marker AFTER the
+    /// punctuation, and the letter-to-letter rule above could not see it:
+    /// Murray's Iliad read "fulfillment,from" in 419 of its 425 passages and
+    /// his Odyssey in 280 of 288. Verbatim from tlg0012.tlg001.perseus-eng3,
+    /// then the Greek middle dot from tlg0007.tlg112.perseus-grc2, then a
+    /// skipped note in the same place.
+    /// </summary>
+    [Fact]
+    public void PunctuationBeforeAMarkerKeepsItsSpace()
+    {
+        Assert.Equal(
+            "thus the plan of Zeus came to fulfillment, from the time when",
+            TextOf(@"<p>thus the plan of Zeus came to fulfillment,<milestone n=""5"" unit=""line""/>from the time when</p>"));
+        Assert.Equal(
+            "her bed. But go, do not anger me",
+            TextOf(@"<p>her bed.<milestone n=""31"" unit=""line""/>But go, do not anger me</p>"));
+        Assert.Equal(
+            "καὶ πρόγονοι· κλῄζει δʼ",
+            TextOf(@"<l>καὶ πρόγονοι·<milestone unit=""line"" n=""5""/>κλῄζει δʼ</l>"));
+        Assert.Equal(
+            "autem, ut venit",
+            TextOf(@"<l>autem,<note>Nepos, Them. 4</note>ut venit</l>"));
+    }
+
+    /// <summary>
+    /// What the punctuation rule leaves alone. A hyphen and a dash can sit
+    /// inside a compound, and a full stop before a digit is a number, so
+    /// none of them takes a space the source did not give it.
+    /// </summary>
+    [Fact]
+    public void JoiningPunctuationAndNumbersStayAsTheSourceHasThem()
+    {
+        Assert.Equal("well-known", TextOf(@"<l>well-<lb/>known</l>"));
+        Assert.Equal("pro caris gesserat Argis—necdum", TextOf(@"<l>pro caris gesserat Argis—<milestone unit=""line"" n=""25""/>necdum</l>"));
+        Assert.Equal("book 1.5 says", TextOf(@"<l>book 1.<lb/>5 says</l>"));
+    }
+
+    /// <summary>
+    /// A block with its own prose and a nested poem goes through a separate
+    /// path (Petronius's &lt;ab&gt; with an &lt;lg&gt; inside), and that path
+    /// stepped past a skipped &lt;milestone/&gt; without noting that anything
+    /// stood there - so neither rule above ever ran for it.
+    /// </summary>
+    [Fact]
+    public void AMarkerInAMixedBlockStillSeparates()
+    {
+        var nodes = new TeiParser().ParseXml(Wrap(
+            @"<ab>Encolpius spoke,<milestone unit=""section"" n=""2""/>and then alpha<milestone unit=""section"" n=""3""/>beta<lg><l>a verse line</l></lg></ab>"));
+
+        Assert.Equal("Encolpius spoke, and then alpha beta", nodes[0].Text);
+        Assert.Contains(nodes, n => n.Text == "a verse line");
+    }
+
+    /// <summary>
     /// Marlowe's Faustus regularises punctuation with an empty
     /// &lt;orig reg="," /&gt; between two words. It contributes no text, so it
     /// separates them exactly as a line break would.
