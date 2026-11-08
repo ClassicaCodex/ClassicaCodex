@@ -80,8 +80,12 @@ native code beside the new DLL, and the app then quits at launch with `Failed to
 load AOT module ... doesn't match assembly` in the system log.
 
 The workload asks for Xcode 27.1 exactly, so `ValidateXcodeVersion` is off in the
-project for the sake of Xcode 27.2. A release for the App Store should use the
-Xcode the workload names.
+project for the sake of Xcode 27.2. On November 7, 2026 the private SDK was 10.0.403
+(runtime 10.0.14, a security release) with iOS workload 27.1.10018, the newest
+Microsoft had published; there was no workload for Xcode 27.2 yet. Apple does not
+look at the workload. Its rule since April 28, 2026 is only that an upload is built
+with Xcode 26 or later against the iOS 26 SDK or later, which Xcode 27.2 meets. When
+a workload for the installed Xcode appears, update to it and turn the check back on.
 
 ## Giving it a library
 
@@ -95,7 +99,7 @@ a folder, and then clone a library into it. On APFS a clone takes no extra disk
 until one of the copies changes, and the app can only write to its own copy:
 
 ```bash
-cp -c ~/Documents/classicacodex.db "$(xcrun simctl get_app_container booted org.classicacodex.ipad data)/Documents/"
+cp -c ~/Documents/classicacodex.db "$(xcrun simctl get_app_container booted com.skirnirstudios.classicacodex data)/Documents/"
 ```
 
 ## Putting it on a real iPad
@@ -121,7 +125,7 @@ xcrun devicectl device install app --device <identifier> src/ClassicaCodex.iOS/b
 ```
 
 ```bash
-xcrun devicectl device copy to --device <identifier> --domain-type appDataContainer --domain-identifier org.classicacodex.ipad --source ~/Documents/classicacodex.db --destination Documents/classicacodex.db --user mobile
+xcrun devicectl device copy to --device <identifier> --domain-type appDataContainer --domain-identifier com.skirnirstudios.classicacodex --source ~/Documents/classicacodex.db --destination Documents/classicacodex.db --user mobile
 ```
 
 ## What was tested
@@ -141,7 +145,9 @@ that iPad:
   collections match a library built on a desktop
 - An error in an action going to the log, with the app still running
 - A link handed to iOS, which accepted it, and the Files app reported as reachable
-- By hand: a jump from Search, the API key link, and an export saved to iCloud Drive
+- By hand: a jump from Search, the API key link, an export saved to iCloud Drive,
+  and real Gemini requests: Let AI Suggest a New Project, Translate on one passage,
+  and Create Translation on a short work
 
 Everything below was tested in the iPad simulator, against a full library of
 3.4 GB:

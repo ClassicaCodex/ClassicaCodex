@@ -17,7 +17,7 @@
     <RuntimeIdentifier>iossimulator-arm64</RuntimeIdentifier>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
-    <ApplicationId>org.classicacodex.ipad</ApplicationId>
+    <ApplicationId>com.skirnirstudios.classicacodex</ApplicationId>
     <ApplicationTitle>Classica Codex</ApplicationTitle>
     <ApplicationDisplayVersion>1.0</ApplicationDisplayVersion>
     <ApplicationVersion>1</ApplicationVersion>
