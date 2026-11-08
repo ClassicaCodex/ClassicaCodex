@@ -698,21 +698,44 @@ public class TextNodeRepository
     ///
     /// An empty or null set means no restriction, so "everything" costs
     /// nothing rather than being expressed as a list of every id.
+    ///
+    /// <paramref name="language"/>, when given, keeps only lines from editions
+    /// in that language. A paradigm is a list of spellings, and a spelling can
+    /// also be a word in another language: the Latin lemma data gives "can" as
+    /// a form of cano, so Word Study on "Arma virumque cano" listed "Can gods
+    /// such anger feel?" from the English translation beside Vergil's own
+    /// lines - "Searching 1 text" covers the Aeneid's translations as well as
+    /// its Latin. Null keeps the old behaviour for callers that want every
+    /// language.
     /// </summary>
     public async Task<SearchHits> SearchByFormsAsync(
         IReadOnlyList<string> forms, int maxResults = DefaultMaxResults,
-        IReadOnlyCollection<int>? workIds = null, CancellationToken cancellationToken = default)
+        IReadOnlyCollection<int>? workIds = null, string? language = null,
+        CancellationToken cancellationToken = default)
     {
         if (forms.Count == 0) return SearchHits.Empty;
 
         var scope = workIds == null || workIds.Count == 0 ? null : workIds.Distinct().ToList();
+        var onlyLanguage = string.IsNullOrWhiteSpace(language) ? null : language.Trim();
 
         // Fast path: if the inverted word index has been built, resolve
         // everything in one joined query.
-        var indexed = await TrySearchViaWordIndexAsync(forms, maxResults, scope, cancellationToken);
+        var indexed = await TrySearchViaWordIndexAsync(forms, maxResults, scope, onlyLanguage, cancellationToken);
         if (indexed != null) return indexed;
 
-        return await SearchByFormsWithLikeAsync(forms, maxResults, scope, cancellationToken);
+        return await SearchByFormsWithLikeAsync(forms, maxResults, scope, onlyLanguage, cancellationToken);
+    }
+
+    /// <summary>
+    /// The edition-language filter for <see cref="SearchByFormsAsync"/>, or
+    /// nothing when no language was asked for. Compared without case because
+    /// the codes come from source files that do not agree on it.
+    /// </summary>
+    private static string LanguageClause(SqliteCommand cmd, string? language, string keyword)
+    {
+        if (language == null) return string.Empty;
+        cmd.Parameters.AddWithValue("@Language", language);
+        return $"{keyword} e.Language = @Language COLLATE NOCASE";
     }
 
     /// <summary>
@@ -769,7 +792,7 @@ public class TextNodeRepository
         if (words.Count == 0) return SearchHits.Empty;
 
         if (words.Count == 1)
-            return await SearchByFormsAsync(new[] { phrase }, maxResults, workIds, cancellationToken);
+            return await SearchByFormsAsync(new[] { phrase }, maxResults, workIds, cancellationToken: cancellationToken);
 
         var scope = workIds == null || workIds.Count == 0 ? null : workIds.Distinct().ToList();
 
@@ -941,7 +964,8 @@ public class TextNodeRepository
     /// "no index" apart from "index found nothing" and fall back.
     /// </summary>
     private async Task<SearchHits?> TrySearchViaWordIndexAsync(
-        IReadOnlyList<string> forms, int maxResults, List<int>? workIds, CancellationToken cancellationToken)
+        IReadOnlyList<string> forms, int maxResults, List<int>? workIds, string? language,
+        CancellationToken cancellationToken)
     {
         // Opened once and reused for the has-data check below and the real
         // query that follows it - see WordIndexRepository.HasDataAsync's
@@ -973,6 +997,8 @@ public class TextNodeRepository
             cmd.Parameters.AddWithValue($"@w{i}", normalized[i]);
         }
         cmd.Parameters.AddWithValue("@Limit", maxResults + 1);
+        var scopeSql = WorkScopeClause(cmd, workIds, "WHERE");
+        var languageSql = LanguageClause(cmd, language, scopeSql.Length == 0 ? "WHERE" : "AND");
 
         // The LIMIT belongs on the OUTER query, not the inner one. Inside the
         // subquery it clipped an unordered set of ids and only THEN sorted
@@ -991,7 +1017,8 @@ public class TextNodeRepository
             JOIN Editions e ON tn.EditionId = e.EditionId
             JOIN Works w ON e.WorkId = w.WorkId
             JOIN Authors a ON w.AuthorId = a.AuthorId
-            {WorkScopeClause(cmd, workIds, "WHERE")}
+            {scopeSql}
+            {languageSql}
             ORDER BY a.Name, w.Title, tn.SortOrder
             LIMIT @Limit;";
 
@@ -1011,7 +1038,8 @@ public class TextNodeRepository
     }
 
     private async Task<SearchHits> SearchByFormsWithLikeAsync(
-        IReadOnlyList<string> forms, int maxResults, List<int>? workIds, CancellationToken cancellationToken)
+        IReadOnlyList<string> forms, int maxResults, List<int>? workIds, string? language,
+        CancellationToken cancellationToken)
     {
         var results = new List<(int, long, string, string, string, string, string?)>();
 
@@ -1068,6 +1096,7 @@ public class TextNodeRepository
             JOIN Authors a ON w.AuthorId = a.AuthorId
             WHERE ({string.Join(" OR ", clauses)})
                   {WorkScopeClause(cmd, workIds, "AND")}
+                  {LanguageClause(cmd, language, "AND")}
             ORDER BY a.Name, w.Title, tn.SortOrder
             LIMIT @Limit;";
 

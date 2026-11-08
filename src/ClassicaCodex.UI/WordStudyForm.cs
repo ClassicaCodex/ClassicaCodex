@@ -602,7 +602,9 @@ public class WordStudyForm : ScaledForm
         // async methods run synchronously, so awaiting this directly held the
         // window while it gathered every occurrence of the word in the corpus,
         // about a fifth of a second for a common one.
-        var hits = await Task.Run(() => _textNodeRepo.SearchByFormsAsync(forms, workIds: _scopeWorkIds));
+        // In this word's language only - see SearchByFormsAsync for the Latin
+        // "can" that was matching the English translation.
+        var hits = await Task.Run(() => _textNodeRepo.SearchByFormsAsync(forms, workIds: _scopeWorkIds, language: _language));
         _currentOccurrences = hits.Rows;
 
         _occurrenceList.Items.Clear();

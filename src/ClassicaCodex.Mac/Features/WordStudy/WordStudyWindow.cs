@@ -756,7 +756,9 @@ public sealed class WordStudyWindow : FeatureWindow
             // Off the UI thread. Microsoft.Data.Sqlite's async methods run
             // synchronously, so awaiting this directly would hold the window
             // while it gathered every occurrence of the word in the corpus.
-            var hits = await Task.Run(() => _textNodeRepo.SearchByFormsAsync(forms, workIds: scope));
+            // In this word's language only - see SearchByFormsAsync for the
+            // Latin "can" that was matching the English translation.
+            var hits = await Task.Run(() => _textNodeRepo.SearchByFormsAsync(forms, workIds: scope, language: _language));
             if (generation != _generation || _closed) return;
 
             _currentOccurrences = hits.Rows;
