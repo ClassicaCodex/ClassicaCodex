@@ -35,10 +35,14 @@ internal static partial class SystemWords
     /// <summary>
     /// The Linux wording is the nearest an iPad has, so it starts from that,
     /// and <see cref="DevicePhrases"/> goes first for what would be untrue there.
+    ///
+    /// The Help is written in raw string literals, which take the line endings
+    /// of the checkout. Git on Windows checks out CRLF, and the passages and
+    /// phrases here are matched with \n, so the endings are made \n first.
     /// </summary>
     internal static string ForDevice(string text)
     {
-        text = RewritePassages(ForTouch(text));
+        text = RewritePassages(ForTouch(text.ReplaceLineEndings("\n")));
         foreach (var (mac, device) in DevicePhrases) text = text.Replace(mac, device, StringComparison.Ordinal);
         foreach (var (mac, device) in DeviceHelpPhrases) text = text.Replace(mac, device, StringComparison.Ordinal);
         return ForLinux(text);

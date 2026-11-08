@@ -65,14 +65,19 @@ internal static class DeviceFiles
 
     /// <summary>
     /// A path stored by an earlier install, as it is now. An update moves the
-    /// app's container, so the part before Documents goes out of date.
+    /// app's container, so the part before Documents goes out of date. The
+    /// stored path uses an iPad's /, and the part kept is given the system's
+    /// own separator, which is the same on an iPad and not on Windows.
     /// </summary>
     public static string Here(string path)
     {
         const string marker = "/Documents/";
 
         var at = path.IndexOf(marker, StringComparison.Ordinal);
-        return MacDataFolder.OnDevice && at >= 0 ? Path.Combine(Documents, path[(at + marker.Length)..]) : path;
+        if (!MacDataFolder.OnDevice || at < 0) return path;
+
+        var rest = path[(at + marker.Length)..].Replace('/', Path.DirectorySeparatorChar);
+        return Path.Combine(Documents, rest);
     }
 
     private static IEnumerable<string> Numbered(string folder, string name)
