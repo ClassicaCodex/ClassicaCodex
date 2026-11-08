@@ -18,9 +18,16 @@ public class GeminiReplyShapeTests
     [InlineData("""{"candidates":[{"content":{"parts":[]},"finishReason":"PROHIBITED_CONTENT"}]}""")]
     public void AReplyWithNoTextSaysSoInsteadOfFailingOnAMissingProperty(string reply)
     {
-        var refused = Assert.Throws<InvalidOperationException>(() => GeminiTranslationService.ExtractTranslatedText(reply));
+        var refused = Assert.Throws<GeminiDeclinedException>(() => GeminiTranslationService.ExtractTranslatedText(reply));
 
         Assert.Contains("safety filters", refused.Message);
+    }
+
+    [Fact]
+    public void TheUsageLimitMessageIsTrueOnEverySystem()
+    {
+        Assert.DoesNotContain("Claude", GeminiTranslationService.BothModelsAtLimit);
+        Assert.DoesNotContain("free", GeminiTranslationService.BothModelsAtLimit);
     }
 
     [Fact]

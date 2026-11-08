@@ -9,6 +9,7 @@ using ClassicaCodex.Data.Repositories;
 using ClassicaCodex.Ingestion;
 using ClassicaCodex.Mac.Common;
 using ClassicaCodex.Mac.Features.Settings;
+using ClassicaCodex.Mac.Features.Setup;
 using ClassicaCodex.Mac.Platform;
 
 namespace ClassicaCodex.Mac.Features.Translation;
@@ -46,7 +47,6 @@ namespace ClassicaCodex.Mac.Features.Translation;
 /// </summary>
 public sealed class CreateTranslationWindow : FeatureWindow
 {
-    private const int InterBatchDelayMs = 2500;
     private const string GeminiTranslatorLabel = "Gemini (AI-generated)";
 
     private readonly int _workId;
@@ -65,6 +65,9 @@ public sealed class CreateTranslationWindow : FeatureWindow
     private List<TextNode> _sourceNodes = new();
     private readonly Dictionary<string, string> _translatedByRef = new(StringComparer.OrdinalIgnoreCase);
     private CancellationTokenSource? _cancellation;
+
+    /// <summary>Whether Google's filters refused a batch in this run, so the summary can say why lines are missing.</summary>
+    private bool _filtersDeclined;
 
     /// <summary>
     /// Null until the first successful batch persists something - created
@@ -208,6 +211,15 @@ public sealed class CreateTranslationWindow : FeatureWindow
     internal string ResumeText => _resumeRow.IsVisible ? _resumeLabel.Text ?? string.Empty : string.Empty;
 
     internal Button TranslateButton => _translate;
+
+    internal IReadOnlyList<TextNode> SourceLines => _sourceNodes;
+
+    /// <summary>The wait between requests, which a test shortens.</summary>
+    internal int InterBatchDelayMs { get; set; } = 2500;
+
+    /// <summary>Set by a test, which has no key to reach Gemini with.</summary>
+    internal Func<List<(string CitationRef, string Text)>, CancellationToken,
+        Task<List<(string CitationRef, string TranslatedText)>>>? SendBatchInstead { get; set; }
 
     internal int OriginalLineCount => _sourceNodes.Count;
 
@@ -366,8 +378,13 @@ public sealed class CreateTranslationWindow : FeatureWindow
         await run;
     }
 
-    private async Task RunAsync(List<List<TextNode>> batches, string apiKey)
+    internal async Task RunAsync(List<List<TextNode>> batches, string apiKey)
     {
+        // A run outlasts an iPad's auto-lock, and iOS suspends an app when the
+        // screen locks, which would end the request in flight.
+        using var awake = SetupRunner.StayAwake?.Invoke();
+
+        _filtersDeclined = false;
         _cancellation = new CancellationTokenSource();
         _translate.IsEnabled = false;
         _startFresh.IsEnabled = false;
@@ -465,8 +482,12 @@ public sealed class CreateTranslationWindow : FeatureWindow
                   "Reopen this later to finish the rest.")
             : complete
                 ? $"Finished - all {translatedCount:N0} lines translated and saved."
-                : $"Finished this pass, but {_sourceNodes.Count - translatedCount:N0} line(s) never came back " +
-                  "from Gemini. Already saved - reopen this later to try those again.",
+                : _filtersDeclined
+                    ? $"Finished this pass, but {_sourceNodes.Count - translatedCount:N0} line(s) never came back " +
+                      "from Gemini, whose safety filters declined at least some of them. Everything else is saved - " +
+                      "reopen this later to try those lines again."
+                    : $"Finished this pass, but {_sourceNodes.Count - translatedCount:N0} line(s) never came back " +
+                      "from Gemini. Already saved - reopen this later to try those again.",
             warning: !complete);
 
         _cancellation = null;
@@ -480,8 +501,9 @@ public sealed class CreateTranslationWindow : FeatureWindow
         try
         {
             var passages = batch.Select(n => (n.CitationRef, n.Text)).ToList();
-            var results = await GeminiTranslationService.TranslateBatchAsync(
-                passages, _sourceLanguage, _targetLanguage, _authorName, _workTitle, apiKey, cancellationToken);
+            var results = await (SendBatchInstead?.Invoke(passages, cancellationToken)
+                ?? GeminiTranslationService.TranslateBatchAsync(
+                    passages, _sourceLanguage, _targetLanguage, _authorName, _workTitle, apiKey, cancellationToken));
 
             foreach (var (citationRef, translatedText) in results) _translatedByRef[citationRef] = translatedText;
 
@@ -501,6 +523,15 @@ public sealed class CreateTranslationWindow : FeatureWindow
             // first request having saved nothing at all. A timeout says this
             // request took too long, not that the next one will. Reported as
             // lines that didn't come back, and picked up by the retry pass.
+            return batch;
+        }
+        catch (GeminiDeclinedException)
+        {
+            // Google's filters refused these lines, and the lines after them
+            // may be fine. Stopping here would also mean a reopened run
+            // starting at this same batch and stopping again, so the rest of
+            // the work could never be translated.
+            _filtersDeclined = true;
             return batch;
         }
         catch (Exception ex)

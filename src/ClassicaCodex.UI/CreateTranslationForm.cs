@@ -76,6 +76,9 @@ public class CreateTranslationForm : ScaledForm
         _sourceNodes.Count(n => _translatedByRef.ContainsKey(n.CitationRef));
     private CancellationTokenSource? _cancellation;
 
+    /// <summary>Whether Google's filters refused a batch in this run, so the summary can say why lines are missing.</summary>
+    private bool _filtersDeclined;
+
     // Null until the first successful batch persists something - created
     // once, then reused for every save after that (including auto-saves),
     // so repeated saves update the same edition instead of multiplying into
@@ -346,6 +349,7 @@ public class CreateTranslationForm : ScaledForm
         _translateButton.Enabled = false;
         _startFreshButton.Enabled = false;
         _stopButton.Enabled = true;
+        _filtersDeclined = false;
         _cancellation = new CancellationTokenSource();
         var apiKey = TranslationSettings.GeminiApiKey!;
 
@@ -448,8 +452,12 @@ public class CreateTranslationForm : ScaledForm
                   "Reopen this later to finish the rest.")
             : translatedCount == _sourceNodes.Count
                 ? $"Finished - all {translatedCount:N0} lines translated and saved."
-                : $"Finished this pass, but {_sourceNodes.Count - translatedCount:N0} line(s) never came back " +
-                  "from Gemini. Already saved - reopen this later to try those again.";
+                : _filtersDeclined
+                    ? $"Finished this pass, but {_sourceNodes.Count - translatedCount:N0} line(s) never came back " +
+                      "from Gemini, whose safety filters declined at least some of them. Everything else is saved - " +
+                      "reopen this later to try those lines again."
+                    : $"Finished this pass, but {_sourceNodes.Count - translatedCount:N0} line(s) never came back " +
+                      "from Gemini. Already saved - reopen this later to try those again.";
 
         _stopButton.Enabled = false;
         _startFreshButton.Enabled = true;
@@ -489,6 +497,15 @@ public class CreateTranslationForm : ScaledForm
             // A timeout says this request took too long, not that the next
             // one will. Reported as lines that didn't come back, which is
             // what they are, and picked up by the retry pass afterwards.
+            return batch;
+        }
+        catch (GeminiDeclinedException)
+        {
+            // Google's filters refused these lines, and the lines after them
+            // may be fine. Stopping here would also mean a reopened run
+            // starting at this same batch and stopping again, so the rest of
+            // the work could never be translated.
+            _filtersDeclined = true;
             return batch;
         }
         catch (Exception ex)

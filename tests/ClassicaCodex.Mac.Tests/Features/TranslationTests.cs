@@ -4,10 +4,12 @@ using Avalonia.Headless.XUnit;
 using Avalonia.Interactivity;
 using Avalonia.Styling;
 using Avalonia.VisualTree;
+using ClassicaCodex.Core;
 using ClassicaCodex.Core.Models;
 using ClassicaCodex.Data;
 using ClassicaCodex.Data.Repositories;
 using ClassicaCodex.Mac.Features.Export;
+using ClassicaCodex.Mac.Features.Setup;
 using ClassicaCodex.Mac.Features.Translation;
 using ClassicaCodex.Mac.Shell;
 using ClassicaCodex.UI;
@@ -485,6 +487,77 @@ public class TranslationTests : IClassFixture<TranslationTestLibrary>
 
         resumed.Close();
         window.Close();
+    }
+
+    /// <summary>
+    /// One batch of three is refused, as Google's filters refuse a passage: the
+    /// lines after it still get translated, the summary says why some are
+    /// missing, and the iPad's screen is held for exactly as long as the run.
+    /// </summary>
+    [AvaloniaFact]
+    public async Task A_refused_batch_is_skipped_and_the_run_carries_on()
+    {
+        if (await OpenReaderAsync() is not { } window) return;
+
+        var work = WorkTitled(window, "Euthyphro");
+        Assert.True(await window.OpenWorkAsync(work.WorkId));
+
+        await TranslationFeature.CreateTranslationAsync(window, work);
+        await Screens.Settle(8);
+        var create = Owned<CreateTranslationWindow>(window);
+        Assert.True(create.OriginalLineCount > 6);
+
+        var holds = 0;
+        var heldWhileSending = true;
+        var offered = SetupRunner.StayAwake;
+        SetupRunner.StayAwake = () =>
+        {
+            holds++;
+            return new Release(() => holds--);
+        };
+
+        try
+        {
+            var batches = create.SourceLines.Take(6).Chunk(2).Select(lines => lines.ToList()).ToList();
+            var refused = batches[1].Select(n => n.CitationRef).ToHashSet();
+
+            create.InterBatchDelayMs = 0;
+            create.SendBatchInstead = (passages, _) =>
+            {
+                heldWhileSending &= holds == 1;
+                if (passages.Any(p => refused.Contains(p.CitationRef)))
+                    throw new GeminiDeclinedException("declined");
+
+                return Task.FromResult(passages.Select(p => (p.CitationRef, "translated")).ToList());
+            };
+
+            await create.RunAsync(batches, "made-up-key");
+            await Screens.Settle(2);
+
+            Assert.True(heldWhileSending);
+            Assert.Equal(0, holds);
+            Assert.True(create.PersistedAnything);
+            Assert.Contains("safety filters", create.StatusText);
+            Assert.DoesNotContain("Stopped", create.StatusText);
+        }
+        finally
+        {
+            SetupRunner.StayAwake = offered;
+        }
+
+        // The lines that came back are in the library; the refused ones are not.
+        var editions = await new EditionRepository().GetByWorkAsync(work.WorkId);
+        var made = editions.Single(e => e.CtsUrn.Contains(".ai-gemini-"));
+        var saved = await new TextNodeRepository().GetByEditionAsync(made.EditionId);
+        Assert.Equal(4, saved.Count);
+
+        create.Close();
+        window.Close();
+    }
+
+    private sealed class Release(Action release) : IDisposable
+    {
+        public void Dispose() => release();
     }
 
     [AvaloniaFact]

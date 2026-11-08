@@ -116,8 +116,11 @@ public static class GeminiTranslationService
         return TimeSpan.FromSeconds(Math.Min(seconds, 240));
     }
 
+    // Google routes gemini-3.5-flash to its successor and says the address is
+    // not shutting down, so it needs no change. gemini-3.1-flash-lite could go
+    // from May 7, 2027, which is why the fallback is its named replacement.
     private const string PrimaryModel = "gemini-3.5-flash";
-    private const string FallbackModel = "gemini-3.1-flash-lite";
+    private const string FallbackModel = "gemini-3.5-flash-lite";
     private const string ApiUrlTemplate = "https://generativelanguage.googleapis.com/v1beta/models/{0}:generateContent";
 
     // Short waits, not a long production-grade backoff schedule - this is a
@@ -162,9 +165,7 @@ public static class GeminiTranslationService
             // Only reaches here if the fallback model was already tried too
             // (see the catch below) and it hit its own separate limit as
             // well - a clearer message than either model's raw wording.
-            throw new InvalidOperationException(
-                "Both Gemini models have hit today's free-tier usage limit. Try again after the daily " +
-                "reset, or use Claude for now.");
+            throw new InvalidOperationException(BothModelsAtLimit);
         }
     }
 
@@ -209,9 +210,7 @@ public static class GeminiTranslationService
         }
         catch (QuotaExceededException)
         {
-            throw new InvalidOperationException(
-                "Both Gemini models have hit today's free-tier usage limit. Try again after the daily " +
-                "reset, or use Claude for now.");
+            throw new InvalidOperationException(BothModelsAtLimit);
         }
     }
 
@@ -302,8 +301,7 @@ public static class GeminiTranslationService
         }
         catch (QuotaExceededException)
         {
-            throw new InvalidOperationException(
-                "Both Gemini models have hit today's free-tier usage limit. Try again after the daily reset.");
+            throw new InvalidOperationException(BothModelsAtLimit);
         }
 
         return new GeminiEchoResult(modelUsed ?? PrimaryModel, prompt, ParseEchoCandidates(rawResponse));
@@ -407,8 +405,7 @@ public static class GeminiTranslationService
         }
         catch (QuotaExceededException)
         {
-            throw new InvalidOperationException(
-                "Both Gemini models have hit today's free-tier usage limit. Try again after the daily reset.");
+            throw new InvalidOperationException(BothModelsAtLimit);
         }
 
         return new GeminiResearchResult(
@@ -462,8 +459,7 @@ public static class GeminiTranslationService
         }
         catch (QuotaExceededException)
         {
-            throw new InvalidOperationException(
-                "Both Gemini models have hit today's free-tier usage limit. Try again after the daily reset.");
+            throw new InvalidOperationException(BothModelsAtLimit);
         }
     }
 
@@ -518,8 +514,7 @@ public static class GeminiTranslationService
         }
         catch (QuotaExceededException)
         {
-            throw new InvalidOperationException(
-                "Both Gemini models have hit today's free-tier usage limit. Try again after the daily reset.");
+            throw new InvalidOperationException(BothModelsAtLimit);
         }
     }
 
@@ -586,8 +581,7 @@ public static class GeminiTranslationService
         }
         catch (QuotaExceededException)
         {
-            throw new InvalidOperationException(
-                "Both Gemini models have hit today's free-tier usage limit. Try again after the daily reset.");
+            throw new InvalidOperationException(BothModelsAtLimit);
         }
     }
 
@@ -667,7 +661,7 @@ public static class GeminiTranslationService
         }
         catch (QuotaExceededException)
         {
-            throw new InvalidOperationException("Both Gemini models have hit today's free-tier usage limit. Try again after the daily reset.");
+            throw new InvalidOperationException(BothModelsAtLimit);
         }
     }
 
@@ -742,7 +736,7 @@ public static class GeminiTranslationService
             var raw = await TranslateWithModelAsync(PrimaryModel, true, fullPrompt, apiKey, cancellationToken, m => modelUsed = m);
             return new GeminiProjectSuggestionsResult(modelUsed ?? PrimaryModel, promptProvenance, ParseProjectSuggestions(raw));
         }
-        catch (QuotaExceededException) { throw new InvalidOperationException("Both Gemini models have hit today's free-tier usage limit. Try again after the daily reset."); }
+        catch (QuotaExceededException) { throw new InvalidOperationException(BothModelsAtLimit); }
     }
 
     internal static List<AiResearchProjectSuggestion> ParseProjectSuggestions(string raw)
@@ -801,8 +795,7 @@ public static class GeminiTranslationService
         }
         catch (QuotaExceededException)
         {
-            throw new InvalidOperationException(
-                "Both Gemini models have hit today's free-tier usage limit. Try again after the daily reset.");
+            throw new InvalidOperationException(BothModelsAtLimit);
         }
     }
 
@@ -940,8 +933,7 @@ public static class GeminiTranslationService
         }
         catch (QuotaExceededException)
         {
-            throw new InvalidOperationException(
-                "Both Gemini models have hit today's free-tier usage limit. Try again after the daily reset.");
+            throw new InvalidOperationException(BothModelsAtLimit);
         }
 
         return ParseTranslatedBatch(rawResponse, passages);
@@ -1230,7 +1222,7 @@ public static class GeminiTranslationService
         // more than one part, though a plain text prompt like this one
         // almost always returns exactly one.
         if (!doc.RootElement.TryGetProperty("candidates", out var candidates) || candidates.GetArrayLength() == 0)
-            throw new InvalidOperationException(NoTextReturned);
+            throw new GeminiDeclinedException(NoTextReturned);
 
         var text = new StringBuilder();
         if (candidates[0].TryGetProperty("content", out var content) && content.TryGetProperty("parts", out var parts))
@@ -1245,9 +1237,24 @@ public static class GeminiTranslationService
         }
 
         var result = text.ToString().Trim();
-        return result.Length > 0 ? result : throw new InvalidOperationException(NoTextReturned);
+        return result.Length > 0 ? result : throw new GeminiDeclinedException(NoTextReturned);
     }
 
     private const string NoTextReturned =
         "Gemini returned no text for this passage, which usually means its safety filters declined it.";
+
+    /// <summary>
+    /// Worded for every system the app runs on, so it names no other provider
+    /// and no tier: Claude is not on an iPad, and a paid key has limits too.
+    /// This reaches the screen directly, past the rewording in SystemWords.
+    /// </summary>
+    internal const string BothModelsAtLimit =
+        "Both Gemini models have hit today's usage limit. Try again after the daily reset.";
 }
+
+/// <summary>
+/// Google's filters refused this text. That is a fact about these words, not
+/// about the key or the service, so a run over a whole work can carry on past
+/// it, which it can't do after a dead key or a spent quota.
+/// </summary>
+public sealed class GeminiDeclinedException(string message) : InvalidOperationException(message);
