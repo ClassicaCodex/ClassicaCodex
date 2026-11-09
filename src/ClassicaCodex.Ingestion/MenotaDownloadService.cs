@@ -26,14 +26,45 @@ public sealed class MenotaDownloadService
     public const string ArchiveUrl = "https://clarino.uib.no/korpuskel-api/download-zip?corpus=menota";
 
     /// <summary>
-    /// The MUFI entity table every manuscript assumes. See
-    /// <see cref="MenotaXmlLoader.LoadEntities"/>.
+    /// The MUFI entity table every manuscript assumes (see
+    /// <see cref="MenotaXmlLoader.LoadEntities"/>), at both of the names
+    /// menota.org answers to. Menota publishes it nowhere else.
     /// </summary>
-    public const string EntitiesUrl = "https://www.menota.org/menota-entities.txt";
+    public static readonly IReadOnlyList<string> EntitiesUrls = new[]
+    {
+        "https://www.menota.org/menota-entities.txt",
+        "https://menota.org/menota-entities.txt"
+    };
 
     public const string EntitiesFileName = "menota-entities.txt";
 
-    private readonly FileDownloadService _downloads = new();
+    /// <summary>
+    /// How often, and for how long each time, menota.org is asked for the
+    /// entity table before the step gives up on it.
+    ///
+    /// menota.org does not always answer. On 9 November 2026, four requests in
+    /// ten from a Mac hung for twenty seconds or had the connection reset, at
+    /// both names, while clarino.uib.no, which serves the manuscripts, answered
+    /// every time. The ones that worked took a second. On the iPad the first
+    /// request hung until .NET gave up after 100 seconds, and Setup took that
+    /// for a cancel and said only "Stopped." So each try is cut short, and the
+    /// next goes to the other name. Five tries of twenty seconds is room for a
+    /// slow connection: the file is 157 KB.
+    /// </summary>
+    internal int EntitiesAttempts { get; init; } = 5;
+
+    internal TimeSpan EntitiesAttemptTimeout { get; init; } = TimeSpan.FromSeconds(20);
+
+    internal TimeSpan RetryPause { get; init; } = TimeSpan.FromSeconds(2);
+
+    /// <summary>Stands in for FileDownloadService in the tests.</summary>
+    internal Func<string, string, IProgress<string>, CancellationToken, Task> Download { get; init; }
+
+    public MenotaDownloadService()
+    {
+        var files = new FileDownloadService();
+        Download = files.DownloadAsync;
+    }
 
     /// <summary>
     /// Downloads the entity table and the archive, and puts every manuscript
@@ -47,7 +78,7 @@ public sealed class MenotaDownloadService
         var downloading = new OncePerSecond(progress);
 
         progress.Report("Downloading the table of medieval letters (menota-entities.txt)...");
-        await DownloadEntitiesAsync(folder, downloading, cancellationToken);
+        await DownloadEntitiesAsync(folder, progress, downloading, cancellationToken);
 
         // Saved under its own name and deleted once read, so a folder that
         // already holds a menota.zip someone downloaded is left alone.
@@ -56,7 +87,30 @@ public sealed class MenotaDownloadService
         try
         {
             progress.Report("Downloading the manuscripts (about 23 MB)...");
-            await _downloads.DownloadAsync(ArchiveUrl, archive, downloading, cancellationToken);
+
+            // clarino.uib.no answered every request on the day the tests above
+            // failed four in ten, so one more try is enough. A timeout is made
+            // an error here, because Setup reads a bare cancel as the reader's
+            // own and says only "Stopped."
+            for (var attempt = 1; ; attempt++)
+            {
+                try
+                {
+                    await Download(ArchiveUrl, archive, downloading, cancellationToken);
+                    break;
+                }
+                catch (Exception ex) when (!cancellationToken.IsCancellationRequested && attempt < 2)
+                {
+                    progress.Report($"clarino.uib.no: {ex.Message}. Trying again...");
+                    await Task.Delay(RetryPause, cancellationToken);
+                }
+                catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+                {
+                    throw new HttpRequestException(
+                        "Menota's catalogue server, clarino.uib.no, did not answer in time, so the manuscripts " +
+                        "were not downloaded. Try again in a few minutes.");
+                }
+            }
 
             progress.Report("Unpacking the manuscripts...");
             var count = Extract(archive, folder, cancellationToken);
@@ -77,32 +131,77 @@ public sealed class MenotaDownloadService
     }
 
     /// <summary>
-    /// Downloads menota-entities.txt, and keeps it only if it defines
-    /// characters. A page of HTML or an error message saved under that name
-    /// would otherwise replace a good copy, and every manuscript would import
-    /// with its thorns and eths as boxes.
+    /// Downloads menota-entities.txt, trying again when menota.org does not
+    /// answer, and keeps it only if it defines characters. A page of HTML or an
+    /// error message saved under that name would otherwise replace a good copy,
+    /// and every manuscript would import with its thorns and eths as boxes.
+    ///
+    /// If menota.org never answers, a good copy already in the folder is used,
+    /// since the table changes once a year or so. Without one the step stops
+    /// with an error that says so, rather than as if it had been cancelled.
     /// </summary>
-    private async Task DownloadEntitiesAsync(string folder, IProgress<string> progress, CancellationToken cancellationToken)
+    internal async Task DownloadEntitiesAsync(
+        string folder, IProgress<string> progress, IProgress<string> downloading, CancellationToken cancellationToken)
     {
         var staging = Path.Combine(folder, "entities-download");
-        Directory.CreateDirectory(staging);
+        var staged = Path.Combine(staging, EntitiesFileName);
+        string? problem = null;
 
         try
         {
-            await _downloads.DownloadAsync(EntitiesUrl, Path.Combine(staging, EntitiesFileName), progress, cancellationToken);
-
-            if (MenotaXmlLoader.LoadEntities(staging).Count == 0)
+            for (var attempt = 1; attempt <= EntitiesAttempts; attempt++)
             {
-                throw new InvalidDataException(
-                    $"{EntitiesUrl} came back without any characters defined in it. Menota may have moved it.");
-            }
+                var url = EntitiesUrls[(attempt - 1) % EntitiesUrls.Count];
+                var host = new Uri(url).Host;
+                Directory.CreateDirectory(staging);
 
-            File.Move(Path.Combine(staging, EntitiesFileName), Path.Combine(folder, EntitiesFileName), overwrite: true);
+                using var limit = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+                limit.CancelAfter(EntitiesAttemptTimeout);
+
+                try
+                {
+                    await Download(url, staged, downloading, limit.Token);
+
+                    if (MenotaXmlLoader.LoadEntities(staging).Count > 0)
+                    {
+                        File.Move(staged, Path.Combine(folder, EntitiesFileName), overwrite: true);
+                        return;
+                    }
+
+                    problem = $"{host} sent a file with no characters defined in it";
+                }
+                // Anything but the reader's own Cancel is worth another try:
+                // no answer in time, a reset connection, an error page.
+                catch (Exception ex) when (!cancellationToken.IsCancellationRequested)
+                {
+                    problem = ex is OperationCanceledException
+                        ? $"{host} did not answer within {EntitiesAttemptTimeout.TotalSeconds:0} seconds"
+                        : $"{host}: {ex.Message}";
+                }
+
+                if (attempt < EntitiesAttempts)
+                {
+                    progress.Report($"{problem}. Trying again ({attempt + 1} of {EntitiesAttempts})...");
+                    await Task.Delay(RetryPause, cancellationToken);
+                }
+            }
         }
         finally
         {
             try { Directory.Delete(staging, recursive: true); } catch (IOException) { /* empty or gone */ }
         }
+
+        if (MenotaXmlLoader.LoadEntities(folder).Count > 0)
+        {
+            progress.Report($"{problem}. Using the menota-entities.txt already in the folder.");
+            return;
+        }
+
+        throw new HttpRequestException(
+            $"menota.org did not send the table of medieval letters (menota-entities.txt) after " +
+            $"{EntitiesAttempts} tries - {problem}. It is published only there, and the manuscripts cannot be " +
+            "read without it, so nothing was downloaded. menota.org is sometimes slow to answer; try again " +
+            "in a few minutes.");
     }
 
     /// <summary>
