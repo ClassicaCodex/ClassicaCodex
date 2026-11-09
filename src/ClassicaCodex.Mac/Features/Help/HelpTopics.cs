@@ -218,7 +218,7 @@ Translate This Myself (right-click a work in the library; in the Tools menu it i
 
    Word Study opens the passage in the full word study window with whichever word you had selected already chosen, and its occurrences narrowed to the work you are translating - how this author uses the word here, rather than a corpus-wide count that stops at the result limit. Choose Texts widens or narrows that to any set of works you like.
 
-   Alphabet opens the letters of whatever language you are translating from, with the breathings, accents and iota subscript that sit on them. It is not a translation aid - it is for the step before, when you cannot yet read the script well enough to look a word up at all.
+   Alphabet opens the letters of whatever language you are translating from, with the breathings, accents and iota subscript that sit on them. It is not a translation aid - it is for the step before, when you cannot yet read the script well enough to look a word up at all. Alphabet Reference, in the sidebar's Tools list, opens the same chart without a work.
 
    Your own translations of the passage before and after are shown greyed above and below the box you type in, read-only so they can't be edited by accident. They are there for consistency as much as context: what goes wrong in a translation built over weeks is usually rendering the same word one way here and another way later, and this is the only place you would notice.
 
@@ -542,7 +542,7 @@ These documents always use a font that covers both Greek and Latin script, becau
 Text size
    The Aa button in the toolbar sets how large Greek, Latin and English are drawn, in the reader and the translation workbench alike; Bigger Text, Smaller Text and Default Text Size in the View menu do the same on ⌘+, ⌘- and ⌘0. Polytonic Greek is the reason it exists: breathings, accents and iota subscript are what you need to see in order to look a word up at all, and at a small size on a high-resolution display they are a few pixels each.
 
-   The two sizes are linked by default, because text at two different sizes in adjacent pages reads as a mistake rather than a setting. Untick "Keep the two the same size" if you want the Greek larger while keeping more English on screen. The pages follow the sliders as you drag.
+   The two sizes are linked by default, because text at two different sizes in adjacent pages reads as a mistake rather than a setting. Untick "Keep the two the same size" if you want the Greek larger while keeping more English on screen. The pages follow the sliders as you drag. Default Size puts both back to 11 pt.
 
 Appearance
    The appearance button in the toolbar, or View > Appearance: Follow macOS, Parchment (light) or Lamplight (dark). Following macOS changes with the system - at sunset, if your Mac is set to Auto. Neither is maximum contrast, deliberately: Parchment is ink on paper rather than pure black on pure white, and Lamplight is warm greys rather than white on black - maximum contrast is harder to read for long stretches, which rather defeats the point. Your choice is remembered.

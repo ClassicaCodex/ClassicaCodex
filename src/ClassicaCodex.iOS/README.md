@@ -200,8 +200,6 @@ repository.
 - **A setup step stops if the app leaves the screen.** The screen is kept on while
   one runs, but iOS suspends an app that is switched away from, and a step does
   not resume. It has to be run again.
-- **The Choose buttons in Setup do not last.** The download folder goes back to
-  Documents the next time the app starts.
 - **Ptolemy's Harmony is not on iPad.** The pages in `src/ClassicaCodex.UI/Pages` are
   not bundled, because another app cannot read a file inside this one. Antikythera
   and Ptolemy's Cosmos open from the studio's site instead, so they need the

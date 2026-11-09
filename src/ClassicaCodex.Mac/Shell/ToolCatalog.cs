@@ -55,6 +55,7 @@ public static class ToolCatalog
         new("workbench", "Translate It Yourself", "The open work, a passage at a time", "Workbench", "workbench", ToolSection.Reading, NeedsWork: true),
         new("create-translation", "Create Translation", "An AI translation of the open work", "Sparkle", "ai-translate", ToolSection.Reading, NeedsWork: true),
         new("starting-points", "Where Should I Start?", "Works worth translating first", "StartingPoints", "starting-points", ToolSection.Reading),
+        new("alphabet", "Alphabet Reference", "The letters, breathings and accents", "Alphabet", "alphabet", ToolSection.Reading),
 
         new("morphology", "Morphology Search", "Every line with a given form", "Morphology", "morphology", ToolSection.Analysis),
         new("myth-network", "Myth Network", "Who appears with whom", "MythNetwork", "myth-network", ToolSection.Analysis),
