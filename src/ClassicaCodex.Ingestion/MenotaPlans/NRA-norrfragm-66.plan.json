@@ -1,0 +1,37 @@
+﻿{
+  "FileName": "NRA-norrfragm-66.xml",
+  "ManuscriptId": "NRA norr fragm 66",
+  "Language": "isl",
+  "ReadingLevel": "norm",
+  "Orthography": "normalised",
+  "Confirmed": true,
+  "Works": [
+    {
+      "DivPaths": [
+        "0/0/0",
+        "0/0/1",
+        "0/1",
+        "0/2",
+        "1",
+        "2",
+        "3"
+      ],
+      "Title": "Th\u00F3mass saga erkibyskups",
+      "Author": "",
+      "UrnSlug": "th\u00F3mass-saga-erkibyskups",
+      "MsItemN": "4",
+      "MatchBasis": "position",
+      "WordCount": 1244,
+      "Include": true,
+      "Section": "text"
+    }
+  ],
+  "DeclaredAuthors": [],
+  "Notes": [
+    "Reading level norm at 100% coverage.",
+    "1 msItem(s) in msContents, 1 of them leaves.",
+    "7 division(s) holding text, covering 1,244 of 1,244 words (100.0%).",
+    "msContents lists a single work, so all 7 divisions are proposed as its parts. Split if the manuscript holds more than the catalogue says.",
+    "1 of 1 title(s) not matched on head text. Check these first."
+  ]
+}

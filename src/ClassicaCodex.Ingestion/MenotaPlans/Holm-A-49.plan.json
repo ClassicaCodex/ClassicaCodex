@@ -1,0 +1,72 @@
+﻿{
+  "FileName": "Holm-A-49.xml",
+  "ManuscriptId": "Holm A 49",
+  "Language": "swe",
+  "ReadingLevel": "facs",
+  "Orthography": "diplomatic",
+  "Confirmed": true,
+  "Works": [
+    {
+      "DivPaths": [
+        "0"
+      ],
+      "Title": "Untitled section 1",
+      "Author": "",
+      "UrnSlug": "untitled-section-1",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 7311,
+      "Include": true,
+      "Section": ""
+    },
+    {
+      "DivPaths": [
+        "1"
+      ],
+      "Title": "Annat capitulu\u0305",
+      "Author": "",
+      "UrnSlug": "annat-capitulu",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 4927,
+      "Include": true,
+      "Section": ""
+    },
+    {
+      "DivPaths": [
+        "2"
+      ],
+      "Title": "Ca\u036B xxv",
+      "Author": "",
+      "UrnSlug": "ca-xxv",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 20960,
+      "Include": true,
+      "Section": ""
+    }
+  ],
+  "DeclaredAuthors": [],
+  "Notes": [
+    "Reading level facs at 100% coverage.",
+    "15 word(s) carry no facs reading and fall back to the next level present, so a few spellings will not match the rest.",
+    "Diplomatic transcription: spelling follows the scribe, not a dictionary. Ingested for reading and search; excluded from stylometry by Editions.Orthography.",
+    "15 msItem(s) in msContents, 13 of them leaves.",
+    "3 division(s) holding text, covering 33,198 of 33,198 words (100.0%).",
+    "3 division(s) against 13 catalogue entries - not the same count, so titles are taken from headings only, never from catalogue order.",
+    "msItem 1.1 \u0022Will be added\u0022 has no division. Not transcribed, or mis-divided.",
+    "msItem 1.2 \u0022Will be added\u0022 has no division. Not transcribed, or mis-divided.",
+    "msItem 1.3 \u0022Will be added\u0022 has no division. Not transcribed, or mis-divided.",
+    "msItem 2.1 \u0022Will be corrected\u0022 has no division. Not transcribed, or mis-divided.",
+    "msItem 2.2 \u0022Will be added\u0022 has no division. Not transcribed, or mis-divided.",
+    "msItem 2.3 \u0022Will be added\u0022 has no division. Not transcribed, or mis-divided.",
+    "msItem 2.4 \u0022Will be added\u0022 has no division. Not transcribed, or mis-divided.",
+    "msItem 2.5 \u0022Will be corrected\u0022 has no division. Not transcribed, or mis-divided.",
+    "msItem 3 \u0022Will be added\u0022 has no division. Not transcribed, or mis-divided.",
+    "msItem 1.4 \u0022Will be added\u0022 has no division. Not transcribed, or mis-divided.",
+    "msItem 4 \u0022Will be added\u0022 has no division. Not transcribed, or mis-divided.",
+    "msItem 5 \u0022Will be added\u0022 has no division. Not transcribed, or mis-divided.",
+    "msItem 6 \u0022Will be added\u0022 has no division. Not transcribed, or mis-divided.",
+    "3 of 3 title(s) not matched on head text. Check these first."
+  ]
+}

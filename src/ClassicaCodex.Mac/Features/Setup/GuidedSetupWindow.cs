@@ -1152,8 +1152,8 @@ public sealed class GuidedSetupWindow : FeatureWindow
             + "again or pointing at the old folder. The map is one: it is read every time the map opens rather than "
             + "being ingested, and it is under a megabyte. Adding Stephanus and Bekker numbers is another - it reads "
             + "the texts back out of this folder rather than fetching anything, so it will find nothing in an empty "
-            + "one. And if you imported Medieval Nordic manuscripts, their files and the work divisions you "
-            + "confirmed are in the old folder too; those are your own decisions rather than a download, and worth "
+            + "one. And if you imported Medieval Nordic manuscripts, any work divisions you confirmed or changed "
+            + "yourself are in the old folder too; those are your own decisions rather than a download, and worth "
             + "copying across in the Finder rather than redoing."));
     }
 

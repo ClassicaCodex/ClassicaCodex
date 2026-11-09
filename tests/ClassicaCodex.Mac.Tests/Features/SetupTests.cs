@@ -69,7 +69,7 @@ public class SetupTests
         var menota = guided.Sources.ToList().FindIndex(s => MenotaReview.IsReviewStep(s));
         Assert.True(menota >= 0);
         await guided.GoToStepAsync(guided.FirstSourceStepIndex + menota);
-        Assert.Equal("Open Folder", guided.ActionText);
+        Assert.Equal("Download & Install", guided.ActionText);
         Screens.Save(guided, "setup-guided-04-menota");
 
         await guided.GoToStepAsync(guided.FirstSourceStepIndex + guided.Sources.ToList().FindIndex(s => s.Title.StartsWith("Patrologia", StringComparison.Ordinal)));

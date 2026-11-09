@@ -1,0 +1,32 @@
+﻿{
+  "FileName": "AM-544-4to-Vsp.xml",
+  "ManuscriptId": "AM 544 4to",
+  "Language": "isl",
+  "ReadingLevel": "dipl",
+  "Orthography": "diplomatic",
+  "Confirmed": true,
+  "Works": [
+    {
+      "DivPaths": [
+        "0"
+      ],
+      "Title": "V\u01EBlusp\u00E1",
+      "Author": "",
+      "UrnSlug": "v\u01EBlusp\u00E1",
+      "MsItemN": "1",
+      "MatchBasis": "position",
+      "WordCount": 1262,
+      "Include": true,
+      "Section": ""
+    }
+  ],
+  "DeclaredAuthors": [],
+  "Notes": [
+    "Reading level dipl at 100% coverage.",
+    "6 word(s) carry no dipl reading and fall back to the next level present, so a few spellings will not match the rest.",
+    "Diplomatic transcription: spelling follows the scribe, not a dictionary. Ingested for reading and search; excluded from stylometry by Editions.Orthography.",
+    "1 msItem(s) in msContents, 1 of them leaves.",
+    "1 division(s) holding text, covering 1,262 of 1,262 words (100.0%).",
+    "1 of 1 title(s) not matched on head text. Check these first."
+  ]
+}

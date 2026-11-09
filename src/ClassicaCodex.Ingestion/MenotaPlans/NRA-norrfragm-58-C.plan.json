@@ -1,0 +1,40 @@
+﻿{
+  "FileName": "NRA-norrfragm-58-C.xml",
+  "ManuscriptId": "NRA norr fragm 58 C",
+  "Language": "nor",
+  "ReadingLevel": "norm",
+  "Orthography": "normalised",
+  "Confirmed": true,
+  "Works": [
+    {
+      "DivPaths": [
+        "0/0",
+        "0/1",
+        "0/2",
+        "0/3",
+        "0/4",
+        "0/5",
+        "0/5/0",
+        "0/5/1",
+        "0/5/2"
+      ],
+      "Title": "Konungs skuggsj\u00E1",
+      "Author": "",
+      "UrnSlug": "konungs-skuggsj\u00E1",
+      "MsItemN": "1",
+      "MatchBasis": "position",
+      "WordCount": 2991,
+      "Include": true,
+      "Section": "text"
+    }
+  ],
+  "DeclaredAuthors": [],
+  "Notes": [
+    "Reading level norm at 100% coverage.",
+    "1 word(s) carry no norm reading and fall back to the next level present, so a few spellings will not match the rest.",
+    "1 msItem(s) in msContents, 1 of them leaves.",
+    "9 division(s) holding text, covering 2,991 of 2,991 words (100.0%).",
+    "msContents lists a single work, so all 9 divisions are proposed as its parts. Split if the manuscript holds more than the catalogue says.",
+    "1 of 1 title(s) not matched on head text. Check these first."
+  ]
+}

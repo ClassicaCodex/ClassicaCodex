@@ -1,0 +1,32 @@
+﻿{
+  "FileName": "NRA-norrfragm-61.xml",
+  "ManuscriptId": "NRA norr fragm 61",
+  "Language": "isl",
+  "ReadingLevel": "norm",
+  "Orthography": "normalised",
+  "Confirmed": true,
+  "Works": [
+    {
+      "DivPaths": [
+        "0/0",
+        "0/1"
+      ],
+      "Title": "Karlamagn\u00FAss saga",
+      "Author": "",
+      "UrnSlug": "karlamagn\u00FAss-saga",
+      "MsItemN": "1",
+      "MatchBasis": "position",
+      "WordCount": 961,
+      "Include": true,
+      "Section": "text"
+    }
+  ],
+  "DeclaredAuthors": [],
+  "Notes": [
+    "Reading level norm at 100% coverage.",
+    "1 msItem(s) in msContents, 1 of them leaves.",
+    "2 division(s) holding text, covering 961 of 961 words (100.0%).",
+    "msContents lists a single work, so all 2 divisions are proposed as its parts. Split if the manuscript holds more than the catalogue says.",
+    "1 of 1 title(s) not matched on head text. Check these first."
+  ]
+}

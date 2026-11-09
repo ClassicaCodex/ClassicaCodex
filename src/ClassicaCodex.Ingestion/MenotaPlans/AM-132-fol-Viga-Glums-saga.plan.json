@@ -1,0 +1,60 @@
+﻿{
+  "FileName": "AM-132-fol-Viga-Glums-saga.xml",
+  "ManuscriptId": "AM 132 fol (129rb.8\u2013141va.32)",
+  "Language": "isl",
+  "ReadingLevel": "norm",
+  "Orthography": "normalised",
+  "Confirmed": true,
+  "Works": [
+    {
+      "DivPaths": [
+        "0",
+        "1",
+        "2",
+        "3",
+        "4",
+        "5",
+        "6",
+        "7",
+        "8",
+        "9",
+        "10",
+        "11",
+        "12",
+        "13",
+        "14",
+        "15",
+        "16",
+        "17",
+        "18",
+        "19",
+        "20",
+        "21",
+        "22",
+        "23",
+        "24",
+        "25",
+        "26",
+        "27"
+      ],
+      "Title": "H\u00E9r hefr V\u00EDga=-Gl\u00FAms s\u01EBgu",
+      "Author": "",
+      "UrnSlug": "h\u00E9r-hefr-v\u00EDgagl\u00FAms-s\u01EBgu",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 19478,
+      "Include": true,
+      "Section": ""
+    }
+  ],
+  "DeclaredAuthors": [],
+  "Notes": [
+    "Reading level norm at 100% coverage.",
+    "1 word(s) carry no norm reading and fall back to the next level present, so a few spellings will not match the rest.",
+    "0 msItem(s) in msContents, 0 of them leaves.",
+    "28 division(s) holding text, covering 19,478 of 19,478 words (100.0%).",
+    "No catalogue entries, so all 28 divisions are proposed as one work named after the manuscript. Split where the works actually begin if it holds more than one.",
+    "1 of 1 title(s) not matched on head text. Check these first.",
+    "Titled \u0022H\u00E9r hefr V\u00EDga=-Gl\u00FAms s\u01EBgu\u0022 from the opening heading. Rename if that is a chapter rather than the work."
+  ]
+}

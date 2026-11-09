@@ -1,0 +1,171 @@
+﻿{
+  "FileName": "AM-242-fol.xml",
+  "ManuscriptId": "AM 242 fol",
+  "Language": "isl",
+  "ReadingLevel": "dipl",
+  "Orthography": "diplomatic",
+  "Confirmed": true,
+  "Works": [
+    {
+      "DivPaths": [
+        "0/0"
+      ],
+      "Title": "Prologus",
+      "Author": "",
+      "UrnSlug": "prologus",
+      "MsItemN": "1.1",
+      "MatchBasis": "head-text",
+      "WordCount": 3312,
+      "Include": true,
+      "Section": ""
+    },
+    {
+      "DivPaths": [
+        "0/1"
+      ],
+      "Title": "Gylfaginning",
+      "Author": "",
+      "UrnSlug": "gylfaginning",
+      "MsItemN": "1.2",
+      "MatchBasis": "head-text",
+      "WordCount": 17602,
+      "Include": true,
+      "Section": ""
+    },
+    {
+      "DivPaths": [
+        "0/2"
+      ],
+      "Title": "Sk\u00E1ldskaparm\u00E1l",
+      "Author": "",
+      "UrnSlug": "sk\u00E1ldskaparm\u00E1l",
+      "MsItemN": "1.3",
+      "MatchBasis": "head-text",
+      "WordCount": 14921,
+      "Include": true,
+      "Section": ""
+    },
+    {
+      "DivPaths": [
+        "1/0"
+      ],
+      "Title": "PROLOGUS TILL DE GRAMMATISKA AVHANDLINGARNA",
+      "Author": "",
+      "UrnSlug": "prologus-till-de-grammatiska-avhandlingarna",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 513,
+      "Include": true,
+      "Section": ""
+    },
+    {
+      "DivPaths": [
+        "1/1"
+      ],
+      "Title": "F\u00D8RSTA GRAMMATISKA AVHANDLINGEN",
+      "Author": "",
+      "UrnSlug": "f\u00F8rsta-grammatiska-avhandlingen",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 4066,
+      "Include": true,
+      "Section": ""
+    },
+    {
+      "DivPaths": [
+        "1/2"
+      ],
+      "Title": "ANDRA GRAMMATISKA AVHANDLINGEN",
+      "Author": "",
+      "UrnSlug": "andra-grammatiska-avhandlingen",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 1763,
+      "Include": true,
+      "Section": ""
+    },
+    {
+      "DivPaths": [
+        "1/3"
+      ],
+      "Title": "TREDJE GRAMMATISKA AVHANDLINGEN",
+      "Author": "",
+      "UrnSlug": "tredje-grammatiska-avhandlingen",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 8527,
+      "Include": true,
+      "Section": ""
+    },
+    {
+      "DivPaths": [
+        "1/4"
+      ],
+      "Title": "FJ\u00C4RDE GRAMMATISKA AVHANDLINGEN",
+      "Author": "",
+      "UrnSlug": "fj\u00E4rde-grammatiska-avhandlingen",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 4508,
+      "Include": true,
+      "Section": ""
+    },
+    {
+      "DivPaths": [
+        "2/0"
+      ],
+      "Title": "H\u00E1ttatal",
+      "Author": "",
+      "UrnSlug": "h\u00E1ttatal",
+      "MsItemN": "1.4",
+      "MatchBasis": "head-text",
+      "WordCount": 5656,
+      "Include": true,
+      "Section": ""
+    },
+    {
+      "DivPaths": [
+        "3/0"
+      ],
+      "Title": "R\u00EDgs\u00FEula",
+      "Author": "",
+      "UrnSlug": "r\u00EDgs\u00FEula",
+      "MsItemN": "4",
+      "MatchBasis": "head-text",
+      "WordCount": 1045,
+      "Include": true,
+      "Section": ""
+    },
+    {
+      "DivPaths": [
+        "4/0"
+      ],
+      "Title": "SK\u00C1LDSKAPARM\u00C1L \u00D3KEND HEITI-REDAKTIONEN",
+      "Author": "",
+      "UrnSlug": "sk\u00E1ldskaparm\u00E1l-\u00F3kend-heitiredaktionen",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 1313,
+      "Include": true,
+      "Section": ""
+    }
+  ],
+  "DeclaredAuthors": [],
+  "Notes": [
+    "Reading level dipl at 100% coverage.",
+    "299 word(s) carry no dipl reading and fall back to the next level present, so a few spellings will not match the rest.",
+    "Diplomatic transcription: spelling follows the scribe, not a dictionary. Ingested for reading and search; excluded from stylometry by Editions.Orthography.",
+    "15 msItem(s) in msContents, 13 of them leaves.",
+    "11 division(s) holding text, covering 63,226 of 63,226 words (100.0%).",
+    "11 division(s) against 13 catalogue entries - not the same count, so titles are taken from headings only, never from catalogue order.",
+    "msItem 2.1 \u0022Prologus\u0022 has no division. Not transcribed, or mis-divided.",
+    "msItem 2.2 \u0022First grammatical treatise\u0022 has no division. Not transcribed, or mis-divided.",
+    "msItem 2.3 \u0022Second grammatical treatise\u0022 has no division. Not transcribed, or mis-divided.",
+    "msItem 2.4 \u0022Third grammatical treatise\u0022 has no division. Not transcribed, or mis-divided.",
+    "msItem 2.5 \u0022Fourth grammatical treatise\u0022 has no division. Not transcribed, or mis-divided.",
+    "msItem 3 \u0022Mar\u00EDukv\u00E6\u00F0i\u0022 has no division. Not transcribed, or mis-divided.",
+    "msItem 5 \u0022\u00D3kennd heiti (Orms-eddu-brot)\u0022 has no division. Not transcribed, or mis-divided.",
+    "msItem 6 \u0022Mar\u00EDukv\u00E6\u00F0i\u0022 has no division. Not transcribed, or mis-divided.",
+    "6 of 11 title(s) not matched on head text. Check these first."
+  ]
+}

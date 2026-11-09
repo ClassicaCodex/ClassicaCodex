@@ -175,6 +175,9 @@ Everything below was tested in the iPad simulator, against a full library of
 - Greek, Arabic, Hebrew, Egyptian hieroglyphs and cuneiform, all with the
   system's own fonts
 - Text sizes from 11 to 28 points, in Greek, English and wrapped cuneiform
+- The Menota step from an empty folder: Download & Install fetched the 91
+  manuscripts and the entity table, and imported them all with the plans that
+  come with the app, with nothing to review
 
 A sweep opens every window it can reach, in both orientations of an 11-inch iPad.
 It reached 79 of the 82 window classes with no crashes, and none took more than
