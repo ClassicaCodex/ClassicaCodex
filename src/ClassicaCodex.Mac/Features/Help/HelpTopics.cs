@@ -587,6 +587,9 @@ Reading levels
 
    This matters for Stylometry above all. Comparing a diplomatic text with a normalised one measures the scribes' spelling habits, not the authors' style - so the Menota survey reports each manuscript's level before anything is imported, and says which are safe to compare.
 
+Medieval letters
+   The scribes' abbreviation marks and letter forms - ꝯ for con, ꝫ for et, the r rotunda, the insular f - are drawn with Junicode, a font made for them that comes with the app, because most fonts leave them empty. Three rare marks it lacks still show as a small box.
+
 Editor's Notes
    The apparatus - right-click a line and choose Editor's Notes. Two kinds of entry appear here:
 

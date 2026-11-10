@@ -178,6 +178,11 @@ Everything below was tested in the iPad simulator, against a full library of
 - The Menota step from an empty folder: Download & Install fetched the 91
   manuscripts and the entity table, and imported them all with the plans that
   come with the app, with nothing to review
+- Menota's medieval marks drawn with Junicode, which comes with the app
+  (`BundledFonts`), in a diplomatic text in the reader. Without it, 7% of Menota's
+  lines showed boxes for the private-use characters no system font draws. Medieval
+  Hands now sets its transcriptions in the same Junicode, which a test checks; it
+  has not been looked at on screen
 
 A sweep opens every window it can reach, in both orientations of an 11-inch iPad.
 It reached 79 of the 82 window classes with no crashes, and none took more than
@@ -194,8 +199,6 @@ repository.
   window fits now, but few of the buttons inside have been pressed. Five windows
   need a live session to reach, and the translation workbench needs a translation
   under way.
-- **Medieval Hands shows boxes** for scribes' abbreviations, until a font such as
-  Junicode comes with the app.
 - **Typing on iOS's own Greek keyboard has not been tried.** Search ignores
   accents, so it should not need polytonic input, but nobody has checked.
 - **BFM is unproven.** It is let through iOS's block on plain http, but the site
