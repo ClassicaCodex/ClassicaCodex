@@ -77,6 +77,15 @@ public static class SetupDataSourceCatalog
     private static string DataRoot => DataFolderSettings.Root;
 
     /// <summary>
+    /// Whether the steps are offered on an iPad. A step can then leave out
+    /// what belongs on a desktop: Menota's Review & Import, which shows a
+    /// manuscript's division into works in a form of its own, one manuscript
+    /// at a time. The Mac front end's MacDataFolder.OnDevice reads and writes
+    /// this, so there is one switch, and the tests that play an iPad flip it.
+    /// </summary>
+    public static bool OnDevice { get; set; } = OperatingSystem.IsIOS();
+
+    /// <summary>
     /// The stored identity of each collection that carries readable text.
     ///
     /// Written onto every edition as it is imported, so a library can say which
@@ -246,7 +255,7 @@ public static class SetupDataSourceCatalog
         {
             progress.Report(
                 $"{service.BundledPlansUsed.Count} manuscript(s) divided into works by the plans that come " +
-                "with the app. Review & Import shows them again if you want to change one.");
+                (OnDevice ? "with the app." : "with the app. Review & Import shows them again if you want to change one."));
         }
 
         if (service.ApparatusEntries > 0)
@@ -272,12 +281,15 @@ public static class SetupDataSourceCatalog
         // one Menota has changed since - that the review did not see first:
         // Download & Install does not stop to ask, and the review can be
         // skipped through. The proposal is on disk either way, and Review &
-        // Import shows it.
+        // Import shows it. An iPad has no Review & Import, so there it is
+        // simply left out, and said to be.
         if (service.PlansWritten.Count > 0)
         {
-            progress.Report(
-                $"{service.PlansWritten.Count} manuscript(s) were not reviewed and so not " +
-                "imported. Press Review & Import to review them.");
+            progress.Report(OnDevice
+                ? $"{service.PlansWritten.Count} manuscript(s) left out: Menota has added or changed them since " +
+                  "the plans that come with the app were made."
+                : $"{service.PlansWritten.Count} manuscript(s) were not reviewed and so not " +
+                  "imported. Press Review & Import to review them.");
         }
 
         return outcome;
@@ -805,7 +817,11 @@ public static class SetupDataSourceCatalog
                             $"{entities.Count:N0} characters ready");
                 },
 
-                SecondaryButtonText = "Review & Import",
+                // Not on an iPad. Download & Install does the whole step, and
+                // the review is a form per manuscript, made for a desktop. The
+                // plans that come with the app cover every manuscript Menota
+                // offers; one Menota adds or changes later is left out there.
+                SecondaryButtonText = OnDevice ? null : "Review & Import",
 
                 // Shows the division proposal for each manuscript that has
                 // neither a confirmed plan nor one from the app that still
@@ -823,8 +839,10 @@ public static class SetupDataSourceCatalog
                     "A manuscript holds several works, and nothing in the file says where one ends and the " +
                     "next begins, so somebody has to decide. Those decisions come with the app for all 91, " +
                     "and are used wherever a manuscript is still as it was when they were made. A " +
-                    "manuscript Menota has added or reorganised since is left out of the import, and " +
-                    "Review & Import shows you how it would be divided before it goes in.",
+                    "manuscript Menota has added or reorganised since is left out of the import" +
+                    (OnDevice
+                        ? "."
+                        : ", and Review & Import shows you how it would be divided before it goes in."),
 
                 // Downloads, then imports. The import is the same one Review &
                 // Import runs, without the review: any manuscript with neither

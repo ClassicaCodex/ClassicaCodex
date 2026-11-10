@@ -52,8 +52,14 @@ internal static class MacDataFolder
     /// Whether this is an iPad. Settable so the tests can ask what one would be
     /// told, because the simulator's container can be written to and a real
     /// iPad's cannot: the failure this guards against never showed there.
+    /// Kept in the setup catalogue, which leaves out desktop-only steps on an
+    /// iPad, so the two cannot disagree.
     /// </summary>
-    internal static bool OnDevice { get; set; } = OperatingSystem.IsIOS();
+    internal static bool OnDevice
+    {
+        get => SetupDataSourceCatalog.OnDevice;
+        set => SetupDataSourceCatalog.OnDevice = value;
+    }
 
     /// <summary>
     /// The one file an iPad opens as it starts. A library anywhere else would be

@@ -212,6 +212,11 @@ public sealed class GuidedSetupWindow : FeatureWindow
 
     internal string ActionText => _actionButton.Content as string ?? string.Empty;
 
+    /// <summary>The step's second button, or null when it has none.</summary>
+    internal string? SecondaryText => _secondaryButton.IsVisible ? _secondaryButton.Content as string : null;
+
+    internal string DescriptionText => _descriptionLabel.Text ?? string.Empty;
+
     internal string PathText => _pathBox.Text ?? string.Empty;
 
     private List<SetupDataSource> BuildSources() =>

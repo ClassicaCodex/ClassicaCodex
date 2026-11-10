@@ -52,6 +52,9 @@ The Mac code knows about the iPad in a few places:
   "click", which a translation can use.
 - `MainWindow.OpenWorkAsync` brings the reader forward on a device, because a tool
   covers it and a jump would otherwise look as if nothing had happened.
+- `SetupDataSourceCatalog.OnDevice`, which `MacDataFolder.OnDevice` reads and
+  writes, leaves out Menota's Review & Import on an iPad. Download & Install does
+  the whole step there, and a manuscript the app has no plan for is left out.
 
 ## Building it
 
