@@ -86,7 +86,8 @@ public static class MenotaPlanReview
                 "eths and accented vowels are all references into that file - so without it the text " +
                 "comes through as replacement characters, and the titles those plans record would be " +
                 "wrong for good.\n\n" +
-                "Download it from menota.org, save it into this folder, and import again.",
+                "Download & Install fetches it with the manuscripts. Run that, or save the file into this " +
+                "folder from menota.org, and import again.",
                 "Menota - entity file missing", MessageBoxButtons.OK, MessageBoxIcon.Warning);
             return false;
         }
@@ -95,7 +96,7 @@ public static class MenotaPlanReview
         var reviewed = 0;
 
         // A confirmed plan is normally taken as settled - that is the point of
-        // confirming it. But when every plan is confirmed, "Import Manuscripts"
+        // confirming it. But when every plan is confirmed, "Review & Import"
         // silently reuses decisions that may be months old and shows the user
         // nothing, so a correction they came here to make cannot be made. The
         // only way through was to delete the .plan.json by hand, which is
@@ -132,6 +133,12 @@ public static class MenotaPlanReview
                 // parser's own message. Nothing useful to review here.
                 continue;
             }
+
+            // The plan that comes with the app, where it still fits this
+            // file, saves the user making decisions already made. See
+            // MenotaBundledPlans.
+            if (existing is not { Confirmed: true } && MenotaBundledPlans.TryUse(path, load.Document!) != null)
+                continue;
 
             MenotaIngestPlan plan;
             try

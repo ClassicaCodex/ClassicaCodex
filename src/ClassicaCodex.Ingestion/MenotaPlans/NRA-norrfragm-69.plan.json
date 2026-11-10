@@ -1,0 +1,30 @@
+﻿{
+  "FileName": "NRA-norrfragm-69.xml",
+  "ManuscriptId": "NRA norr fragm 69",
+  "Language": "isl",
+  "ReadingLevel": "norm",
+  "Orthography": "normalised",
+  "Confirmed": true,
+  "Works": [
+    {
+      "DivPaths": [
+        "0/0"
+      ],
+      "Title": "Nikul\u00E1ss saga erkibyskups",
+      "Author": "",
+      "UrnSlug": "nikul\u00E1ss-saga-erkibyskups",
+      "MsItemN": "1",
+      "MatchBasis": "position",
+      "WordCount": 1342,
+      "Include": true,
+      "Section": "text"
+    }
+  ],
+  "DeclaredAuthors": [],
+  "Notes": [
+    "Reading level norm at 100% coverage.",
+    "1 msItem(s) in msContents, 1 of them leaves.",
+    "1 division(s) holding text, covering 1,342 of 1,342 words (100.0%).",
+    "1 of 1 title(s) not matched on head text. Check these first."
+  ]
+}

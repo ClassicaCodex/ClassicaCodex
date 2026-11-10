@@ -1,0 +1,44 @@
+﻿{
+  "FileName": "AM-132-fol-Bandamanna-saga.xml",
+  "ManuscriptId": "AM 132 fol (114ra.41\u2013120vb.21)",
+  "Language": "isl",
+  "ReadingLevel": "norm",
+  "Orthography": "normalised",
+  "Confirmed": true,
+  "Works": [
+    {
+      "DivPaths": [
+        "0",
+        "1",
+        "2",
+        "3",
+        "4",
+        "5",
+        "6",
+        "7",
+        "8",
+        "9",
+        "10",
+        "11"
+      ],
+      "Title": "Saga \u00D3feigs bandakarls",
+      "Author": "",
+      "UrnSlug": "saga-\u00F3feigs-bandakarls",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 11275,
+      "Include": true,
+      "Section": ""
+    }
+  ],
+  "DeclaredAuthors": [],
+  "Notes": [
+    "Reading level norm at 100% coverage.",
+    "2 word(s) carry no norm reading and fall back to the next level present, so a few spellings will not match the rest.",
+    "0 msItem(s) in msContents, 0 of them leaves.",
+    "12 division(s) holding text, covering 11,275 of 11,275 words (100.0%).",
+    "No catalogue entries, so all 12 divisions are proposed as one work named after the manuscript. Split where the works actually begin if it holds more than one.",
+    "1 of 1 title(s) not matched on head text. Check these first.",
+    "Titled \u0022Saga \u00D3feigs bandakarls\u0022 from the opening heading. Rename if that is a chapter rather than the work."
+  ]
+}

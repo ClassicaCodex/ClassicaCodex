@@ -22,14 +22,15 @@ namespace ClassicaCodex.Mac.Features.Setup;
 /// So the Mac proposes ~/ClassicaCodexData - the home folder itself, which
 /// iCloud never syncs, as the profile root is the place a Windows known-
 /// folder redirection cannot follow. Not ~/Library/Application Support,
-/// which would also be safe: the Menota step asks the reader to save files
-/// into this folder by hand, and Library is hidden in the Finder.
+/// which would also be safe: the Menota step keeps the work divisions a
+/// reader confirms in this folder, a reader who wants to copy or back them up
+/// has to find it, and Library is hidden in the Finder.
 ///
 /// <b>An iPad is the exception.</b> Its home folder is the app's own container,
 /// whose top level cannot be written to, and the path to the container changes
 /// when the app is updated, so a folder saved on an earlier run may not be
 /// there either. It gets Documents whatever has been saved: the app can write
-/// there, and the Files app shows it, which the Menota step needs. The iPad app
+/// there, and the Files app shows it. The iPad app
 /// keeps the folder out of iCloud backups itself - see MobileApp.
 ///
 /// None of this edits the shared file. The proposal is applied by setting
@@ -51,8 +52,14 @@ internal static class MacDataFolder
     /// Whether this is an iPad. Settable so the tests can ask what one would be
     /// told, because the simulator's container can be written to and a real
     /// iPad's cannot: the failure this guards against never showed there.
+    /// Kept in the setup catalogue, which leaves out desktop-only steps on an
+    /// iPad, so the two cannot disagree.
     /// </summary>
-    internal static bool OnDevice { get; set; } = OperatingSystem.IsIOS();
+    internal static bool OnDevice
+    {
+        get => SetupDataSourceCatalog.OnDevice;
+        set => SetupDataSourceCatalog.OnDevice = value;
+    }
 
     /// <summary>
     /// The one file an iPad opens as it starts. A library anywhere else would be

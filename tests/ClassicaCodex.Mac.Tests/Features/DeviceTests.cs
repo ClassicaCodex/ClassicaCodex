@@ -6,6 +6,7 @@ using ClassicaCodex.Data.Repositories;
 using ClassicaCodex.Ingestion;
 using ClassicaCodex.Mac.Common;
 using ClassicaCodex.Mac.Features.About;
+using ClassicaCodex.Mac.Features.Alphabet;
 using ClassicaCodex.Mac.Features.Help;
 using ClassicaCodex.Mac.Features.Research.Bench;
 using ClassicaCodex.Mac.Features.Settings;
@@ -307,6 +308,72 @@ public class DeviceTests
 
         // It has a Close button of its own, so it stays a card.
         Assert.False(new WordIndexWindow().ClosesFromTitleBar);
+    }
+
+    /// <summary>
+    /// The chart for a reader who cannot yet read the script. On a Mac it was
+    /// in the Tools menu; an iPad has no menu bar, and the workbench's button
+    /// made a reader name a new translation before they could see a letter.
+    /// </summary>
+    [AvaloniaFact]
+    public void The_alphabet_is_in_the_Tools_list_and_opens_without_a_work()
+    {
+        MacDataFolder.OnDevice = true;
+        try
+        {
+            var alphabet = ToolCatalog.Offered.Single(tool => tool.Key == "alphabet");
+            Assert.Equal(ToolSection.Reading, alphabet.Section);
+            Assert.False(alphabet.NeedsWork);
+        }
+        finally
+        {
+            MacDataFolder.OnDevice = false;
+        }
+
+        var main = new MainWindow { Width = 1200, Height = 800 };
+        main.Show();
+        main.OpenTool("alphabet");
+
+        Assert.Single(main.OwnedWindows.OfType<AlphabetWindow>());
+        main.Close();
+    }
+
+    /// <summary>
+    /// Default Text Size was only in the View menu. On an iPad the Aa panel is
+    /// the one way to change the size, so it is the way back too.
+    /// </summary>
+    [AvaloniaFact]
+    public void The_text_size_panel_puts_both_sizes_back_to_the_default()
+    {
+        var source = ReadingFontSettings.SourceSize;
+        var translation = ReadingFontSettings.TranslationSize;
+        var linked = ReadingFontSettings.Linked;
+
+        try
+        {
+            ReadingFontSettings.SetLinked(false);
+            ReadingFontSettings.SetSource(16);
+            ReadingFontSettings.SetTranslation(14);
+
+            var main = new MainWindow { Width = 1200, Height = 800 };
+            var panel = (StackPanel)main.BuildTextSizeFlyout().Content!;
+            var reset = panel.Children.OfType<Button>().Single(button => (string?)button.Content == "Default Size");
+
+            Assert.True(reset.IsEnabled);
+            reset.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
+
+            Assert.Equal(ReadingFontSettings.DefaultSize, ReadingFontSettings.SourceSize);
+            Assert.Equal(ReadingFontSettings.DefaultSize, ReadingFontSettings.TranslationSize);
+            Assert.False(reset.IsEnabled);
+            main.Close();
+        }
+        finally
+        {
+            ReadingFontSettings.SetLinked(false);
+            ReadingFontSettings.SetSource(source);
+            ReadingFontSettings.SetTranslation(translation);
+            ReadingFontSettings.SetLinked(linked);
+        }
     }
 
     /// <summary>

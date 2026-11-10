@@ -218,7 +218,7 @@ Translate This Myself (right-click a work in the library; in the Tools menu it i
 
    Word Study opens the passage in the full word study window with whichever word you had selected already chosen, and its occurrences narrowed to the work you are translating - how this author uses the word here, rather than a corpus-wide count that stops at the result limit. Choose Texts widens or narrows that to any set of works you like.
 
-   Alphabet opens the letters of whatever language you are translating from, with the breathings, accents and iota subscript that sit on them. It is not a translation aid - it is for the step before, when you cannot yet read the script well enough to look a word up at all.
+   Alphabet opens the letters of whatever language you are translating from, with the breathings, accents and iota subscript that sit on them. It is not a translation aid - it is for the step before, when you cannot yet read the script well enough to look a word up at all. Alphabet Reference, in the sidebar's Tools list, opens the same chart without a work.
 
    Your own translations of the passage before and after are shown greyed above and below the box you type in, read-only so they can't be edited by accident. They are there for consistency as much as context: what goes wrong in a translation built over weeks is usually rendering the same word one way here and another way later, and this is the only place you would notice.
 
@@ -542,7 +542,7 @@ These documents always use a font that covers both Greek and Latin script, becau
 Text size
    The Aa button in the toolbar sets how large Greek, Latin and English are drawn, in the reader and the translation workbench alike; Bigger Text, Smaller Text and Default Text Size in the View menu do the same on ⌘+, ⌘- and ⌘0. Polytonic Greek is the reason it exists: breathings, accents and iota subscript are what you need to see in order to look a word up at all, and at a small size on a high-resolution display they are a few pixels each.
 
-   The two sizes are linked by default, because text at two different sizes in adjacent pages reads as a mistake rather than a setting. Untick "Keep the two the same size" if you want the Greek larger while keeping more English on screen. The pages follow the sliders as you drag.
+   The two sizes are linked by default, because text at two different sizes in adjacent pages reads as a mistake rather than a setting. Untick "Keep the two the same size" if you want the Greek larger while keeping more English on screen. The pages follow the sliders as you drag. Default Size puts both back to 11 pt.
 
 Appearance
    The appearance button in the toolbar, or View > Appearance: Follow macOS, Parchment (light) or Lamplight (dark). Following macOS changes with the system - at sunset, if your Mac is set to Auto. Neither is maximum contrast, deliberately: Parchment is ink on paper rather than pure black on pure white, and Lamplight is warm greys rather than white on black - maximum contrast is harder to read for long stretches, which rather defeats the point. Your choice is remembered.
@@ -566,7 +566,7 @@ and that folder can be chosen - the Download Folder step in Guided Setup, or the
 
 Choosing a different folder decides where future downloads go. It does not move anything you have already fetched: those files stay where they are, and you can copy them across by hand or simply download them again.
 
-Those are mostly working copies of public data. Deleting them costs nothing but the time to fetch them again; your tags and bookmarks live in the database, not in those folders. Two things in there are not re-fetchable, though: the Medieval Nordic manuscript files you saved by hand, and the work divisions you confirmed for them.
+Those are mostly working copies of public data. Deleting them costs nothing but the time to fetch them again; your tags and bookmarks live in the database, not in those folders. One thing in there is not re-fetchable, though: the work divisions you confirmed or changed yourself for Medieval Nordic manuscripts. The ones the app comes with are written again with the manuscripts, but yours are only in that folder.
 
 Preferences (appearance, category shapes, database and download locations, where the window was) sit in small files in:
 
@@ -586,6 +586,9 @@ Reading levels
    The app reads one level per manuscript, chosen for whichever one covers nearly every word, and records it with the edition. Mixing them would produce a text belonging to no scribe and no dictionary, and nothing downstream could tell.
 
    This matters for Stylometry above all. Comparing a diplomatic text with a normalised one measures the scribes' spelling habits, not the authors' style - so the Menota survey reports each manuscript's level before anything is imported, and says which are safe to compare.
+
+Medieval letters
+   The scribes' abbreviation marks and letter forms - ꝯ for con, ꝫ for et, the r rotunda, the insular f - are drawn with Junicode, a font made for them that comes with the app, because most fonts leave them empty. Three rare marks it lacks still show as a small box.
 
 Editor's Notes
    The apparatus - right-click a line and choose Editor's Notes. Two kinds of entry appear here:

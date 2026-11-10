@@ -1,0 +1,3363 @@
+﻿{
+  "FileName": "DG-8-MLL.xml",
+  "ManuscriptId": "DG 8 I",
+  "Language": "nor",
+  "ReadingLevel": "dipl",
+  "Orthography": "diplomatic",
+  "Confirmed": true,
+  "Works": [
+    {
+      "DivPaths": [
+        "0/0/0"
+      ],
+      "Title": "Untitled section 1",
+      "Author": "",
+      "UrnSlug": "untitled-section-1",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 296,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/1"
+      ],
+      "Title": "Untitled section 2",
+      "Author": "",
+      "UrnSlug": "untitled-section-2",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 461,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/2"
+      ],
+      "Title": "Untitled section 3",
+      "Author": "",
+      "UrnSlug": "untitled-section-3",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 259,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/3"
+      ],
+      "Title": "Untitled section 4",
+      "Author": "",
+      "UrnSlug": "untitled-section-4",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 233,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/4"
+      ],
+      "Title": "Untitled section 5",
+      "Author": "",
+      "UrnSlug": "untitled-section-5",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 558,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/5"
+      ],
+      "Title": "Untitled section 6",
+      "Author": "",
+      "UrnSlug": "untitled-section-6",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 188,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/6"
+      ],
+      "Title": "Untitled section 7",
+      "Author": "",
+      "UrnSlug": "untitled-section-7",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 101,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/7"
+      ],
+      "Title": "Untitled section 8",
+      "Author": "",
+      "UrnSlug": "untitled-section-8",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 295,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/8"
+      ],
+      "Title": "Untitled section 9",
+      "Author": "",
+      "UrnSlug": "untitled-section-9",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 232,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/9"
+      ],
+      "Title": "Untitled section 10",
+      "Author": "",
+      "UrnSlug": "untitled-section-10",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 64,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/10"
+      ],
+      "Title": "Untitled section 11",
+      "Author": "",
+      "UrnSlug": "untitled-section-11",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 249,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/11"
+      ],
+      "Title": "Untitled section 12",
+      "Author": "",
+      "UrnSlug": "untitled-section-12",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 95,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/12"
+      ],
+      "Title": "Untitled section 13",
+      "Author": "",
+      "UrnSlug": "untitled-section-13",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 388,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/13"
+      ],
+      "Title": "Untitled section 14",
+      "Author": "",
+      "UrnSlug": "untitled-section-14",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 296,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/14"
+      ],
+      "Title": "Untitled section 15",
+      "Author": "",
+      "UrnSlug": "untitled-section-15",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 209,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/15"
+      ],
+      "Title": "Untitled section 16",
+      "Author": "",
+      "UrnSlug": "untitled-section-16",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 195,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/16"
+      ],
+      "Title": "Untitled section 17",
+      "Author": "",
+      "UrnSlug": "untitled-section-17",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 71,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/17"
+      ],
+      "Title": "Untitled section 18",
+      "Author": "",
+      "UrnSlug": "untitled-section-18",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 32,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/18"
+      ],
+      "Title": "Untitled section 19",
+      "Author": "",
+      "UrnSlug": "untitled-section-19",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 66,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/19"
+      ],
+      "Title": "Untitled section 20",
+      "Author": "",
+      "UrnSlug": "untitled-section-20",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 24,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/20"
+      ],
+      "Title": "Untitled section 21",
+      "Author": "",
+      "UrnSlug": "untitled-section-21",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 38,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/21"
+      ],
+      "Title": "Untitled section 22",
+      "Author": "",
+      "UrnSlug": "untitled-section-22",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 121,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/22"
+      ],
+      "Title": "Untitled section 23",
+      "Author": "",
+      "UrnSlug": "untitled-section-23",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 32,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/23"
+      ],
+      "Title": "Untitled section 24",
+      "Author": "",
+      "UrnSlug": "untitled-section-24",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 31,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/24"
+      ],
+      "Title": "Untitled section 25",
+      "Author": "",
+      "UrnSlug": "untitled-section-25",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 34,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/25"
+      ],
+      "Title": "Untitled section 26",
+      "Author": "",
+      "UrnSlug": "untitled-section-26",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 36,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/26"
+      ],
+      "Title": "Untitled section 27",
+      "Author": "",
+      "UrnSlug": "untitled-section-27",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 82,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/27"
+      ],
+      "Title": "Untitled section 28",
+      "Author": "",
+      "UrnSlug": "untitled-section-28",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 373,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/28"
+      ],
+      "Title": "Untitled section 29",
+      "Author": "",
+      "UrnSlug": "untitled-section-29",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 205,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/29"
+      ],
+      "Title": "Untitled section 30",
+      "Author": "",
+      "UrnSlug": "untitled-section-30",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 190,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/30"
+      ],
+      "Title": "Untitled section 31",
+      "Author": "",
+      "UrnSlug": "untitled-section-31",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 95,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/31"
+      ],
+      "Title": "Untitled section 32",
+      "Author": "",
+      "UrnSlug": "untitled-section-32",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 279,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/32"
+      ],
+      "Title": "Untitled section 33",
+      "Author": "",
+      "UrnSlug": "untitled-section-33",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 141,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/33"
+      ],
+      "Title": "Untitled section 34",
+      "Author": "",
+      "UrnSlug": "untitled-section-34",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 166,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/34"
+      ],
+      "Title": "Untitled section 35",
+      "Author": "",
+      "UrnSlug": "untitled-section-35",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 350,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/35"
+      ],
+      "Title": "Untitled section 36",
+      "Author": "",
+      "UrnSlug": "untitled-section-36",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 282,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/36"
+      ],
+      "Title": "Untitled section 37",
+      "Author": "",
+      "UrnSlug": "untitled-section-37",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 326,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/37"
+      ],
+      "Title": "Untitled section 38",
+      "Author": "",
+      "UrnSlug": "untitled-section-38",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 374,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/38"
+      ],
+      "Title": "Untitled section 39",
+      "Author": "",
+      "UrnSlug": "untitled-section-39",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 109,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/39"
+      ],
+      "Title": "Untitled section 40",
+      "Author": "",
+      "UrnSlug": "untitled-section-40",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 214,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/40"
+      ],
+      "Title": "Untitled section 41",
+      "Author": "",
+      "UrnSlug": "untitled-section-41",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 221,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/41"
+      ],
+      "Title": "Untitled section 42",
+      "Author": "",
+      "UrnSlug": "untitled-section-42",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 198,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/42"
+      ],
+      "Title": "Untitled section 43",
+      "Author": "",
+      "UrnSlug": "untitled-section-43",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 455,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/43"
+      ],
+      "Title": "Untitled section 44",
+      "Author": "",
+      "UrnSlug": "untitled-section-44",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 265,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/44"
+      ],
+      "Title": "Untitled section 45",
+      "Author": "",
+      "UrnSlug": "untitled-section-45",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 341,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/45"
+      ],
+      "Title": "Untitled section 46",
+      "Author": "",
+      "UrnSlug": "untitled-section-46",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 305,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/46"
+      ],
+      "Title": "Untitled section 47",
+      "Author": "",
+      "UrnSlug": "untitled-section-47",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 342,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/47"
+      ],
+      "Title": "Untitled section 48",
+      "Author": "",
+      "UrnSlug": "untitled-section-48",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 92,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/48"
+      ],
+      "Title": "Untitled section 49",
+      "Author": "",
+      "UrnSlug": "untitled-section-49",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 205,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/49"
+      ],
+      "Title": "Untitled section 50",
+      "Author": "",
+      "UrnSlug": "untitled-section-50",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 78,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/50"
+      ],
+      "Title": "Untitled section 51",
+      "Author": "",
+      "UrnSlug": "untitled-section-51",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 143,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/51"
+      ],
+      "Title": "Untitled section 52",
+      "Author": "",
+      "UrnSlug": "untitled-section-52",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 222,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/52"
+      ],
+      "Title": "Untitled section 53",
+      "Author": "",
+      "UrnSlug": "untitled-section-53",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 62,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/53"
+      ],
+      "Title": "Untitled section 54",
+      "Author": "",
+      "UrnSlug": "untitled-section-54",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 246,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/54"
+      ],
+      "Title": "Untitled section 55",
+      "Author": "",
+      "UrnSlug": "untitled-section-55",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 894,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/55"
+      ],
+      "Title": "Untitled section 56",
+      "Author": "",
+      "UrnSlug": "untitled-section-56",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 129,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/56"
+      ],
+      "Title": "Untitled section 57",
+      "Author": "",
+      "UrnSlug": "untitled-section-57",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 75,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/57"
+      ],
+      "Title": "Untitled section 58",
+      "Author": "",
+      "UrnSlug": "untitled-section-58",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 91,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/58"
+      ],
+      "Title": "Untitled section 59",
+      "Author": "",
+      "UrnSlug": "untitled-section-59",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 288,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/59"
+      ],
+      "Title": "Untitled section 60",
+      "Author": "",
+      "UrnSlug": "untitled-section-60",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 205,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/60"
+      ],
+      "Title": "Untitled section 61",
+      "Author": "",
+      "UrnSlug": "untitled-section-61",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 101,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/61"
+      ],
+      "Title": "Untitled section 62",
+      "Author": "",
+      "UrnSlug": "untitled-section-62",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 187,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/62"
+      ],
+      "Title": "Untitled section 63",
+      "Author": "",
+      "UrnSlug": "untitled-section-63",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 537,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/63"
+      ],
+      "Title": "Untitled section 64",
+      "Author": "",
+      "UrnSlug": "untitled-section-64",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 50,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/64"
+      ],
+      "Title": "Untitled section 65",
+      "Author": "",
+      "UrnSlug": "untitled-section-65",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 259,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/65"
+      ],
+      "Title": "Untitled section 66",
+      "Author": "",
+      "UrnSlug": "untitled-section-66",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 272,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/66"
+      ],
+      "Title": "Untitled section 67",
+      "Author": "",
+      "UrnSlug": "untitled-section-67",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 262,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/67"
+      ],
+      "Title": "Untitled section 68",
+      "Author": "",
+      "UrnSlug": "untitled-section-68",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 86,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/68"
+      ],
+      "Title": "Untitled section 69",
+      "Author": "",
+      "UrnSlug": "untitled-section-69",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 299,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/69"
+      ],
+      "Title": "Untitled section 70",
+      "Author": "",
+      "UrnSlug": "untitled-section-70",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 549,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/70"
+      ],
+      "Title": "Untitled section 71",
+      "Author": "",
+      "UrnSlug": "untitled-section-71",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 156,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/71"
+      ],
+      "Title": "Untitled section 72",
+      "Author": "",
+      "UrnSlug": "untitled-section-72",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 408,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/72"
+      ],
+      "Title": "Untitled section 73",
+      "Author": "",
+      "UrnSlug": "untitled-section-73",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 321,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/73"
+      ],
+      "Title": "Untitled section 74",
+      "Author": "",
+      "UrnSlug": "untitled-section-74",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 290,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/74"
+      ],
+      "Title": "Untitled section 75",
+      "Author": "",
+      "UrnSlug": "untitled-section-75",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 286,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/75"
+      ],
+      "Title": "Untitled section 76",
+      "Author": "",
+      "UrnSlug": "untitled-section-76",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 91,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/76"
+      ],
+      "Title": "Untitled section 77",
+      "Author": "",
+      "UrnSlug": "untitled-section-77",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 134,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/77"
+      ],
+      "Title": "Untitled section 78",
+      "Author": "",
+      "UrnSlug": "untitled-section-78",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 104,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/78"
+      ],
+      "Title": "Untitled section 79",
+      "Author": "",
+      "UrnSlug": "untitled-section-79",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 71,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/79"
+      ],
+      "Title": "Untitled section 80",
+      "Author": "",
+      "UrnSlug": "untitled-section-80",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 60,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/80"
+      ],
+      "Title": "Untitled section 81",
+      "Author": "",
+      "UrnSlug": "untitled-section-81",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 270,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/81"
+      ],
+      "Title": "Untitled section 82",
+      "Author": "",
+      "UrnSlug": "untitled-section-82",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 165,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/82"
+      ],
+      "Title": "Untitled section 83",
+      "Author": "",
+      "UrnSlug": "untitled-section-83",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 646,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/83"
+      ],
+      "Title": "Untitled section 84",
+      "Author": "",
+      "UrnSlug": "untitled-section-84",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 268,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/84"
+      ],
+      "Title": "Untitled section 85",
+      "Author": "",
+      "UrnSlug": "untitled-section-85",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 194,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/85"
+      ],
+      "Title": "Untitled section 86",
+      "Author": "",
+      "UrnSlug": "untitled-section-86",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 202,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/86"
+      ],
+      "Title": "Untitled section 87",
+      "Author": "",
+      "UrnSlug": "untitled-section-87",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 472,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/87"
+      ],
+      "Title": "Untitled section 88",
+      "Author": "",
+      "UrnSlug": "untitled-section-88",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 562,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/88"
+      ],
+      "Title": "Untitled section 89",
+      "Author": "",
+      "UrnSlug": "untitled-section-89",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 132,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/89"
+      ],
+      "Title": "Untitled section 90",
+      "Author": "",
+      "UrnSlug": "untitled-section-90",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 81,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/90"
+      ],
+      "Title": "Untitled section 91",
+      "Author": "",
+      "UrnSlug": "untitled-section-91",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 207,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/91"
+      ],
+      "Title": "Untitled section 92",
+      "Author": "",
+      "UrnSlug": "untitled-section-92",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 35,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/92"
+      ],
+      "Title": "Untitled section 93",
+      "Author": "",
+      "UrnSlug": "untitled-section-93",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 119,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/93"
+      ],
+      "Title": "Untitled section 94",
+      "Author": "",
+      "UrnSlug": "untitled-section-94",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 38,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/94"
+      ],
+      "Title": "Untitled section 95",
+      "Author": "",
+      "UrnSlug": "untitled-section-95",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 60,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/95"
+      ],
+      "Title": "Untitled section 96",
+      "Author": "",
+      "UrnSlug": "untitled-section-96",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 56,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/96"
+      ],
+      "Title": "Untitled section 97",
+      "Author": "",
+      "UrnSlug": "untitled-section-97",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 62,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/97"
+      ],
+      "Title": "Untitled section 98",
+      "Author": "",
+      "UrnSlug": "untitled-section-98",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 91,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/98"
+      ],
+      "Title": "Untitled section 99",
+      "Author": "",
+      "UrnSlug": "untitled-section-99",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 88,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/99"
+      ],
+      "Title": "Untitled section 100",
+      "Author": "",
+      "UrnSlug": "untitled-section-100",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 141,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/100"
+      ],
+      "Title": "Untitled section 101",
+      "Author": "",
+      "UrnSlug": "untitled-section-101",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 237,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/101"
+      ],
+      "Title": "Untitled section 102",
+      "Author": "",
+      "UrnSlug": "untitled-section-102",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 38,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/102"
+      ],
+      "Title": "Untitled section 103",
+      "Author": "",
+      "UrnSlug": "untitled-section-103",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 41,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/103"
+      ],
+      "Title": "Untitled section 104",
+      "Author": "",
+      "UrnSlug": "untitled-section-104",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 76,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/104"
+      ],
+      "Title": "Untitled section 105",
+      "Author": "",
+      "UrnSlug": "untitled-section-105",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 145,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/105"
+      ],
+      "Title": "Untitled section 106",
+      "Author": "",
+      "UrnSlug": "untitled-section-106",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 164,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/106"
+      ],
+      "Title": "Untitled section 107",
+      "Author": "",
+      "UrnSlug": "untitled-section-107",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 368,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/107"
+      ],
+      "Title": "Untitled section 108",
+      "Author": "",
+      "UrnSlug": "untitled-section-108",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 187,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/108"
+      ],
+      "Title": "Untitled section 109",
+      "Author": "",
+      "UrnSlug": "untitled-section-109",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 71,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/109"
+      ],
+      "Title": "Untitled section 110",
+      "Author": "",
+      "UrnSlug": "untitled-section-110",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 176,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/110"
+      ],
+      "Title": "Untitled section 111",
+      "Author": "",
+      "UrnSlug": "untitled-section-111",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 108,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/111"
+      ],
+      "Title": "Untitled section 112",
+      "Author": "",
+      "UrnSlug": "untitled-section-112",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 178,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/112"
+      ],
+      "Title": "Untitled section 113",
+      "Author": "",
+      "UrnSlug": "untitled-section-113",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 32,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/113"
+      ],
+      "Title": "Untitled section 114",
+      "Author": "",
+      "UrnSlug": "untitled-section-114",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 354,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/114"
+      ],
+      "Title": "Untitled section 115",
+      "Author": "",
+      "UrnSlug": "untitled-section-115",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 94,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/115"
+      ],
+      "Title": "Untitled section 116",
+      "Author": "",
+      "UrnSlug": "untitled-section-116",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 85,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/116"
+      ],
+      "Title": "Untitled section 117",
+      "Author": "",
+      "UrnSlug": "untitled-section-117",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 127,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/117"
+      ],
+      "Title": "Untitled section 118",
+      "Author": "",
+      "UrnSlug": "untitled-section-118",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 155,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/118"
+      ],
+      "Title": "Untitled section 119",
+      "Author": "",
+      "UrnSlug": "untitled-section-119",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 111,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/119"
+      ],
+      "Title": "Untitled section 120",
+      "Author": "",
+      "UrnSlug": "untitled-section-120",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 416,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/120"
+      ],
+      "Title": "Untitled section 121",
+      "Author": "",
+      "UrnSlug": "untitled-section-121",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 280,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/121"
+      ],
+      "Title": "Untitled section 122",
+      "Author": "",
+      "UrnSlug": "untitled-section-122",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 166,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/122"
+      ],
+      "Title": "Untitled section 123",
+      "Author": "",
+      "UrnSlug": "untitled-section-123",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 60,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/123"
+      ],
+      "Title": "Untitled section 124",
+      "Author": "",
+      "UrnSlug": "untitled-section-124",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 90,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/124"
+      ],
+      "Title": "Untitled section 125",
+      "Author": "",
+      "UrnSlug": "untitled-section-125",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 35,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/125"
+      ],
+      "Title": "Untitled section 126",
+      "Author": "",
+      "UrnSlug": "untitled-section-126",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 532,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/126"
+      ],
+      "Title": "Untitled section 127",
+      "Author": "",
+      "UrnSlug": "untitled-section-127",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 313,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/127"
+      ],
+      "Title": "Untitled section 128",
+      "Author": "",
+      "UrnSlug": "untitled-section-128",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 92,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/128"
+      ],
+      "Title": "Untitled section 129",
+      "Author": "",
+      "UrnSlug": "untitled-section-129",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 79,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/129"
+      ],
+      "Title": "Untitled section 130",
+      "Author": "",
+      "UrnSlug": "untitled-section-130",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 73,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/130"
+      ],
+      "Title": "Untitled section 131",
+      "Author": "",
+      "UrnSlug": "untitled-section-131",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 180,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/131"
+      ],
+      "Title": "Untitled section 132",
+      "Author": "",
+      "UrnSlug": "untitled-section-132",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 367,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/132"
+      ],
+      "Title": "Untitled section 133",
+      "Author": "",
+      "UrnSlug": "untitled-section-133",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 462,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/133"
+      ],
+      "Title": "Untitled section 134",
+      "Author": "",
+      "UrnSlug": "untitled-section-134",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 257,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/134"
+      ],
+      "Title": "Untitled section 135",
+      "Author": "",
+      "UrnSlug": "untitled-section-135",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 205,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/135"
+      ],
+      "Title": "Untitled section 136",
+      "Author": "",
+      "UrnSlug": "untitled-section-136",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 57,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/136"
+      ],
+      "Title": "Untitled section 137",
+      "Author": "",
+      "UrnSlug": "untitled-section-137",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 108,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/137"
+      ],
+      "Title": "Untitled section 138",
+      "Author": "",
+      "UrnSlug": "untitled-section-138",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 95,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/138"
+      ],
+      "Title": "Untitled section 139",
+      "Author": "",
+      "UrnSlug": "untitled-section-139",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 391,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/139"
+      ],
+      "Title": "Untitled section 140",
+      "Author": "",
+      "UrnSlug": "untitled-section-140",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 182,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/140"
+      ],
+      "Title": "Untitled section 141",
+      "Author": "",
+      "UrnSlug": "untitled-section-141",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 183,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/141"
+      ],
+      "Title": "Untitled section 142",
+      "Author": "",
+      "UrnSlug": "untitled-section-142",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 266,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/142"
+      ],
+      "Title": "Untitled section 143",
+      "Author": "",
+      "UrnSlug": "untitled-section-143",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 80,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/143"
+      ],
+      "Title": "Untitled section 144",
+      "Author": "",
+      "UrnSlug": "untitled-section-144",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 131,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/144"
+      ],
+      "Title": "Untitled section 145",
+      "Author": "",
+      "UrnSlug": "untitled-section-145",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 215,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/145"
+      ],
+      "Title": "Untitled section 146",
+      "Author": "",
+      "UrnSlug": "untitled-section-146",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 65,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/146"
+      ],
+      "Title": "Untitled section 147",
+      "Author": "",
+      "UrnSlug": "untitled-section-147",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 273,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/147"
+      ],
+      "Title": "Untitled section 148",
+      "Author": "",
+      "UrnSlug": "untitled-section-148",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 179,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/148"
+      ],
+      "Title": "Untitled section 149",
+      "Author": "",
+      "UrnSlug": "untitled-section-149",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 179,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/149"
+      ],
+      "Title": "Untitled section 150",
+      "Author": "",
+      "UrnSlug": "untitled-section-150",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 203,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/150"
+      ],
+      "Title": "Untitled section 151",
+      "Author": "",
+      "UrnSlug": "untitled-section-151",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 100,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/151"
+      ],
+      "Title": "Untitled section 152",
+      "Author": "",
+      "UrnSlug": "untitled-section-152",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 297,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/152"
+      ],
+      "Title": "Untitled section 153",
+      "Author": "",
+      "UrnSlug": "untitled-section-153",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 200,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/153"
+      ],
+      "Title": "Untitled section 154",
+      "Author": "",
+      "UrnSlug": "untitled-section-154",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 193,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/154"
+      ],
+      "Title": "Untitled section 155",
+      "Author": "",
+      "UrnSlug": "untitled-section-155",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 109,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/155"
+      ],
+      "Title": "Untitled section 156",
+      "Author": "",
+      "UrnSlug": "untitled-section-156",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 97,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/156"
+      ],
+      "Title": "Untitled section 157",
+      "Author": "",
+      "UrnSlug": "untitled-section-157",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 116,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/157"
+      ],
+      "Title": "Untitled section 158",
+      "Author": "",
+      "UrnSlug": "untitled-section-158",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 149,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/158"
+      ],
+      "Title": "Untitled section 159",
+      "Author": "",
+      "UrnSlug": "untitled-section-159",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 215,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/159"
+      ],
+      "Title": "Untitled section 160",
+      "Author": "",
+      "UrnSlug": "untitled-section-160",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 223,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/160"
+      ],
+      "Title": "Untitled section 161",
+      "Author": "",
+      "UrnSlug": "untitled-section-161",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 217,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/161"
+      ],
+      "Title": "Untitled section 162",
+      "Author": "",
+      "UrnSlug": "untitled-section-162",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 382,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/162"
+      ],
+      "Title": "Untitled section 163",
+      "Author": "",
+      "UrnSlug": "untitled-section-163",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 252,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/163"
+      ],
+      "Title": "Untitled section 164",
+      "Author": "",
+      "UrnSlug": "untitled-section-164",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 198,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/164"
+      ],
+      "Title": "Untitled section 165",
+      "Author": "",
+      "UrnSlug": "untitled-section-165",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 100,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/165"
+      ],
+      "Title": "Untitled section 166",
+      "Author": "",
+      "UrnSlug": "untitled-section-166",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 274,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/166"
+      ],
+      "Title": "Untitled section 167",
+      "Author": "",
+      "UrnSlug": "untitled-section-167",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 454,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/167"
+      ],
+      "Title": "Untitled section 168",
+      "Author": "",
+      "UrnSlug": "untitled-section-168",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 151,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/168"
+      ],
+      "Title": "Untitled section 169",
+      "Author": "",
+      "UrnSlug": "untitled-section-169",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 191,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/169"
+      ],
+      "Title": "Untitled section 170",
+      "Author": "",
+      "UrnSlug": "untitled-section-170",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 150,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/170"
+      ],
+      "Title": "Untitled section 171",
+      "Author": "",
+      "UrnSlug": "untitled-section-171",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 207,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/171"
+      ],
+      "Title": "Untitled section 172",
+      "Author": "",
+      "UrnSlug": "untitled-section-172",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 129,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/172"
+      ],
+      "Title": "Untitled section 173",
+      "Author": "",
+      "UrnSlug": "untitled-section-173",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 51,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/173"
+      ],
+      "Title": "Untitled section 174",
+      "Author": "",
+      "UrnSlug": "untitled-section-174",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 142,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/174"
+      ],
+      "Title": "Untitled section 175",
+      "Author": "",
+      "UrnSlug": "untitled-section-175",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 162,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/175"
+      ],
+      "Title": "Untitled section 176",
+      "Author": "",
+      "UrnSlug": "untitled-section-176",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 101,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/176"
+      ],
+      "Title": "Untitled section 177",
+      "Author": "",
+      "UrnSlug": "untitled-section-177",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 186,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/177"
+      ],
+      "Title": "Untitled section 178",
+      "Author": "",
+      "UrnSlug": "untitled-section-178",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 236,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/178"
+      ],
+      "Title": "Untitled section 179",
+      "Author": "",
+      "UrnSlug": "untitled-section-179",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 361,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/179"
+      ],
+      "Title": "Untitled section 180",
+      "Author": "",
+      "UrnSlug": "untitled-section-180",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 497,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/180"
+      ],
+      "Title": "Untitled section 181",
+      "Author": "",
+      "UrnSlug": "untitled-section-181",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 633,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/181"
+      ],
+      "Title": "Untitled section 182",
+      "Author": "",
+      "UrnSlug": "untitled-section-182",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 192,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/182"
+      ],
+      "Title": "Untitled section 183",
+      "Author": "",
+      "UrnSlug": "untitled-section-183",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 153,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/183"
+      ],
+      "Title": "Untitled section 184",
+      "Author": "",
+      "UrnSlug": "untitled-section-184",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 424,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/184"
+      ],
+      "Title": "Untitled section 185",
+      "Author": "",
+      "UrnSlug": "untitled-section-185",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 211,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/185"
+      ],
+      "Title": "Untitled section 186",
+      "Author": "",
+      "UrnSlug": "untitled-section-186",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 412,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/186"
+      ],
+      "Title": "Untitled section 187",
+      "Author": "",
+      "UrnSlug": "untitled-section-187",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 358,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/187"
+      ],
+      "Title": "Untitled section 188",
+      "Author": "",
+      "UrnSlug": "untitled-section-188",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 103,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/188"
+      ],
+      "Title": "Untitled section 189",
+      "Author": "",
+      "UrnSlug": "untitled-section-189",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 278,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/189"
+      ],
+      "Title": "Untitled section 190",
+      "Author": "",
+      "UrnSlug": "untitled-section-190",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 267,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/190"
+      ],
+      "Title": "Untitled section 191",
+      "Author": "",
+      "UrnSlug": "untitled-section-191",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 93,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/191"
+      ],
+      "Title": "Untitled section 192",
+      "Author": "",
+      "UrnSlug": "untitled-section-192",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 413,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/192"
+      ],
+      "Title": "Untitled section 193",
+      "Author": "",
+      "UrnSlug": "untitled-section-193",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 244,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/193"
+      ],
+      "Title": "Untitled section 194",
+      "Author": "",
+      "UrnSlug": "untitled-section-194",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 79,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/194"
+      ],
+      "Title": "Untitled section 195",
+      "Author": "",
+      "UrnSlug": "untitled-section-195",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 230,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/195"
+      ],
+      "Title": "Untitled section 196",
+      "Author": "",
+      "UrnSlug": "untitled-section-196",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 222,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/196"
+      ],
+      "Title": "Untitled section 197",
+      "Author": "",
+      "UrnSlug": "untitled-section-197",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 156,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/197"
+      ],
+      "Title": "Untitled section 198",
+      "Author": "",
+      "UrnSlug": "untitled-section-198",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 89,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/198"
+      ],
+      "Title": "Untitled section 199",
+      "Author": "",
+      "UrnSlug": "untitled-section-199",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 132,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/199"
+      ],
+      "Title": "Untitled section 200",
+      "Author": "",
+      "UrnSlug": "untitled-section-200",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 326,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/200"
+      ],
+      "Title": "Untitled section 201",
+      "Author": "",
+      "UrnSlug": "untitled-section-201",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 381,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/201"
+      ],
+      "Title": "Untitled section 202",
+      "Author": "",
+      "UrnSlug": "untitled-section-202",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 131,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/202"
+      ],
+      "Title": "Untitled section 203",
+      "Author": "",
+      "UrnSlug": "untitled-section-203",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 39,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/203"
+      ],
+      "Title": "Untitled section 204",
+      "Author": "",
+      "UrnSlug": "untitled-section-204",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 196,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/204"
+      ],
+      "Title": "Untitled section 205",
+      "Author": "",
+      "UrnSlug": "untitled-section-205",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 108,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/205"
+      ],
+      "Title": "Untitled section 206",
+      "Author": "",
+      "UrnSlug": "untitled-section-206",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 236,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/206"
+      ],
+      "Title": "Untitled section 207",
+      "Author": "",
+      "UrnSlug": "untitled-section-207",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 96,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/207"
+      ],
+      "Title": "Untitled section 208",
+      "Author": "",
+      "UrnSlug": "untitled-section-208",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 224,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/208"
+      ],
+      "Title": "Untitled section 209",
+      "Author": "",
+      "UrnSlug": "untitled-section-209",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 112,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/209"
+      ],
+      "Title": "Untitled section 210",
+      "Author": "",
+      "UrnSlug": "untitled-section-210",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 89,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/210"
+      ],
+      "Title": "Untitled section 211",
+      "Author": "",
+      "UrnSlug": "untitled-section-211",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 122,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/211"
+      ],
+      "Title": "Untitled section 212",
+      "Author": "",
+      "UrnSlug": "untitled-section-212",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 91,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/212"
+      ],
+      "Title": "Untitled section 213",
+      "Author": "",
+      "UrnSlug": "untitled-section-213",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 53,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/213"
+      ],
+      "Title": "Untitled section 214",
+      "Author": "",
+      "UrnSlug": "untitled-section-214",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 67,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/214"
+      ],
+      "Title": "Untitled section 215",
+      "Author": "",
+      "UrnSlug": "untitled-section-215",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 189,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/215"
+      ],
+      "Title": "Untitled section 216",
+      "Author": "",
+      "UrnSlug": "untitled-section-216",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 371,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/216"
+      ],
+      "Title": "Untitled section 217",
+      "Author": "",
+      "UrnSlug": "untitled-section-217",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 240,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/217"
+      ],
+      "Title": "Untitled section 218",
+      "Author": "",
+      "UrnSlug": "untitled-section-218",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 175,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/218"
+      ],
+      "Title": "Untitled section 219",
+      "Author": "",
+      "UrnSlug": "untitled-section-219",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 154,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/219"
+      ],
+      "Title": "Untitled section 220",
+      "Author": "",
+      "UrnSlug": "untitled-section-220",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 101,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/220"
+      ],
+      "Title": "Untitled section 221",
+      "Author": "",
+      "UrnSlug": "untitled-section-221",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 111,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/221"
+      ],
+      "Title": "Untitled section 222",
+      "Author": "",
+      "UrnSlug": "untitled-section-222",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 108,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/222"
+      ],
+      "Title": "Untitled section 223",
+      "Author": "",
+      "UrnSlug": "untitled-section-223",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 195,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/223"
+      ],
+      "Title": "Untitled section 224",
+      "Author": "",
+      "UrnSlug": "untitled-section-224",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 52,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/224"
+      ],
+      "Title": "Untitled section 225",
+      "Author": "",
+      "UrnSlug": "untitled-section-225",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 61,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/225"
+      ],
+      "Title": "Untitled section 226",
+      "Author": "",
+      "UrnSlug": "untitled-section-226",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 21,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/226"
+      ],
+      "Title": "Untitled section 227",
+      "Author": "",
+      "UrnSlug": "untitled-section-227",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 80,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/227"
+      ],
+      "Title": "Untitled section 228",
+      "Author": "",
+      "UrnSlug": "untitled-section-228",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 47,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/228"
+      ],
+      "Title": "Untitled section 229",
+      "Author": "",
+      "UrnSlug": "untitled-section-229",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 117,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/229"
+      ],
+      "Title": "Untitled section 230",
+      "Author": "",
+      "UrnSlug": "untitled-section-230",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 37,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/230"
+      ],
+      "Title": "Untitled section 231",
+      "Author": "",
+      "UrnSlug": "untitled-section-231",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 103,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/231"
+      ],
+      "Title": "Untitled section 232",
+      "Author": "",
+      "UrnSlug": "untitled-section-232",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 50,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/232"
+      ],
+      "Title": "Untitled section 233",
+      "Author": "",
+      "UrnSlug": "untitled-section-233",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 64,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/233"
+      ],
+      "Title": "Untitled section 234",
+      "Author": "",
+      "UrnSlug": "untitled-section-234",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 121,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/234"
+      ],
+      "Title": "Untitled section 235",
+      "Author": "",
+      "UrnSlug": "untitled-section-235",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 334,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/0/235"
+      ],
+      "Title": "Untitled section 236",
+      "Author": "",
+      "UrnSlug": "untitled-section-236",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 692,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/1/0"
+      ],
+      "Title": "Untitled section 237",
+      "Author": "",
+      "UrnSlug": "untitled-section-237",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 103,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/1/1"
+      ],
+      "Title": "Untitled section 238",
+      "Author": "",
+      "UrnSlug": "untitled-section-238",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 429,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/1/2"
+      ],
+      "Title": "Untitled section 239",
+      "Author": "",
+      "UrnSlug": "untitled-section-239",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 146,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/1/3"
+      ],
+      "Title": "Untitled section 240",
+      "Author": "",
+      "UrnSlug": "untitled-section-240",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 151,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/1/4"
+      ],
+      "Title": "Untitled section 241",
+      "Author": "",
+      "UrnSlug": "untitled-section-241",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 95,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/1/5"
+      ],
+      "Title": "Untitled section 242",
+      "Author": "",
+      "UrnSlug": "untitled-section-242",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 178,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/1/6"
+      ],
+      "Title": "Untitled section 243",
+      "Author": "",
+      "UrnSlug": "untitled-section-243",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 300,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/1/7"
+      ],
+      "Title": "Untitled section 244",
+      "Author": "",
+      "UrnSlug": "untitled-section-244",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 176,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/1/8"
+      ],
+      "Title": "Untitled section 245",
+      "Author": "",
+      "UrnSlug": "untitled-section-245",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 123,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/1/9"
+      ],
+      "Title": "Untitled section 246",
+      "Author": "",
+      "UrnSlug": "untitled-section-246",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 91,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/1/10"
+      ],
+      "Title": "Untitled section 247",
+      "Author": "",
+      "UrnSlug": "untitled-section-247",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 109,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/1/11"
+      ],
+      "Title": "Untitled section 248",
+      "Author": "",
+      "UrnSlug": "untitled-section-248",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 179,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/1/12"
+      ],
+      "Title": "Untitled section 249",
+      "Author": "",
+      "UrnSlug": "untitled-section-249",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 141,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/1/13"
+      ],
+      "Title": "Untitled section 250",
+      "Author": "",
+      "UrnSlug": "untitled-section-250",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 139,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/1/14"
+      ],
+      "Title": "Untitled section 251",
+      "Author": "",
+      "UrnSlug": "untitled-section-251",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 140,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/1/15"
+      ],
+      "Title": "Untitled section 252",
+      "Author": "",
+      "UrnSlug": "untitled-section-252",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 130,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/1/16"
+      ],
+      "Title": "Untitled section 253",
+      "Author": "",
+      "UrnSlug": "untitled-section-253",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 147,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/1/17"
+      ],
+      "Title": "Untitled section 254",
+      "Author": "",
+      "UrnSlug": "untitled-section-254",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 176,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/1/18"
+      ],
+      "Title": "Untitled section 255",
+      "Author": "",
+      "UrnSlug": "untitled-section-255",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 392,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/1/19"
+      ],
+      "Title": "Untitled section 256",
+      "Author": "",
+      "UrnSlug": "untitled-section-256",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 158,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/1/20"
+      ],
+      "Title": "Untitled section 257",
+      "Author": "",
+      "UrnSlug": "untitled-section-257",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 68,
+      "Include": true,
+      "Section": "law-manuscript"
+    }
+  ],
+  "DeclaredAuthors": [],
+  "Notes": [
+    "Reading level dipl at 100% coverage.",
+    "2 word(s) carry no dipl reading and fall back to the next level present, so a few spellings will not match the rest.",
+    "Diplomatic transcription: spelling follows the scribe, not a dictionary. Ingested for reading and search; excluded from stylometry by Editions.Orthography.",
+    "2 msItem(s) in msContents, 2 of them leaves.",
+    "257 division(s) holding text, covering 50,114 of 50,114 words (100.0%).",
+    "257 division(s) against 2 catalogue entries - not the same count, so titles are taken from headings only, never from catalogue order.",
+    "msItem 1 \u0022Landsl\u01EBg Magn\u00FAss H\u00E1konarsonar | Magnus Lagab\u00F8tes landslov\u0022 has no division. Not transcribed, or mis-divided.",
+    "msItem 2 \u0022Farmannal\u01EBg (part 1) | Farmannslova (del 1)\u0022 has no division. Not transcribed, or mis-divided.",
+    "257 of 257 title(s) not matched on head text. Check these first."
+  ]
+}

@@ -1,0 +1,34 @@
+﻿{
+  "FileName": "NRA-norrfragm-55-B.xml",
+  "ManuscriptId": "NRA norr fragm 55 B",
+  "Language": "isl",
+  "ReadingLevel": "norm",
+  "Orthography": "normalised",
+  "Confirmed": true,
+  "Works": [
+    {
+      "DivPaths": [
+        "0/0",
+        "0/1",
+        "0/2",
+        "0/3"
+      ],
+      "Title": "H\u00E1konar saga H\u00E1konarsonar",
+      "Author": "",
+      "UrnSlug": "h\u00E1konar-saga-h\u00E1konarsonar",
+      "MsItemN": "1",
+      "MatchBasis": "position",
+      "WordCount": 651,
+      "Include": true,
+      "Section": "text"
+    }
+  ],
+  "DeclaredAuthors": [],
+  "Notes": [
+    "Reading level norm at 100% coverage.",
+    "1 msItem(s) in msContents, 1 of them leaves.",
+    "4 division(s) holding text, covering 651 of 651 words (100.0%).",
+    "msContents lists a single work, so all 4 divisions are proposed as its parts. Split if the manuscript holds more than the catalogue says.",
+    "1 of 1 title(s) not matched on head text. Check these first."
+  ]
+}

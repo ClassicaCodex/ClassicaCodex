@@ -1,0 +1,31 @@
+﻿{
+  "FileName": "AM-279-a-4to.xml",
+  "ManuscriptId": "AM 279 a 4to",
+  "Language": "isl",
+  "ReadingLevel": "norm",
+  "Orthography": "normalised",
+  "Confirmed": true,
+  "Works": [
+    {
+      "DivPaths": [
+        "0/0"
+      ],
+      "Title": "Gr\u00E1g\u00E1s",
+      "Author": "",
+      "UrnSlug": "gr\u00E1g\u00E1s",
+      "MsItemN": "1",
+      "MatchBasis": "position",
+      "WordCount": 736,
+      "Include": true,
+      "Section": "text"
+    }
+  ],
+  "DeclaredAuthors": [],
+  "Notes": [
+    "Reading level norm at 100% coverage.",
+    "1 word(s) carry no norm reading and fall back to the next level present, so a few spellings will not match the rest.",
+    "1 msItem(s) in msContents, 1 of them leaves.",
+    "1 division(s) holding text, covering 736 of 736 words (100.0%).",
+    "1 of 1 title(s) not matched on head text. Check these first."
+  ]
+}

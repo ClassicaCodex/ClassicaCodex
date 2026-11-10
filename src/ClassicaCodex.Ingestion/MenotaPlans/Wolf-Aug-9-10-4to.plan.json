@@ -1,0 +1,658 @@
+﻿{
+  "FileName": "Wolf-Aug-9-10-4to.xml",
+  "ManuscriptId": "WolfAug 9 10 4to",
+  "Language": "isl",
+  "ReadingLevel": "norm",
+  "Orthography": "normalised",
+  "Confirmed": true,
+  "Works": [
+    {
+      "DivPaths": [
+        "0"
+      ],
+      "Title": "Egils saga",
+      "Author": "",
+      "UrnSlug": "egils-saga",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 2,
+      "Include": true,
+      "Section": "work"
+    },
+    {
+      "DivPaths": [
+        "0/0"
+      ],
+      "Title": "Untitled section 2",
+      "Author": "",
+      "UrnSlug": "untitled-section-2",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 406,
+      "Include": true,
+      "Section": "work"
+    },
+    {
+      "DivPaths": [
+        "0/1"
+      ],
+      "Title": "Fr\u00E1 \u01EAlvi ok Solveigu",
+      "Author": "",
+      "UrnSlug": "fr\u00E1-\u01EBlvi-ok-solveigu",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 97,
+      "Include": true,
+      "Section": "work"
+    },
+    {
+      "DivPaths": [
+        "0/2"
+      ],
+      "Title": "Haraldr t\u00F3k r\u00EDki",
+      "Author": "",
+      "UrnSlug": "haraldr-t\u00F3k-r\u00EDki",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 579,
+      "Include": true,
+      "Section": "work"
+    },
+    {
+      "DivPaths": [
+        "0/3"
+      ],
+      "Title": "Fr\u00E1 fer\u00F0um Haralds",
+      "Author": "",
+      "UrnSlug": "fr\u00E1-fer\u00F0um-haralds",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 235,
+      "Include": true,
+      "Section": "work"
+    },
+    {
+      "DivPaths": [
+        "0/4"
+      ],
+      "Title": "Vermundr inni brendr",
+      "Author": "",
+      "UrnSlug": "vermundr-inni-brendr",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 274,
+      "Include": true,
+      "Section": "work"
+    },
+    {
+      "DivPaths": [
+        "0/5"
+      ],
+      "Title": "Sendimenn k\u00F3mu til Kveld-Ulfs",
+      "Author": "",
+      "UrnSlug": "sendimenn-k\u00F3mu-til-kveldulfs",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 440,
+      "Include": true,
+      "Section": "work"
+    },
+    {
+      "DivPaths": [
+        "0/6"
+      ],
+      "Title": "Fr\u00E1 \u00DE\u00F3roldi",
+      "Author": "",
+      "UrnSlug": "fr\u00E1-\u00FE\u00F3roldi",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 429,
+      "Include": true,
+      "Section": "work"
+    },
+    {
+      "DivPaths": [
+        "0/7"
+      ],
+      "Title": "Untitled section 9",
+      "Author": "",
+      "UrnSlug": "untitled-section-9",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 141,
+      "Include": true,
+      "Section": "work"
+    },
+    {
+      "DivPaths": [
+        "0/8"
+      ],
+      "Title": "Fr\u00E1 konungi",
+      "Author": "",
+      "UrnSlug": "fr\u00E1-konungi",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 797,
+      "Include": true,
+      "Section": "work"
+    },
+    {
+      "DivPaths": [
+        "0/9"
+      ],
+      "Title": "Fr\u00E1 \u00DEorgilsi gjallanda",
+      "Author": "",
+      "UrnSlug": "fr\u00E1-\u00FEorgilsi-gjallanda",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 1596,
+      "Include": true,
+      "Section": "work"
+    },
+    {
+      "DivPaths": [
+        "0/10"
+      ],
+      "Title": "Fr\u00E1 Hildir\u00ED\u00F0arsonum",
+      "Author": "",
+      "UrnSlug": "fr\u00E1-hildir\u00ED\u00F0arsonum",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 563,
+      "Include": true,
+      "Section": "work"
+    },
+    {
+      "DivPaths": [
+        "0/11"
+      ],
+      "Title": "Fr\u00E1 br\u01FF\u00F0rum tveim",
+      "Author": "",
+      "UrnSlug": "fr\u00E1-br\u01FF\u00F0rum-tveim",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 510,
+      "Include": true,
+      "Section": "work"
+    },
+    {
+      "DivPaths": [
+        "0/12"
+      ],
+      "Title": "Fr\u00E1 \u00DE\u00F3rolfi",
+      "Author": "",
+      "UrnSlug": "fr\u00E1-\u00FE\u00F3rolfi",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 698,
+      "Include": true,
+      "Section": "work"
+    },
+    {
+      "DivPaths": [
+        "0/13"
+      ],
+      "Title": "Fr\u00E1 Skalla-Gr\u00EDmi ok sonum hans",
+      "Author": "",
+      "UrnSlug": "fr\u00E1-skallagr\u00EDmi-ok-sonum-hans",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 147,
+      "Include": true,
+      "Section": "work"
+    },
+    {
+      "DivPaths": [
+        "0/14"
+      ],
+      "Title": "Fr\u00E1 Haraldi",
+      "Author": "",
+      "UrnSlug": "fr\u00E1-haraldi",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 232,
+      "Include": true,
+      "Section": "work"
+    },
+    {
+      "DivPaths": [
+        "0/15"
+      ],
+      "Title": "Fr\u00E1 \u00DE\u00F3rolfi",
+      "Author": "",
+      "UrnSlug": "fr\u00E1-\u00FE\u00F3rolfi",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 1084,
+      "Include": true,
+      "Section": "work"
+    },
+    {
+      "DivPaths": [
+        "0/16"
+      ],
+      "Title": "Fr\u00E1 H\u01FFingi",
+      "Author": "",
+      "UrnSlug": "fr\u00E1-h\u01FFingi",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 333,
+      "Include": true,
+      "Section": "work"
+    },
+    {
+      "DivPaths": [
+        "0/17"
+      ],
+      "Title": "Fr\u00E1 Kveld-Ulfi",
+      "Author": "",
+      "UrnSlug": "fr\u00E1-kveldulfi",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 1188,
+      "Include": true,
+      "Section": "work"
+    },
+    {
+      "DivPaths": [
+        "0/18"
+      ],
+      "Title": "Fr\u00E1 Guttormi ok \u00DEorolfi",
+      "Author": "",
+      "UrnSlug": "fr\u00E1-guttormi-ok-\u00FEorolfi",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 292,
+      "Include": true,
+      "Section": "work"
+    },
+    {
+      "DivPaths": [
+        "0/19"
+      ],
+      "Title": "Fr\u00E1 Kveld-Ulfi",
+      "Author": "",
+      "UrnSlug": "fr\u00E1-kveldulfi",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 655,
+      "Include": true,
+      "Section": "work"
+    },
+    {
+      "DivPaths": [
+        "0/20"
+      ],
+      "Title": "Fr\u00E1 Skalla-Gr\u00EDmi",
+      "Author": "",
+      "UrnSlug": "fr\u00E1-skallagr\u00EDmi",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 585,
+      "Include": true,
+      "Section": "work"
+    },
+    {
+      "DivPaths": [
+        "0/21"
+      ],
+      "Title": "Fr\u00E1 bygg\u00F0 Skalla-Gr\u00EDms",
+      "Author": "",
+      "UrnSlug": "fr\u00E1-bygg\u00F0-skallagr\u00EDms",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 801,
+      "Include": true,
+      "Section": "work"
+    },
+    {
+      "DivPaths": [
+        "0/22"
+      ],
+      "Title": "Fr\u00E1 Brynjolfi",
+      "Author": "",
+      "UrnSlug": "fr\u00E1-brynjolfi",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 1423,
+      "Include": true,
+      "Section": "work"
+    },
+    {
+      "DivPaths": [
+        "0/23"
+      ],
+      "Title": "Fr\u00E1 Eir\u00EDki bl\u00F3\u00F0\u00F8x",
+      "Author": "",
+      "UrnSlug": "fr\u00E1-eir\u00EDki-bl\u00F3\u00F0\u00F8x",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 720,
+      "Include": true,
+      "Section": "work"
+    },
+    {
+      "DivPaths": [
+        "0/24"
+      ],
+      "Title": "Fr\u00E1 herna\u00F0i Eir\u00EDks",
+      "Author": "",
+      "UrnSlug": "fr\u00E1-herna\u00F0i-eir\u00EDks",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 546,
+      "Include": true,
+      "Section": "work"
+    },
+    {
+      "DivPaths": [
+        "0/25"
+      ],
+      "Title": "Fr\u00E1 Katli blund",
+      "Author": "",
+      "UrnSlug": "fr\u00E1-katli-blund",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 1366,
+      "Include": true,
+      "Section": "work"
+    },
+    {
+      "DivPaths": [
+        "0/26"
+      ],
+      "Title": "Fr\u00E1 \u01EAlvi",
+      "Author": "",
+      "UrnSlug": "fr\u00E1-\u01EBlvi",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 323,
+      "Include": true,
+      "Section": "work"
+    },
+    {
+      "DivPaths": [
+        "0/27"
+      ],
+      "Title": "Fr\u00E1 Agli ok \u00FEeim \u01EAlvi",
+      "Author": "",
+      "UrnSlug": "fr\u00E1-agli-ok-\u00FEeim-\u01EBlvi",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 2642,
+      "Include": true,
+      "Section": "work"
+    },
+    {
+      "DivPaths": [
+        "0/28"
+      ],
+      "Title": "Fr\u00E1 Haraldi",
+      "Author": "",
+      "UrnSlug": "fr\u00E1-haraldi",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 930,
+      "Include": true,
+      "Section": "work"
+    },
+    {
+      "DivPaths": [
+        "0/29"
+      ],
+      "Title": "Fr\u00E1 \u00FEeim br\u01FF\u00F0rum",
+      "Author": "",
+      "UrnSlug": "fr\u00E1-\u00FEeim-br\u01FF\u00F0rum",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 744,
+      "Include": true,
+      "Section": "work"
+    },
+    {
+      "DivPaths": [
+        "0/30"
+      ],
+      "Title": "Fr\u00E1 A\u00F0alr\u00E1\u00F0i hinum r\u00EDka ok hans \u01FDtt",
+      "Author": "",
+      "UrnSlug": "fr\u00E1-a\u00F0alr\u00E1\u00F0i-hinum-r\u00EDka-ok-hans-\u01FDtt",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 297,
+      "Include": true,
+      "Section": "work"
+    },
+    {
+      "DivPaths": [
+        "0/31"
+      ],
+      "Title": "Fr\u00E1 \u00D3l\u00E1fi rau\u00F0a",
+      "Author": "",
+      "UrnSlug": "fr\u00E1-\u00F3l\u00E1fi-rau\u00F0a",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 182,
+      "Include": true,
+      "Section": "work"
+    },
+    {
+      "DivPaths": [
+        "0/32"
+      ],
+      "Title": "Orrusta",
+      "Author": "",
+      "UrnSlug": "orrusta",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 3395,
+      "Include": true,
+      "Section": "work"
+    },
+    {
+      "DivPaths": [
+        "0/33"
+      ],
+      "Title": "Deila \u00FEeira Berg-\u01EAnundar ok Egils",
+      "Author": "",
+      "UrnSlug": "deila-\u00FEeira-berg\u01EBnundar-ok-egils",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 3028,
+      "Include": true,
+      "Section": "work"
+    },
+    {
+      "DivPaths": [
+        "0/34"
+      ],
+      "Title": "Fr\u00E1 Haraldi",
+      "Author": "",
+      "UrnSlug": "fr\u00E1-haraldi",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 479,
+      "Include": true,
+      "Section": "work"
+    },
+    {
+      "DivPaths": [
+        "0/35"
+      ],
+      "Title": "Fr\u00E1 fer\u00F0 Egils",
+      "Author": "",
+      "UrnSlug": "fr\u00E1-fer\u00F0-egils",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 1433,
+      "Include": true,
+      "Section": "work"
+    },
+    {
+      "DivPaths": [
+        "0/36"
+      ],
+      "Title": "Fr\u00E1 \u00DEorgeiri",
+      "Author": "",
+      "UrnSlug": "fr\u00E1-\u00FEorgeiri",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 569,
+      "Include": true,
+      "Section": "work"
+    },
+    {
+      "DivPaths": [
+        "0/37"
+      ],
+      "Title": "Untitled section 39",
+      "Author": "",
+      "UrnSlug": "untitled-section-39",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 2279,
+      "Include": true,
+      "Section": "work"
+    },
+    {
+      "DivPaths": [
+        "0/38"
+      ],
+      "Title": "H\u00E9r hefr H\u01EBfu\u00F0lausn",
+      "Author": "",
+      "UrnSlug": "h\u00E9r-hefr-h\u01EBfu\u00F0lausn",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 392,
+      "Include": true,
+      "Section": "work"
+    },
+    {
+      "DivPaths": [
+        "0/39"
+      ],
+      "Title": "Egill \u00FE\u00E1 l\u00EDf sitt",
+      "Author": "",
+      "UrnSlug": "egill-\u00FE\u00E1-l\u00EDf-sitt",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 397,
+      "Include": true,
+      "Section": "work"
+    },
+    {
+      "DivPaths": [
+        "0/40"
+      ],
+      "Title": "Untitled section 42",
+      "Author": "",
+      "UrnSlug": "untitled-section-42",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 379,
+      "Include": true,
+      "Section": "work"
+    },
+    {
+      "DivPaths": [
+        "0/41"
+      ],
+      "Title": "Fr\u00E1 H\u00E1koni",
+      "Author": "",
+      "UrnSlug": "fr\u00E1-h\u00E1koni",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 393,
+      "Include": true,
+      "Section": "work"
+    },
+    {
+      "DivPaths": [
+        "0/42"
+      ],
+      "Title": "Untitled section 44",
+      "Author": "",
+      "UrnSlug": "untitled-section-44",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 1287,
+      "Include": true,
+      "Section": "work"
+    },
+    {
+      "DivPaths": [
+        "0/43"
+      ],
+      "Title": "Fall Atla",
+      "Author": "",
+      "UrnSlug": "fall-atla",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 867,
+      "Include": true,
+      "Section": "work"
+    },
+    {
+      "DivPaths": [
+        "0/44"
+      ],
+      "Title": "Fr\u00E1 Agli",
+      "Author": "",
+      "UrnSlug": "fr\u00E1-agli",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 943,
+      "Include": true,
+      "Section": "work"
+    },
+    {
+      "DivPaths": [
+        "0/45"
+      ],
+      "Title": "Fr\u00E1 Arinbirni",
+      "Author": "",
+      "UrnSlug": "fr\u00E1-arinbirni",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 733,
+      "Include": true,
+      "Section": "work"
+    },
+    {
+      "DivPaths": [
+        "0/46"
+      ],
+      "Title": "\u25CC\u25CC\u25CC konungs",
+      "Author": "",
+      "UrnSlug": "konungs",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 64,
+      "Include": true,
+      "Section": "work"
+    },
+    {
+      "DivPaths": [
+        "0/47"
+      ],
+      "Title": "Untitled section 49",
+      "Author": "",
+      "UrnSlug": "untitled-section-49",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 723,
+      "Include": true,
+      "Section": "work"
+    }
+  ],
+  "DeclaredAuthors": [],
+  "Notes": [
+    "Reading level norm at 100% coverage.",
+    "64 word(s) carry no norm reading and fall back to the next level present, so a few spellings will not match the rest.",
+    "2 msItem(s) in msContents, 2 of them leaves.",
+    "49 division(s) holding text, covering 38,618 of 38,618 words (100.0%).",
+    "49 division(s) against 2 catalogue entries - not the same count, so titles are taken from headings only, never from catalogue order.",
+    "msItem 1 \u0022Eyrbyggja saga\u0022 has no division. Not transcribed, or mis-divided.",
+    "msItem 2 \u0022Egils saga Skalla-Gr\u00EDmssonar\u0022 has no division. Not transcribed, or mis-divided.",
+    "49 of 49 title(s) not matched on head text. Check these first."
+  ]
+}

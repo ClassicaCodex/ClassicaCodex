@@ -69,7 +69,7 @@ public class SetupTests
         var menota = guided.Sources.ToList().FindIndex(s => MenotaReview.IsReviewStep(s));
         Assert.True(menota >= 0);
         await guided.GoToStepAsync(guided.FirstSourceStepIndex + menota);
-        Assert.Equal("Open Folder", guided.ActionText);
+        Assert.Equal("Download & Install", guided.ActionText);
         Screens.Save(guided, "setup-guided-04-menota");
 
         await guided.GoToStepAsync(guided.FirstSourceStepIndex + guided.Sources.ToList().FindIndex(s => s.Title.StartsWith("Patrologia", StringComparison.Ordinal)));
@@ -88,6 +88,46 @@ public class SetupTests
         Avalonia.Application.Current!.RequestedThemeVariant = ThemeVariant.Light;
 
         await CloseAsync(guided);
+        main.Close();
+    }
+
+    /// <summary>
+    /// On an iPad, Download & Install does the whole Menota step, so Review &
+    /// Import - a form per manuscript, made for a desktop - is neither offered
+    /// nor named there. A Mac keeps it.
+    /// </summary>
+    [AvaloniaFact]
+    public async Task The_Menota_step_offers_Review_and_Import_on_a_Mac_and_not_on_an_iPad()
+    {
+        using var scratch = new Scratch();
+        await scratch.FreshLibraryAsync();
+        var main = await scratch.MainAsync();
+
+        foreach (var onDevice in new[] { false, true })
+        {
+            MacDataFolder.OnDevice = onDevice;
+            try
+            {
+                var guided = new GuidedSetupWindow(main);
+                guided.Show(main);
+                await Screens.Settle();
+
+                var menota = guided.Sources.ToList().FindIndex(s => MenotaReview.IsReviewStep(s));
+                await guided.GoToStepAsync(guided.FirstSourceStepIndex + menota);
+
+                Assert.Equal("Download & Install", guided.ActionText);
+                Assert.Equal(onDevice ? null : "Review & Import", guided.SecondaryText);
+                Assert.Equal(!onDevice, guided.DescriptionText.Contains("Review & Import", StringComparison.Ordinal));
+                Assert.Contains("is left out of the import", guided.DescriptionText);
+
+                await CloseAsync(guided);
+            }
+            finally
+            {
+                MacDataFolder.OnDevice = false;
+            }
+        }
+
         main.Close();
     }
 

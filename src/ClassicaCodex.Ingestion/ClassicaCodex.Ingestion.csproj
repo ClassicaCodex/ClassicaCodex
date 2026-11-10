@@ -44,6 +44,11 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- The confirmed plans for Menota's manuscripts. See MenotaBundledPlans. -->
+    <EmbeddedResource Include="MenotaPlans\*.plan.json" LogicalName="ClassicaCodex.Ingestion.MenotaPlans.%(Filename)%(Extension)" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="DocumentFormat.OpenXml" Version="3.0.2" />
     <PackageReference Include="LibGit2Sharp" Version="0.32.0" />
     <!-- CATMuS publishes its manuscripts as Parquet and nothing else; its own

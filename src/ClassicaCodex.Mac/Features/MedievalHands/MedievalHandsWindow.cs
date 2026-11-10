@@ -488,13 +488,14 @@ public sealed class MedievalHandsWindow : FeatureWindow
     /// The face the transcriptions are set in. A diplomatic transcription is
     /// full of what ordinary fonts do not draw - ꝯ ꝑ ꝓ ꝰ ⁊ ſ, and combining
     /// marks stacked over letters - so the faces made for it come first:
-    /// Junicode, then the MUFI fonts Andron Scriptor and Palemonas (under the
-    /// names they install with as well as their short ones), then Noto Serif,
-    /// and the reading face last - every name in its list, not only the
-    /// first. Whatever is installed draws what it can.
+    /// Junicode, which comes with the app (see BundledFonts), then the MUFI
+    /// fonts Andron Scriptor and Palemonas (under the names they install with
+    /// as well as their short ones), then Noto Serif, and the reading face
+    /// last - every name in its list, not only the first. Whatever is
+    /// installed draws what it can.
     /// </summary>
     internal static FontFamily TranscriptionFont() =>
-        new("Junicode, Andron Scriptor Web, Andron Scriptor, Palemonas MUFI, Palemonas, Noto Serif, " +
+        new($"{BundledFonts.JunicodeSource}, Andron Scriptor Web, Andron Scriptor, Palemonas MUFI, Palemonas, Noto Serif, " +
             string.Join(", ", ToolPane.Font("Cc.SourceFont").FamilyNames));
 
     private static string Introduction() =>

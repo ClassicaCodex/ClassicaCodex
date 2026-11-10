@@ -1,0 +1,51 @@
+﻿{
+  "FileName": "NRA-norrfragm-65.xml",
+  "ManuscriptId": "NRA norr fragm 65",
+  "Language": "nor",
+  "ReadingLevel": "norm",
+  "Orthography": "normalised",
+  "Confirmed": true,
+  "Works": [
+    {
+      "DivPaths": [
+        "0",
+        "0/0/0",
+        "0/0/1",
+        "0/0/2",
+        "0/0/3",
+        "0/0/4",
+        "0/0/5",
+        "0/0/6",
+        "0/0/7",
+        "0/0/8",
+        "0/0/9",
+        "0/0/10",
+        "0/0/11",
+        "0/0/12",
+        "0/0/13",
+        "0/0/14",
+        "0/0/15",
+        "0/0/16",
+        "0/0/17",
+        "0/0/18",
+        "0/0/19"
+      ],
+      "Title": "Fl\u00F3ress saga ok Blankifl\u00FAr",
+      "Author": "",
+      "UrnSlug": "fl\u00F3ress-saga-ok-blankifl\u00FAr",
+      "MsItemN": "1",
+      "MatchBasis": "position",
+      "WordCount": 958,
+      "Include": true,
+      "Section": "text"
+    }
+  ],
+  "DeclaredAuthors": [],
+  "Notes": [
+    "Reading level norm at 100% coverage.",
+    "1 msItem(s) in msContents, 1 of them leaves.",
+    "21 division(s) holding text, covering 958 of 958 words (100.0%).",
+    "msContents lists a single work, so all 21 divisions are proposed as its parts. Split if the manuscript holds more than the catalogue says.",
+    "1 of 1 title(s) not matched on head text. Check these first."
+  ]
+}

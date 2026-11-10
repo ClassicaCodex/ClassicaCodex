@@ -1,0 +1,37 @@
+﻿{
+  "FileName": "NRA-norrfragm-79.xml",
+  "ManuscriptId": "NRA norr fragm 79",
+  "Language": "isl",
+  "ReadingLevel": "norm",
+  "Orthography": "normalised",
+  "Confirmed": true,
+  "Works": [
+    {
+      "DivPaths": [
+        "0",
+        "1",
+        "2",
+        "3",
+        "4",
+        "5",
+        "6"
+      ],
+      "Title": "Mar\u00EDu saga and M\u01EBrtu saga ok Mar\u00EDu Mag\u00F0alenu",
+      "Author": "",
+      "UrnSlug": "mar\u00EDu-saga-and-m\u01EBrtu-saga-ok-mar\u00EDu-mag\u00F0alenu",
+      "MsItemN": "2",
+      "MatchBasis": "position",
+      "WordCount": 774,
+      "Include": true,
+      "Section": ""
+    }
+  ],
+  "DeclaredAuthors": [],
+  "Notes": [
+    "Reading level norm at 100% coverage.",
+    "1 msItem(s) in msContents, 1 of them leaves.",
+    "7 division(s) holding text, covering 774 of 774 words (100.0%).",
+    "msContents lists a single work, so all 7 divisions are proposed as its parts. Split if the manuscript holds more than the catalogue says.",
+    "1 of 1 title(s) not matched on head text. Check these first."
+  ]
+}

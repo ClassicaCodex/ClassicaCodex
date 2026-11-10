@@ -1,0 +1,33 @@
+﻿{
+  "FileName": "NRA-norrfragm-56.xml",
+  "ManuscriptId": "NRA norr fragm 56",
+  "Language": "isl",
+  "ReadingLevel": "norm",
+  "Orthography": "normalised",
+  "Confirmed": true,
+  "Works": [
+    {
+      "DivPaths": [
+        "0",
+        "1"
+      ],
+      "Title": "\u00DEorgils saga skar\u00F0a",
+      "Author": "",
+      "UrnSlug": "\u00FEorgils-saga-skar\u00F0a",
+      "MsItemN": "1",
+      "MatchBasis": "position",
+      "WordCount": 1185,
+      "Include": true,
+      "Section": ""
+    }
+  ],
+  "DeclaredAuthors": [],
+  "Notes": [
+    "Reading level norm at 100% coverage.",
+    "1 word(s) carry no norm reading and fall back to the next level present, so a few spellings will not match the rest.",
+    "1 msItem(s) in msContents, 1 of them leaves.",
+    "2 division(s) holding text, covering 1,185 of 1,185 words (100.0%).",
+    "msContents lists a single work, so all 2 divisions are proposed as its parts. Split if the manuscript holds more than the catalogue says.",
+    "1 of 1 title(s) not matched on head text. Check these first."
+  ]
+}

@@ -1,0 +1,35 @@
+﻿{
+  "FileName": "NRA-norrfragm-71.xml",
+  "ManuscriptId": "NRA norr fragm 71",
+  "Language": "isl",
+  "ReadingLevel": "norm",
+  "Orthography": "normalised",
+  "Confirmed": true,
+  "Works": [
+    {
+      "DivPaths": [
+        "0/0",
+        "0/1",
+        "0/2",
+        "0/3",
+        "0/4"
+      ],
+      "Title": "Gregors saga p\u00E1fa and D\u00EDal\u00F3gar",
+      "Author": "",
+      "UrnSlug": "gregors-saga-p\u00E1fa-and-d\u00EDal\u00F3gar",
+      "MsItemN": "1",
+      "MatchBasis": "position",
+      "WordCount": 406,
+      "Include": true,
+      "Section": "text"
+    }
+  ],
+  "DeclaredAuthors": [],
+  "Notes": [
+    "Reading level norm at 100% coverage.",
+    "1 msItem(s) in msContents, 1 of them leaves.",
+    "5 division(s) holding text, covering 406 of 406 words (100.0%).",
+    "msContents lists a single work, so all 5 divisions are proposed as its parts. Split if the manuscript holds more than the catalogue says.",
+    "1 of 1 title(s) not matched on head text. Check these first."
+  ]
+}
