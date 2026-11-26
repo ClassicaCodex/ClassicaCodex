@@ -87,5 +87,6 @@ fixes reach it with its next release.
 The downloads are not code-signed, so if you would rather check one than trust it:
 
 ```
-SHA-256  (added once the release is published)
+SHA-256  62cc0e1ed58c5d046be7ce9c54675ce7a1439f940fe8ced8e9440639f4709d65  ClassicaCodex-v3.18.0-win-x64.zip
+SHA-256  033f27d49fd62acd42dfec353cf781e3e562fa3dd2f6ee3404bd52176a869f3b  ClassicaCodex-v3.18.0-win-arm64.zip
 ```
