@@ -26,4 +26,9 @@ The Mac preview is still 3.16.3. It shares this app, so this change, and
 
 1,920 tests, zero warnings.
 
-SHA-256  (added once the release is published)
+The downloads are not code-signed, so if you would rather check one than trust it:
+
+```
+SHA-256  b385f492f18caa0e3b700d8974dba53a0ef9f2b22abef287acaa1be40b7d38fa  ClassicaCodex-v3.20.1-win-x64.zip
+SHA-256  03f5faa0a8368d2b410763201fadf032e67133a174d467ee829f9995ac74bf5c  ClassicaCodex-v3.20.1-win-arm64.zip
+```
