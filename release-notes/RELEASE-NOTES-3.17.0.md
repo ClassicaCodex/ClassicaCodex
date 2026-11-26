@@ -1,3 +1,9 @@
+> **Historical.** These are the notes for Classica Codex 3.17.0, the first Windows
+> release of the app the Mac and Linux run. It has been followed by
+> [Classica Codex 3.18.0](https://github.com/ClassicaCodex/ClassicaCodex/releases/tag/v3.18.0).
+> Any download link or SHA-256 below refers to the 3.17.0 ZIPs, not to the current
+> ones, so do not check a current download against a checksum printed here.
+
 # Classica Codex 3.17.0
 
 Windows gets the new interface.

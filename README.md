@@ -449,7 +449,7 @@ suspecting.
 
 ## Status
 
-Version 3.17.0, the first Windows release of the app the Mac and Linux run. Up to 3.16.1 the Windows download was the classic WinForms app.
+Version 3.18.0, which adds Quoted By. Since 3.17.0 the Windows download is the app the Mac and Linux run; up to 3.16.1 it was the classic WinForms app.
 
 Version 1 was a reader. Version 2 made it a searchable, taggable,
 cross-referenced library and added the translation workbench. Version 3 adds the
