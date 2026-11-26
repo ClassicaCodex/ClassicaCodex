@@ -25,4 +25,12 @@ public class Definition
 
     /// <summary>Which lexicon this came from, for attribution in the UI.</summary>
     public string? Source { get; set; }
+
+    /// <summary>
+    /// The citations in <see cref="Entry"/> that name a passage, for the
+    /// citations table: carried by the first row an entry is filed under, and
+    /// empty on the rest, so that an entry looked up under two spellings is
+    /// not listed twice beside the passages it cites.
+    /// </summary>
+    public IReadOnlyList<Lexicon.LexiconCitation> Citations { get; set; } = Array.Empty<Lexicon.LexiconCitation>();
 }

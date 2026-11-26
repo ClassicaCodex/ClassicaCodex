@@ -114,6 +114,118 @@ sorts the hits by whether their author came before or after.
 
 <img width="900" alt="Intertextual echoes of Aeneid 6.851, ranked by shared rare words: James I's Basilikon Doron, Augustine's City of God and the Historia Augusta share five, and Proba's Cento rebuilds the line a little further down" src="docs/images/intertextual-echoes.png" />
 
+## See who quoted a line
+
+Quotations in later authors are the indirect tradition: the testimonia a
+critical edition prints, and the evidence for who read what. A line that later
+authors quote carries a “ at its end. Right-click it and choose **Quoted By…**:
+the quoting passages, earliest author first, each with the quoter's wording set
+against the edition's and the words that differ marked, and a jump to the
+quoting passage that Back returns from. In the quoting passage the quoted words
+are underlined, and clicking them goes back to the line.
+
+<img width="900" alt="Quoted By for Terence, Andria 68 (obsequium amicos, veritas odium parit): twelve quoting passages in Lactantius, Jerome and later writers, each with the quoter's words above the edition's and the search that found it" src="docs/images/quoted-by.png" />
+
+**Where the links come from.** Two machine searches, run over the library, and
+checked by no one:
+
+- **Testimonia** looks for an author named beside a word of citing (*ut ait
+  Vergilius*, ὡς Πλάτων φησίν), then for the named author's passage that shares
+  at least two four-word runs with the 30 words either side of the name. Greek
+  and Latin; most of its 18,583 links are the Fathers quoting scripture, then
+  Homer, Plato and the rest. In each of two development samples of 40 of its
+  citations, 37 were genuine. Those samples judged the citation; the line it was
+  matched to was spot-checked, not sampled.
+- **Afterlives** matches Latin quotations of the classics in the Patrologia and
+  CSEL by shared rare words and by runs of consecutive words, whether or not the
+  source is named. Only the 4,135 quotations it rated high are shipped (5,225
+  links, since some span two lines). A second AI, Codex, read a fresh random
+  sample of 40 of them and judged 35 genuine. Its low-rated rows, right about a
+  third of the time, are left out.
+
+So expect roughly one link in ten to be wrong. The window opens by saying so,
+and each quoter says which search found it and how strongly: the number of
+shared four-word runs, or Afterlives' score and which of its searches found the
+passage, and whether the quoter is a cento built from Virgil or early-modern
+Latin that Migne prints under an ancient name. Recall is far from complete:
+Testimonia finds a quotation only where its author is named, and Afterlives
+only in Latin.
+
+Together they mark 10,341 lines in 640 editions, quoted from 20,466 passages,
+wherever your library holds both ends. What ships inside the app is a table of
+edition URNs, citation references and character positions, about 600 KB, and
+no text: every word the window shows comes from your own library. Where your
+copy of a passage reads differently from the one a link was found in, the
+quoted words are found again by matching them, and the window says so.
+`tools/QuotationLinks` rebuilds the table from the two searches' output.
+
+## Follow the dictionaries' citations
+
+For a classicist the citations are what LSJ and Lewis & Short are for: an entry
+says what a word means by showing where it is used. Word Study now shows every
+citation where the dictionary printed it, set back in a smaller, fainter face so
+the definition still reads first. A citation in the accent colour opens a
+passage of your library: hover it to see the line, click it to go there, and
+Back in the reader returns to where you were. A citation the library cannot
+open is shown as plain text.
+
+From the other side, a line LSJ or Lewis & Short cites carries a § at its end.
+Right-click it and choose **Cited in the Dictionaries…** for the entries that
+cite it: the headword, the sense it is cited under, and the words the entry
+prints before the citation — usually the phrase it quotes and the meaning it
+gives it — with the whole entry a click further. Read down the list and it is a
+lexicographer's commentary on the line.
+
+**If you set up the dictionaries before this version, run the Dictionaries step
+in Setup again** (about two and a half minutes). Until now the citations were thrown away when
+the dictionaries were read, so an older library has none to show. The step now
+replaces both dictionaries when it runs again, rather than adding a second copy.
+
+**How many open.** The citations are the dictionaries' own, as the Perseus
+Digital Library marked them up with CTS URNs; each is matched to a passage by
+its reference, in the edition the reader would open the work in, never a
+translation. Measured with `tools/LexiconCitations` against a full library:
+
+| | LSJ | Lewis & Short |
+|---|---:|---:|
+| Citations | 579,070 | 380,656 |
+| Naming a passage the app can use | 420,131 (72.6%) | 224,865 (59.1%) |
+| Opening a passage of the library | **298,457 (51.5%)** | **186,946 (49.1%)** |
+| …of those naming a passage | 71.0% | 83.1% |
+| Lines marked § | 128,241 in 882 editions | 77,784 in 165 editions |
+
+The rest are papyri and inscriptions, which have no CTS URN; works the library
+does not hold (62,392 LSJ citations, 21,670 Lewis & Short); and works it holds
+but numbers differently from the dictionary (59,282 and 16,249) — Aristotle by
+Bekker page in editions that number by book and chapter, Athenaeus by
+Casaubon's pages, Philo by Mangey's. Lewis & Short's figures are for its 2023
+revision; the dictionary step also loads the older file beside it, and the
+window lists an entry found in both once.
+
+The two sides number many works differently, so a reference is tried as it
+stands, with the paragraph number the library adds to prose, as a chapter the
+edition divides into sections, against the Stephanus and Bekker ranges the
+edition records, as Cicero's chapter-and-section where his sections run
+straight through, and one level down for editions that keep a book above the
+satires (Juvenal) or a volume above the book (one of Livy's). Some of
+Perseus's URNs are wrong in ways that repeat, and are corrected or left
+unlinked: Lewis & Short's Odes of Horace carry the Carmen Saeculare's URN and
+are moved to the Odes; its Vulgate carries the Septuagint's and the Greek New
+Testament's, its Pliny Hardouin's chapters, and its Plautus and Terence count
+lines within each scene, so those stay plain text.
+
+**How often the line is the right one.** Of every opened citation that quotes
+at least two words, the passage it opens (or the line either side, or the
+chapter it cites) holds at least half of them for 92.0% in LSJ and 88.5% in
+Lewis & Short — a floor, since the dictionaries abridge and adapt what they
+quote. Claude read a random sample of 40 opened citations against their
+passages: 37 opened the passage the dictionary quotes, and the other three a
+section or chapter away, where the library's edition divides the text
+differently from the dictionary's (Cicero's *Brutus* 210 for 211, Valerius
+Maximus 2.4.4 for 2.4.5, Tacitus' *Annals* 12.69 for 12.70). Where the
+dictionary cites a chapter, the chapter's first line is the one opened and
+marked. A second model has not read a sample yet.
+
 ## And the rest
 
 <details>
@@ -188,7 +300,8 @@ You can add your own as JSON in a `Reactions` folder beside the program — see
 - **Myth Network** — a graph of which figures and places co-occur, built from your own tags as you read, not a fixed dataset
 - **Places Map** — an actual map of the ancient world, 220 places filterable by kind; click one to see every passage that mentions it
 - **Medieval Hands** — 194,808 lines from 313 medieval manuscripts, each line photographed and set beside a diplomatic transcription of it, filterable by language, century and script. Every other collection here arrives already transcribed, with the step where somebody looked at parchment and decided what it said left out; this is that step. Search folds the marks scribes wrote over their letters, so "nre" finds `nr̃e`, or match the transcription character for character to ask where a particular abbreviation sign appears. For 121 of the manuscripts it will also show you the **pages** — the ruling, the rubrics, the decorated initials, the marginalia — fetched live from the library that holds the book, never downloaded, with that library's own credit and conditions shown beside them
-- **Word Study** — dictionary definitions (LSJ for Greek, Lewis & Short for Latin) and every attested form of a word
+- **Word Study** — dictionary definitions (LSJ for Greek, Lewis & Short for Latin) and every attested form of a word, the entries' citations opening the passages they cite
+- **Cited in the Dictionaries** — the LSJ and Lewis & Short entries that cite a line, on a line marked § (see [Follow the dictionaries' citations](#follow-the-dictionaries-citations))
 - **Core Vocabulary** — every headword in a work ranked by how much of the text it accounts for, with a running total: learn the top N and you can read half of it. Counted from the text itself, and honest about the share it can't cover
 - **Where should I start?** — a short curated list of works that are reasonable to translate first, filtered to what's in your library, and a plain warning about the ones that aren't
 - **Timeline** of authors and works across time
@@ -196,6 +309,7 @@ You can add your own as JSON in a `Reactions` folder beside the program — see
 - **Validation bench** — leave-one-out validation, a parameter-stability grid, and controlled perturbation with synthetic contamination and same-author controls. Reports how much contamination the method could detect at all, which is what a null result needs to mean anything. Experiments save with their seed and pool; every table exports to CSV, text or Excel. See [Notes on Burrows's Delta](docs/stylometry-notes.md) for what it can and cannot tell you
 - **Concordance** (KWIC) search across the whole library
 - **Echo Finder** and **Reception Tracker** — find intertextual echoes, and track how a passage gets reused by later authors
+- **Quoted By** — the later passages that quote a line, with each quoter's wording set against the edition's, and a link back from every quotation to the line it quotes. Machine-found links that ship with the app (see [See who quoted a line](#see-who-quoted-a-line))
 - **Cross-Language Echo** — the same idea across languages, for finding where a Latin (or English) passage is reworking a Greek original, or vice versa
 - **Compare** two passages, or two translations of the same work, side by side
 - **Translate it yourself** — a workbench for working through a text one passage at a time, with the passage before and after shown for context, every word clickable for its dictionary headword, grammatical parse and LSJ or Lewis & Short entry, and an alphabet reference for a script you don't read yet. Your translation becomes an edition like any other. AI help is available per word or per passage, but always appears beside your work rather than in it, and the published translation stays out of reach until you've written something
@@ -316,7 +430,7 @@ Classica Codex doesn't own or bundle any of the texts, dictionaries, or linguist
 | [Open Scriptures Hebrew Bible](https://github.com/openscriptures/morphhb) & [Hebrew Lexicon](https://github.com/openscriptures/HebrewLexicon); the JPS translation of 1917 from [Sefaria](https://www.sefaria.org) | The **Hebrew Bible** — 39 books, 23,213 verses, in the Westminster Leningrad Codex (the Leningrad Codex of 1008 CE), optional. About 23 MB in 41 downloads. Every word is parsed and keyed to Strong's dictionary, which is installed with it, so Word Study answers on the Hebrew. Drawn right to left, with the vowel points and accents. The 1917 Jewish Publication Society translation sits beside it on the same chapter-and-verse numbers; where it divides a verse differently (the Ten Commandments in Exodus 20 and Deuteronomy 5, Numbers 25.19) it is put back on the Hebrew's numbers as it is installed | Hebrew text, the 1917 translation and Strong's text: public domain. Morphology, lemmas and the lexicon's encoding: CC BY 4.0 |
 | [EEBO-TCP](https://www.textpartnership.net/pages/eebo-tcp.html) (Text Creation Partnership, one GitHub repository per book) | **Early English books on devils, spirits and angels**, 1572–1681, optional — 21 books, about 20 MB: James VI's *Daemonologie*, Scot's *Discovery of Witchcraft*, Heywood's *Hierarchie of the Blessed Angells*, *Paradise Lost* (1667 and 1674) and *Paradise Regain'd*, **Marlowe's *Doctor Faustus* in both the 1604 and 1616 texts**, Agrippa, John Dee's angel conversations, Burton, Lavater, Gifford, Perkins, Glanvill, Henry More and Thomas Browne. Transcriptions of particular printings in their own spelling | Public domain; CC0 1.0, commercial use included |
 | [Online Critical Pseudepigrapha](https://github.com/OnlineCriticalPseudepigrapha/Online-Critical-Pseudepigrapha), [English Wikisource](https://en.wikisource.org), [Sefaria](https://www.sefaria.org) | **Pseudepigrapha**, optional, about 4 MB: 1 Enoch in Charles's English (1917), filed beside the library's Greek fragments; the Testament of Solomon in McCown's Greek and Conybeare's English (cited by Conybeare's own §1–§130); the Testaments of the Twelve Patriarchs in Greek and Charles's English; Jubilees in Charles's English, with Rubin's Hebrew retranslation of 1870; the Greek Apocalypse of Moses; the Latin Life of Adam and Eve in Meyer's edition (1878); 2 Enoch in Morfill's English | English translations: public domain. Greek and Latin: CC BY 4.0 (OCP's encodings of public-domain editions). Rubin's Hebrew: CC BY-SA |
-| [Sefaria](https://www.sefaria.org) export | **Rabbinic texts**, optional, about 20 MB: the Babylonian Talmud tractates Berakhot, Shabbat, Pesachim, Hagigah and Gittin (Vilna text, cited by folio: Berakhot 6a.10) with Goldschmidt's German (1929), Cohen's English of Berakhot (1921) and the community English of Hagigah; Pirkei de-Rabbi Eliezer in Hebrew and Friedlander's English (1916); eight tracts of Otzar Midrashim (1915) on Lilith, Metatron, the heavenly palaces, Gehinnom and Solomon. The non-commercial Koren/Steinsaltz text and translation are deliberately not used | Talmud text: CC BY-SA. Everything else: public domain or CC0, checked file by file |
+| [Sefaria](https://www.sefaria.org) export | **Rabbinic texts**, optional, about 140 MB in about 630 files: the Mishnah, all 63 tractates, in the printed Hebrew and for 61 of them Codex Kaufmann, with Joshua Kulp's English and, for 61, Lazarus Goldschmidt's German (1929); the Tosefta, 61 tractates, in the Vilna text and for 33 of them Lieberman's edition of Codex Vienna, with Sefaria's community English where it reaches at least half a tractate; the Jerusalem Talmud, all 39 tractates, in Heinrich Guggenheimer's edition and English; the Babylonian Talmud, all 37 tractates (Vilna text, cited by folio: Berakhot 6a.10) with Goldschmidt's German, and English for the five that have a free one, Berakhot, Hagigah, Sukkah, Megillah and Makkot; the 15 minor tractates, 14 of them in A. Cohen's English; the Targumim, Onkelos, Jonathan, Pseudo-Jonathan, the Jerusalem Targum and the Targumim to the Writings; Pirkei de-Rabbi Eliezer with Friedlander's English (1916); and eight tracts of Eisenstein's Otzar Midrashim. Midrash Rabbah, Sifra and the Zohar are not here because Sefaria gives no licence for most of their Hebrew and Aramaic. The versions are chosen by `tools/RabbinicCatalogue`, and each file's licence is checked again as it is read | Per text, as each file states it: CC BY-SA (the Babylonian Talmud), CC BY (Kulp, Guggenheimer, Lieberman, Cohen), CC0 (Sefaria's community English, and Daf Shevui on Sukkah and Megillah), public domain (the rest). The complete modern English of the Babylonian Talmud is CC BY-NC and is not taken |
 | [Tanzil](https://tanzil.net); Pickthall from [Project Gutenberg](https://www.gutenberg.org/ebooks/16955) | **The Quran**, optional, about 6 MB: all 114 suras, one work each, in Arabic twice — the Uthmani script of the Madina mushaf and the same text in modern spelling — with Marmaduke Pickthall's English (1930) beside them, cited by sura and verse (2.255). Drawn right to left; search ignores the vowel and recitation marks and folds the forms of alef, so a word typed in modern spelling always finds the modern-spelling text, and the Uthmani about nine times in ten. The Arabic is installed exactly as Tanzil publishes it, with its notice | Tanzil text: CC BY 3.0, verbatim copies only, with the notice and a link to tanzil.net. Pickthall: public domain |
 | [Project Gutenberg #17611](https://www.gutenberg.org/ebooks/17611) | **Aquinas, *Summa Theologiae*, First Part**, optional, about 3 MB: all 119 questions and 584 articles in the English Dominican translation (revised 1920–22, American printing 1947), with the treatise on the angels (qq. 50–64) and the angels and demons at work in the world (qq. 106–114). Cited by question, article and part — 50.1.ob1, 50.1.sc, 50.1.co, 50.1.ad1. English only: no digital Latin text of the Summa is openly licensed | Public domain |
 | [Christian Classics Ethereal Library](https://www.ccel.org/ccel/dionysius/works) | **Pseudo-Dionysius the Areopagite**, optional, under 1 MB: *On the Heavenly Hierarchy* — the nine orders of angels in three triads, the source of the later lists of the choirs — with *On the Ecclesiastical Hierarchy*, *On Divine Names*, the *Mystic Theology* and the letters, in John Parker's English (1897–99), cited by chapter and section in Parker's numbering. English only, without Parker's footnotes | Public domain: Roger Pearse's transcription, dedicated to the public domain |
@@ -329,6 +443,8 @@ Classica Codex doesn't own or bundle any of the texts, dictionaries, or linguist
 The Greek lemma data is not the only entry above marked **noncommercial** — part of CATMuS is too, and so are 289 of the 500 BFM texts. The Medieval Hands window names the licence beside whichever manuscript is selected rather than leaving it to a table; the BFM texts carry theirs per text, as the table above says. The Greek lemma data is the one that constrains the project as a whole — it can't be sold, and because it's woven into the search and Word Study features, that restriction carries over to the whole project as distributed. Which is fine: Classica Codex is a free personal tool, and it's going to stay that way regardless. (WordNet's license, despite doing a similar job for English, doesn't carry the same restriction — it's permissive and doesn't add a second constraint on top of the Greek lemma data's.)
 
 The AI features are a separate case from all of the above: not a bundled dataset, just an optional connection to a third-party API (Anthropic's Claude or Google's Gemini) that you supply your own key for. Translation is the obvious one, but the research side uses it too — proposing projects, challenging a hypothesis, drafting a synthesis, glossing a word, reading a passage against its parallels. All of it is off until you enter a key, every send is a button you press, and unless you turn the confirmation off each one tells you what is about to leave. Project discovery also queries Crossref (api.crossref.org) for publication metadata, sending only the search terms shown in the editable box. None of it is required to use the app.
+
+The Quoted By links are the one thing that ships inside the app, and they carry no text: a table of edition URNs, citation references and character positions, found by the Testimonia and Afterlives searches over the texts above. The words the Quoted By window shows are read from your own library. See [See who quoted a line](#see-who-quoted-a-line).
 
 ### What Marlowe isn't here
 
@@ -401,7 +517,7 @@ suspecting.
 
 ## Status
 
-Version 3.17.0, the first Windows release of the app the Mac and Linux run. Up to 3.16.1 the Windows download was the classic WinForms app.
+Version 3.18.0, which adds Quoted By. Since 3.17.0 the Windows download is the app the Mac and Linux run; up to 3.16.1 it was the classic WinForms app.
 
 Version 1 was a reader. Version 2 made it a searchable, taggable,
 cross-referenced library and added the translation workbench. Version 3 adds the

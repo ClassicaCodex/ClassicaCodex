@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>ClassicaCodex.Tools.LexiconCitations</RootNamespace>
+    <IsPackable>false</IsPackable>
+    <!-- Never part of a release: it measures the dictionaries' citations
+         against a library, for the numbers the README gives. -->
+    <IsPublishable>false</IsPublishable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\ClassicaCodex.Ingestion\ClassicaCodex.Ingestion.csproj" />
+  </ItemGroup>
+
+  <!-- The reader's own edition order, so a citation is measured opening the
+       edition the app would open. -->
+  <ItemGroup>
+    <Compile Include="..\..\src\ClassicaCodex.UI\EditionLabels.cs" Link="Shared\EditionLabels.cs" />
+    <Compile Include="..\..\src\ClassicaCodex.UI\PreferredCollectionSettings.cs" Link="Shared\PreferredCollectionSettings.cs" />
+    <Compile Include="..\..\src\ClassicaCodex.UI\ReaderEditionOrder.cs" Link="Shared\ReaderEditionOrder.cs" />
+  </ItemGroup>
+
+</Project>

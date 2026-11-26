@@ -7,9 +7,9 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <RootNamespace>ClassicaCodex.Mac</RootNamespace>
     <AssemblyName>ClassicaCodex.Mac</AssemblyName>
-    <Version>3.17.0</Version>
-    <AssemblyVersion>3.17.0.0</AssemblyVersion>
-    <FileVersion>3.17.0.0</FileVersion>
+    <Version>3.18.0</Version>
+    <AssemblyVersion>3.18.0.0</AssemblyVersion>
+    <FileVersion>3.18.0.0</FileVersion>
     <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
     <!-- Avalonia's build telemetry. Off, for the same reason the Windows
          app opens no connection the reader did not ask for. -->
@@ -68,6 +68,7 @@
     <Compile Include="..\ClassicaCodex.UI\NodeKindVisibility.cs" Link="Shared\NodeKindVisibility.cs" />
     <Compile Include="..\ClassicaCodex.UI\PaneSyncSettings.cs" Link="Shared\PaneSyncSettings.cs" />
     <Compile Include="..\ClassicaCodex.UI\PreferredCollectionSettings.cs" Link="Shared\PreferredCollectionSettings.cs" />
+    <Compile Include="..\ClassicaCodex.UI\ReaderEditionOrder.cs" Link="Shared\ReaderEditionOrder.cs" />
     <Compile Include="..\ClassicaCodex.UI\ReaderPaneRules.cs" Link="Shared\ReaderPaneRules.cs" />
     <Compile Include="..\ClassicaCodex.UI\ReadingFontSettings.cs" Link="Shared\ReadingFontSettings.cs" />
     <Compile Include="..\ClassicaCodex.UI\ReadingPosition.cs" Link="Shared\ReadingPosition.cs" />

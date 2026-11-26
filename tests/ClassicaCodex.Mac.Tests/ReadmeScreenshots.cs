@@ -12,6 +12,7 @@ using ClassicaCodex.Data.Repositories;
 using ClassicaCodex.Mac.Common;
 using ClassicaCodex.Mac.Features.Echoes;
 using ClassicaCodex.Mac.Features.MythNetwork;
+using ClassicaCodex.Mac.Features.QuotedBy;
 using ClassicaCodex.Mac.Features.Search;
 using ClassicaCodex.Mac.Features.Concordance;
 using ClassicaCodex.Mac.Features.Setup;
@@ -141,6 +142,25 @@ public class ReadmeScreenshots
         await Screens.Settle(6);
 
         await shoot.SaveAsync(echoes, "intertextual-echoes");
+    }
+
+    /// <summary>
+    /// Terence, Andria 68 - obsequium amicos, veritas odium parit - which
+    /// both searches found quoted by the Fathers.
+    /// </summary>
+    [AvaloniaFact]
+    public async Task Quoted_by_on_Andria_68()
+    {
+        await using var shoot = await Shoot.StartAsync();
+        if (shoot == null) return;
+
+        var passage = await shoot.PassageAsync("urn:cts:latinLit:phi0134.phi001", "1.1.68");
+        await QuotedByFeature.OpenAsync(shoot.Main, passage);
+        var quotedBy = await shoot.OwnedAsync<QuotedByWindow>(1040, 860);
+        await quotedBy.LoadTask!;
+        await Screens.Settle(6);
+
+        await shoot.SaveAsync(quotedBy, "quoted-by");
     }
 
     [AvaloniaFact]

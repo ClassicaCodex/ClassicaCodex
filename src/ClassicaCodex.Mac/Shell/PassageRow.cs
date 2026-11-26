@@ -1,6 +1,7 @@
 using System.ComponentModel;
 using ClassicaCodex.Core;
 using ClassicaCodex.Core.Models;
+using ClassicaCodex.Core.Quotations;
 
 namespace ClassicaCodex.Mac.Shell;
 
@@ -52,5 +53,22 @@ public sealed class PassageRow : INotifyPropertyChanged
 
     public string Kind => string.IsNullOrWhiteSpace(Node.NodeKind) ? TextNodeKinds.Line : Node.NodeKind;
 
+    /// <summary>
+    /// The words in this passage that quote an earlier one, each with where it
+    /// leads: drawn underlined, and a click on them goes to the line quoted.
+    /// Empty for nearly every passage.
+    /// </summary>
+    public IReadOnlyList<QuotedSpan> Quotations { get; init; } = Array.Empty<QuotedSpan>();
+
     public event PropertyChangedEventHandler? PropertyChanged;
 }
+
+/// <summary>
+/// Quoted words in a passage: where they are in its text, and the line they
+/// quote.
+/// </summary>
+/// <param name="Start">Where the quoted words start in the passage's text.</param>
+/// <param name="End">Where they end, exclusive.</param>
+/// <param name="Label">The quoted line as a reader names it: "Homer, Iliad 1.423".</param>
+/// <param name="Link">The machine-found link this comes from.</param>
+public sealed record QuotedSpan(int Start, int End, string Label, QuotationLink Link);
