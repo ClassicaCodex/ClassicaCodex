@@ -73,6 +73,12 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- Which versions of the Mishnah, the Tosefta, both Talmuds, the minor
+         tractates and the Targumim the rabbinic step installs, chosen by
+         licence. Built by tools/RabbinicCatalogue from Sefaria's index. The
+         texts are not here, only what to fetch and under what terms. -->
+    <EmbeddedResource Include="Rabbinic\RabbinicTexts.tsv" />
+
     <!-- Who quotes what: the machine-found quotations of Testimonia and
          Afterlives, as edition URNs, references and character positions.
          Built by tools/QuotationLinks. No text is in it - every word the

@@ -79,6 +79,13 @@ public static class EditionLabels
                 // Madina mushaf's, and modern Arabic's.
                 "uthmani" => "Uthmani script",
                 "simple" => "modern spelling",
+
+                // Two editions of one rabbinic text, both Hebrew originals:
+                // the printed tradition, unlabelled, and one built on a single
+                // manuscript. The Mishnah from Codex Kaufmann, the Tosefta
+                // from Lieberman's edition of Codex Vienna.
+                "kaufmann" => "Codex Kaufmann",
+                "lieberman" => "Lieberman, Codex Vienna",
                 _ => null
             };
 

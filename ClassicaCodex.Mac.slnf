@@ -13,7 +13,8 @@
       "tools\\CatmusManifests\\CatmusManifests.csproj",
       "tools\\MacSampleLibrary\\MacSampleLibrary.csproj",
       "tools\\QuotationLinks\\QuotationLinks.csproj",
-      "tools\\LexiconCitations\\LexiconCitations.csproj"
+      "tools\\LexiconCitations\\LexiconCitations.csproj",
+      "tools\\RabbinicCatalogue\\RabbinicCatalogue.csproj"
     ]
   }
 }
