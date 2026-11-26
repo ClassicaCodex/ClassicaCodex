@@ -139,14 +139,15 @@ internal static class MenotaReview
                 + "These manuscripts are written almost entirely in character entities - the thorns, eths and "
                 + "accented vowels are all references into that file - so without it the text comes through as "
                 + "replacement characters, and the titles those plans record would be wrong for good.\n\n"
-                + "Download it from menota.org, save it into this folder, and import again.");
+                + "Download & Install fetches it with the manuscripts. Run that, or save the file into this folder from "
+                + "menota.org, and import again.");
             return false;
         }
 
         var planner = new MenotaIngestPlanner();
 
         // A confirmed plan is normally taken as settled - that is the point of
-        // confirming it. But when every plan is confirmed, Import Manuscripts
+        // confirming it. But when every plan is confirmed, Review & Import
         // would silently reuse decisions that may be months old and show the
         // reader nothing, so a correction they came to make could not be made
         // without deleting the .plan.json by hand - exactly the file-editing
@@ -179,6 +180,11 @@ internal static class MenotaReview
             // The import reports unreadable files properly, with the parser's
             // own message. Nothing useful to review here.
             if (!load.Ok) continue;
+
+            // The plan that comes with the app, where it still fits this file,
+            // saves the reader making decisions already made. See
+            // MenotaBundledPlans.
+            if (existing is not { Confirmed: true } && MenotaBundledPlans.TryUse(path, load.Document!) != null) continue;
 
             MenotaIngestPlan plan;
             try

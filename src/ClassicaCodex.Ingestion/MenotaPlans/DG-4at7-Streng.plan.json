@@ -1,0 +1,51 @@
+﻿{
+  "FileName": "DG-4at7-Streng.xml",
+  "ManuscriptId": "DG 4\u20137",
+  "Language": "nor",
+  "ReadingLevel": "dipl",
+  "Orthography": "diplomatic",
+  "Confirmed": true,
+  "Works": [
+    {
+      "DivPaths": [
+        "0/0",
+        "0/1",
+        "0/2",
+        "0/3",
+        "0/4",
+        "0/5",
+        "0/6",
+        "0/7",
+        "0/8",
+        "0/9",
+        "0/10",
+        "0/11",
+        "0/12",
+        "0/13",
+        "0/14",
+        "0/15",
+        "0/16",
+        "0/17",
+        "0/18",
+        "0/19"
+      ],
+      "Title": "Strengleikar",
+      "Author": "",
+      "UrnSlug": "strengleikar",
+      "MsItemN": "1",
+      "MatchBasis": "position",
+      "WordCount": 38453,
+      "Include": true,
+      "Section": "book"
+    }
+  ],
+  "DeclaredAuthors": [],
+  "Notes": [
+    "Reading level dipl at 100% coverage.",
+    "Diplomatic transcription: spelling follows the scribe, not a dictionary. Ingested for reading and search; excluded from stylometry by Editions.Orthography.",
+    "1 msItem(s) in msContents, 1 of them leaves.",
+    "20 division(s) holding text, covering 38,453 of 38,453 words (100.0%).",
+    "msContents lists a single work, so all 20 divisions are proposed as its parts. Split if the manuscript holds more than the catalogue says.",
+    "1 of 1 title(s) not matched on head text. Check these first."
+  ]
+}

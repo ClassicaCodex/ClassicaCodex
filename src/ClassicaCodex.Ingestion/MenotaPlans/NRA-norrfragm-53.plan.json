@@ -1,0 +1,39 @@
+﻿{
+  "FileName": "NRA-norrfragm-53.xml",
+  "ManuscriptId": "NRA norr fragm 53",
+  "Language": "isl",
+  "ReadingLevel": "norm",
+  "Orthography": "normalised",
+  "Confirmed": true,
+  "Works": [
+    {
+      "DivPaths": [
+        "0/0",
+        "0/1",
+        "0/2",
+        "0/3",
+        "0/4",
+        "0/5",
+        "0/6",
+        "0/7",
+        "0/8"
+      ],
+      "Title": "Haralds saga har\u00F0r\u00E1\u00F0a in Heimskringla",
+      "Author": "",
+      "UrnSlug": "haralds-saga-har\u00F0r\u00E1\u00F0a-in-heimskringla",
+      "MsItemN": "1",
+      "MatchBasis": "position",
+      "WordCount": 717,
+      "Include": true,
+      "Section": "text"
+    }
+  ],
+  "DeclaredAuthors": [],
+  "Notes": [
+    "Reading level norm at 100% coverage.",
+    "1 msItem(s) in msContents, 1 of them leaves.",
+    "9 division(s) holding text, covering 717 of 717 words (100.0%).",
+    "msContents lists a single work, so all 9 divisions are proposed as its parts. Split if the manuscript holds more than the catalogue says.",
+    "1 of 1 title(s) not matched on head text. Check these first."
+  ]
+}

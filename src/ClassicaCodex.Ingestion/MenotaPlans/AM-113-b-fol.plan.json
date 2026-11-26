@@ -1,0 +1,44 @@
+﻿{
+  "FileName": "AM-113-b-fol.xml",
+  "ManuscriptId": "AM 113 b fol.",
+  "Language": "isl",
+  "ReadingLevel": "norm",
+  "Orthography": "normalised",
+  "Confirmed": true,
+  "Works": [
+    {
+      "DivPaths": [
+        "0",
+        "0/0",
+        "0/1",
+        "0/2",
+        "0/3",
+        "0/4",
+        "0/5",
+        "0/6",
+        "0/7",
+        "0/8",
+        "0/9",
+        "0/10",
+        "0/11"
+      ],
+      "Title": "\u00CDslendingab\u00F3k",
+      "Author": "",
+      "UrnSlug": "\u00EDslendingab\u00F3k",
+      "MsItemN": "",
+      "MatchBasis": "position",
+      "WordCount": 4035,
+      "Include": true,
+      "Section": "work"
+    }
+  ],
+  "DeclaredAuthors": [],
+  "Notes": [
+    "Reading level norm at 100% coverage.",
+    "9 word(s) carry no norm reading and fall back to the next level present, so a few spellings will not match the rest.",
+    "1 msItem(s) in msContents, 1 of them leaves.",
+    "13 division(s) holding text, covering 4,035 of 4,035 words (100.0%).",
+    "msContents lists a single work, so all 13 divisions are proposed as its parts. Split if the manuscript holds more than the catalogue says.",
+    "1 of 1 title(s) not matched on head text. Check these first."
+  ]
+}

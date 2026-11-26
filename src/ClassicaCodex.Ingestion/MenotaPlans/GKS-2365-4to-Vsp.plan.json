@@ -1,0 +1,31 @@
+﻿{
+  "FileName": "GKS-2365-4to-Vsp.xml",
+  "ManuscriptId": "GKS 2365 4to",
+  "Language": "isl",
+  "ReadingLevel": "norm",
+  "Orthography": "normalised",
+  "Confirmed": true,
+  "Works": [
+    {
+      "DivPaths": [
+        "0"
+      ],
+      "Title": "Eddic poems",
+      "Author": "",
+      "UrnSlug": "eddic-poems",
+      "MsItemN": "1",
+      "MatchBasis": "position",
+      "WordCount": 1482,
+      "Include": true,
+      "Section": ""
+    }
+  ],
+  "DeclaredAuthors": [],
+  "Notes": [
+    "Reading level norm at 99% coverage.",
+    "17 word(s) carry no norm reading and fall back to the next level present, so a few spellings will not match the rest.",
+    "1 msItem(s) in msContents, 1 of them leaves.",
+    "1 division(s) holding text, covering 1,482 of 1,482 words (100.0%).",
+    "1 of 1 title(s) not matched on head text. Check these first."
+  ]
+}

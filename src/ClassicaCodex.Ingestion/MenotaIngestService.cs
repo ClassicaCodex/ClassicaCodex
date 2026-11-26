@@ -54,6 +54,12 @@ public class MenotaIngestService
     public List<string> PlansWritten { get; } = new();
 
     /// <summary>
+    /// Files that had no confirmed plan, and were imported with the one that
+    /// comes with the app. See <see cref="MenotaBundledPlans"/>.
+    /// </summary>
+    public List<string> BundledPlansUsed { get; } = new();
+
+    /// <summary>
     /// Files whose confirmed plan gave two included works the same URN, with
     /// what each was imported as instead. See MenotaIngestPlan.MakeSlugsUnique.
     /// </summary>
@@ -106,6 +112,15 @@ public class MenotaIngestService
         var doc = load.Document!;
         var planPath = MenotaIngestPlan.PlanPathFor(path);
         var plan = MenotaIngestPlan.Load(planPath);
+
+        // No confirmed plan, so the one that comes with the app, if it still
+        // fits. An unconfirmed plan is the planner's proposal that nobody
+        // accepted, and is replaced as readily as a missing one.
+        if (plan is not { Confirmed: true } && MenotaBundledPlans.TryUse(path, doc) is { } bundled)
+        {
+            plan = bundled;
+            BundledPlansUsed.Add(path);
+        }
 
         // A plan whose titles carry a replacement character was made before
         // menota-entities.txt was in the folder, and is not to be believed

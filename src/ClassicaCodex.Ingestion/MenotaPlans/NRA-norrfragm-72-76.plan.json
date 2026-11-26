@@ -1,0 +1,35 @@
+﻿{
+  "FileName": "NRA-norrfragm-72-76.xml",
+  "ManuscriptId": "NRA norr fragm 72 and 76",
+  "Language": "isl",
+  "ReadingLevel": "norm",
+  "Orthography": "normalised",
+  "Confirmed": true,
+  "Works": [
+    {
+      "DivPaths": [
+        "0",
+        "1",
+        "2",
+        "3"
+      ],
+      "Title": "D\u00EDal\u00F3gar (Vi\u00F0r\u01FF\u00F0ur) Gregors p\u00E1fa",
+      "Author": "",
+      "UrnSlug": "d\u00EDal\u00F3gar-vi\u00F0r\u01FF\u00F0ur-gregors-p\u00E1fa",
+      "MsItemN": "1",
+      "MatchBasis": "position",
+      "WordCount": 681,
+      "Include": true,
+      "Section": ""
+    }
+  ],
+  "DeclaredAuthors": [],
+  "Notes": [
+    "Reading level norm at 100% coverage.",
+    "1 word(s) carry no norm reading and fall back to the next level present, so a few spellings will not match the rest.",
+    "1 msItem(s) in msContents, 1 of them leaves.",
+    "4 division(s) holding text, covering 681 of 681 words (100.0%).",
+    "msContents lists a single work, so all 4 divisions are proposed as its parts. Split if the manuscript holds more than the catalogue says.",
+    "1 of 1 title(s) not matched on head text. Check these first."
+  ]
+}

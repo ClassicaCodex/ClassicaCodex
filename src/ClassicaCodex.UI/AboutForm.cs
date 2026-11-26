@@ -260,9 +260,9 @@ public class AboutForm : ScaledForm
             "Medieval Nordic Manuscripts",
             "Old Norse, Old Icelandic, Old Swedish and Old Danish manuscripts, transcribed word by word " +
             "from the parchment - Heimskringla, Laxdœla saga, the Codex Wormianus, the Old Norwegian " +
-            "homily book, Vǫluspá in the Codex Regius. Downloaded by hand from Menota's catalogue rather " +
-            "than fetched automatically: Menota publishes one file per manuscript, and there is no single " +
-            "archive to pull.",
+            "homily book, Vǫluspá in the Codex Regius. Fetched from Menota's catalogue, which offers all " +
+            "91 manuscripts as one archive, and divided into works by plans that come with the app, because " +
+            "nothing in a manuscript's file says where one work ends and the next begins.",
             "Medieval Nordic Text Archive (menota.org)",
             "Creative Commons Attribution-ShareAlike 4.0 International",
             "https://www.menota.org/EN_forside.xhtml",

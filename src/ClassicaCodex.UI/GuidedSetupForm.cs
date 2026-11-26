@@ -1047,7 +1047,7 @@ public class GuidedSetupForm : ScaledForm
             "opens rather than being ingested, and it is under a megabyte. Adding Stephanus and Bekker " +
             "numbers is another - it reads the texts back out of this folder rather than fetching " +
             "anything, so it will find nothing in an empty one. And if you imported Medieval Nordic " +
-            "manuscripts, their files and the work divisions you confirmed are in the old folder too; " +
+            "manuscripts, any work divisions you confirmed or changed yourself are in the old folder too; " +
             "those are your own decisions rather than a download, and worth copying across by hand " +
             "rather than redoing.",
             "Downloads already on disk", MessageBoxButtons.OK, MessageBoxIcon.Information);

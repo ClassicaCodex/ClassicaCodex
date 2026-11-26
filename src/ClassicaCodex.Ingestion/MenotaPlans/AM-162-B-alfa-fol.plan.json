@@ -1,0 +1,36 @@
+﻿{
+  "FileName": "AM-162-B-alfa-fol.xml",
+  "ManuscriptId": "AM 162 B \u03B1 fol",
+  "Language": "isl",
+  "ReadingLevel": "norm",
+  "Orthography": "normalised",
+  "Confirmed": true,
+  "Works": [
+    {
+      "DivPaths": [
+        "0",
+        "1",
+        "2",
+        "3",
+        "4"
+      ],
+      "Title": "Nj\u00E1ls saga",
+      "Author": "",
+      "UrnSlug": "nj\u00E1ls-saga",
+      "MsItemN": "1",
+      "MatchBasis": "position",
+      "WordCount": 936,
+      "Include": true,
+      "Section": ""
+    }
+  ],
+  "DeclaredAuthors": [],
+  "Notes": [
+    "Reading level norm at 100% coverage.",
+    "4 word(s) carry no norm reading and fall back to the next level present, so a few spellings will not match the rest.",
+    "1 msItem(s) in msContents, 1 of them leaves.",
+    "5 division(s) holding text, covering 936 of 936 words (100.0%).",
+    "msContents lists a single work, so all 5 divisions are proposed as its parts. Split if the manuscript holds more than the catalogue says.",
+    "1 of 1 title(s) not matched on head text. Check these first."
+  ]
+}

@@ -1,0 +1,41 @@
+﻿{
+  "FileName": "AM-519a-4to.xml",
+  "ManuscriptId": "AM 519 a 4to",
+  "Language": "isl",
+  "ReadingLevel": "norm",
+  "Orthography": "normalised",
+  "Confirmed": true,
+  "Works": [
+    {
+      "DivPaths": [
+        "0",
+        "1",
+        "2",
+        "3",
+        "4",
+        "5",
+        "6",
+        "7",
+        "8",
+        "9"
+      ],
+      "Title": "AM 519 a 4to",
+      "Author": "",
+      "UrnSlug": "am-519-a-4to",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 46797,
+      "Include": true,
+      "Section": ""
+    }
+  ],
+  "DeclaredAuthors": [],
+  "Notes": [
+    "Reading level norm at 100% coverage.",
+    "1 word(s) carry no norm reading and fall back to the next level present, so a few spellings will not match the rest.",
+    "0 msItem(s) in msContents, 0 of them leaves.",
+    "10 division(s) holding text, covering 46,797 of 46,797 words (100.0%).",
+    "No catalogue entries, so all 10 divisions are proposed as one work named after the manuscript. Split where the works actually begin if it holds more than one.",
+    "1 of 1 title(s) not matched on head text. Check these first."
+  ]
+}

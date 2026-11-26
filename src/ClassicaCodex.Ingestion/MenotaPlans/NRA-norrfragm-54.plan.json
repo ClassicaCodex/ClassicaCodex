@@ -1,0 +1,39 @@
+﻿{
+  "FileName": "NRA-norrfragm-54.xml",
+  "ManuscriptId": "NRA norr fragm 54",
+  "Language": "isl",
+  "ReadingLevel": "norm",
+  "Orthography": "normalised",
+  "Confirmed": true,
+  "Works": [
+    {
+      "DivPaths": [
+        "0/0",
+        "0/1",
+        "0/2",
+        "0/3",
+        "0/4",
+        "0/5",
+        "0/6",
+        "0/7"
+      ],
+      "Title": "Sverris saga",
+      "Author": "",
+      "UrnSlug": "sverris-saga",
+      "MsItemN": "1",
+      "MatchBasis": "position",
+      "WordCount": 2159,
+      "Include": true,
+      "Section": "text"
+    }
+  ],
+  "DeclaredAuthors": [],
+  "Notes": [
+    "Reading level norm at 100% coverage.",
+    "2 word(s) carry no norm reading and fall back to the next level present, so a few spellings will not match the rest.",
+    "1 msItem(s) in msContents, 1 of them leaves.",
+    "8 division(s) holding text, covering 2,159 of 2,159 words (100.0%).",
+    "msContents lists a single work, so all 8 divisions are proposed as its parts. Split if the manuscript holds more than the catalogue says.",
+    "1 of 1 title(s) not matched on head text. Check these first."
+  ]
+}

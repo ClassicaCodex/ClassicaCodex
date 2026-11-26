@@ -1,0 +1,62 @@
+﻿{
+  "FileName": "DG-4at7-Pamph.xml",
+  "ManuscriptId": "DG 4\u20137",
+  "Language": "nor",
+  "ReadingLevel": "dipl",
+  "Orthography": "diplomatic",
+  "Confirmed": true,
+  "Works": [
+    {
+      "DivPaths": [
+        "0/0/0",
+        "0/1/0",
+        "0/2/0",
+        "0/2/1",
+        "0/2/2",
+        "0/2/3",
+        "0/2/4",
+        "0/2/5",
+        "0/2/6",
+        "0/2/7",
+        "0/3/0",
+        "0/4/0",
+        "0/4/1",
+        "0/4/2",
+        "0/4/3",
+        "0/4/4",
+        "0/5/0",
+        "0/5/1",
+        "0/5/2",
+        "0/5/3",
+        "0/5/4",
+        "0/5/5",
+        "0/5/6",
+        "0/5/7",
+        "0/6/0",
+        "0/6/1",
+        "0/6/2",
+        "0/6/3",
+        "0/6/4",
+        "0/6/5"
+      ],
+      "Title": "Pamphilus saga",
+      "Author": "",
+      "UrnSlug": "pamphilus-saga",
+      "MsItemN": "1",
+      "MatchBasis": "position",
+      "WordCount": 4276,
+      "Include": true,
+      "Section": "saga"
+    }
+  ],
+  "DeclaredAuthors": [],
+  "Notes": [
+    "Reading level dipl at 0% coverage.",
+    "4,276 word(s) carry no dipl reading and fall back to the next level present, so a few spellings will not match the rest.",
+    "Diplomatic transcription: spelling follows the scribe, not a dictionary. Ingested for reading and search; excluded from stylometry by Editions.Orthography.",
+    "1 msItem(s) in msContents, 1 of them leaves.",
+    "30 division(s) holding text, covering 4,276 of 4,276 words (100.0%).",
+    "msContents lists a single work, so all 30 divisions are proposed as its parts. Split if the manuscript holds more than the catalogue says.",
+    "1 of 1 title(s) not matched on head text. Check these first."
+  ]
+}

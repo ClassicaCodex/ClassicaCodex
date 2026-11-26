@@ -1,0 +1,32 @@
+﻿{
+  "FileName": "AM-56-4to.xml",
+  "ManuscriptId": "AM 56 4to",
+  "Language": "nor",
+  "ReadingLevel": "dipl",
+  "Orthography": "diplomatic",
+  "Confirmed": true,
+  "Works": [
+    {
+      "DivPaths": [
+        "0/0"
+      ],
+      "Title": "Landsl\u01EBg Magn\u00FAss H\u00E1konarsonar | Magnus Lagab\u00F8tes landslov",
+      "Author": "",
+      "UrnSlug": "landsl\u01EBg-magn\u00FAss-h\u00E1konarsonar-magnus-lagab\u00F8tes-landslov",
+      "MsItemN": "1",
+      "MatchBasis": "position",
+      "WordCount": 49244,
+      "Include": true,
+      "Section": "law-manuscript"
+    }
+  ],
+  "DeclaredAuthors": [],
+  "Notes": [
+    "Reading level dipl at 100% coverage.",
+    "60 word(s) carry no dipl reading and fall back to the next level present, so a few spellings will not match the rest.",
+    "Diplomatic transcription: spelling follows the scribe, not a dictionary. Ingested for reading and search; excluded from stylometry by Editions.Orthography.",
+    "1 msItem(s) in msContents, 1 of them leaves.",
+    "1 division(s) holding text, covering 49,244 of 49,244 words (100.0%).",
+    "1 of 1 title(s) not matched on head text. Check these first."
+  ]
+}

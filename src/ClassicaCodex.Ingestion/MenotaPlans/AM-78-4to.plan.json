@@ -1,0 +1,83 @@
+﻿{
+  "FileName": "AM-78-4to.xml",
+  "ManuscriptId": "AM 78 4to",
+  "Language": "nor",
+  "ReadingLevel": "dipl",
+  "Orthography": "diplomatic",
+  "Confirmed": true,
+  "Works": [
+    {
+      "DivPaths": [
+        "0/0"
+      ],
+      "Title": "Kristinr\u00E9ttr hinn eldri Borgar\u00FEings | Borgartings eldre kristenrett",
+      "Author": "",
+      "UrnSlug": "kristinr\u00E9ttr-hinn-eldri-borgar\u00FEings-borgartings-eldre-kristenrett",
+      "MsItemN": "1",
+      "MatchBasis": "position",
+      "WordCount": 5287,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/1"
+      ],
+      "Title": "Kristinr\u00E9ttr J\u00F3ns erkibiskups | Erkebiskop Jons kristenrett",
+      "Author": "",
+      "UrnSlug": "kristinr\u00E9ttr-j\u00F3ns-erkibiskups-erkebiskop-jons-kristenrett",
+      "MsItemN": "2",
+      "MatchBasis": "position",
+      "WordCount": 13323,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/2"
+      ],
+      "Title": "Kristinr\u00E9ttr Sverris konungs | Kong Sverres kristenrett",
+      "Author": "",
+      "UrnSlug": "kristinr\u00E9ttr-sverris-konungs-kong-sverres-kristenrett",
+      "MsItemN": "3",
+      "MatchBasis": "position",
+      "WordCount": 11917,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/3"
+      ],
+      "Title": "B\u01FFjarl\u01EBg Magn\u00FAss H\u00E1konarsonar \u0026 Farmannal\u01EBg | Magnus Lagab\u00F8tes bylog \u0026 Farmannalov",
+      "Author": "",
+      "UrnSlug": "b\u01FFjarl\u01EBg-magn\u00FAss-h\u00E1konarsonar-farmannal\u01EBg-magnus-lagab\u00F8tes-bylog-farmannalov",
+      "MsItemN": "4",
+      "MatchBasis": "position",
+      "WordCount": 13341,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/4"
+      ],
+      "Title": "R\u00E9ttarb\u01FFtr | Rettarb\u00F8tr",
+      "Author": "",
+      "UrnSlug": "r\u00E9ttarb\u01FFtr-rettarb\u00F8tr",
+      "MsItemN": "5",
+      "MatchBasis": "position",
+      "WordCount": 1648,
+      "Include": true,
+      "Section": "law-manuscript"
+    }
+  ],
+  "DeclaredAuthors": [],
+  "Notes": [
+    "Reading level dipl at 100% coverage.",
+    "Diplomatic transcription: spelling follows the scribe, not a dictionary. Ingested for reading and search; excluded from stylometry by Editions.Orthography.",
+    "5 msItem(s) in msContents, 5 of them leaves.",
+    "5 division(s) holding text, covering 45,516 of 45,516 words (100.0%).",
+    "5 of 5 title(s) not matched on head text. Check these first."
+  ]
+}

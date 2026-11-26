@@ -1,0 +1,30 @@
+﻿{
+  "FileName": "Lbs-fragm-82.xml",
+  "ManuscriptId": "Lbs fragm. 82",
+  "Language": "isl",
+  "ReadingLevel": "norm",
+  "Orthography": "normalised",
+  "Confirmed": true,
+  "Works": [
+    {
+      "DivPaths": [
+        "0"
+      ],
+      "Title": "\u00D3l\u00E1fs saga helga",
+      "Author": "",
+      "UrnSlug": "\u00F3l\u00E1fs-saga-helga",
+      "MsItemN": "",
+      "MatchBasis": "position",
+      "WordCount": 1969,
+      "Include": true,
+      "Section": ""
+    }
+  ],
+  "DeclaredAuthors": [],
+  "Notes": [
+    "Reading level norm at 100% coverage.",
+    "1 msItem(s) in msContents, 1 of them leaves.",
+    "1 division(s) holding text, covering 1,969 of 1,969 words (100.0%).",
+    "1 of 1 title(s) not matched on head text. Check these first."
+  ]
+}

@@ -1,0 +1,41 @@
+﻿{
+  "FileName": "NRA-norrfragm-58-A.xml",
+  "ManuscriptId": "NRA norr fragm 58 A",
+  "Language": "isl",
+  "ReadingLevel": "norm",
+  "Orthography": "normalised",
+  "Confirmed": true,
+  "Works": [
+    {
+      "DivPaths": [
+        "0/0",
+        "0/1",
+        "0/2",
+        "0/3",
+        "0/4",
+        "0/5",
+        "0/6",
+        "0/7",
+        "0/8",
+        "0/9",
+        "0/10"
+      ],
+      "Title": "Konungs skuggsj\u00E1",
+      "Author": "",
+      "UrnSlug": "konungs-skuggsj\u00E1",
+      "MsItemN": "1",
+      "MatchBasis": "position",
+      "WordCount": 3807,
+      "Include": true,
+      "Section": "text"
+    }
+  ],
+  "DeclaredAuthors": [],
+  "Notes": [
+    "Reading level norm at 100% coverage.",
+    "1 msItem(s) in msContents, 1 of them leaves.",
+    "11 division(s) holding text, covering 3,807 of 3,807 words (100.0%).",
+    "msContents lists a single work, so all 11 divisions are proposed as its parts. Split if the manuscript holds more than the catalogue says.",
+    "1 of 1 title(s) not matched on head text. Check these first."
+  ]
+}

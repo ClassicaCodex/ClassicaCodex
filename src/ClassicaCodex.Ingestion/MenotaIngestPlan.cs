@@ -537,7 +537,7 @@ public sealed class MenotaIngestPlanner
     /// than one that divides it too finely, because too finely is visible in
     /// the review and omitted is not.
     /// </summary>
-    private static List<XElement> LeafDivisions(XElement body)
+    internal static List<XElement> LeafDivisions(XElement body)
     {
         var result = new List<XElement>();
 

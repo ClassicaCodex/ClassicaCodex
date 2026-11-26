@@ -551,7 +551,7 @@ and that folder can be chosen - the Download Folder step in Guided Setup, or the
 
 Choosing a different folder decides where future downloads go. It does not move anything you have already fetched: those files stay where they are, and you can copy them across by hand or simply download them again.
 
-Those are mostly working copies of public data. Deleting them costs nothing but the time to fetch them again; your tags and bookmarks live in the database, not in those folders. Two things in there are not re-fetchable, though: the Medieval Nordic manuscript files you saved by hand, and the work divisions you confirmed for them.
+Those are mostly working copies of public data. Deleting them costs nothing but the time to fetch them again; your tags and bookmarks live in the database, not in those folders. One thing in there is not re-fetchable, though: the work divisions you confirmed or changed yourself for Medieval Nordic manuscripts. The ones the app comes with are written again with the manuscripts, but yours are only in that folder.
 
 Preferences (theme, category shapes, database and download locations) sit in small files beside the database.
 

@@ -1,0 +1,34 @@
+﻿{
+  "FileName": "AM-132-fol-Olkofra.xml",
+  "ManuscriptId": "AM 132 fol (147vb.5\u2013149va.31)",
+  "Language": "isl",
+  "ReadingLevel": "norm",
+  "Orthography": "normalised",
+  "Confirmed": true,
+  "Works": [
+    {
+      "DivPaths": [
+        "0",
+        "1",
+        "2",
+        "3"
+      ],
+      "Title": "AM 132 fol (147vb.5\u2013149va.31)",
+      "Author": "",
+      "UrnSlug": "am-132-fol-147vb5149va31",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 2918,
+      "Include": true,
+      "Section": ""
+    }
+  ],
+  "DeclaredAuthors": [],
+  "Notes": [
+    "Reading level norm at 100% coverage.",
+    "0 msItem(s) in msContents, 0 of them leaves.",
+    "4 division(s) holding text, covering 2,918 of 2,918 words (100.0%).",
+    "No catalogue entries, so all 4 divisions are proposed as one work named after the manuscript. Split where the works actually begin if it holds more than one.",
+    "1 of 1 title(s) not matched on head text. Check these first."
+  ]
+}

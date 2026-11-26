@@ -1,0 +1,30 @@
+﻿{
+  "FileName": "NRA-norrfragm-70.xml",
+  "ManuscriptId": "NRA norr fragm 70",
+  "Language": "nor",
+  "ReadingLevel": "norm",
+  "Orthography": "normalised",
+  "Confirmed": true,
+  "Works": [
+    {
+      "DivPaths": [
+        "0/0"
+      ],
+      "Title": "Ag\u01EBtu saga",
+      "Author": "",
+      "UrnSlug": "ag\u01EBtu-saga",
+      "MsItemN": "1",
+      "MatchBasis": "position",
+      "WordCount": 351,
+      "Include": true,
+      "Section": "text"
+    }
+  ],
+  "DeclaredAuthors": [],
+  "Notes": [
+    "Reading level norm at 100% coverage.",
+    "1 msItem(s) in msContents, 1 of them leaves.",
+    "1 division(s) holding text, covering 351 of 351 words (100.0%).",
+    "1 of 1 title(s) not matched on head text. Check these first."
+  ]
+}

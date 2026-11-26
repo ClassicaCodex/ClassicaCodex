@@ -1,0 +1,38 @@
+﻿{
+  "FileName": "NRA-norrfragm-80.xml",
+  "ManuscriptId": "NRA norr fragm 80",
+  "Language": "isl",
+  "ReadingLevel": "norm",
+  "Orthography": "normalised",
+  "Confirmed": true,
+  "Works": [
+    {
+      "DivPaths": [
+        "0",
+        "1",
+        "2",
+        "3",
+        "4",
+        "5",
+        "6"
+      ],
+      "Title": "P\u00E1ls saga postula",
+      "Author": "",
+      "UrnSlug": "p\u00E1ls-saga-postula",
+      "MsItemN": "1",
+      "MatchBasis": "position",
+      "WordCount": 1752,
+      "Include": true,
+      "Section": ""
+    }
+  ],
+  "DeclaredAuthors": [],
+  "Notes": [
+    "Reading level norm at 100% coverage.",
+    "6 word(s) carry no norm reading and fall back to the next level present, so a few spellings will not match the rest.",
+    "1 msItem(s) in msContents, 1 of them leaves.",
+    "7 division(s) holding text, covering 1,752 of 1,752 words (100.0%).",
+    "msContents lists a single work, so all 7 divisions are proposed as its parts. Split if the manuscript holds more than the catalogue says.",
+    "1 of 1 title(s) not matched on head text. Check these first."
+  ]
+}

@@ -1,0 +1,30 @@
+﻿{
+  "FileName": "AM-383-I-4to.xml",
+  "ManuscriptId": "AM 383 I 4to",
+  "Language": "isl",
+  "ReadingLevel": "norm",
+  "Orthography": "normalised",
+  "Confirmed": true,
+  "Works": [
+    {
+      "DivPaths": [
+        "0"
+      ],
+      "Title": "\u00DEorl\u00E1ks saga helga",
+      "Author": "",
+      "UrnSlug": "\u00FEorl\u00E1ks-saga-helga",
+      "MsItemN": "1",
+      "MatchBasis": "position",
+      "WordCount": 572,
+      "Include": true,
+      "Section": ""
+    }
+  ],
+  "DeclaredAuthors": [],
+  "Notes": [
+    "Reading level norm at 100% coverage.",
+    "1 msItem(s) in msContents, 1 of them leaves.",
+    "1 division(s) holding text, covering 572 of 572 words (100.0%).",
+    "1 of 1 title(s) not matched on head text. Check these first."
+  ]
+}

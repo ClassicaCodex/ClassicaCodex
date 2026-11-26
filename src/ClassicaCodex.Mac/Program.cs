@@ -16,5 +16,6 @@ internal static class Program
         AppBuilder.Configure<App>()
             .UsePlatformDetect()
             .With(new MacOSPlatformOptions { ShowInDock = true })
-            .With(new X11PlatformOptions { WmClass = "classica-codex" });
+            .With(new X11PlatformOptions { WmClass = "classica-codex" })
+            .With(Platform.BundledFonts.Options());
 }

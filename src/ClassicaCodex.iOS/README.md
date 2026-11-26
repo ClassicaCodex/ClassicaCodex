@@ -52,6 +52,9 @@ The Mac code knows about the iPad in a few places:
   "click", which a translation can use.
 - `MainWindow.OpenWorkAsync` brings the reader forward on a device, because a tool
   covers it and a jump would otherwise look as if nothing had happened.
+- `SetupDataSourceCatalog.OnDevice`, which `MacDataFolder.OnDevice` reads and
+  writes, leaves out Menota's Review & Import on an iPad. Download & Install does
+  the whole step there, and a manuscript the app has no plan for is left out.
 
 ## Building it
 
@@ -175,6 +178,14 @@ Everything below was tested in the iPad simulator, against a full library of
 - Greek, Arabic, Hebrew, Egyptian hieroglyphs and cuneiform, all with the
   system's own fonts
 - Text sizes from 11 to 28 points, in Greek, English and wrapped cuneiform
+- The Menota step from an empty folder: Download & Install fetched the 91
+  manuscripts and the entity table, and imported them all with the plans that
+  come with the app, with nothing to review
+- Menota's medieval marks drawn with Junicode, which comes with the app
+  (`BundledFonts`), in a diplomatic text in the reader. Without it, 7% of Menota's
+  lines showed boxes for the private-use characters no system font draws. Medieval
+  Hands now sets its transcriptions in the same Junicode, which a test checks; it
+  has not been looked at on screen
 
 A sweep opens every window it can reach, in both orientations of an 11-inch iPad.
 It reached 79 of the 82 window classes with no crashes, and none took more than
@@ -191,8 +202,6 @@ repository.
   window fits now, but few of the buttons inside have been pressed. Five windows
   need a live session to reach, and the translation workbench needs a translation
   under way.
-- **Medieval Hands shows boxes** for scribes' abbreviations, until a font such as
-  Junicode comes with the app.
 - **Typing on iOS's own Greek keyboard has not been tried.** Search ignores
   accents, so it should not need polytonic input, but nobody has checked.
 - **BFM is unproven.** It is let through iOS's block on plain http, but the site
@@ -200,8 +209,6 @@ repository.
 - **A setup step stops if the app leaves the screen.** The screen is kept on while
   one runs, but iOS suspends an app that is switched away from, and a step does
   not resume. It has to be run again.
-- **The Choose buttons in Setup do not last.** The download folder goes back to
-  Documents the next time the app starts.
 - **Ptolemy's Harmony is not on iPad.** The pages in `src/ClassicaCodex.UI/Pages` are
   not bundled, because another app cannot read a file inside this one. Antikythera
   and Ptolemy's Cosmos open from the studio's site instead, so they need the

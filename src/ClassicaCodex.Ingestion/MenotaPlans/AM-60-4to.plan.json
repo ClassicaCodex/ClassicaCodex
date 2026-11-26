@@ -1,0 +1,97 @@
+﻿{
+  "FileName": "AM-60-4to.xml",
+  "ManuscriptId": "AM 60 4to",
+  "Language": "nor",
+  "ReadingLevel": "facs",
+  "Orthography": "diplomatic",
+  "Confirmed": true,
+  "Works": [
+    {
+      "DivPaths": [
+        "0/0"
+      ],
+      "Title": "Kristinr\u00E9ttr Magn\u00FAss H\u00E1konarsonar | Magnus Lagab\u00F8tes kristenrett",
+      "Author": "",
+      "UrnSlug": "kristinr\u00E9ttr-magn\u00FAss-h\u00E1konarsonar-magnus-lagab\u00F8tes-kristenrett",
+      "MsItemN": "1",
+      "MatchBasis": "position",
+      "WordCount": 4926,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/1"
+      ],
+      "Title": "Um t\u00EDund | Om tienden",
+      "Author": "",
+      "UrnSlug": "um-t\u00EDund-om-tienden",
+      "MsItemN": "2",
+      "MatchBasis": "position",
+      "WordCount": 1111,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/2"
+      ],
+      "Title": "Kristinr\u00E9ttr hinn eldri Frosta\u00FEings | Frostatings eldre kristenrett",
+      "Author": "",
+      "UrnSlug": "kristinr\u00E9ttr-hinn-eldri-frosta\u00FEings-frostatings-eldre-kristenrett",
+      "MsItemN": "3",
+      "MatchBasis": "position",
+      "WordCount": 10441,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/3"
+      ],
+      "Title": "Landsl\u01EBg Magn\u00FAss H\u00E1konarsonar | Magnus Lagab\u00F8tes landslov",
+      "Author": "",
+      "UrnSlug": "landsl\u01EBg-magn\u00FAss-h\u00E1konarsonar-magnus-lagab\u00F8tes-landslov",
+      "MsItemN": "4",
+      "MatchBasis": "position",
+      "WordCount": 50515,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/4"
+      ],
+      "Title": "B\u01FFjarl\u01EBg Magn\u00FAss H\u00E1konarsonar | Magnus Lagab\u00F8tes bylov",
+      "Author": "",
+      "UrnSlug": "b\u01FFjarl\u01EBg-magn\u00FAss-h\u00E1konarsonar-magnus-lagab\u00F8tes-bylov",
+      "MsItemN": "5",
+      "MatchBasis": "position",
+      "WordCount": 16038,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/5"
+      ],
+      "Title": "R\u00E9ttarb\u01FFtr | Rettarb\u00F8ter",
+      "Author": "",
+      "UrnSlug": "r\u00E9ttarb\u01FFtr-rettarb\u00F8ter",
+      "MsItemN": "6",
+      "MatchBasis": "position",
+      "WordCount": 4356,
+      "Include": true,
+      "Section": "law-manuscript"
+    }
+  ],
+  "DeclaredAuthors": [],
+  "Notes": [
+    "Reading level facs at 100% coverage.",
+    "3 word(s) carry no facs reading and fall back to the next level present, so a few spellings will not match the rest.",
+    "Diplomatic transcription: spelling follows the scribe, not a dictionary. Ingested for reading and search; excluded from stylometry by Editions.Orthography.",
+    "6 msItem(s) in msContents, 6 of them leaves.",
+    "6 division(s) holding text, covering 87,387 of 87,387 words (100.0%).",
+    "6 of 6 title(s) not matched on head text. Check these first."
+  ]
+}

@@ -1,0 +1,46 @@
+﻿{
+  "FileName": "AM-132-fol-Droplaugarsona-saga.xml",
+  "ManuscriptId": "AM 132 fol (141va.3\u2013147vb.4)",
+  "Language": "isl",
+  "ReadingLevel": "norm",
+  "Orthography": "normalised",
+  "Confirmed": true,
+  "Works": [
+    {
+      "DivPaths": [
+        "0",
+        "1",
+        "2",
+        "3",
+        "4",
+        "5",
+        "6",
+        "7",
+        "8",
+        "9",
+        "10",
+        "11",
+        "12",
+        "13",
+        "14"
+      ],
+      "Title": "Af Katli \u00DErym capitulum",
+      "Author": "",
+      "UrnSlug": "af-katli-\u00FErym-capitulum",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 9692,
+      "Include": true,
+      "Section": ""
+    }
+  ],
+  "DeclaredAuthors": [],
+  "Notes": [
+    "Reading level norm at 100% coverage.",
+    "0 msItem(s) in msContents, 0 of them leaves.",
+    "15 division(s) holding text, covering 9,692 of 9,692 words (100.0%).",
+    "No catalogue entries, so all 15 divisions are proposed as one work named after the manuscript. Split where the works actually begin if it holds more than one.",
+    "1 of 1 title(s) not matched on head text. Check these first.",
+    "Titled \u0022Af Katli \u00DErym capitulum\u0022 from the opening heading. Rename if that is a chapter rather than the work."
+  ]
+}

@@ -1,0 +1,30 @@
+﻿{
+  "FileName": "NRA-norrfragm-60-B.xml",
+  "ManuscriptId": "NRA norr fragm 60 B",
+  "Language": "isl",
+  "ReadingLevel": "norm",
+  "Orthography": "normalised",
+  "Confirmed": true,
+  "Works": [
+    {
+      "DivPaths": [
+        "0/0"
+      ],
+      "Title": "Stj\u00F3rn",
+      "Author": "",
+      "UrnSlug": "stj\u00F3rn",
+      "MsItemN": "1",
+      "MatchBasis": "position",
+      "WordCount": 340,
+      "Include": true,
+      "Section": "text"
+    }
+  ],
+  "DeclaredAuthors": [],
+  "Notes": [
+    "Reading level norm at 100% coverage.",
+    "1 msItem(s) in msContents, 1 of them leaves.",
+    "1 division(s) holding text, covering 340 of 340 words (100.0%).",
+    "1 of 1 title(s) not matched on head text. Check these first."
+  ]
+}

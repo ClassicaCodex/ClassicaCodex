@@ -1,0 +1,30 @@
+﻿{
+  "FileName": "AM-1056-IX-4to.xml",
+  "ManuscriptId": "AM 1056 IX 4to",
+  "Language": "nor",
+  "ReadingLevel": "norm",
+  "Orthography": "normalised",
+  "Confirmed": true,
+  "Works": [
+    {
+      "DivPaths": [
+        "0"
+      ],
+      "Title": "Konungs skuggsj\u00E1",
+      "Author": "",
+      "UrnSlug": "konungs-skuggsj\u00E1",
+      "MsItemN": "1",
+      "MatchBasis": "position",
+      "WordCount": 242,
+      "Include": true,
+      "Section": ""
+    }
+  ],
+  "DeclaredAuthors": [],
+  "Notes": [
+    "Reading level norm at 100% coverage.",
+    "1 msItem(s) in msContents, 1 of them leaves.",
+    "1 division(s) holding text, covering 242 of 242 words (100.0%).",
+    "1 of 1 title(s) not matched on head text. Check these first."
+  ]
+}

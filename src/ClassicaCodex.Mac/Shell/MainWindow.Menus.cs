@@ -417,11 +417,17 @@ public partial class MainWindow
         return menu;
     }
 
-    private Flyout BuildTextSizeFlyout()
+    /// <summary>
+    /// The Aa button's panel. Default Size is here as well as in the View menu,
+    /// because an iPad has no menu bar, and dragging both sliders back to a size
+    /// nobody remembers is no way to undo a change.
+    /// </summary>
+    internal Flyout BuildTextSizeFlyout()
     {
         var source = new Slider { Minimum = ReadingFontSettings.MinimumSize, Maximum = ReadingFontSettings.MaximumSize, Width = 200, Value = ReadingFontSettings.SourceSize };
         var translation = new Slider { Minimum = ReadingFontSettings.MinimumSize, Maximum = ReadingFontSettings.MaximumSize, Width = 200, Value = ReadingFontSettings.TranslationSize };
         var linked = new CheckBox { Content = "Keep the two the same size", IsChecked = ReadingFontSettings.Linked };
+        var reset = new Button { Content = "Default Size", HorizontalAlignment = HorizontalAlignment.Left, Margin = new Thickness(0, 4, 0, 0) };
         var sourceLabel = new TextBlock { Classes = { "caption" } };
         var translationLabel = new TextBlock { Classes = { "caption" } };
 
@@ -435,12 +441,15 @@ public partial class MainWindow
             linked.IsChecked = ReadingFontSettings.Linked;
             sourceLabel.Text = $"Greek, Latin and other originals: {ReadingFontSettings.SourceSize:0.#} pt";
             translationLabel.Text = $"Translations: {ReadingFontSettings.TranslationSize:0.#} pt";
+            reset.IsEnabled = Math.Abs(ReadingFontSettings.SourceSize - ReadingFontSettings.DefaultSize) > 0.01F
+                              || Math.Abs(ReadingFontSettings.TranslationSize - ReadingFontSettings.DefaultSize) > 0.01F;
             updating = false;
         }
 
         source.ValueChanged += (_, e) => { if (!updating) ReadingFontSettings.SetSource((float)Math.Round(e.NewValue * 2) / 2); };
         translation.ValueChanged += (_, e) => { if (!updating) ReadingFontSettings.SetTranslation((float)Math.Round(e.NewValue * 2) / 2); };
         linked.IsCheckedChanged += (_, _) => { if (!updating) ReadingFontSettings.SetLinked(linked.IsChecked == true); };
+        reset.Click += (_, _) => StepTextSize(0);
 
         ReadingFontSettings.Changed += () =>
         {
@@ -458,6 +467,7 @@ public partial class MainWindow
         panel.Children.Add(translationLabel);
         panel.Children.Add(translation);
         panel.Children.Add(linked);
+        panel.Children.Add(reset);
 
         return new Flyout { Content = panel, Placement = PlacementMode.BottomEdgeAlignedRight };
     }
@@ -612,7 +622,7 @@ public partial class MainWindow
             Command("AI Translation Settings…", () => OpenTool("settings")),
             new NativeMenuItemSeparator(),
             Tool("medieval-hands"),
-            Command("Alphabet Reference…", () => OpenTool("alphabet"))));
+            Tool("alphabet")));
 
         bar.Add(Submenu("Research",
             Tool("research"),

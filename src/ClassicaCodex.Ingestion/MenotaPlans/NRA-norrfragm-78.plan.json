@@ -1,0 +1,35 @@
+﻿{
+  "FileName": "NRA-norrfragm-78.xml",
+  "ManuscriptId": "NRA norr fragm 78",
+  "Language": "isl",
+  "ReadingLevel": "norm",
+  "Orthography": "normalised",
+  "Confirmed": true,
+  "Works": [
+    {
+      "DivPaths": [
+        "0/0",
+        "0/1",
+        "1",
+        "2",
+        "3"
+      ],
+      "Title": "Mar\u00EDu saga",
+      "Author": "",
+      "UrnSlug": "mar\u00EDu-saga",
+      "MsItemN": "1",
+      "MatchBasis": "position",
+      "WordCount": 1159,
+      "Include": true,
+      "Section": ""
+    }
+  ],
+  "DeclaredAuthors": [],
+  "Notes": [
+    "Reading level norm at 100% coverage.",
+    "1 msItem(s) in msContents, 1 of them leaves.",
+    "5 division(s) holding text, covering 1,159 of 1,159 words (100.0%).",
+    "msContents lists a single work, so all 5 divisions are proposed as its parts. Split if the manuscript holds more than the catalogue says.",
+    "1 of 1 title(s) not matched on head text. Check these first."
+  ]
+}

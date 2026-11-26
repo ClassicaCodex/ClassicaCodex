@@ -1,0 +1,30 @@
+﻿{
+  "FileName": "NRA-norrfragm-51.xml",
+  "ManuscriptId": "NRA norr fragm 51",
+  "Language": "nor",
+  "ReadingLevel": "norm",
+  "Orthography": "normalised",
+  "Confirmed": true,
+  "Works": [
+    {
+      "DivPaths": [
+        "0/0"
+      ],
+      "Title": "Fagrskinna",
+      "Author": "",
+      "UrnSlug": "fagrskinna",
+      "MsItemN": "1",
+      "MatchBasis": "position",
+      "WordCount": 311,
+      "Include": true,
+      "Section": "text"
+    }
+  ],
+  "DeclaredAuthors": [],
+  "Notes": [
+    "Reading level norm at 100% coverage.",
+    "1 msItem(s) in msContents, 1 of them leaves.",
+    "1 division(s) holding text, covering 311 of 311 words (100.0%).",
+    "1 of 1 title(s) not matched on head text. Check these first."
+  ]
+}

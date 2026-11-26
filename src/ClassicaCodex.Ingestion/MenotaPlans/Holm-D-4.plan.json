@@ -1,0 +1,240 @@
+﻿{
+  "FileName": "Holm-D-4.xml",
+  "ManuscriptId": "Holm D 4",
+  "Language": "swe",
+  "ReadingLevel": "facs",
+  "Orthography": "diplomatic",
+  "Confirmed": true,
+  "Works": [
+    {
+      "DivPaths": [
+        "0"
+      ],
+      "Title": "Untitled section 1",
+      "Author": "",
+      "UrnSlug": "untitled-section-1",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 35424,
+      "Include": true,
+      "Section": ""
+    },
+    {
+      "DivPaths": [
+        "1"
+      ],
+      "Title": "Aff hertig fredhrik aff normandi",
+      "Author": "",
+      "UrnSlug": "aff-hertig-fredhrik-aff-normandi",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 17936,
+      "Include": true,
+      "Section": ""
+    },
+    {
+      "DivPaths": [
+        "2"
+      ],
+      "Title": "No\u1DD3 ge\u017Fta dano\uA75D F\u00F8r\u017Fte kon\u0305 war",
+      "Author": "",
+      "UrnSlug": "no-ge\u017Fta-dano\uA75D-f\u00F8r\u017Fte-kon-war",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 562,
+      "Include": true,
+      "Section": ""
+    },
+    {
+      "DivPaths": [
+        "3"
+      ],
+      "Title": "Her \u017Figx aff Flores oc blanzafloor",
+      "Author": "",
+      "UrnSlug": "her-\u017Figx-aff-flores-oc-blanzafloor",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 13066,
+      "Include": true,
+      "Section": ""
+    },
+    {
+      "DivPaths": [
+        "4"
+      ],
+      "Title": "Aff konu\u0305g alexander",
+      "Author": "",
+      "UrnSlug": "aff-konug-alexander",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 68718,
+      "Include": true,
+      "Section": ""
+    },
+    {
+      "DivPaths": [
+        "5"
+      ],
+      "Title": "H\u00E6r byrias aff \u017Fwerik\uA76D rike",
+      "Author": "",
+      "UrnSlug": "h\u00E6r-byrias-aff-\u017Fwerik\uA76D-rike",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 2350,
+      "Include": true,
+      "Section": ""
+    },
+    {
+      "DivPaths": [
+        "6"
+      ],
+      "Title": "De obitu bte\u0305 marie virgi\u0305s gl\u0305o\u017Fe",
+      "Author": "",
+      "UrnSlug": "de-obitu-bte-marie-virgis-glo\u017Fe",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 2063,
+      "Include": true,
+      "Section": ""
+    },
+    {
+      "DivPaths": [
+        "7"
+      ],
+      "Title": "De tran\u017Fitu bte\u0305 marie virgi\u0305s gl\u0305o\u017Fe",
+      "Author": "",
+      "UrnSlug": "de-tran\u017Fitu-bte-marie-virgis-glo\u017Fe",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 497,
+      "Include": true,
+      "Section": ""
+    },
+    {
+      "DivPaths": [
+        "8"
+      ],
+      "Title": "De quindecim \u017Fignis an\u0305 diem iudicij",
+      "Author": "",
+      "UrnSlug": "de-quindecim-\u017Fignis-an-diem-iudicij",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 346,
+      "Include": true,
+      "Section": ""
+    },
+    {
+      "DivPaths": [
+        "9"
+      ],
+      "Title": "Specl\u0305m mi\u017F\u017Fe",
+      "Author": "",
+      "UrnSlug": "speclm-mi\u017F\u017Fe",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 996,
+      "Include": true,
+      "Section": ""
+    },
+    {
+      "DivPaths": [
+        "10"
+      ],
+      "Title": "De ligno Domini",
+      "Author": "",
+      "UrnSlug": "de-ligno-domini",
+      "MsItemN": "20",
+      "MatchBasis": "head-text",
+      "WordCount": 1973,
+      "Include": true,
+      "Section": ""
+    },
+    {
+      "DivPaths": [
+        "11"
+      ],
+      "Title": "De lucidario",
+      "Author": "",
+      "UrnSlug": "de-lucidario",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 21869,
+      "Include": true,
+      "Section": ""
+    },
+    {
+      "DivPaths": [
+        "12"
+      ],
+      "Title": "H\u00E6r \u017Figx aff huru \u017Fi\u00E6lin oc kroppin thr\u00E6tto",
+      "Author": "",
+      "UrnSlug": "h\u00E6r-\u017Figx-aff-huru-\u017Fi\u00E6lin-oc-kroppin-thr\u00E6tto",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 3156,
+      "Include": true,
+      "Section": ""
+    },
+    {
+      "DivPaths": [
+        "13"
+      ],
+      "Title": "H\u00E6r byrias aff ridder \u017Fc\u0305e yrian",
+      "Author": "",
+      "UrnSlug": "h\u00E6r-byrias-aff-ridder-\u017Fce-yrian",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 2721,
+      "Include": true,
+      "Section": ""
+    },
+    {
+      "DivPaths": [
+        "14"
+      ],
+      "Title": "Her byrias \u017Fiw \u017Facramenta",
+      "Author": "",
+      "UrnSlug": "her-byrias-\u017Fiw-\u017Facramenta",
+      "MsItemN": "",
+      "MatchBasis": "unmatched",
+      "WordCount": 20209,
+      "Include": true,
+      "Section": ""
+    }
+  ],
+  "DeclaredAuthors": [],
+  "Notes": [
+    "Reading level facs at 100% coverage.",
+    "103 word(s) carry no facs reading and fall back to the next level present, so a few spellings will not match the rest.",
+    "Diplomatic transcription: spelling follows the scribe, not a dictionary. Ingested for reading and search; excluded from stylometry by Editions.Orthography.",
+    "26 msItem(s) in msContents, 26 of them leaves.",
+    "15 division(s) holding text, covering 191,886 of 197,498 words (97.2%).",
+    "15 division(s) against 26 catalogue entries - not the same count, so titles are taken from headings only, never from catalogue order.",
+    "msItem 1 \u0022List of contents\u0022 has no division. Not transcribed, or mis-divided.",
+    "msItem 2 \u0022Ivan Lejonriddaren\u0022 has no division. Not transcribed, or mis-divided.",
+    "msItem 3 \u0022Fredrik av Normandie\u0022 has no division. Not transcribed, or mis-divided.",
+    "msItem 4 \u0022Aff Danmarks konongom\u0022 has no division. Not transcribed, or mis-divided.",
+    "msItem 5 \u0022Blanc\u0022 has no division. Not transcribed, or mis-divided.",
+    "msItem 6 \u0022Flores och Blanzeflor\u0022 has no division. Not transcribed, or mis-divided.",
+    "msItem 7 \u0022Sm\u00E5stycken p\u00E5 latin och tyska\u0022 has no division. Not transcribed, or mis-divided.",
+    "msItem 8 \u0022Aff aarana skipilsom\u0022 has no division. Not transcribed, or mis-divided.",
+    "msItem 9 \u0022Blanc\u0022 has no division. Not transcribed, or mis-divided.",
+    "msItem 10 \u0022Konung Alexander\u0022 has no division. Not transcribed, or mis-divided.",
+    "msItem 11 \u0022Annaluppteckningar p\u00E5 latin\u0022 has no division. Not transcribed, or mis-divided.",
+    "msItem 12 \u0022Danaholmstraktaten med mera\u0022 has no division. Not transcribed, or mis-divided.",
+    "msItem 13 \u0022Sm\u00E5stycken p\u00E5 latin\u0022 has no division. Not transcribed, or mis-divided.",
+    "msItem 14 \u0022Kung Karl Magnus\u0022 has no division. Not transcribed, or mis-divided.",
+    "msItem 15 \u0022Kung Albrekt\u0022 has no division. Not transcribed, or mis-divided.",
+    "msItem 16 \u0022Aff gudz tilkw\u00E4mpd\u0022 has no division. Not transcribed, or mis-divided.",
+    "msItem 17 \u0022Marialegender\u0022 has no division. Not transcribed, or mis-divided.",
+    "msItem 18 \u0022De femton domedags tecken\u0022 has no division. Not transcribed, or mis-divided.",
+    "msItem 19 \u0022Speculum miss\u00E6\u0022 has no division. Not transcribed, or mis-divided.",
+    "msItem 21 \u0022Lucidarius A\u0022 has no division. Not transcribed, or mis-divided.",
+    "msItem 22 \u0022Sju vise m\u00E4stare A\u0022 has no division. Not transcribed, or mis-divided.",
+    "msItem 23 \u0022Kroppens och sj\u00E4lens tr\u00E4ta\u0022 has no division. Not transcribed, or mis-divided.",
+    "msItem 24 \u0022Sankt Yrian\u0022 has no division. Not transcribed, or mis-divided.",
+    "msItem 25 \u0022De sju sakramenten\u0022 has no division. Not transcribed, or mis-divided.",
+    "msItem 16 \u0022Blanc\u0022 has no division. Not transcribed, or mis-divided.",
+    "14 of 15 title(s) not matched on head text. Check these first."
+  ]
+}

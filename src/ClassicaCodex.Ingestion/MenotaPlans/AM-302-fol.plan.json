@@ -1,0 +1,45 @@
+﻿{
+  "FileName": "AM-302-fol.xml",
+  "ManuscriptId": "AM 302 fol",
+  "Language": "nor",
+  "ReadingLevel": "dipl",
+  "Orthography": "diplomatic",
+  "Confirmed": true,
+  "Works": [
+    {
+      "DivPaths": [
+        "0/0"
+      ],
+      "Title": "Landsl\u01EBg Magn\u00FAss H\u00E1konarsonar | Magnus Lagab\u00F8tes landslov",
+      "Author": "",
+      "UrnSlug": "landsl\u01EBg-magn\u00FAss-h\u00E1konarsonar-magnus-lagab\u00F8tes-landslov",
+      "MsItemN": "1",
+      "MatchBasis": "position",
+      "WordCount": 48795,
+      "Include": true,
+      "Section": "law-manuscript"
+    },
+    {
+      "DivPaths": [
+        "0/1"
+      ],
+      "Title": "R\u00E9ttarb\u01FFtr Eir\u00EDks Magn\u00FAssonar (skipan) | Rettarb\u00F8ter fr\u00E5 Eirik Magnusson (skipan)",
+      "Author": "",
+      "UrnSlug": "r\u00E9ttarb\u01FFtr-eir\u00EDks-magn\u00FAssonar-skipan-rettarb\u00F8ter-fr\u00E5-eirik-magnusson-skipan",
+      "MsItemN": "2",
+      "MatchBasis": "position",
+      "WordCount": 1387,
+      "Include": true,
+      "Section": "law-manuscript"
+    }
+  ],
+  "DeclaredAuthors": [],
+  "Notes": [
+    "Reading level dipl at 100% coverage.",
+    "14 word(s) carry no dipl reading and fall back to the next level present, so a few spellings will not match the rest.",
+    "Diplomatic transcription: spelling follows the scribe, not a dictionary. Ingested for reading and search; excluded from stylometry by Editions.Orthography.",
+    "2 msItem(s) in msContents, 2 of them leaves.",
+    "2 division(s) holding text, covering 50,182 of 50,182 words (100.0%).",
+    "2 of 2 title(s) not matched on head text. Check these first."
+  ]
+}
