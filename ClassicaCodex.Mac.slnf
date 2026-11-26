@@ -12,7 +12,8 @@
       "tools\\CatmusCatalogue\\CatmusCatalogue.csproj",
       "tools\\CatmusManifests\\CatmusManifests.csproj",
       "tools\\MacSampleLibrary\\MacSampleLibrary.csproj",
-      "tools\\QuotationLinks\\QuotationLinks.csproj"
+      "tools\\QuotationLinks\\QuotationLinks.csproj",
+      "tools\\RabbinicCatalogue\\RabbinicCatalogue.csproj"
     ]
   }
 }
