@@ -11,8 +11,8 @@ the reader's lines ignored the text size, and a jump deep into a long work
 could take half a minute.
 
 **[Download for Windows](https://github.com/ClassicaCodex/ClassicaCodex/releases/latest)** —
-`win-x64` for most PCs, `win-arm64` for Windows on Arm. Extract all of it and
-run `Classica Codex.exe`. Windows will show a blue "Windows protected your PC"
+`win-x64` for most PCs, `win-arm64` for Windows on Arm (new with this release,
+and not yet tried on an Arm PC). Extract all of it and run `Classica Codex.exe`. Windows will show a blue "Windows protected your PC"
 box on first run because the app isn't code-signed; click More info, then Run
 anyway.
 
@@ -68,5 +68,6 @@ now.
 The downloads are not code-signed, so if you would rather check one than trust it:
 
 ```
-SHA-256  (added once the release is published)
+SHA-256  c52b13491fdeef24ee08e35047878a6753f1dfe83dc0cd6e7bb30ae656e79720  ClassicaCodex-v3.17.0-win-x64.zip
+SHA-256  fa517ea3b9b01ac55dc35d362e1fb848c53df21f26e9a9936b23d9e4561bf13b  ClassicaCodex-v3.17.0-win-arm64.zip
 ```
