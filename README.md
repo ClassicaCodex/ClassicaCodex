@@ -518,7 +518,7 @@ suspecting.
 
 ## Status
 
-Version 3.19.0, which adds the dictionaries' citations and the Mishnah, Tosefta, both Talmuds and the Targumim. Since 3.17.0 the Windows download is the app the Mac and Linux run; up to 3.16.1 it was the classic WinForms app.
+Version 3.20.0, which adds Go to Citation. Since 3.17.0 the Windows download is the app the Mac and Linux run; up to 3.16.1 it was the classic WinForms app.
 
 Version 1 was a reader. Version 2 made it a searchable, taggable,
 cross-referenced library and added the translation workbench. Version 3 adds the

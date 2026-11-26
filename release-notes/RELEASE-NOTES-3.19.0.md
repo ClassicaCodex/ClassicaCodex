@@ -1,3 +1,10 @@
+> **Historical.** These are the notes for Classica Codex 3.19.0, which added
+> the dictionaries' citations and the Mishnah, Tosefta, both Talmuds and the
+> Targumim. It has been followed by
+> [Classica Codex 3.20.0](https://github.com/ClassicaCodex/ClassicaCodex/releases/tag/v3.20.0).
+> Any download link or SHA-256 below refers to the 3.19.0 ZIPs, not to the current
+> ones, so do not check a current download against a checksum printed here.
+
 # Classica Codex 3.19.0
 
 The dictionaries' citations open the passages they cite, and the rabbinic texts
