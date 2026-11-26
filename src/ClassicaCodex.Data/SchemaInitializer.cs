@@ -76,7 +76,7 @@ public static class SchemaInitializer
     /// 7 to 13 until version 3 was cut, at which point they all failed at
     /// once and said nothing about what had actually broken.
     /// </summary>
-    public const int TargetSchemaVersion = 40;
+    public const int TargetSchemaVersion = 41;
 
     public static async Task EnsureSchemaAsync(CancellationToken cancellationToken = default)
     {
@@ -1402,6 +1402,27 @@ public static class SchemaInitializer
         // Repaired by identity, not by guessing: trim the URN, then move a dangling
         // project to the work that carries it, or to NULL where none does, so it
         // reattaches when that work is installed. Both statements are idempotent.
+        // Saved stylometry runs that recorded samples as their pool size.
+        //
+        // A run saved its pool as its neighbour count plus the target. With
+        // sampling on, every neighbour is a sample, so a run on the Faust Book
+        // at 3,000-token samples recorded a pool of 1,636 - 1,635 samples plus
+        // itself - against 71 works. The pool size is meant to be in works, as
+        // it was before sampling: the runs picker and an attached run's
+        // provenance both show it as one.
+        //
+        // Every neighbour of a saved run is stored, so the works it compared
+        // can be counted exactly rather than estimated: distinct work ids among
+        // its results, plus the target. Unsampled runs are left alone - their
+        // count was already in works. Idempotent.
+        [41] = new[]
+        {
+            @"UPDATE StylometryRuns
+                 SET PoolSize = (SELECT COUNT(DISTINCT r.WorkId) FROM StylometryRunResults r
+                                  WHERE r.RunId = StylometryRuns.RunId) + 1
+               WHERE ChunkSize > 0;"
+        },
+
         [40] = new[]
         {
             "UPDATE ResearchProjects SET WorkCtsUrn = TRIM(WorkCtsUrn) WHERE WorkCtsUrn <> TRIM(WorkCtsUrn);",

@@ -529,25 +529,30 @@ public sealed class StylometryWindow : FeatureWindow
         var pool = all;
         var notes = new List<string>();
 
+        // Counted in works, not entries: the list holds one entry per
+        // edition, and the engine reads one per work, so a work with three
+        // editions is one work in the pool, not three.
+        static int Works(IEnumerable<WorkItem> items) => items.Select(w => w.WorkId).Distinct().Count();
+
         if (options.ExcludeNonCompositions)
         {
-            var before = pool.Count;
+            var before = Works(pool);
             pool = pool.Where(w => (exemptTarget && w.WorkId == target.WorkId) || !Compilations.IsNonComposition(w.WorkTitle)).ToList();
-            if (before != pool.Count) notes.Add($"{before - pool.Count} fragment/index works");
+            if (before != Works(pool)) notes.Add($"{before - Works(pool)} fragment/index works");
         }
 
         if (options.MinTokens > 0)
         {
-            var before = pool.Count;
+            var before = Works(pool);
             pool = pool
                 .Where(w => (exemptTarget && w.WorkId == target.WorkId) || GetTokenEstimate(w) >= options.MinTokens)
                 .ToList();
-            if (before != pool.Count) notes.Add($"{before - pool.Count} works under {options.MinTokens:N0} tokens");
+            if (before != Works(pool)) notes.Add($"{before - Works(pool)} works under {options.MinTokens:N0} tokens");
         }
 
         var summary = notes.Count == 0
-            ? $"{pool.Count} works in pool"
-            : $"{pool.Count} works in pool (excluded {string.Join(", ", notes)})";
+            ? $"{Works(pool)} works in pool"
+            : $"{Works(pool)} works in pool (excluded {string.Join(", ", notes)})";
 
         return (pool, summary);
     }
@@ -724,7 +729,8 @@ public sealed class StylometryWindow : FeatureWindow
                 StripElisionMarksAlways,
                 StylometryRunRepository.CurrentAlgorithmVersion,
                 options.ChunkSize);
-            _lastRunPoolSize = results.Count + 1;   // neighbours plus the target itself
+            var neighbourWorkIds = results.Select(r => r.WorkId).ToList();
+            _lastRunPoolSize = DeltaRunCounts.PoolSize(neighbourWorkIds);   // works compared plus the target
             _lastRunTokenCount = tokenCount;
             _lastRunPoolSummary = poolSummary;
             _lastRunChunkNote = chunkNote;
@@ -733,16 +739,20 @@ public sealed class StylometryWindow : FeatureWindow
             ShowResults();
             _fingerprintCanvas.SetData(fingerprint);
 
-            // results.Count, not the pool's size less one: that counts
-            // editions, so a pool holding three editions of Ajax reported three
-            // more comparisons than were actually made.
+            // Counted from the results, not the pool's size less one: that
+            // counts editions, so a pool holding three editions of Ajax
+            // reported three more comparisons than were actually made. And in
+            // works as well as samples, because with sampling on every result
+            // is a sample - Rhesus at 3,000-token samples was "compared
+            // against 6981 other grc works".
             //
             // The settings are echoed back because a Delta figure is only
             // interpretable alongside the preprocessing that produced it, and
             // comparing runs from screenshots is otherwise guesswork.
             var accentNote = options.FoldAccents ? "accents folded" : "accents kept";
             SetStatus(
-                $"Compared {target.AuthorName}, {target.WorkTitle} against {results.Count} other {target.Language} works." +
+                DeltaRunCounts.ComparedSentence(
+                    target.AuthorName, target.WorkTitle, target.Language, neighbourWorkIds, options.ChunkSize) +
                 $"{Environment.NewLine}Settings: {options.FeatureCount} features, {accentNote}, elision marks stripped." +
                 $"{Environment.NewLine}Pool: {poolSummary}." +
                 $"{Environment.NewLine}Sampling: {chunkNote}.");
@@ -953,7 +963,7 @@ public sealed class StylometryWindow : FeatureWindow
 
                     await _runRepo.SaveRunAsync(
                         target.WorkId, target.EditionId, target.AuthorName, target.WorkTitle,
-                        target.Language, settings, results.Count + 1, tokenCount,
+                        target.Language, settings, DeltaRunCounts.PoolSize(results.Select(r => r.WorkId)), tokenCount,
                         results, fingerprint);
                 });
 
