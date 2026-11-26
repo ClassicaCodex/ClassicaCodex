@@ -518,7 +518,7 @@ suspecting.
 
 ## Status
 
-Version 3.20.0, which adds Go to Citation. Since 3.17.0 the Windows download is the app the Mac and Linux run; up to 3.16.1 it was the classic WinForms app.
+Version 3.20.1, which takes the medieval French texts out of Setup; 3.20.0 added Go to Citation. Since 3.17.0 the Windows download is the app the Mac and Linux run; up to 3.16.1 it was the classic WinForms app.
 
 Version 1 was a reader. Version 2 made it a searchable, taggable,
 cross-referenced library and added the translation workbench. Version 3 adds the

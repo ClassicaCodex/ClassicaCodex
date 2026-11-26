@@ -8,6 +8,7 @@ Each file below carries the download link and SHA-256 that were correct when it
 was written. Those refer to that version, not to the current one; a checksum
 printed in an old file will not match a download made today.
 
+- [3.20.0](RELEASE-NOTES-3.20.0.md), which added Go to Citation
 - [3.19.0](RELEASE-NOTES-3.19.0.md), which added the dictionaries' citations and the Mishnah, Tosefta, both Talmuds and the Targumim
 - [3.18.0](RELEASE-NOTES-3.18.0.md), which added Quoted By
 - [3.17.0](RELEASE-NOTES-3.17.0.md), the first Windows release of the app the Mac and Linux run

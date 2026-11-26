@@ -1,3 +1,9 @@
+> **Historical.** These are the notes for Classica Codex 3.20.0, which added
+> Go to Citation. It has been followed by
+> [Classica Codex 3.20.1](https://github.com/ClassicaCodex/ClassicaCodex/releases/tag/v3.20.1).
+> Any download link or SHA-256 below refers to the 3.20.0 ZIPs, not to the current
+> ones, so do not check a current download against a checksum printed here.
+
 # Classica Codex 3.20.0
 
 A citation copied from the Atlas of Ancient Myth or the reports built from this
