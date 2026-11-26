@@ -1,7 +1,8 @@
 <#
 .SYNOPSIS
-    Builds a zip of Classica Codex for Windows: the Avalonia front end, as a
-    preview, beside the classic Windows app rather than in place of it.
+    Builds a zip of Classica Codex for Windows. Since 3.17.0 this is the Windows
+    download, in place of the classic WinForms app: scripts\publish-release.ps1
+    calls it once for each architecture.
 
 .DESCRIPTION
     Run on Windows, from anywhere:
@@ -10,11 +11,17 @@
         src\ClassicaCodex.Mac\packaging\build-windows.ps1 -Architecture arm64
 
     Needs the .NET 10 SDK (or newer). Writes to src\ClassicaCodex.Mac\bin\windows-app,
-    which git ignores.
+    which git ignores, unless -OutputRoot names somewhere else.
+
+    -Commit stamps the short commit into the executable's ProductVersion, as
+    "3.17.0+abc1234". The release script passes it once it has checked the
+    tree is clean, because that stamp is the only thing tying a download back
+    to the commit it was built from. Without it the version is left bare,
+    rather than carrying a commit that may not describe what was built.
 
     The app is self-contained, so the .NET runtime travels inside it and
     unzipping it is all the installing there is. It is not code-signed, as the
-    classic download is not, so SmartScreen says what it always says.
+    classic download was not, so SmartScreen says what it always says.
 
     The project is still called ClassicaCodex.Mac, and that is not a name to
     put in front of a Windows reader. The executable is renamed once it is
@@ -30,7 +37,12 @@
 [CmdletBinding()]
 param(
     [ValidateSet('x64', 'arm64')]
-    [string] $Architecture = 'x64'
+    [string] $Architecture = 'x64',
+
+    [ValidatePattern('^[0-9a-f]{7,40}$')]
+    [string] $Commit,
+
+    [string] $OutputRoot
 )
 
 $ErrorActionPreference = 'Stop'
@@ -44,19 +56,22 @@ $exe = 'Classica Codex.exe'
 $version = ([xml](Get-Content $project)).SelectSingleNode('/Project/PropertyGroup/Version').InnerText
 if (-not $version) { throw "No <Version> found in $project" }
 
-$out = Join-Path $repo 'src\ClassicaCodex.Mac\bin\windows-app'
-$name = "ClassicaCodex-preview-v$version-$rid"
+$out = if ($OutputRoot) { $OutputRoot } else { Join-Path $repo 'src\ClassicaCodex.Mac\bin\windows-app' }
+$name = "ClassicaCodex-v$version-$rid"
 $stage = Join-Path $out $name
 $app = Join-Path $stage 'Classica Codex'
 $zip = "$stage.zip"
 
-Write-Host "Classica Codex $version for $rid"
+Write-Host ("Classica Codex $version for $rid" + $(if ($Commit) { " from $Commit" } else { '' }))
 if (Test-Path $stage) { Remove-Item $stage -Recurse -Force }
 if (Test-Path $zip) { Remove-Item $zip -Force }
 New-Item -ItemType Directory -Path $app -Force | Out-Null
 
+# The SDK would otherwise append the full commit from git whatever the state
+# of the tree, which is the stamp-that-may-not-describe-it this avoids.
+$stamp = if ($Commit) { "-p:SourceRevisionId=$Commit" } else { '-p:IncludeSourceRevisionInInformationalVersion=false' }
 & dotnet publish $project -c Release -r $rid --self-contained true `
-    -p:UseAppHost=true -p:DebugType=none -o $app -v q --nologo
+    -p:UseAppHost=true -p:DebugType=none $stamp -o $app -v q --nologo
 if ($LASTEXITCODE -ne 0) { throw 'Publish failed.' }
 
 Move-Item (Join-Path $app 'ClassicaCodex.Mac.exe') (Join-Path $app $exe)

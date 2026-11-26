@@ -16,17 +16,22 @@ inflected forms alongside them.
 
 Built as a personal project, for reading and researching the classics more closely than a browser tab really allows.
 
-Why make it a Windows Forms application? 
+Why did it start as a Windows Forms application? 
 This was just my personal preference for development. 
-There is now a Mac version as well, in preview — see [Download](#download).
+Since 3.17.0, Windows runs the same app as the Mac, so there is one interface everywhere. The classic Windows Forms app is still in the repository, but it is no longer the download.
 
 ## Download
 
 The latest Windows release is on the
-[Releases page](https://github.com/ClassicaCodex/ClassicaCodex/releases/latest).
-Extract it, run `ClassicaCodex.UI.exe`, and the setup wizard does the rest — see
+[Releases page](https://github.com/ClassicaCodex/ClassicaCodex/releases/latest):
+`win-x64` for most PCs, `win-arm64` for Windows on Arm. Extract it, run
+`Classica Codex.exe`, and the setup wizard does the rest — see
 [Getting started](#getting-started) for what to expect, including the Windows
 security warning you'll hit on first run.
+
+If you used the classic Windows app, 3.17.0 opens on your library at the
+passage you left, with your settings — see
+[Coming from the classic Windows app](#coming-from-the-classic-windows-app).
 
 The Mac version is in preview:
 [Classica Codex for Mac 3.16.3](https://github.com/ClassicaCodex/ClassicaCodex/releases/tag/mac-v3.16.3).
@@ -40,7 +45,9 @@ where the line counts diverge and the mirroring starts fighting you. The library
 tree on the left is every author you've installed. It reopens on the passage you
 were last reading.
 
-<img width="900" alt="Aeschylus' Agamemnon, Greek on the left and Smyth's translation on the right, with the library tree beside them" src="docs/images/reading-side-by-side.png" />
+<img width="900" alt="Plato's Critias in Classica Codex 3.17.0 on Windows: the Greek on the left, R. G. Bury's translation on the right, and the library in the sidebar" src="docs/images/reading-side-by-side.png" />
+
+The screenshots further down still show the classic Windows app. The tools are the same in this one; they are reached from the sidebar and the menus rather than a toolbar.
 
 ## Click a word and get the answer, not a search box
 
@@ -215,18 +222,26 @@ You can add your own as JSON in a `Reactions` folder beside the program — see
 - **Medieval Nordic manuscripts** — Old Norse, Icelandic, Swedish and Danish texts from the [Medieval Nordic Text Archive](https://www.menota.org), transcribed word by word from the parchment rather than edited into a printed text: Heimskringla, Laxdœla saga, the Codex Wormianus, the Old Norwegian homily book, Vǫluspá in the Codex Regius. A manuscript is a physical object containing whatever was bound into it, so the import shows you what it found in each file and lets you merge, split, retitle or drop works before anything is written
 - **Editor's Notes** — the apparatus of those manuscripts, kept beside the text rather than read as part of it. Manuscript variants carry the adopted reading, the alternative and the witness it came from; editorial notes carry ligatures, scribal corrections, worn passages and missing leaves. A variant collated from another manuscript is not a word of this one, and reading the two together would quietly corrupt every word count and frequency measure built on the text
 - **Fictional Ancient Reactions** — a staged debate about a work, read like a group chat, with period-appropriate critics arguing about what their own age actually cared about. Clearly labelled as fiction everywhere it appears. Invented speakers stand in for the audiences who left nothing in writing; real critics appear under their own name only where their view survives, carry a badge saying so, and every line they speak carries the ancient reference it paraphrases — which is a link into your own library wherever you have the text. The anachronism and citation rules are enforced by tests, not by good intentions. Kept separate from the stylometry and attribution tools on purpose
-- **The Antikythera mechanism** — a bronze dial on the toolbar opens a working simulation of the Greek astronomical calculator pulled off a shipwreck in 1901, as a self-contained page in your browser. Drag the crank and some forty gears turn at the ratios their tooth counts demand, driving the Sun, the Moon and its phase, the Egyptian calendar and zodiac, the Metonic and Saros spirals, and the six planetary rings of the 2021 reconstruction. It draws the difference between evidence and inference rather than smoothing it over: attested lettering brighter than the text we supply, counted wheels solid, reconstructed wheels dimmer, hypothesis as outlines, and the two wheels nobody can explain left connected to nothing. A diversion rather than a research tool, and here because Cicero describes one of these twice — in *De Re Publica* and *De Natura Deorum*, both of which are in this library
+- **The Antikythera mechanism** — the **Instruments** menu opens a working simulation of the Greek astronomical calculator pulled off a shipwreck in 1901, as a self-contained page in your browser. Drag the crank and some forty gears turn at the ratios their tooth counts demand, driving the Sun, the Moon and its phase, the Egyptian calendar and zodiac, the Metonic and Saros spirals, and the six planetary rings of the 2021 reconstruction. It draws the difference between evidence and inference rather than smoothing it over: attested lettering brighter than the text we supply, counted wheels solid, reconstructed wheels dimmer, hypothesis as outlines, and the two wheels nobody can explain left connected to nothing. A diversion rather than a research tool, and here because Cicero describes one of these twice — in *De Re Publica* and *De Natura Deorum*, both of which are in this library
 - **Ptolemy's Cosmos** — the button beside the bronze dial opens the model of the heavens set out in the *Almagest* at Alexandria around AD 150, turning at the rates his own tables give. The Earth at the centre, each planet riding an epicycle whose centre rides a deferent, and between them the thing that broke every earlier model: retrograde motion, where a planet stops, turns back on itself for weeks and then goes on. Every epicycle radius, eccentricity, apogee and mean motion is his, to the six sexagesimal places he wrote them in, and the page prints each one in his notation beside the decimal it became. It also says how wrong the model is and why — including the 1.15° that is not model error at all but his equinox observations running some 28 hours late
 - **Ptolemy's Harmony** — the third of that set, and the only part of this application that makes a sound. A monochord you can drag a bridge along, where the pitch rises as the sounding length falls, and twenty divisions of the tetrachord from Archytas in the fourth century BC to Ptolemy, each one playable. The enharmonic genus is the reason to turn the sound on: its two lowest steps are quarter-tones, and it sounds nothing like a scale. Every note is synthesised from its exact whole-number ratio as it sounds — there are no recordings, because a recording would fix the tuning at whatever its maker believed. **It warns you before it plays anything**, and the page stays silent until you ask it twice, so it can be read and worked through in a quiet room without a note
 - **Dark mode**, with a parchment light theme, and separate artwork for each
 
 ## Getting started
 
-Download the ZIP from [Releases](https://github.com/ClassicaCodex/ClassicaCodex/releases/latest), extract all of it, and run `ClassicaCodex.UI.exe`. Nothing to install, and no developer tools needed.
+Download the ZIP from [Releases](https://github.com/ClassicaCodex/ClassicaCodex/releases/latest), extract all of it, and run `Classica Codex.exe`. Nothing to install, and no developer tools needed: the app carries its own copy of .NET. It needs Windows 10 or later.
 
 Windows will almost certainly stop you the first time with a blue "Windows protected your PC" box. That's SmartScreen, and it appears because the app isn't code-signed. Signing it wouldn't help: since 2024 even an EV certificate no longer buys an automatic SmartScreen pass, so a new release from a small project gets warned about either way until enough people have downloaded it. Click **More info**, then **Run anyway**. Windows remembers, and won't ask again.
 
-Extract the whole archive before running it, not just the `.exe`. The executable carries its own libraries, so run from inside the ZIP — or copied out on its own — it does start, but the icons live in the `Icons` folder beside it, so every toolbar button comes up blank. It says so on startup if that folder isn't there.
+Extract the whole archive before running it, not just the `.exe`. The app is a folder of files, and the executable won't start without the rest of them beside it, so running it from inside the ZIP doesn't work. Put the folder anywhere you can write to, such as your Documents. There is no installer, so to keep it to hand, right-click `Classica Codex.exe` and choose **Pin to Start**.
+
+### Coming from the classic Windows app
+
+Up to 3.16.1 the Windows download was the classic app, `ClassicaCodex.UI.exe`. From 3.17.0 it is the app the Mac and Linux run. The tools are all there, set out differently: the sidebar holds the library and, under **Tools**, every tool the classic toolbar had, and **View → All Tools…** (Ctrl+Shift+T) shows them all at once.
+
+There is nothing to migrate. The new app keeps its settings in `%LOCALAPPDATA%\ClassicaCodex`, the classic app's own folder, so it opens on your library at the passage you left, with your AI keys, text sizes, download folder and light or dark theme. The library is the same file and is not copied.
+
+The keys are the ones you know: **F1** for Help, **Alt+Left** and **Alt+Right** for Back and Forward, **Ctrl+F** to search. The classic app keeps working if you keep its folder, and the two can sit side by side; close one before setting up or updating a library in the other.
 
 ### On a Mac
 
@@ -236,10 +251,11 @@ The app is notarised by Apple, so it opens like any other app. The first time, m
 
 The first window asks for a library. A library built on Windows is one `.db` file, and the Mac opens it as it is: copy it across and choose **Open Library…**. Otherwise choose **Create a New Library…**, and the same setup as on Windows, described below, fills it. The library and settings are kept in `~/Library/Application Support/ClassicaCodex`.
 
-On first launch you go straight into **Guided Setup** — one step at a time,
-plain language, no file paths or repository URLs on screen. **Advanced Setup**,
+On first launch the app asks for a library: choose **Create a New Library…** and
+setup opens. **Guided Setup** takes it one step at a time, in
+plain language, with no file paths or repository URLs on screen. **Advanced Setup**,
 which puts every data source on one screen for pointing at files you already
-have, is available afterwards from Setup Wizard on the main toolbar.
+have, is available afterwards from **File → Setup**.
 
 Take what you want and skip the rest. **If you add a collection later, rebuild
 the word index afterwards** — ingesting does not update it, and until it is
@@ -332,17 +348,17 @@ Shakespeare, Holinshed, Hakluyt, Sidney, James I, Wilson and Peacham are all imp
 
 ## Platform
 
-The Windows app is built on WinForms, which doesn't run elsewhere.
+One app runs on Windows, the Mac and Linux. It lives in [`src/ClassicaCodex.Mac`](src/ClassicaCodex.Mac/README.md), a name left over from when it was only the Mac's, and is built on [Avalonia](https://avaloniaui.net/) over the shared `ClassicaCodex.Core`, `ClassicaCodex.Data` and `ClassicaCodex.Ingestion` libraries. A library built on one system opens on the others. It has been the Windows download since 3.17.0 — see [On Windows](src/ClassicaCodex.Mac/README.md#on-windows) for building the zip — and the Mac release is a preview: see [On a Mac](#on-a-mac). On Linux it is a preview you build yourself for now: see [On Linux](src/ClassicaCodex.Mac/README.md#on-linux).
 
-A Mac app lives in [`src/ClassicaCodex.Mac`](src/ClassicaCodex.Mac/README.md). It shares the same libraries, setup wizard and tools, and has its own design and artwork. Libraries open on both. Its first release is a preview — see [On a Mac](#on-a-mac) — and its README explains how to build the `.app` yourself. The same app runs on Linux too, as a preview you build yourself for now: see [On Linux](src/ClassicaCodex.Mac/README.md#on-linux). It also runs on Windows, beside this one: see [On Windows](src/ClassicaCodex.Mac/README.md#on-windows).
+The classic Windows app, built on WinForms, is in [`src/ClassicaCodex.UI`](src/ClassicaCodex.UI). It was the Windows download up to 3.16.1. It still builds and its tests still run, and `scripts/publish-classic-release.ps1` builds it the way its releases were. [`WINDOWS-PARITY.md`](src/ClassicaCodex.Mac/WINDOWS-PARITY.md) goes through it window by window against the new app.
 
 ### Building from source
 
-Not necessary to use the app — the release ZIP is self-contained. If you want to build it anyway, you'll need the [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0). Clone the repo and either open `ClassicaCodex.sln` in Visual Studio 2026 or later, or run `dotnet build` from the command line. Everything after that is the same setup wizard.
+Not necessary to use the app — the release ZIP is self-contained. If you want to build it anyway, you'll need the [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0). Clone the repo and either open `ClassicaCodex.sln` in Visual Studio 2026 or later, or run `dotnet build` from the command line, and `dotnet run --project src/ClassicaCodex.Mac` starts the app. `src\ClassicaCodex.Mac\packaging\build-windows.ps1` makes the Windows zip, and `scripts/publish-release.ps1` makes both release zips from a clean tree. Everything after that is the same setup wizard.
 
 ### Checking display scaling
 
-If you change anything about how a window is laid out, run this at more than one display scaling:
+If you change anything about how a window of the classic WinForms app is laid out, run this at more than one display scaling:
 
 ```
 dotnet run --project tools/DisplayScalingAudit -c Release
@@ -387,7 +403,7 @@ suspecting.
 
 ## Status
 
-Version 3.16.1.
+Version 3.17.0, the first Windows release of the app the Mac and Linux run. Up to 3.16.1 the Windows download was the classic WinForms app.
 
 Version 1 was a reader. Version 2 made it a searchable, taggable,
 cross-referenced library and added the translation workbench. Version 3 adds the
