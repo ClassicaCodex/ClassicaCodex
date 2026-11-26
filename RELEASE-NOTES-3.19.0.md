@@ -100,4 +100,9 @@ with its next release.
 
 1,889 tests, zero warnings.
 
-SHA-256  (added once the release is published)
+The downloads are not code-signed, so if you would rather check one than trust it:
+
+```
+SHA-256  d74db29c118ae0ce1ca80dd4a5a4622d5ceacba7e24c3f9e78f7e881f43f9a1e  ClassicaCodex-v3.19.0-win-x64.zip
+SHA-256  d476060864a52a771a95a97ee501a0ecb2888cb99f1ff1ef6b761402e98e2e1b  ClassicaCodex-v3.19.0-win-arm64.zip
+```
