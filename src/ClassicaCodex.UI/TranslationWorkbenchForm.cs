@@ -1134,7 +1134,7 @@ public class TranslationWorkbenchForm : ScaledForm
                     foreach (var (_, entry, source) in entries.Take(2))
                     {
                         report.AppendLine();
-                        report.AppendLine($"     {entry}");
+                        report.AppendLine($"     {LexiconEntryText.Decode(entry, _sourceLanguage)}");
                         if (!string.IsNullOrWhiteSpace(source)) report.AppendLine($"     - {source}");
                     }
                 }

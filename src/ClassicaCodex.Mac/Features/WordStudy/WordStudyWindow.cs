@@ -875,13 +875,10 @@ public sealed class WordStudyWindow : FeatureWindow
 
             first = false;
 
-            // LSJ stores its entry bodies in Beta Code, same as its
-            // headwords - the Greek has to be decoded to Unicode or the
-            // definition reads as "sunair-esiw/ths , ou , o(". Only the
-            // Greek is touched; the English glosses interleaved with it
-            // are left alone. Latin (Lewis & Short) bodies are already
-            // Latin script and pass through untouched.
-            var body = Reflow(language == "grc" ? BetaCodeConverter.ConvertMixed(entry) : entry);
+            // LSJ's Beta Code decoded and its element-by-element line
+            // breaks joined back into prose - the same as the translation
+            // workbench, which shows the same entries.
+            var body = LexiconEntryText.ForReading(entry, language);
 
             inlines.Add(new Run(entryHeadword) { FontWeight = FontWeight.Bold, FontSize = 16, FontFamily = _readingFont });
             plain.Append(entryHeadword);
@@ -903,36 +900,6 @@ public sealed class WordStudyWindow : FeatureWindow
         _definition.Inlines = inlines;
         _definitionScroller.Offset = default;
     }
-
-    /// <summary>
-    /// A lexicon entry as prose. The ingested bodies carry a line break at
-    /// every element boundary of the TEI they came from - around each cited
-    /// Greek phrase, each abbreviation, each sense label - so set as written
-    /// "μῆνις , Dor. and Aeol." is four lines. The breaks are joined back
-    /// into running text, and kept only where a sense begins ("A.", "II.",
-    /// "2."), which is where a printed lexicon starts a new paragraph too.
-    /// Nothing but whitespace changes. A lone lower-case letter is not taken
-    /// for a sense: LSJ abbreviates the headword to its initial ("m. χθονίων"
-    /// under μῆνις), and those are mid-sentence.
-    /// </summary>
-    internal static string Reflow(string body)
-    {
-        var paragraphs = new List<List<string>> { new() };
-
-        foreach (var raw in body.Split('\n'))
-        {
-            var fragment = raw.Trim();
-            if (fragment.Length == 0) continue;
-
-            if (SenseLabel.IsMatch(fragment) && paragraphs[^1].Count > 0) paragraphs.Add(new List<string>());
-            paragraphs[^1].Add(fragment);
-        }
-
-        return string.Join("\n\n", paragraphs.Where(p => p.Count > 0).Select(p => string.Join(" ", p)));
-    }
-
-    private static readonly System.Text.RegularExpressions.Regex SenseLabel =
-        new(@"^(?:[IVX]+|[A-Z]|\d+)\.(?:\s|$)", System.Text.RegularExpressions.RegexOptions.CultureInvariant);
 
     /// <summary>
     /// Which dictionary to look a headword up in: the language of the edition
