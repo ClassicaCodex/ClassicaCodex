@@ -168,10 +168,15 @@ Back and Forward
 
    This is a record of the current session only, and is not kept when the app closes. Where you left off, which is remembered, is a separate thing.
 
+Go to Citation
+   ⌘G, in the Go menu, opens a passage from a citation: an edition's identifier, a space and a reference, which is what the Atlas of Ancient Myth and the reports built from this library copy when you click one of their references - tlg0020.tlg001.perseus-grc2 457. If the clipboard holds a citation it is filled in already, and the line it names is shown beneath it before you press Return.
+
+   A work's identifier will do in place of an edition's (tlg0020.tlg001 457), and so will a whole CTS URN (urn:cts:greekLit:tlg0020.tlg001.perseus-grc2:457). A range opens at its first line. If the citation names an edition your library does not have, the same work is searched in the edition it does have, and the window says so, since the two may be numbered differently. A museum object the Atlas cites, artifact:London E 163, opens in the Art and Archaeology browser.
+
 Keyboard shortcuts
    Escape closes any window you are looking at - a results list, a map, a comparison - and so does ⌘W, as in any Mac app. Escape deliberately does nothing in Setup or while a corpus is being ingested, where it would abandon work halfway rather than dismiss a view.
 
-   In the reader: ⌘F opens Search, ⌘L jumps to the author filter (switching the sidebar to the library if it is showing the tools), ⌘? opens this help, and ⌘[ and ⌘] walk back and forward through the passages you have jumped to - the same keys Safari uses, for the same reason.
+   In the reader: ⌘F opens Search, ⌘G opens a copied citation, ⌘L jumps to the author filter (switching the sidebar to the library if it is showing the tools), ⌘? opens this help, and ⌘[ and ⌘] walk back and forward through the passages you have jumped to - the same keys Safari uses, for the same reason.
 
    ⇧⌘C copies the selected passage and ⌘E exports it. ⌘+, ⌘- and ⌘0 make the text bigger, smaller and its usual size again. ⌥⌘S hides and shows the sidebar, ⌘1 and ⌘2 switch it between the library and the tools, and ⇧⌘T shows every tool at once. Every command is in the menu bar with its key beside it, which is the place to look for one not listed here.
 

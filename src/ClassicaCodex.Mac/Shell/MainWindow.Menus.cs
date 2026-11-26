@@ -18,6 +18,7 @@ using ClassicaCodex.Mac.Features.Concordance;
 using ClassicaCodex.Mac.Features.DictionaryCitations;
 using ClassicaCodex.Mac.Features.Echoes;
 using ClassicaCodex.Mac.Features.Export;
+using ClassicaCodex.Mac.Features.GoToCitation;
 using ClassicaCodex.Mac.Features.Help;
 using ClassicaCodex.Mac.Features.Instruments;
 using ClassicaCodex.Mac.Features.MedievalHands;
@@ -603,6 +604,8 @@ public partial class MainWindow
         bar.Add(Submenu("Go",
             _backItem,
             _forwardItem,
+            new NativeMenuItemSeparator(),
+            Command("Go to Citation…", () => _ = GoToCitationFeature.OpenAsync(this), $"{cmd}+G"),
             new NativeMenuItemSeparator(),
             Tool("bookmarks", $"{cmd}+Shift+B"),
             Tool("tags"),

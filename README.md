@@ -327,6 +327,7 @@ You can add your own as JSON in a `Reactions` folder beside the program — see
 - **Recent searches** — the last ten searches you ran, with every filter, recorded automatically; nothing to save and nothing to tidy up
 - **Favorites** — star the works you actually return to and filter the library to them; stored against the work's CTS URN, so they survive a corpus re-ingest
 - **Back and Forward** — retrace where you've been. Ten features here end in "jump to it"; following a reference no longer costs you your place
+- **Go to Citation** — Ctrl+G opens the passage a citation names: an edition's identifier and a reference, `tlg0020.tlg001.perseus-grc2 457`, which is what the Atlas of Ancient Myth and the reports built from this library copy when you click a reference. Whatever citation is on the clipboard is filled in, with its line shown before you open it
 - **Keyboard shortcuts** — Escape closes any window you're looking at, Ctrl+F searches, Alt+Left and Alt+Right navigate; the workbench saves and advances on Ctrl+Enter
 - **Adjustable text size** — Greek, Latin and English, linked by default. Polytonic diacritics are what you need to see to look a word up, and they're a few pixels each at a small size
 - **Linked panes, or not** — original and translation scroll together by default, which suits verse; switch it off for prose, where line counts diverge and the mirroring starts fighting you
