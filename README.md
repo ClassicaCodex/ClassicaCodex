@@ -47,8 +47,6 @@ were last reading.
 
 <img width="900" alt="Plato's Critias in Classica Codex 3.17.0 on Windows: the Greek on the left, R. G. Bury's translation on the right, and the library in the sidebar" src="docs/images/reading-side-by-side.png" />
 
-The screenshots further down still show the classic Windows app. The tools are the same in this one; they are reached from the sidebar and the menus rather than a toolbar.
-
 ## Click a word and get the answer, not a search box
 
 The thing that actually slows reading down is meeting a word and not being sure
@@ -67,7 +65,7 @@ scans the line and marks the syllables the metre settles.
 files and then discarded, so Latin words showed only a part of speech — no case,
 number, tense or mood — and a Latin morphology search could not match one.
 
-<img width="900" alt="Word Study on Aeneid 6.851: the word regere selected, rego offered first with its Lewis and Short entry already showing, 101 attested forms, and occurrences across the corpus" src="docs/images/word-study.png" />
+<img width="900" alt="Word Study on Aeneid 6.851: the word regere selected and marked by the metre as elided, rego offered as its headword with the Lewis and Short entry showing, 104 attested forms, and occurrences across every text" src="docs/images/word-study.png" />
 
 ## Know what vocabulary a work actually needs
 
@@ -78,7 +76,7 @@ front of you rather than from a general frequency list, and honest about the
 share it cannot cover: a form that could belong to more than one headword is
 marked, because its count is an upper bound.
 
-<img width="800" alt="Core vocabulary for the Aeneid: 63,674 running words from 13,959 headwords, ranked by frequency with a running coverage total" src="docs/images/core-vocabulary.png" />
+<img width="800" alt="Core vocabulary for Virgil's Aeneid: 63,674 running words from 13,959 headwords, the top 415 reading half the work and the top 2,179 four fifths, ranked by frequency with a running total" src="docs/images/core-vocabulary.png" />
 
 ## Search the whole library at once
 
@@ -91,7 +89,7 @@ whole library rather than of the page, so "how often, and where" is a question
 it can actually answer. Results export, and the last ten searches are kept with
 all their filters.
 
-<img width="900" alt="Searching the library for uirtus in Latin: 5,634 matches across 878 documents by 231 authors, shown one row per document with Cassiodorus, Hilary of Poitiers and Lactantius at the top" src="docs/images/search.png" />
+<img width="900" alt="Searching the library for uirtus in Latin: 5,767 matches across 878 documents, shown one row per document with Cassiodorus, Hilary of Poitiers and Lactantius at the top" src="docs/images/search.png" />
 
 ## Concordance
 
@@ -101,7 +99,7 @@ the column and see the shape of a word's use. The keyword column shows the word
 as each edition prints it, so searching `uirtus` lines up `virtus`, `uirtus` and
 `Virtus` together rather than making you pick one.
 
-<img width="900" alt="A keyword-in-context concordance for uirtus: 5,728 lines across 897 works by 242 authors, with left context, the word, right context and source in aligned columns" src="docs/images/concordance.png" />
+<img width="900" alt="A keyword-in-context concordance for uirtus: 5,900 lines in 913 works by 251 authors, with left context, the word as each edition prints it, right context and source in aligned columns" src="docs/images/concordance.png" />
 
 ## Find where a line is reused
 
@@ -114,7 +112,7 @@ There is a cross-language version of the same idea, for finding where a Latin or
 English passage is reworking a Greek original, and a Reception Tracker that
 sorts the hits by whether their author came before or after.
 
-<img width="900" alt="Intertextual echoes of Aeneid 6.851, ranked by shared rare words, with Proba's Cento Vergilianus at the top" src="docs/images/intertextual-echoes.png" />
+<img width="900" alt="Intertextual echoes of Aeneid 6.851, ranked by shared rare words: James I's Basilikon Doron, Augustine's City of God and the Historia Augusta share five, and Proba's Cento rebuilds the line a little further down" src="docs/images/intertextual-echoes.png" />
 
 ## And the rest
 
@@ -123,27 +121,27 @@ sorts the hits by whether their author came before or after.
 
 **Timeline** — the authors across time; click one to see what they wrote.
 
-<img width="700" alt="TimelineScreenshot" src="https://github.com/user-attachments/assets/6228dab0-7079-4f0d-a3e9-75b5dfac32d2" />
+<img width="800" alt="The author timeline: 292 dated authors, earliest first, with Homer chosen and his Epigrams, Iliad and Odyssey listed beside it" src="docs/images/timeline.png" />
 
 **Stylometric analysis** — authorial fingerprints with Burrows's Delta, saved
 runs and batch comparison. Built as a hobby, with a
 [long note on what it can and cannot tell you](#notes-on-the-stylometry-tool);
 if it's useful to your research I'd like to hear about it.
 
-<img width="700" alt="StylometricsScreenshot" src="https://github.com/user-attachments/assets/d88eb89d-c4d9-4017-b034-ff88e99118bb" />
+<img width="700" alt="Stylometry on Euripides' Rhesus: Burrows's Delta against 1,179 Greek works, its nearest samples from Euripides' Alcestis, Helen and Hippolytus and then Aeschylus's Prometheus Bound, with its word-frequency fingerprint below" src="docs/images/stylometry.png" />
 
 **Myth Network** — a graph of which figures and places co-occur, built from your
 own tags as you read rather than from a fixed dataset. Good for finding rabbit
 holes, and for writers as much as researchers.
 
-<img width="700" alt="MythNetworkScreenshot" src="https://github.com/user-attachments/assets/73e4439b-9932-48ec-b689-8575a5dcef25" />
+<img width="700" alt="The Myth Network for ten tags - Achilles, Hector, Odysseus, Penelope, Ithaca, Aeneas, Dido, Carthage, Troy and Athena - linked by the passages they share, with the passages behind Achilles and Hector listed beside it" src="docs/images/myth-network.png" />
 
 **Translate it yourself** — a workbench for working through a text a passage at
 a time, with the passages either side for context and every word clickable. AI
 help sits beside your work rather than in it, and the published translation
 stays out of reach until you've written something.
 
-<img width="700" alt="MyTranslateWorkbenchScreenshot" src="https://github.com/user-attachments/assets/18a7ff1d-6280-45e8-909b-41cad83f8775" />
+<img width="700" alt="The translation workbench on Odyssey 1.3: the Greek with the lines either side, a crib giving each word's headword and parse, your own translation of the line before, and the published one held back until you write" src="docs/images/translation-workbench.png" />
 
 **Fictional Ancient Reactions** — right-click a work and read the argument its
 first audiences might have had about it, laid out like a group chat you are
@@ -176,7 +174,7 @@ You can add your own as JSON in a `Reactions` folder beside the program — see
 
 **Dark mode**, with a parchment light theme and separate artwork for each.
 
-<img width="700" alt="DarkModeScreenshot" src="https://github.com/user-attachments/assets/20bffceb-a7b0-482e-bf3a-e1e3c1869244" />
+<img width="700" alt="Dark mode: the opening of the Aeneid in Latin beside Theodore C. Williams's translation, with the library in the sidebar" src="docs/images/dark-mode.png" />
 
 </details>
 
@@ -273,7 +271,7 @@ folder you picked, and on the drive holding `%TEMP%` the compressed clone it is
 extracted from. Leave the downloads where they default to and that is the same
 drive twice. `%TEMP%` itself is not currently movable.
 
-<img width="625" alt="The Guided Setup wizard, one data source per step with a plain-language description of what it is and how long it takes" src="https://github.com/user-attachments/assets/8f6f405a-eebc-44db-a801-0ef0bcfe0a29" />
+<img width="700" alt="Guided Setup on the Ancient Greek Texts step, already loaded, with every step listed down the side and a tick against each one installed" src="docs/images/guided-setup.png" />
 
 ### What to expect the first time
 
