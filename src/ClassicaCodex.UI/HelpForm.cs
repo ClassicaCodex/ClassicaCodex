@@ -587,7 +587,7 @@ One file, several works
 """),
 
         ("Medieval French", """
-Five hundred texts of French as it was written between the ninth century and the fifteenth, from the Base de Français Médiéval at the ENS de Lyon. The *Chanson de Roland*, all four of Chrétien de Troyes's romances, *Aucassin et Nicolette*, the *Queste del saint Graal*, the *Roman de Renart*, Marie de France, Rutebeuf, Villon, and 281 fabliaux. Install it from the setup wizard; it is about 220 MB and arrives one text at a time, because that is how the corpus is published.
+Five hundred texts of French as it was written between the ninth century and the fifteenth, from the Base de Français Médiéval at the ENS de Lyon. The *Chanson de Roland*, all four of Chrétien de Troyes's romances, *Aucassin et Nicolette*, the *Queste del saint Graal*, the *Roman de Renart*, Marie de France, Rutebeuf, Villon, and 281 fabliaux. The setup wizard no longer offers it. The corpus is published one text at a time, and 500 separate downloads took far too long, so the step is withheld until there is a better way to provide the texts. A library that installed them before keeps every one, and what follows still describes them.
 
 Two readings
    Most of these texts arrive twice, and the edition dropdown switches between them.

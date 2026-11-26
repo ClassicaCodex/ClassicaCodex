@@ -2,6 +2,7 @@ using Avalonia.Controls;
 using Avalonia.Headless.XUnit;
 using Avalonia.Styling;
 using Avalonia.VisualTree;
+using ClassicaCodex.Core.Bfm;
 using ClassicaCodex.Data;
 using ClassicaCodex.Data.Repositories;
 using ClassicaCodex.Ingestion;
@@ -574,6 +575,79 @@ public class SetupTests
         DivPaths = divs.ToList(),
         Section = "Alcuin"
     };
+
+    /// <summary>
+    /// The Medieval French Texts (BFM) step is withheld from setup, because its
+    /// 500 separate downloads took far too long. Neither window lists it, so
+    /// going through every step never starts them and no step is left waiting
+    /// on them. A library that installed the texts before keeps them, under
+    /// their collection's name, and the step itself still builds - and reads as
+    /// installed for that library - for when it comes back.
+    /// </summary>
+    [AvaloniaFact]
+    public async Task Medieval_French_is_withheld_from_setup_and_a_library_that_has_it_keeps_it()
+    {
+        using var scratch = new Scratch();
+        await scratch.FreshLibraryAsync();
+
+        // One BFM text, as the step left it while it was still offered.
+        const string bfm = SetupDataSourceCatalog.CollectionKeys.Bfm;
+        var authorId = await new AuthorRepository().UpsertAsync(new Models.Author
+        {
+            CtsUrn = "urn:bfm:author:marie-de-france", Name = "Marie de France", Namespace = "bfm", Language = "fro"
+        });
+        var workId = await new WorkRepository().UpsertAsync(new Models.Work
+        {
+            AuthorId = authorId, CtsUrn = "urn:bfm:lais", Title = "Lais"
+        });
+        var editionId = await new EditionRepository().UpsertAsync(new Models.Edition
+        {
+            WorkId = workId, CtsUrn = "urn:bfm:lais:dipl", Kind = Models.EditionKind.Original, Language = "fro",
+            SourcePath = Path.Combine(scratch.Root, "data", "bfm", "lais.xml"), Collection = bfm
+        });
+        await new TextNodeRepository().BulkInsertAsync(new List<Models.TextNode>
+        {
+            new() { EditionId = editionId, CitationRef = "1", SortOrder = 0, Text = "Ki Deus ad duné escience", NodeKind = Models.TextNodeKinds.Line }
+        });
+        await new EditionRepository().MarkCollectionCompleteAsync(bfm);
+
+        bool IsBfm(SetupDataSource s) =>
+            s.RepoUrl == BfmCatalogue.HomeUrl || s.Title.Contains("BFM", StringComparison.Ordinal);
+
+        var main = await scratch.MainAsync();
+        var guided = new GuidedSetupWindow(main);
+        guided.Show(main);
+        await guided.RefreshAllCompletionAsync();
+
+        Assert.DoesNotContain(guided.Sources, IsBfm);
+        Assert.Equal(
+            SetupDataSourceCatalog.Build(new AuthorRepository(), new LemmaRepository(), new DefinitionRepository(),
+                new ArtifactRepository(), new EditionRepository()).Select(s => s.Title),
+            guided.Sources.Select(s => s.Title));
+        await CloseAsync(guided);
+
+        var advanced = new AdvancedSetupWindow(main);
+        advanced.Show(main);
+        await Screens.Settle(10);
+        Assert.DoesNotContain(Enumerable.Range(0, advanced.RowCount).Select(advanced.RowTitle),
+            t => t.Contains("BFM", StringComparison.Ordinal));
+        advanced.Close();
+
+        // The library still has the text, and still names its collection.
+        Assert.Contains(bfm, await new EditionRepository().GetCollectionsAsync());
+        Assert.Equal("Medieval French (BFM)", SetupDataSourceCatalog.DescribeCollection(bfm));
+        await Screens.Settle(4);
+        Assert.Contains(main.LibraryWorks, w => w.Title == "Lais");
+
+        // Kept for later: the step still builds, with the importer behind it.
+        var withheld = Assert.Single(SetupDataSourceCatalog.BuildWithheld(new EditionRepository()), IsBfm);
+        Assert.Equal(SetupFetchMode.SelfManaged, withheld.FetchMode);
+        Assert.NotNull(withheld.RunIngest);
+        Assert.False(string.IsNullOrWhiteSpace(withheld.PlainLanguageDescription));
+        Assert.True(await withheld.CheckComplete());
+
+        main.Close();
+    }
 
     /// <summary>One work of AM 677 4to, one line long, as a Menota import leaves it.</summary>
     private static async Task MenotaSourceAsync(string workUrn, string citationRef)
