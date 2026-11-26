@@ -1,3 +1,9 @@
+> **Historical.** These are the notes for Classica Codex 3.18.0, which added
+> Quoted By. It has been followed by
+> [Classica Codex 3.19.0](https://github.com/ClassicaCodex/ClassicaCodex/releases/tag/v3.19.0).
+> Any download link or SHA-256 below refers to the 3.18.0 ZIPs, not to the current
+> ones, so do not check a current download against a checksum printed here.
+
 # Classica Codex 3.18.0
 
 Quoted By: who quoted a line, and what they made of it.
