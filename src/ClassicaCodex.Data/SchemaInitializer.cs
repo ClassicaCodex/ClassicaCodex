@@ -76,7 +76,7 @@ public static class SchemaInitializer
     /// 7 to 13 until version 3 was cut, at which point they all failed at
     /// once and said nothing about what had actually broken.
     /// </summary>
-    public const int TargetSchemaVersion = 41;
+    public const int TargetSchemaVersion = 42;
 
     public static async Task EnsureSchemaAsync(CancellationToken cancellationToken = default)
     {
@@ -1325,6 +1325,22 @@ public static class SchemaInitializer
             @"ALTER TABLE TextNodes ADD COLUMN IsVerse INTEGER NOT NULL DEFAULT 0;"
         },
 
+        // The dictionaries' citations, one row for each citation in an LSJ or
+        // Lewis and Short entry that names a passage: the entry it is in and
+        // its place there, the work, edition and reference it names, and the
+        // sense it was printed under. It is what lets the reader mark a line
+        // LSJ cites and list the entries that cite it, a lookup by work the
+        // entries' own text cannot answer. Word Study does not need it: an
+        // entry carries its citations in its text.
+        //
+        // Empty until the dictionary step is run again, since the entries
+        // already in a library were read with their citations thrown away.
+        [42] = new[]
+        {
+            LexiconCitationsTableDdl,
+            LexiconCitationsIndexDdl
+        },
+
         // v36: store the word index once instead of twice.
         //
         // See WordIndexTableDdl for the measurements. The short version is that
@@ -1488,6 +1504,23 @@ public static class SchemaInitializer
             WordIndexTableDdl
         }
     };
+
+    // No foreign key to Definitions: a dictionary is cleared and loaded again
+    // as a whole, and DefinitionRepository clears these with it. The work is
+    // stored as the dictionary names it, without "urn:cts:namespace:", which
+    // is how the reader looks it up when an edition opens.
+    private const string LexiconCitationsTableDdl = @"CREATE TABLE IF NOT EXISTS LexiconCitations (
+        CitationId   INTEGER PRIMARY KEY,
+        DefinitionId INTEGER NOT NULL,
+        Ordinal      INTEGER NOT NULL,
+        WorkUrn      TEXT NOT NULL,
+        EditionUrn   TEXT NULL,
+        Passage      TEXT NOT NULL,
+        Sense        TEXT NULL
+    );";
+
+    private const string LexiconCitationsIndexDdl =
+        "CREATE INDEX IF NOT EXISTS IX_LexiconCitations_Work ON LexiconCitations (WorkUrn);";
 
     // Nullable WorkId with ON DELETE SET NULL: removing a work from the library
     // detaches the research rather than destroying it or blocking the removal.
@@ -2390,6 +2423,10 @@ public static class SchemaInitializer
         );",
 
         @"CREATE INDEX IF NOT EXISTS IX_Definitions_Normalized ON Definitions (Language, NormalizedHeadword);",
+
+        // The citations those entries make - see migration 42.
+        LexiconCitationsTableDdl,
+        LexiconCitationsIndexDdl,
 
         // Art & Archaeology objects - vases, coins, gems, sculptures, sites,
         // buildings. Re-ingested wholesale each time the setup step runs

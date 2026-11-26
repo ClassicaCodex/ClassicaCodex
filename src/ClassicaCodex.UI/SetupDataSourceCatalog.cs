@@ -1815,6 +1815,14 @@ public static class SetupDataSourceCatalog
                     var wrapped = new Progress<LexiconIngestProgress>(p =>
                         progress.Report($"{p.CurrentFile} ({p.FilesProcessed}/{p.TotalFiles} files, {p.EntriesLoaded:N0} entries)"));
 
+                    // A second run replaces the two dictionaries rather than
+                    // adding a copy of every entry beside the first. Running it
+                    // again is how a library gets the dictionaries' citations,
+                    // which entries loaded by 3.18 and earlier were read without.
+                    progress.Report("Clearing the dictionaries loaded before...");
+                    await definitionRepo.ClearBySourceAsync("LSJ", ct);
+                    await definitionRepo.ClearBySourceAsync("Lewis & Short", ct);
+
                     progress.Report("Ingesting Greek (LSJ)...");
                     await service.IngestAsync(Path.Combine(root, "CTS_XML_TEI", "perseus", "pdllex", "grc"), "grc", "LSJ", wrapped, ct);
 

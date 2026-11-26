@@ -7,9 +7,15 @@ namespace ClassicaCodex.Data.Repositories;
 public class DefinitionRepository
 {
     /// <summary>
-    /// Inserts dictionary entries. Same multi-row-per-statement batching as
-    /// LemmaRepository and WordIndexRepository, for the same reason - see
-    /// WordIndexRepository's remarks.
+    /// Inserts dictionary entries, and the citations they carry (see
+    /// <see cref="Definition.Citations"/>). Same multi-row-per-statement
+    /// batching as LemmaRepository and WordIndexRepository, for the same
+    /// reason - see WordIndexRepository's remarks.
+    ///
+    /// The ids are given here rather than left to SQLite, read as one past the
+    /// highest inside the transaction: a citation has to name the entry it is
+    /// in, and a multi-row INSERT does not say which id each of its rows was
+    /// given. Each definition's <see cref="Definition.DefinitionId"/> is set.
     /// </summary>
     public async Task BulkInsertAsync(IReadOnlyList<Definition> definitions, CancellationToken cancellationToken = default)
     {
@@ -19,6 +25,14 @@ public class DefinitionRepository
 
         await using var conn = await DbConnectionFactory.OpenConnectionAsync(cancellationToken);
         await using var transaction = await conn.BeginTransactionAsync(cancellationToken);
+
+        long nextId;
+        await using (var max = conn.CreateCommand())
+        {
+            max.Transaction = (SqliteTransaction)transaction;
+            max.CommandText = "SELECT COALESCE(MAX(DefinitionId), 0) FROM Definitions;";
+            nextId = Convert.ToInt64(await max.ExecuteScalarAsync(cancellationToken)) + 1;
+        }
 
         for (var offset = 0; offset < definitions.Count; offset += rowsPerStatement)
         {
@@ -36,7 +50,9 @@ public class DefinitionRepository
             for (var i = 0; i < batchSize; i++)
             {
                 var d = definitions[offset + i];
-                valueRows.Add($"(@h{i},@nh{i},@l{i},@e{i},@s{i})");
+                d.DefinitionId = nextId++;
+                valueRows.Add($"(@id{i},@h{i},@nh{i},@l{i},@e{i},@s{i})");
+                cmd.Parameters.AddWithValue($"@id{i}", d.DefinitionId);
                 cmd.Parameters.AddWithValue($"@h{i}", d.Headword);
                 cmd.Parameters.AddWithValue($"@nh{i}", d.NormalizedHeadword);
                 cmd.Parameters.AddWithValue($"@l{i}", d.Language);
@@ -45,11 +61,45 @@ public class DefinitionRepository
             }
 
             cmd.CommandText =
-                $"INSERT INTO Definitions (Headword, NormalizedHeadword, Language, Entry, Source) VALUES {string.Join(",", valueRows)};";
+                $"INSERT INTO Definitions (DefinitionId, Headword, NormalizedHeadword, Language, Entry, Source) VALUES {string.Join(",", valueRows)};";
             await cmd.ExecuteNonQueryAsync(cancellationToken);
         }
 
+        await InsertCitationsAsync(conn, (SqliteTransaction)transaction, definitions, cancellationToken);
         await transaction.CommitAsync(cancellationToken);
+    }
+
+    private static async Task InsertCitationsAsync(
+        SqliteConnection conn, SqliteTransaction transaction, IReadOnlyList<Definition> definitions, CancellationToken cancellationToken)
+    {
+        const int rowsPerStatement = 300;
+
+        var rows = definitions.SelectMany(d => d.Citations.Select(c => (d.DefinitionId, Citation: c))).ToList();
+        for (var offset = 0; offset < rows.Count; offset += rowsPerStatement)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            var batchSize = Math.Min(rowsPerStatement, rows.Count - offset);
+
+            await using var cmd = conn.CreateCommand();
+            cmd.Transaction = transaction;
+
+            var valueRows = new List<string>(batchSize);
+            for (var i = 0; i < batchSize; i++)
+            {
+                var (definitionId, c) = rows[offset + i];
+                valueRows.Add($"(@d{i},@o{i},@w{i},@e{i},@p{i},@s{i})");
+                cmd.Parameters.AddWithValue($"@d{i}", definitionId);
+                cmd.Parameters.AddWithValue($"@o{i}", c.Ordinal);
+                cmd.Parameters.AddWithValue($"@w{i}", c.Target.WorkUrn);
+                cmd.Parameters.AddWithValue($"@e{i}", (object?)c.Target.EditionUrn ?? DBNull.Value);
+                cmd.Parameters.AddWithValue($"@p{i}", c.Target.PassageRef);
+                cmd.Parameters.AddWithValue($"@s{i}", (object?)c.Sense ?? DBNull.Value);
+            }
+
+            cmd.CommandText =
+                $"INSERT INTO LexiconCitations (DefinitionId, Ordinal, WorkUrn, EditionUrn, Passage, Sense) VALUES {string.Join(",", valueRows)};";
+            await cmd.ExecuteNonQueryAsync(cancellationToken);
+        }
     }
 
     public async Task<int> CountAsync(CancellationToken cancellationToken = default)
@@ -93,9 +143,13 @@ public class DefinitionRepository
     {
         await using var conn = await DbConnectionFactory.OpenConnectionAsync(cancellationToken);
         await using var cmd = conn.CreateCommand();
-        cmd.CommandText = "DELETE FROM Definitions WHERE Source = @Source;";
+        cmd.CommandText =
+            "DELETE FROM LexiconCitations WHERE DefinitionId IN (SELECT DefinitionId FROM Definitions WHERE Source = @Source);";
         cmd.Parameters.AddWithValue("@Source", source);
         cmd.CommandTimeout = 300;
+        await cmd.ExecuteNonQueryAsync(cancellationToken);
+
+        cmd.CommandText = "DELETE FROM Definitions WHERE Source = @Source;";
         return await cmd.ExecuteNonQueryAsync(cancellationToken);
     }
 
@@ -103,7 +157,7 @@ public class DefinitionRepository
     {
         await using var conn = await DbConnectionFactory.OpenConnectionAsync(cancellationToken);
         await using var cmd = conn.CreateCommand();
-        cmd.CommandText = "DELETE FROM Definitions;";
+        cmd.CommandText = "DELETE FROM LexiconCitations; DELETE FROM Definitions;";
         cmd.CommandTimeout = 300;
         await cmd.ExecuteNonQueryAsync(cancellationToken);
     }
@@ -119,9 +173,13 @@ public class DefinitionRepository
     {
         await using var conn = await DbConnectionFactory.OpenConnectionAsync(cancellationToken);
         await using var cmd = conn.CreateCommand();
-        cmd.CommandText = "DELETE FROM Definitions WHERE Language = @Language;";
+        cmd.CommandText =
+            "DELETE FROM LexiconCitations WHERE DefinitionId IN (SELECT DefinitionId FROM Definitions WHERE Language = @Language);";
         cmd.Parameters.AddWithValue("@Language", language);
         cmd.CommandTimeout = 300;
+        await cmd.ExecuteNonQueryAsync(cancellationToken);
+
+        cmd.CommandText = "DELETE FROM Definitions WHERE Language = @Language;";
         return await cmd.ExecuteNonQueryAsync(cancellationToken);
     }
 

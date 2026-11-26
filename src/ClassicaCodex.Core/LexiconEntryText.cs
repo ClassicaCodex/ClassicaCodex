@@ -1,4 +1,5 @@
 using System.Text.RegularExpressions;
+using ClassicaCodex.Core.Lexicon;
 
 namespace ClassicaCodex.Core;
 
@@ -18,14 +19,32 @@ public static class LexiconEntryText
     /// "sunair-esiw/ths , ou , o(". Only the Greek is touched; the English
     /// glosses interleaved with it are left alone. Every other dictionary's
     /// bodies are already in their own script and pass through untouched.
+    ///
+    /// The citations an entry keeps are left alone: their labels are Latin
+    /// abbreviations, and the passage each names is a URN whose letters would
+    /// decode as Greek.
     /// </summary>
     public static string Decode(string entry, string? language) =>
         string.Equals(language, "grc", StringComparison.OrdinalIgnoreCase)
-            ? BetaCodeConverter.ConvertMixed(entry)
+            ? LexiconCitationMarkup.MapText(entry, BetaCodeConverter.ConvertMixed)
             : entry;
 
-    /// <summary>The entry decoded and set as prose: <see cref="Decode"/>, then <see cref="Reflow"/>.</summary>
-    public static string ForReading(string entry, string? language) => Reflow(Decode(entry, language));
+    /// <summary>
+    /// The entry decoded and set as prose: <see cref="Decode"/>, then
+    /// <see cref="Reflow"/>, with each citation as the dictionary prints it -
+    /// for the panes that show an entry as plain text.
+    /// </summary>
+    public static string ForReading(string entry, string? language) =>
+        LexiconCitationMarkup.Plain(Reflow(Decode(entry, language)));
+
+    /// <summary>
+    /// The same, as runs of text and citations, for a pane that sets the
+    /// citations apart and lets them be followed. The prose is joined exactly
+    /// as <see cref="ForReading"/> joins it - a citation never spans a line
+    /// break, so the joining cannot split one.
+    /// </summary>
+    public static IReadOnlyList<EntryPiece> PiecesForReading(string entry, string? language) =>
+        LexiconCitationMarkup.Parse(Reflow(Decode(entry, language)));
 
     /// <summary>
     /// A lexicon entry as prose. The ingested bodies carry a line break at

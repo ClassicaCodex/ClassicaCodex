@@ -590,7 +590,7 @@ public sealed class ReaderPane : UserControl
         // otherwise drops into the line below it on Windows.
         SteadyLines.Steady(text, _list.FontFamily, size);
 
-        ToolTip.SetTip(text, TooltipFor(row.Node, row.Quotations));
+        ToolTip.SetTip(text, TooltipFor(row.Node, row.Quotations, row.Marks.HasFlag(PassageMarks.Dictionary)));
         ToolTip.SetShowDelay(text, 900);
 
         if (!_showCitationMargin) return Wrap(text, new Thickness(10, 2));
@@ -726,10 +726,11 @@ public sealed class ReaderPane : UserControl
         return new TextDecorationCollection { line };
     }
 
-    private static string TooltipFor(TextNode node, IReadOnlyList<QuotedSpan> quotations)
+    private static string TooltipFor(TextNode node, IReadOnlyList<QuotedSpan> quotations, bool citedInDictionary)
     {
         var citation = PassageCitation.Bracketed(node.CitationRef, node.Milestone);
         var tip = node.IsAthetized ? citation + " - bracketed by the editor as probably not authentic" : citation;
+        if (citedInDictionary) tip += "\nCited in LSJ or Lewis & Short - right-click for Cited in the Dictionaries.";
         if (quotations.Count == 0) return tip;
 
         var quoted = quotations.Select(q => q.Label).Distinct(StringComparer.Ordinal).ToList();

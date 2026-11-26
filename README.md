@@ -159,6 +159,73 @@ copy of a passage reads differently from the one a link was found in, the
 quoted words are found again by matching them, and the window says so.
 `tools/QuotationLinks` rebuilds the table from the two searches' output.
 
+## Follow the dictionaries' citations
+
+For a classicist the citations are what LSJ and Lewis & Short are for: an entry
+says what a word means by showing where it is used. Word Study now shows every
+citation where the dictionary printed it, set back in a smaller, fainter face so
+the definition still reads first. A citation in the accent colour opens a
+passage of your library: hover it to see the line, click it to go there, and
+Back in the reader returns to where you were. A citation the library cannot
+open is shown as plain text.
+
+From the other side, a line LSJ or Lewis & Short cites carries a § at its end.
+Right-click it and choose **Cited in the Dictionaries…** for the entries that
+cite it: the headword, the sense it is cited under, and the words the entry
+prints before the citation — usually the phrase it quotes and the meaning it
+gives it — with the whole entry a click further. Read down the list and it is a
+lexicographer's commentary on the line.
+
+**If you set up the dictionaries before this version, run the Dictionaries step
+in Setup again** (about two and a half minutes). Until now the citations were thrown away when
+the dictionaries were read, so an older library has none to show. The step now
+replaces both dictionaries when it runs again, rather than adding a second copy.
+
+**How many open.** The citations are the dictionaries' own, as the Perseus
+Digital Library marked them up with CTS URNs; each is matched to a passage by
+its reference, in the edition the reader would open the work in, never a
+translation. Measured with `tools/LexiconCitations` against a full library:
+
+| | LSJ | Lewis & Short |
+|---|---:|---:|
+| Citations | 579,070 | 380,656 |
+| Naming a passage the app can use | 420,131 (72.6%) | 224,865 (59.1%) |
+| Opening a passage of the library | **298,457 (51.5%)** | **186,946 (49.1%)** |
+| …of those naming a passage | 71.0% | 83.1% |
+| Lines marked § | 128,241 in 882 editions | 77,784 in 165 editions |
+
+The rest are papyri and inscriptions, which have no CTS URN; works the library
+does not hold (62,392 LSJ citations, 21,670 Lewis & Short); and works it holds
+but numbers differently from the dictionary (59,282 and 16,249) — Aristotle by
+Bekker page in editions that number by book and chapter, Athenaeus by
+Casaubon's pages, Philo by Mangey's. Lewis & Short's figures are for its 2023
+revision; the dictionary step also loads the older file beside it, and the
+window lists an entry found in both once.
+
+The two sides number many works differently, so a reference is tried as it
+stands, with the paragraph number the library adds to prose, as a chapter the
+edition divides into sections, against the Stephanus and Bekker ranges the
+edition records, as Cicero's chapter-and-section where his sections run
+straight through, and one level down for editions that keep a book above the
+satires (Juvenal) or a volume above the book (one of Livy's). Some of
+Perseus's URNs are wrong in ways that repeat, and are corrected or left
+unlinked: Lewis & Short's Odes of Horace carry the Carmen Saeculare's URN and
+are moved to the Odes; its Vulgate carries the Septuagint's and the Greek New
+Testament's, its Pliny Hardouin's chapters, and its Plautus and Terence count
+lines within each scene, so those stay plain text.
+
+**How often the line is the right one.** Of every opened citation that quotes
+at least two words, the passage it opens (or the line either side, or the
+chapter it cites) holds at least half of them for 92.0% in LSJ and 88.5% in
+Lewis & Short — a floor, since the dictionaries abridge and adapt what they
+quote. Claude read a random sample of 40 opened citations against their
+passages: 37 opened the passage the dictionary quotes, and the other three a
+section or chapter away, where the library's edition divides the text
+differently from the dictionary's (Cicero's *Brutus* 210 for 211, Valerius
+Maximus 2.4.4 for 2.4.5, Tacitus' *Annals* 12.69 for 12.70). Where the
+dictionary cites a chapter, the chapter's first line is the one opened and
+marked. A second model has not read a sample yet.
+
 ## And the rest
 
 <details>
@@ -233,7 +300,8 @@ You can add your own as JSON in a `Reactions` folder beside the program — see
 - **Myth Network** — a graph of which figures and places co-occur, built from your own tags as you read, not a fixed dataset
 - **Places Map** — an actual map of the ancient world, 220 places filterable by kind; click one to see every passage that mentions it
 - **Medieval Hands** — 194,808 lines from 313 medieval manuscripts, each line photographed and set beside a diplomatic transcription of it, filterable by language, century and script. Every other collection here arrives already transcribed, with the step where somebody looked at parchment and decided what it said left out; this is that step. Search folds the marks scribes wrote over their letters, so "nre" finds `nr̃e`, or match the transcription character for character to ask where a particular abbreviation sign appears. For 121 of the manuscripts it will also show you the **pages** — the ruling, the rubrics, the decorated initials, the marginalia — fetched live from the library that holds the book, never downloaded, with that library's own credit and conditions shown beside them
-- **Word Study** — dictionary definitions (LSJ for Greek, Lewis & Short for Latin) and every attested form of a word
+- **Word Study** — dictionary definitions (LSJ for Greek, Lewis & Short for Latin) and every attested form of a word, the entries' citations opening the passages they cite
+- **Cited in the Dictionaries** — the LSJ and Lewis & Short entries that cite a line, on a line marked § (see [Follow the dictionaries' citations](#follow-the-dictionaries-citations))
 - **Core Vocabulary** — every headword in a work ranked by how much of the text it accounts for, with a running total: learn the top N and you can read half of it. Counted from the text itself, and honest about the share it can't cover
 - **Where should I start?** — a short curated list of works that are reasonable to translate first, filtered to what's in your library, and a plain warning about the ones that aren't
 - **Timeline** of authors and works across time

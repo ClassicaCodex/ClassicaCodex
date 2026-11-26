@@ -3,9 +3,12 @@ using Avalonia.Controls;
 using Avalonia.Controls.Documents;
 using Avalonia.Controls.Templates;
 using Avalonia.Input;
+using Avalonia.Interactivity;
 using Avalonia.Layout;
 using Avalonia.Media;
+using Avalonia.Threading;
 using ClassicaCodex.Core;
+using ClassicaCodex.Core.Lexicon;
 using ClassicaCodex.Core.Meter;
 using ClassicaCodex.Core.Models;
 using ClassicaCodex.Data.Repositories;
@@ -40,6 +43,13 @@ public sealed class WordStudyWindow : FeatureWindow
     private readonly LemmaRepository _lemmaRepo = new();
     private readonly TextNodeRepository _textNodeRepo = new();
     private readonly DefinitionRepository _definitionRepo = new();
+
+    /// <summary>
+    /// Opens the dictionaries' citations, remembering each edition it has read
+    /// for as long as the window is open: a long entry cites the same work
+    /// hundreds of times, and the next headword often cites it again.
+    /// </summary>
+    private readonly LexiconCitationResolver _citationResolver = new(DictionaryCitations.Arrange);
 
     /// <summary>
     /// The edition's language code ("grc", "lat", "eng"). Passed in rather
@@ -82,6 +92,14 @@ public sealed class WordStudyWindow : FeatureWindow
 
     private List<Occurrence> _currentOccurrences = new();
     private List<HeadwordItem> _currentHeadwords = new();
+
+    /// <summary>The citations in the definition shown, where each sits in its text and what it opens.</summary>
+    private List<CitationSpan> _citations = new();
+    private CitationSpan? _hoveredCitation;
+
+    /// <summary>Whether this library's dictionaries carry their citations; asked once, when an entry without any is shown.</summary>
+    private bool? _citationsKept;
+
     private bool _truncated;
     private string _definitionText = string.Empty;
     private string _statusText = string.Empty;
@@ -193,6 +211,13 @@ public sealed class WordStudyWindow : FeatureWindow
         };
         _definitionScroller = new ScrollViewer { Content = _definition };
 
+        // The citations: a hand and the line over one that opens a passage, a
+        // click to go there. Tunnelled, so the press is the citation's before
+        // the text block starts a selection with it.
+        _definition.AddHandler(PointerPressedEvent, OnDefinitionPressed, RoutingStrategies.Tunnel);
+        _definition.AddHandler(PointerMovedEvent, OnDefinitionMoved, RoutingStrategies.Tunnel);
+        _definition.PointerExited += (_, _) => HoverCitation(null);
+
         // Every attested form.
         _forms = new SelectableTextBlock
         {
@@ -293,6 +318,11 @@ public sealed class WordStudyWindow : FeatureWindow
     internal ListBox HeadwordList => _headwordList;
     internal IReadOnlyList<HeadwordItem> Headwords => _currentHeadwords;
     internal string DefinitionText => _definitionText;
+    internal SelectableTextBlock DefinitionBlock => _definition;
+    internal IReadOnlyList<CitationSpan> Citations => _citations;
+
+    /// <summary>The tip showing over the definition, if any - what hovering a citation shows.</summary>
+    internal string? CitationTipShowing => ToolTip.GetIsOpen(_definition) ? ToolTip.GetTip(_definition) as string : null;
     internal string FormsText => _forms.Text ?? string.Empty;
     internal IReadOnlyList<Occurrence> Occurrences => _currentOccurrences;
     internal string StatusText => _statusText;
@@ -821,7 +851,23 @@ public sealed class WordStudyWindow : FeatureWindow
                 return;
             }
 
-            ShowEntries(entries, language);
+            // Every citation in every entry, opened at once: one pass over
+            // the library, and the window shows the entry with its links
+            // rather than a plain entry that changes under the reader.
+            var pieces = entries.Select(e => LexiconEntryText.PiecesForReading(e.Entry, language)).ToList();
+            var targets = pieces.SelectMany(p => p).Where(p => p.Citation != null).Select(p => p.Citation!.Target).ToList();
+            var passages = targets.All(t => t == null)
+                ? new CitedPassage?[targets.Count]
+                : await Task.Run(() => _citationResolver.ResolveAsync(targets));
+            if (generation != _generation || _closed) return;
+
+            if (targets.Count == 0 && entries.Any(e => e.Source is "LSJ" or "Lewis & Short"))
+            {
+                _citationsKept ??= await Task.Run(() => new LexiconCitationRepository().AnyAsync());
+                if (generation != _generation || _closed) return;
+            }
+
+            ShowEntries(entries, pieces, passages, language);
         }
         catch (Exception ex)
         {
@@ -832,6 +878,8 @@ public sealed class WordStudyWindow : FeatureWindow
     private void SetDefinition(string text)
     {
         _definitionText = text;
+        _citations = new List<CitationSpan>();
+        HoverCitation(null);
         _definition.Inlines = null;
         _definition.Text = text;
         _definitionScroller.Offset = default;
@@ -839,12 +887,29 @@ public sealed class WordStudyWindow : FeatureWindow
 
     /// <summary>
     /// The dictionary's entries, each headed by its headword and lexicon, the
-    /// way a printed lexicon sets them.
+    /// way a printed lexicon sets them, with their citations set back: smaller
+    /// and fainter than the definition, so that the sense still reads first,
+    /// and in the accent where the citation opens a passage of this library.
+    /// A citation the library has nothing for stays plain text.
+    ///
+    /// Line breaks are written into the runs' text rather than as LineBreak
+    /// elements, so that a position in the block's text is a position in the
+    /// string built here - which is how a citation is found under the pointer.
     /// </summary>
-    private void ShowEntries(IReadOnlyList<(string Headword, string Entry, string? Source)> entries, string language)
+    private void ShowEntries(
+        IReadOnlyList<(string Headword, string Entry, string? Source)> entries,
+        IReadOnlyList<IReadOnlyList<EntryPiece>> pieces, IReadOnlyList<CitedPassage?> passages, string language)
     {
         var inlines = new InlineCollection();
         var plain = new System.Text.StringBuilder();
+        var spans = new List<CitationSpan>();
+        var at = 0;
+
+        void Add(Run run)
+        {
+            inlines.Add(run);
+            at += run.Text?.Length ?? 0;
+        }
 
         // More than one entry means the homograph numbering in the lemma
         // data and the lexicon don't line up - worth saying so rather
@@ -853,53 +918,131 @@ public sealed class WordStudyWindow : FeatureWindow
         {
             var note = $"{entries.Count} entries share this spelling - the lexicon numbers homographs " +
                        "differently from the lemma data, so all candidates are shown.";
-            var noteRun = PassageText.Ink(_definition, note, "Cc.InkMuted", FontFamily.Default, 12);
+            var noteRun = PassageText.Ink(_definition, note + "\n\n", "Cc.InkMuted", FontFamily.Default, 12);
             noteRun.FontStyle = FontStyle.Italic;
-            inlines.Add(noteRun);
-            inlines.Add(new LineBreak());
-            inlines.Add(new LineBreak());
+            Add(noteRun);
             plain.Append(note).Append("\n\n");
         }
 
-        var first = true;
-        foreach (var (entryHeadword, entry, source) in entries)
+        var resolvedIndex = 0;
+        for (var e = 0; e < entries.Count; e++)
         {
-            if (!first)
+            var (entryHeadword, _, source) = entries[e];
+            if (e > 0)
             {
-                inlines.Add(new LineBreak());
-                inlines.Add(PassageText.Ink(_definition, new string('—', 12), "Cc.Rule"));
-                inlines.Add(new LineBreak());
-                inlines.Add(new LineBreak());
+                Add(PassageText.Ink(_definition, "\n" + new string('—', 12) + "\n\n", "Cc.Rule"));
                 plain.Append("\n").Append(new string('-', 40)).Append("\n\n");
             }
 
-            first = false;
+            Add(new Run(entryHeadword) { FontWeight = FontWeight.Bold, FontSize = 16, FontFamily = _readingFont });
+            plain.Append(entryHeadword);
+            if (!string.IsNullOrEmpty(source))
+            {
+                Add(PassageText.Ink(_definition, $"   {source}", "Cc.InkFaint", FontFamily.Default, 11.5));
+                plain.Append("   [").Append(source).Append(']');
+            }
+
+            Add(new Run("\n\n"));
+            plain.Append("\n\n");
 
             // LSJ's Beta Code decoded and its element-by-element line
             // breaks joined back into prose - the same as the translation
             // workbench, which shows the same entries.
-            var body = LexiconEntryText.ForReading(entry, language);
-
-            inlines.Add(new Run(entryHeadword) { FontWeight = FontWeight.Bold, FontSize = 16, FontFamily = _readingFont });
-            plain.Append(entryHeadword);
-            if (!string.IsNullOrEmpty(source))
+            foreach (var piece in pieces[e])
             {
-                inlines.Add(PassageText.Ink(_definition, $"   {source}", "Cc.InkFaint", FontFamily.Default, 11.5));
-                plain.Append("   [").Append(source).Append(']');
+                plain.Append(piece.Text);
+                if (piece.Citation is not { } citation)
+                {
+                    Add(new Run(piece.Text));
+                    continue;
+                }
+
+                var passage = resolvedIndex < passages.Count ? passages[resolvedIndex] : null;
+                resolvedIndex++;
+
+                var run = PassageText.Ink(_definition, piece.Text, passage != null ? "Cc.Accent" : "Cc.InkFaint", FontFamily.Default, 11.5);
+                var start = at;
+                Add(run);
+                spans.Add(new CitationSpan(start, at, citation, passage));
             }
 
-            inlines.Add(new LineBreak());
-            inlines.Add(new LineBreak());
-            inlines.Add(new Run(body));
-            inlines.Add(new LineBreak());
-            plain.Append("\n\n").Append(body).Append('\n');
+            Add(new Run("\n"));
+            plain.Append('\n');
+
+            if (pieces[e].All(p => p.Citation == null) && source is "LSJ" or "Lewis & Short" && _citationsKept == false)
+            {
+                const string rerun = "Where this entry's quotations come from is not shown: the dictionaries in this library were loaded " +
+                                     "before their citations were kept. Run the Dictionaries step in Setup again to add them.";
+                Add(PassageText.Ink(_definition, "\n" + rerun + "\n", "Cc.InkMuted", FontFamily.Default, 12));
+                plain.Append('\n').Append(rerun).Append('\n');
+            }
         }
 
         _definitionText = plain.ToString();
+        _citations = spans;
+        HoverCitation(null);
         _definition.Text = null;
         _definition.Inlines = inlines;
         _definitionScroller.Offset = default;
     }
+
+    private void OnDefinitionMoved(object? sender, PointerEventArgs e) =>
+        HoverCitation(DictionaryCitations.At(_definition.TextLayout, e.GetPosition(_definition), _citations));
+
+    /// <summary>
+    /// A press on a citation that opens a passage goes there, and the window
+    /// stays, for the next one. On the press, as the reader's own quoted words
+    /// are, because the text block takes the pointer on the press to select.
+    /// </summary>
+    private void OnDefinitionPressed(object? sender, PointerPressedEventArgs e)
+    {
+        if (e.ClickCount != 1 || e.KeyModifiers != KeyModifiers.None) return;
+        if (!e.GetCurrentPoint(_definition).Properties.IsLeftButtonPressed) return;
+        if (DictionaryCitations.At(_definition.TextLayout, e.GetPosition(_definition), _citations) is not { Opens: true } span) return;
+
+        e.Handled = true;
+        Dispatcher.UIThread.Post(async () => await OpenCitationAsync(span));
+    }
+
+    /// <summary>Puts the reader on the passage a citation names. Back in the reader returns to where it was.</summary>
+    internal async Task OpenCitationAsync(CitationSpan span)
+    {
+        if (span.Passage is not { } passage) return;
+        try
+        {
+            await NavigateAsync(passage.Edition.WorkId, passage.TextNodeId);
+        }
+        catch (Exception ex)
+        {
+            await ShowErrorAsync("Couldn't open the passage", ex);
+        }
+    }
+
+    /// <summary>
+    /// Shows what a citation opens while the pointer is over it - its name and
+    /// line - with a hand to say it can be clicked. A citation that opens
+    /// nothing shows nothing, as plain text does.
+    /// </summary>
+    internal void HoverCitation(CitationSpan? span)
+    {
+        if (ReferenceEquals(span, _hoveredCitation)) return;
+        _hoveredCitation = span;
+
+        if (span is { Opens: true })
+        {
+            _definition.Cursor = HandCursor.Value;
+            ToolTip.SetTip(_definition, span.Tip);
+            ToolTip.SetIsOpen(_definition, true);
+        }
+        else
+        {
+            _definition.Cursor = null;
+            ToolTip.SetIsOpen(_definition, false);
+            ToolTip.SetTip(_definition, null);
+        }
+    }
+
+    private static readonly Lazy<Cursor> HandCursor = new(() => new Cursor(StandardCursorType.Hand));
 
     /// <summary>
     /// Which dictionary to look a headword up in: the language of the edition
