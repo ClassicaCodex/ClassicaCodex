@@ -78,6 +78,13 @@ public partial class MainWindow : Window, IReaderHost
         {
             if (ToolTip.GetTip(button) is string tip) ToolTip.SetTip(button, SystemWords.Say(tip));
         }
+
+        // The keys the Go menu shows on Windows: see BuildMenus.
+        if (OperatingSystem.IsWindows())
+        {
+            ToolTip.SetTip(BackButton, "Back (Alt+Left)");
+            ToolTip.SetTip(ForwardButton, "Forward (Alt+Right)");
+        }
     }
 
     private void ConfigureChrome()
@@ -296,6 +303,7 @@ public partial class MainWindow : Window, IReaderHost
         if (!DbConnectionFactory.IsConfigured)
         {
             ShowContent(_noLibrary);
+            if (await ResolveLaunchLibraryAsync()) await RestoreReadingPositionAsync();
             return;
         }
 
@@ -303,5 +311,46 @@ public partial class MainWindow : Window, IReaderHost
         await _welcome.RefreshAsync();
         ShowContent(_welcome);
         await RestoreReadingPositionAsync();
+    }
+
+    /// <summary>
+    /// Says what became of the remembered library, if launch could not open
+    /// it, in the classic Windows app's words. True if it is open now.
+    /// </summary>
+    private async Task<bool> ResolveLaunchLibraryAsync()
+    {
+        if (LaunchLibrary.Failed is { } failed)
+        {
+            LaunchLibrary.Clear();
+            await Alert.Warn(this, "Couldn't open your library",
+                $"The library at:\n\n{failed.Path}\n\ncouldn't be opened:\n\n{failed.Error.Message}\n\n"
+                + "Open another library or create a new one to continue. The file itself has not been changed.");
+            return false;
+        }
+
+        while (LaunchLibrary.Missing is { } missing)
+        {
+            var choice = await Alert.Show(this, "Library not found",
+                $"Your library is at:\n\n{missing}\n\n"
+                + "which isn't available right now - most often a drive that isn't plugged in.\n\n"
+                + "Plug it in and choose Retry.\n\n"
+                + "Choosing Cancel lets you open a different library or make a new one. Your existing library "
+                + "is not touched either way, but making a new one here means Classica Codex will look for that "
+                + "one in future.",
+                AlertKind.Warning, "Cancel", "Retry");
+
+            if (choice != 1)
+            {
+                LaunchLibrary.Clear();
+                return false;
+            }
+
+            if (!File.Exists(missing)) continue;
+
+            LaunchLibrary.Clear();
+            return await SwitchLibraryAsync(missing, isNew: false);
+        }
+
+        return false;
     }
 }

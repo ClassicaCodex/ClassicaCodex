@@ -64,10 +64,25 @@ public class StylometryTests
         Assert.Equal(20, window.ResultsGrid.ItemsSource!.Cast<object>().Count());
 
         // The settings, the pool and the sampling are echoed with the result.
-        Assert.Contains("Compared Aeschylus, Prometheus Bound against", window.StatusText);
+        // What it was compared against is counted twice, because at 3,000-token
+        // samples every neighbour is a sample and a long work appears once per
+        // sample: the samples, and the distinct works they came from. The
+        // samples were once reported as works.
+        var worksCompared = results.Select(r => r.WorkId).Distinct().Count();
+        Assert.True(worksCompared < results.Count, $"{results.Count} samples from {worksCompared} works");
+        Assert.StartsWith(
+            $"Compared Aeschylus, Prometheus Bound against {results.Count:N0} samples from {worksCompared:N0} other grc works.",
+            window.StatusText);
         Assert.Contains("Settings: 150 features, accents folded, elision marks stripped.", window.StatusText);
-        Assert.Contains("works in pool", window.StatusText);
         Assert.Contains("samples of 3,000 tokens", window.StatusText);
+
+        // The pool in works too, not in the list's one-entry-per-edition rows:
+        // at least what was compared plus the target, at most every Greek work.
+        var pool = System.Text.RegularExpressions.Regex.Match(window.StatusText, @"Pool: (\d+) works in pool");
+        Assert.True(pool.Success, window.StatusText);
+        var poolWorks = int.Parse(pool.Groups[1].Value);
+        Assert.InRange(poolWorks, worksCompared + 1,
+            window.Works.Where(w => w.Language == "grc").Select(w => w.WorkId).Distinct().Count());
 
         // Fifteen words in the fingerprint, commonest first.
         Assert.Equal(15, window.Fingerprint.Words.Count);
@@ -102,6 +117,9 @@ public class StylometryTests
         Assert.Equal("Prometheus Bound", saved.TargetWorkTitle);
         Assert.Equal(new StylometrySettings(150, true, true, StylometryRunRepository.CurrentAlgorithmVersion, 3000), saved.Settings);
         Assert.Equal(results.Count, (await runRepo.GetNeighborsAsync(saved.RunId)).Count);
+
+        // Its pool in works - the works compared plus the target - not samples.
+        Assert.Equal(worksCompared + 1, saved.PoolSize);
 
         // Compare Saved Runs, focused on that run as the research bench opens it.
         StylometryFeature.OpenCompareRuns(main, saved.RunId);

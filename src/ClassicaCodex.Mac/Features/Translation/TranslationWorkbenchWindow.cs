@@ -1059,9 +1059,11 @@ public sealed class TranslationWorkbenchWindow : FeatureWindow
                     var entries = await _definitionRepo.GetByHeadwordAsync(headword, _sourceLanguage);
                     if (generation != _lookupGeneration) return;
 
+                    // Decoded and reflowed as Word Study sets them: LSJ's
+                    // bodies are Beta Code broken at every TEI element.
                     foreach (var (_, entry, source) in entries.Take(2))
                     {
-                        report.Line().Line().Add(entry);
+                        report.Line().Line().Add(LexiconEntryText.ForReading(entry, _sourceLanguage));
                         if (!string.IsNullOrWhiteSpace(source)) report.Line().Add($"- {source}", "Cc.InkFaint", size: 12.5);
                     }
                 }

@@ -16,17 +16,22 @@ inflected forms alongside them.
 
 Built as a personal project, for reading and researching the classics more closely than a browser tab really allows.
 
-Why make it a Windows Forms application? 
+Why did it start as a Windows Forms application? 
 This was just my personal preference for development. 
-There is now a Mac version as well, in preview — see [Download](#download).
+Since 3.17.0, Windows runs the same app as the Mac, so there is one interface everywhere. The classic Windows Forms app is still in the repository, but it is no longer the download.
 
 ## Download
 
 The latest Windows release is on the
-[Releases page](https://github.com/ClassicaCodex/ClassicaCodex/releases/latest).
-Extract it, run `ClassicaCodex.UI.exe`, and the setup wizard does the rest — see
+[Releases page](https://github.com/ClassicaCodex/ClassicaCodex/releases/latest):
+`win-x64` for most PCs, `win-arm64` for Windows on Arm. Extract it, run
+`Classica Codex.exe`, and the setup wizard does the rest — see
 [Getting started](#getting-started) for what to expect, including the Windows
 security warning you'll hit on first run.
+
+If you used the classic Windows app, 3.17.0 opens on your library at the
+passage you left, with your settings — see
+[Coming from the classic Windows app](#coming-from-the-classic-windows-app).
 
 The Mac version is in preview:
 [Classica Codex for Mac 3.16.3](https://github.com/ClassicaCodex/ClassicaCodex/releases/tag/mac-v3.16.3).
@@ -40,7 +45,7 @@ where the line counts diverge and the mirroring starts fighting you. The library
 tree on the left is every author you've installed. It reopens on the passage you
 were last reading.
 
-<img width="900" alt="Aeschylus' Agamemnon, Greek on the left and Smyth's translation on the right, with the library tree beside them" src="docs/images/reading-side-by-side.png" />
+<img width="900" alt="Plato's Critias in Classica Codex 3.17.0 on Windows: the Greek on the left, R. G. Bury's translation on the right, and the library in the sidebar" src="docs/images/reading-side-by-side.png" />
 
 ## Click a word and get the answer, not a search box
 
@@ -60,7 +65,7 @@ scans the line and marks the syllables the metre settles.
 files and then discarded, so Latin words showed only a part of speech — no case,
 number, tense or mood — and a Latin morphology search could not match one.
 
-<img width="900" alt="Word Study on Aeneid 6.851: the word regere selected, rego offered first with its Lewis and Short entry already showing, 101 attested forms, and occurrences across the corpus" src="docs/images/word-study.png" />
+<img width="900" alt="Word Study on Aeneid 6.851: the word regere selected and marked by the metre as elided, rego offered as its headword with the Lewis and Short entry showing, 104 attested forms, and occurrences across every text" src="docs/images/word-study.png" />
 
 ## Know what vocabulary a work actually needs
 
@@ -71,7 +76,7 @@ front of you rather than from a general frequency list, and honest about the
 share it cannot cover: a form that could belong to more than one headword is
 marked, because its count is an upper bound.
 
-<img width="800" alt="Core vocabulary for the Aeneid: 63,674 running words from 13,959 headwords, ranked by frequency with a running coverage total" src="docs/images/core-vocabulary.png" />
+<img width="800" alt="Core vocabulary for Virgil's Aeneid: 63,674 running words from 13,959 headwords, the top 415 reading half the work and the top 2,179 four fifths, ranked by frequency with a running total" src="docs/images/core-vocabulary.png" />
 
 ## Search the whole library at once
 
@@ -84,7 +89,7 @@ whole library rather than of the page, so "how often, and where" is a question
 it can actually answer. Results export, and the last ten searches are kept with
 all their filters.
 
-<img width="900" alt="Searching the library for uirtus in Latin: 5,634 matches across 878 documents by 231 authors, shown one row per document with Cassiodorus, Hilary of Poitiers and Lactantius at the top" src="docs/images/search.png" />
+<img width="900" alt="Searching the library for uirtus in Latin: 5,767 matches across 878 documents, shown one row per document with Cassiodorus, Hilary of Poitiers and Lactantius at the top" src="docs/images/search.png" />
 
 ## Concordance
 
@@ -94,7 +99,7 @@ the column and see the shape of a word's use. The keyword column shows the word
 as each edition prints it, so searching `uirtus` lines up `virtus`, `uirtus` and
 `Virtus` together rather than making you pick one.
 
-<img width="900" alt="A keyword-in-context concordance for uirtus: 5,728 lines across 897 works by 242 authors, with left context, the word, right context and source in aligned columns" src="docs/images/concordance.png" />
+<img width="900" alt="A keyword-in-context concordance for uirtus: 5,900 lines in 913 works by 251 authors, with left context, the word as each edition prints it, right context and source in aligned columns" src="docs/images/concordance.png" />
 
 ## Find where a line is reused
 
@@ -107,7 +112,52 @@ There is a cross-language version of the same idea, for finding where a Latin or
 English passage is reworking a Greek original, and a Reception Tracker that
 sorts the hits by whether their author came before or after.
 
-<img width="900" alt="Intertextual echoes of Aeneid 6.851, ranked by shared rare words, with Proba's Cento Vergilianus at the top" src="docs/images/intertextual-echoes.png" />
+<img width="900" alt="Intertextual echoes of Aeneid 6.851, ranked by shared rare words: James I's Basilikon Doron, Augustine's City of God and the Historia Augusta share five, and Proba's Cento rebuilds the line a little further down" src="docs/images/intertextual-echoes.png" />
+
+## See who quoted a line
+
+Quotations in later authors are the indirect tradition: the testimonia a
+critical edition prints, and the evidence for who read what. A line that later
+authors quote carries a “ at its end. Right-click it and choose **Quoted By…**:
+the quoting passages, earliest author first, each with the quoter's wording set
+against the edition's and the words that differ marked, and a jump to the
+quoting passage that Back returns from. In the quoting passage the quoted words
+are underlined, and clicking them goes back to the line.
+
+<img width="900" alt="Quoted By for Terence, Andria 68 (obsequium amicos, veritas odium parit): twelve quoting passages in Lactantius, Jerome and later writers, each with the quoter's words above the edition's and the search that found it" src="docs/images/quoted-by.png" />
+
+**Where the links come from.** Two machine searches, run over the library, and
+checked by no one:
+
+- **Testimonia** looks for an author named beside a word of citing (*ut ait
+  Vergilius*, ὡς Πλάτων φησίν), then for the named author's passage that shares
+  at least two four-word runs with the 30 words either side of the name. Greek
+  and Latin; most of its 18,583 links are the Fathers quoting scripture, then
+  Homer, Plato and the rest. In each of two development samples of 40 of its
+  citations, 37 were genuine. Those samples judged the citation; the line it was
+  matched to was spot-checked, not sampled.
+- **Afterlives** matches Latin quotations of the classics in the Patrologia and
+  CSEL by shared rare words and by runs of consecutive words, whether or not the
+  source is named. Only the 4,135 quotations it rated high are shipped (5,225
+  links, since some span two lines). A second AI, Codex, read a fresh random
+  sample of 40 of them and judged 35 genuine. Its low-rated rows, right about a
+  third of the time, are left out.
+
+So expect roughly one link in ten to be wrong. The window opens by saying so,
+and each quoter says which search found it and how strongly: the number of
+shared four-word runs, or Afterlives' score and which of its searches found the
+passage, and whether the quoter is a cento built from Virgil or early-modern
+Latin that Migne prints under an ancient name. Recall is far from complete:
+Testimonia finds a quotation only where its author is named, and Afterlives
+only in Latin.
+
+Together they mark 10,341 lines in 640 editions, quoted from 20,466 passages,
+wherever your library holds both ends. What ships inside the app is a table of
+edition URNs, citation references and character positions, about 600 KB, and
+no text: every word the window shows comes from your own library. Where your
+copy of a passage reads differently from the one a link was found in, the
+quoted words are found again by matching them, and the window says so.
+`tools/QuotationLinks` rebuilds the table from the two searches' output.
 
 ## And the rest
 
@@ -116,27 +166,27 @@ sorts the hits by whether their author came before or after.
 
 **Timeline** — the authors across time; click one to see what they wrote.
 
-<img width="700" alt="TimelineScreenshot" src="https://github.com/user-attachments/assets/6228dab0-7079-4f0d-a3e9-75b5dfac32d2" />
+<img width="800" alt="The author timeline: 292 dated authors, earliest first, with Homer chosen and his Epigrams, Iliad and Odyssey listed beside it" src="docs/images/timeline.png" />
 
 **Stylometric analysis** — authorial fingerprints with Burrows's Delta, saved
 runs and batch comparison. Built as a hobby, with a
 [long note on what it can and cannot tell you](#notes-on-the-stylometry-tool);
 if it's useful to your research I'd like to hear about it.
 
-<img width="700" alt="StylometricsScreenshot" src="https://github.com/user-attachments/assets/d88eb89d-c4d9-4017-b034-ff88e99118bb" />
+<img width="700" alt="Stylometry on Euripides' Rhesus: Burrows's Delta against 1,179 Greek works, its nearest samples from Euripides' Alcestis, Helen and Hippolytus and then Aeschylus's Prometheus Bound, with its word-frequency fingerprint below" src="docs/images/stylometry.png" />
 
 **Myth Network** — a graph of which figures and places co-occur, built from your
 own tags as you read rather than from a fixed dataset. Good for finding rabbit
 holes, and for writers as much as researchers.
 
-<img width="700" alt="MythNetworkScreenshot" src="https://github.com/user-attachments/assets/73e4439b-9932-48ec-b689-8575a5dcef25" />
+<img width="700" alt="The Myth Network for ten tags - Achilles, Hector, Odysseus, Penelope, Ithaca, Aeneas, Dido, Carthage, Troy and Athena - linked by the passages they share, with the passages behind Achilles and Hector listed beside it" src="docs/images/myth-network.png" />
 
 **Translate it yourself** — a workbench for working through a text a passage at
 a time, with the passages either side for context and every word clickable. AI
 help sits beside your work rather than in it, and the published translation
 stays out of reach until you've written something.
 
-<img width="700" alt="MyTranslateWorkbenchScreenshot" src="https://github.com/user-attachments/assets/18a7ff1d-6280-45e8-909b-41cad83f8775" />
+<img width="700" alt="The translation workbench on Odyssey 1.3: the Greek with the lines either side, a crib giving each word's headword and parse, your own translation of the line before, and the published one held back until you write" src="docs/images/translation-workbench.png" />
 
 **Fictional Ancient Reactions** — right-click a work and read the argument its
 first audiences might have had about it, laid out like a group chat you are
@@ -169,7 +219,7 @@ You can add your own as JSON in a `Reactions` folder beside the program — see
 
 **Dark mode**, with a parchment light theme and separate artwork for each.
 
-<img width="700" alt="DarkModeScreenshot" src="https://github.com/user-attachments/assets/20bffceb-a7b0-482e-bf3a-e1e3c1869244" />
+<img width="700" alt="Dark mode: the opening of the Aeneid in Latin beside Theodore C. Williams's translation, with the library in the sidebar" src="docs/images/dark-mode.png" />
 
 </details>
 
@@ -191,6 +241,7 @@ You can add your own as JSON in a `Reactions` folder beside the program — see
 - **Validation bench** — leave-one-out validation, a parameter-stability grid, and controlled perturbation with synthetic contamination and same-author controls. Reports how much contamination the method could detect at all, which is what a null result needs to mean anything. Experiments save with their seed and pool; every table exports to CSV, text or Excel. See [Notes on Burrows's Delta](docs/stylometry-notes.md) for what it can and cannot tell you
 - **Concordance** (KWIC) search across the whole library
 - **Echo Finder** and **Reception Tracker** — find intertextual echoes, and track how a passage gets reused by later authors
+- **Quoted By** — the later passages that quote a line, with each quoter's wording set against the edition's, and a link back from every quotation to the line it quotes. Machine-found links that ship with the app (see [See who quoted a line](#see-who-quoted-a-line))
 - **Cross-Language Echo** — the same idea across languages, for finding where a Latin (or English) passage is reworking a Greek original, or vice versa
 - **Compare** two passages, or two translations of the same work, side by side
 - **Translate it yourself** — a workbench for working through a text one passage at a time, with the passage before and after shown for context, every word clickable for its dictionary headword, grammatical parse and LSJ or Lewis & Short entry, and an alphabet reference for a script you don't read yet. Your translation becomes an edition like any other. AI help is available per word or per passage, but always appears beside your work rather than in it, and the published translation stays out of reach until you've written something
@@ -215,18 +266,26 @@ You can add your own as JSON in a `Reactions` folder beside the program — see
 - **Medieval Nordic manuscripts** — Old Norse, Icelandic, Swedish and Danish texts from the [Medieval Nordic Text Archive](https://www.menota.org), transcribed word by word from the parchment rather than edited into a printed text: Heimskringla, Laxdœla saga, the Codex Wormianus, the Old Norwegian homily book, Vǫluspá in the Codex Regius. A manuscript is a physical object containing whatever was bound into it, so the import shows you what it found in each file and lets you merge, split, retitle or drop works before anything is written
 - **Editor's Notes** — the apparatus of those manuscripts, kept beside the text rather than read as part of it. Manuscript variants carry the adopted reading, the alternative and the witness it came from; editorial notes carry ligatures, scribal corrections, worn passages and missing leaves. A variant collated from another manuscript is not a word of this one, and reading the two together would quietly corrupt every word count and frequency measure built on the text
 - **Fictional Ancient Reactions** — a staged debate about a work, read like a group chat, with period-appropriate critics arguing about what their own age actually cared about. Clearly labelled as fiction everywhere it appears. Invented speakers stand in for the audiences who left nothing in writing; real critics appear under their own name only where their view survives, carry a badge saying so, and every line they speak carries the ancient reference it paraphrases — which is a link into your own library wherever you have the text. The anachronism and citation rules are enforced by tests, not by good intentions. Kept separate from the stylometry and attribution tools on purpose
-- **The Antikythera mechanism** — a bronze dial on the toolbar opens a working simulation of the Greek astronomical calculator pulled off a shipwreck in 1901, as a self-contained page in your browser. Drag the crank and some forty gears turn at the ratios their tooth counts demand, driving the Sun, the Moon and its phase, the Egyptian calendar and zodiac, the Metonic and Saros spirals, and the six planetary rings of the 2021 reconstruction. It draws the difference between evidence and inference rather than smoothing it over: attested lettering brighter than the text we supply, counted wheels solid, reconstructed wheels dimmer, hypothesis as outlines, and the two wheels nobody can explain left connected to nothing. A diversion rather than a research tool, and here because Cicero describes one of these twice — in *De Re Publica* and *De Natura Deorum*, both of which are in this library
+- **The Antikythera mechanism** — the **Instruments** menu opens a working simulation of the Greek astronomical calculator pulled off a shipwreck in 1901, as a self-contained page in your browser. Drag the crank and some forty gears turn at the ratios their tooth counts demand, driving the Sun, the Moon and its phase, the Egyptian calendar and zodiac, the Metonic and Saros spirals, and the six planetary rings of the 2021 reconstruction. It draws the difference between evidence and inference rather than smoothing it over: attested lettering brighter than the text we supply, counted wheels solid, reconstructed wheels dimmer, hypothesis as outlines, and the two wheels nobody can explain left connected to nothing. A diversion rather than a research tool, and here because Cicero describes one of these twice — in *De Re Publica* and *De Natura Deorum*, both of which are in this library
 - **Ptolemy's Cosmos** — the button beside the bronze dial opens the model of the heavens set out in the *Almagest* at Alexandria around AD 150, turning at the rates his own tables give. The Earth at the centre, each planet riding an epicycle whose centre rides a deferent, and between them the thing that broke every earlier model: retrograde motion, where a planet stops, turns back on itself for weeks and then goes on. Every epicycle radius, eccentricity, apogee and mean motion is his, to the six sexagesimal places he wrote them in, and the page prints each one in his notation beside the decimal it became. It also says how wrong the model is and why — including the 1.15° that is not model error at all but his equinox observations running some 28 hours late
 - **Ptolemy's Harmony** — the third of that set, and the only part of this application that makes a sound. A monochord you can drag a bridge along, where the pitch rises as the sounding length falls, and twenty divisions of the tetrachord from Archytas in the fourth century BC to Ptolemy, each one playable. The enharmonic genus is the reason to turn the sound on: its two lowest steps are quarter-tones, and it sounds nothing like a scale. Every note is synthesised from its exact whole-number ratio as it sounds — there are no recordings, because a recording would fix the tuning at whatever its maker believed. **It warns you before it plays anything**, and the page stays silent until you ask it twice, so it can be read and worked through in a quiet room without a note
 - **Dark mode**, with a parchment light theme, and separate artwork for each
 
 ## Getting started
 
-Download the ZIP from [Releases](https://github.com/ClassicaCodex/ClassicaCodex/releases/latest), extract all of it, and run `ClassicaCodex.UI.exe`. Nothing to install, and no developer tools needed.
+Download the ZIP from [Releases](https://github.com/ClassicaCodex/ClassicaCodex/releases/latest), extract all of it, and run `Classica Codex.exe`. Nothing to install, and no developer tools needed: the app carries its own copy of .NET. It needs Windows 10 or later.
 
 Windows will almost certainly stop you the first time with a blue "Windows protected your PC" box. That's SmartScreen, and it appears because the app isn't code-signed. Signing it wouldn't help: since 2024 even an EV certificate no longer buys an automatic SmartScreen pass, so a new release from a small project gets warned about either way until enough people have downloaded it. Click **More info**, then **Run anyway**. Windows remembers, and won't ask again.
 
-Extract the whole archive before running it, not just the `.exe`. The executable carries its own libraries, so run from inside the ZIP — or copied out on its own — it does start, but the icons live in the `Icons` folder beside it, so every toolbar button comes up blank. It says so on startup if that folder isn't there.
+Extract the whole archive before running it, not just the `.exe`. The app is a folder of files, and the executable won't start without the rest of them beside it, so running it from inside the ZIP doesn't work. Put the folder anywhere you can write to, such as your Documents. There is no installer, so to keep it to hand, right-click `Classica Codex.exe` and choose **Pin to Start**.
+
+### Coming from the classic Windows app
+
+Up to 3.16.1 the Windows download was the classic app, `ClassicaCodex.UI.exe`. From 3.17.0 it is the app the Mac and Linux run. The tools are all there, set out differently: the sidebar holds the library and, under **Tools**, every tool the classic toolbar had, and **View → All Tools…** (Ctrl+Shift+T) shows them all at once.
+
+There is nothing to migrate. The new app keeps its settings in `%LOCALAPPDATA%\ClassicaCodex`, the classic app's own folder, so it opens on your library at the passage you left, with your AI keys, text sizes, download folder and light or dark theme. The library is the same file and is not copied.
+
+The keys are the ones you know: **F1** for Help, **Alt+Left** and **Alt+Right** for Back and Forward, **Ctrl+F** to search. The classic app keeps working if you keep its folder, and the two can sit side by side; close one before setting up or updating a library in the other.
 
 ### On a Mac
 
@@ -236,10 +295,11 @@ The app is notarised by Apple, so it opens like any other app. The first time, m
 
 The first window asks for a library. A library built on Windows is one `.db` file, and the Mac opens it as it is: copy it across and choose **Open Library…**. Otherwise choose **Create a New Library…**, and the same setup as on Windows, described below, fills it. The library and settings are kept in `~/Library/Application Support/ClassicaCodex`.
 
-On first launch you go straight into **Guided Setup** — one step at a time,
-plain language, no file paths or repository URLs on screen. **Advanced Setup**,
+On first launch the app asks for a library: choose **Create a New Library…** and
+setup opens. **Guided Setup** takes it one step at a time, in
+plain language, with no file paths or repository URLs on screen. **Advanced Setup**,
 which puts every data source on one screen for pointing at files you already
-have, is available afterwards from Setup Wizard on the main toolbar.
+have, is available afterwards from **File → Setup**.
 
 Take what you want and skip the rest. **If you add a collection later, rebuild
 the word index afterwards** — ingesting does not update it, and until it is
@@ -257,7 +317,7 @@ folder you picked, and on the drive holding `%TEMP%` the compressed clone it is
 extracted from. Leave the downloads where they default to and that is the same
 drive twice. `%TEMP%` itself is not currently movable.
 
-<img width="625" alt="The Guided Setup wizard, one data source per step with a plain-language description of what it is and how long it takes" src="https://github.com/user-attachments/assets/8f6f405a-eebc-44db-a801-0ef0bcfe0a29" />
+<img width="700" alt="Guided Setup on the Ancient Greek Texts step, already loaded, with every step listed down the side and a tick against each one installed" src="docs/images/guided-setup.png" />
 
 ### What to expect the first time
 
@@ -316,6 +376,8 @@ The Greek lemma data is not the only entry above marked **noncommercial** — pa
 
 The AI features are a separate case from all of the above: not a bundled dataset, just an optional connection to a third-party API (Anthropic's Claude or Google's Gemini) that you supply your own key for. Translation is the obvious one, but the research side uses it too — proposing projects, challenging a hypothesis, drafting a synthesis, glossing a word, reading a passage against its parallels. All of it is off until you enter a key, every send is a button you press, and unless you turn the confirmation off each one tells you what is about to leave. Project discovery also queries Crossref (api.crossref.org) for publication metadata, sending only the search terms shown in the editable box. None of it is required to use the app.
 
+The Quoted By links are the one thing that ships inside the app, and they carry no text: a table of edition URNs, citation references and character positions, found by the Testimonia and Afterlives searches over the texts above. The words the Quoted By window shows are read from your own library. See [See who quoted a line](#see-who-quoted-a-line).
+
 ### What Marlowe isn't here
 
 The Renaissance collection is the one place where what you get is noticeably less than the repository contains, and it's worth saying plainly rather than letting you find out by looking for *Doctor Faustus*.
@@ -332,17 +394,17 @@ Shakespeare, Holinshed, Hakluyt, Sidney, James I, Wilson and Peacham are all imp
 
 ## Platform
 
-The Windows app is built on WinForms, which doesn't run elsewhere.
+One app runs on Windows, the Mac and Linux. It lives in [`src/ClassicaCodex.Mac`](src/ClassicaCodex.Mac/README.md), a name left over from when it was only the Mac's, and is built on [Avalonia](https://avaloniaui.net/) over the shared `ClassicaCodex.Core`, `ClassicaCodex.Data` and `ClassicaCodex.Ingestion` libraries. A library built on one system opens on the others. It has been the Windows download since 3.17.0 — see [On Windows](src/ClassicaCodex.Mac/README.md#on-windows) for building the zip — and the Mac release is a preview: see [On a Mac](#on-a-mac). On Linux it is a preview you build yourself for now: see [On Linux](src/ClassicaCodex.Mac/README.md#on-linux).
 
-A Mac app lives in [`src/ClassicaCodex.Mac`](src/ClassicaCodex.Mac/README.md). It shares the same libraries, setup wizard and tools, and has its own design and artwork. Libraries open on both. Its first release is a preview — see [On a Mac](#on-a-mac) — and its README explains how to build the `.app` yourself. The same app runs on Linux too, as a preview you build yourself for now: see [On Linux](src/ClassicaCodex.Mac/README.md#on-linux). It also runs on Windows, beside this one: see [On Windows](src/ClassicaCodex.Mac/README.md#on-windows).
+The classic Windows app, built on WinForms, is in [`src/ClassicaCodex.UI`](src/ClassicaCodex.UI). It was the Windows download up to 3.16.1. It still builds and its tests still run, and `scripts/publish-classic-release.ps1` builds it the way its releases were. [`WINDOWS-PARITY.md`](src/ClassicaCodex.Mac/WINDOWS-PARITY.md) goes through it window by window against the new app.
 
 ### Building from source
 
-Not necessary to use the app — the release ZIP is self-contained. If you want to build it anyway, you'll need the [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0). Clone the repo and either open `ClassicaCodex.sln` in Visual Studio 2026 or later, or run `dotnet build` from the command line. Everything after that is the same setup wizard.
+Not necessary to use the app — the release ZIP is self-contained. If you want to build it anyway, you'll need the [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0). Clone the repo and either open `ClassicaCodex.sln` in Visual Studio 2026 or later, or run `dotnet build` from the command line, and `dotnet run --project src/ClassicaCodex.Mac` starts the app. `src\ClassicaCodex.Mac\packaging\build-windows.ps1` makes the Windows zip, and `scripts/publish-release.ps1` makes both release zips from a clean tree. Everything after that is the same setup wizard.
 
 ### Checking display scaling
 
-If you change anything about how a window is laid out, run this at more than one display scaling:
+If you change anything about how a window of the classic WinForms app is laid out, run this at more than one display scaling:
 
 ```
 dotnet run --project tools/DisplayScalingAudit -c Release
@@ -387,7 +449,7 @@ suspecting.
 
 ## Status
 
-Version 3.16.1.
+Version 3.18.0, which adds Quoted By. Since 3.17.0 the Windows download is the app the Mac and Linux run; up to 3.16.1 it was the classic WinForms app.
 
 Version 1 was a reader. Version 2 made it a searchable, taggable,
 cross-referenced library and added the translation workbench. Version 3 adds the

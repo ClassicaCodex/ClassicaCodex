@@ -41,7 +41,7 @@ internal sealed class BronzeWitnessWindow : FeatureWindow
         MinHeight = 500;
         if (BronzeIcons.Bestiary() is { } icon) Icon = new WindowIcon(icon);
 
-        _passage.Bind(TextBlock.FontFamilyProperty, _passage.GetResourceObservable("Cc.SourceFont"));
+        SteadyLines.SetText(_passage, string.Empty, SteadyLines.Face("Cc.SourceFont"));
 
         var open = new Button
         {
@@ -115,14 +115,14 @@ internal sealed class BronzeWitnessWindow : FeatureWindow
         {
             if (_witness.SelectedIndex < 0 || _edition.SelectedIndex < 0) return;
             SelectedPassage = _sources[_witness.SelectedIndex].Editions[_edition.SelectedIndex];
-            _passage.Text = SelectedPassage.Text;
+            SteadyLines.SetText(_passage, SelectedPassage.Text, SteadyLines.Face("Cc.SourceFont"));
             _citation.Text = $"{SelectedPassage.Author} — {SelectedPassage.Title} {PassageCitation.Display(SelectedPassage.Citation)}\nStored citation: {SelectedPassage.Citation}";
         };
         if (sources.Count > 0) _witness.SelectedIndex = 0;
     }
 
     internal string NoteText => _note.Text ?? string.Empty;
-    internal string PassageText => _passage.Text ?? string.Empty;
+    internal string PassageText => SteadyLines.TextOf(_passage);
     internal string CitationText => _citation.Text ?? string.Empty;
 
     private static void AddPicker(Grid grid, string label, ComboBox box, int row)

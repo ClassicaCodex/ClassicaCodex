@@ -1,8 +1,10 @@
 # Classica Codex for the Mac
 
-The Mac app reads the same libraries as the Windows app, using the same
-setup wizard and the same tools. It has its own window design and artwork.
-A library built on one machine opens on the other: copy the `.db` across,
+This app began as the Mac's, and since 3.17.0 it is the Windows app too, in
+place of the classic WinForms one (see [On Windows](#on-windows)). It reads
+the same libraries the classic app did, using the same setup wizard and the
+same tools, with its own window design and artwork.
+A library built on one machine opens on another: copy the `.db` across,
 or keep it in a folder both machines can reach, and **File → Open
 Library…** finds it.
 
@@ -137,8 +139,8 @@ the tarball's launcher is `classica-codex`.
 
 ## On Windows
 
-The same project runs on Windows, as a preview beside the classic Windows app,
-which stays as it is. There is no release yet. To build a zip on Windows:
+Since 3.17.0 this project is the Windows download, in place of the classic
+WinForms app, which stays in the repository. To build a zip on Windows:
 
 ```
 src\ClassicaCodex.Mac\packaging\build-windows.ps1                    # x64
@@ -151,7 +153,12 @@ If PowerShell refuses to run a script, start it with
 That writes a zip to `src\ClassicaCodex.Mac\bin\windows-app\`. Unzip it
 anywhere and run `Classica Codex.exe`. It carries its own copy of .NET, needs
 Windows 10 or later, and isn't code-signed, so SmartScreen warns about it as it
-does about the classic download.
+did about the classic download.
+
+A release is built with `scripts\publish-release.ps1`, which needs a clean
+tree, builds both architectures through `build-windows.ps1`, stamps the commit
+into the version (`3.17.0+abc1234`), checks the build path stayed out of the
+binaries, and prints the SHA-256 of each zip for the release notes.
 
 It keeps its settings in `%LOCALAPPDATA%\ClassicaCodex`, the classic app's own
 folder, so a reader of that app needs no migration:
@@ -161,15 +168,17 @@ folder, so a reader of that app needs no migration:
 | Used by both, as they stand | the library, the reading position, text sizes, linked panes, hidden node kinds, the favourite collection, the download folder, the voice, category shapes, arcade saves, `errors.log`, `ingest-skipped.log` |
 | API keys | the classic app's `translate-settings.txt`, read and written in its own format, encrypted with DPAPI for the Windows account |
 | This app's own | `mac-settings.json`: appearance, sidebar, window placement |
-| The classic app's own | `theme.txt`, so a dark theme chosen there isn't picked up here, and `layout-cache` |
+| The classic app's own | `theme.txt`, read once when this app first opens, so a dark theme chosen there comes across, and `layout-cache` |
 
 Read Aloud uses Windows' voices through SAPI, PDF export reads the fonts in
 `%WINDIR%\Fonts` and the reader's own fonts folder, and Segoe UI Historic draws
 the ancient scripts. The window draws its own menu bar, with Ctrl in place of
-⌘, and Help and the windows are worded for Windows.
+⌘ and Windows' own F1, Alt+Left and Alt+Right for Help, Back and Forward,
+and Help and the windows are worded for Windows.
 
 [WINDOWS-PARITY.md](WINDOWS-PARITY.md) goes through the classic app window by
-window. Every tool has a counterpart, but a few behaviours don't yet.
+window. Every tool and every behaviour of the main window has a counterpart; a
+few smaller differences remain.
 
 `.github/workflows/windows.yml` runs the tests on Windows, including the
 classic app's own UI tests, then starts the zip on the runner's desktop beside

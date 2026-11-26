@@ -9,7 +9,14 @@ internal static class Program
     {
         AppDomain.CurrentDomain.UnhandledException += (_, e) =>
         {
-            if (e.ExceptionObject is Exception ex) CrashLog.Write(ex, "running (unhandled)");
+            if (e.ExceptionObject is not Exception ex) return;
+
+            CrashLog.Write(ex, "running (unhandled)");
+
+            // A background thread failing outside the UI thread ends the
+            // process whatever is done here. The classic Windows app says so
+            // before it goes, rather than vanishing; this one does too.
+            if (e.IsTerminating && OperatingSystem.IsWindows()) CrashLog.SayClosingOnWindows(ex);
         };
         TaskScheduler.UnobservedTaskException += (_, e) =>
         {

@@ -2,12 +2,14 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Documents;
 using Avalonia.Controls.Templates;
+using Avalonia.Input;
 using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 using ClassicaCodex.Core;
 using ClassicaCodex.Core.Models;
+using ClassicaCodex.Mac.Common;
 using ClassicaCodex.Mac.Platform;
 using ClassicaCodex.UI;
 
@@ -177,6 +179,13 @@ public sealed class ReaderPane : UserControl
     /// <summary>Raised when the passage at the top of the pane changes.</summary>
     public event Action<ReaderPane>? TopChanged;
 
+    /// <summary>
+    /// Raised when the reader clicks quoted words in a passage: the row, and
+    /// every quotation those words belong to - usually one, but two links can
+    /// cover the same words.
+    /// </summary>
+    public event Action<ReaderPane, PassageRow, IReadOnlyList<QuotedSpan>>? QuotationActivated;
+
     public int Count => _rows.Count;
 
     public int SelectedIndex => _list.SelectedIndex;
@@ -184,6 +193,13 @@ public sealed class ReaderPane : UserControl
     public TextNode? SelectedNode => NodeAt(_list.SelectedIndex);
 
     public TextNode? NodeAt(int index) => index >= 0 && index < _rows.Count ? _rows[index].Node : null;
+
+    /// <summary>The marks drawn after the passage at <paramref name="index"/>.</summary>
+    public PassageMarks MarksAt(int index) => index >= 0 && index < _rows.Count ? _rows[index].Marks : PassageMarks.None;
+
+    /// <summary>The quoted words in the passage at <paramref name="index"/>, and where they lead.</summary>
+    public IReadOnlyList<QuotedSpan> QuotationsAt(int index) =>
+        index >= 0 && index < _rows.Count ? _rows[index].Quotations : Array.Empty<QuotedSpan>();
 
     /// <summary>The face this pane reads in before any script-specific font is put in front of it.</summary>
     private FontFamily ReadingFont => (FontFamily)Application.Current!.FindResource(
@@ -229,9 +245,12 @@ public sealed class ReaderPane : UserControl
 
     /// <summary>
     /// Fills the pane with an edition's passages, choosing the script's own
-    /// font and direction from the text itself.
+    /// font and direction from the text itself. <paramref name="quotations"/>
+    /// holds, by node id, the words in a passage that quote an earlier one.
     /// </summary>
-    public void Fill(Edition edition, IReadOnlyList<TextNode> nodes, Dictionary<string, PassageMarks> marks)
+    public void Fill(
+        Edition edition, IReadOnlyList<TextNode> nodes, Dictionary<string, PassageMarks> marks,
+        IReadOnlyDictionary<long, IReadOnlyList<QuotedSpan>>? quotations = null)
     {
         Edition = edition;
         _roleLabel.Text = RoleLabelFor(Role, edition);
@@ -248,7 +267,10 @@ public sealed class ReaderPane : UserControl
         {
             var node = nodes[i];
             var margin = CitationMargin.MarkFor(node, previousLine);
-            var row = new PassageRow(node, i, margin);
+            var row = new PassageRow(node, i, margin)
+            {
+                Quotations = quotations != null && quotations.TryGetValue(node.TextNodeId, out var quoted) ? quoted : Array.Empty<QuotedSpan>()
+            };
             if (marks.TryGetValue(node.CitationRef, out var mark)) row.Marks = mark;
             rows.Add(row);
 
@@ -299,11 +321,31 @@ public sealed class ReaderPane : UserControl
         UpdateReference();
     }
 
+    /// <summary>
+    /// Brings a passage into view, scrolling as little as it can when the
+    /// passage is near, and by <see cref="ScrollToTop"/> when it is not.
+    /// </summary>
     public void EnsureVisible(int index)
     {
         if (index < 0 || index >= _rows.Count) return;
-        _list.ScrollIntoView(index);
+
+        if (IsNearDrawn(index)) _list.ScrollIntoView(index);
+        else ScrollToTop(index);
     }
+
+    /// <summary>
+    /// Within a screen or so of the passages drawn now. The list's own
+    /// ScrollIntoView draws every passage between here and there, which costs
+    /// nothing for the next one and five seconds for one fifteen thousand
+    /// passages away; a jump that far goes by offset instead.
+    /// </summary>
+    private bool IsNearDrawn(int index)
+    {
+        var drawn = _list.GetRealizedContainers().Select(c => _list.IndexFromContainer(c)).Where(i => i >= 0).ToList();
+        return drawn.Count > 0 && index >= drawn.Min() - NearRows && index <= drawn.Max() + NearRows;
+    }
+
+    private const int NearRows = 40;
 
     /// <summary>
     /// The first passage whose row reaches into the visible area - what the
@@ -341,27 +383,64 @@ public sealed class ReaderPane : UserControl
     /// now on screen corrects the guess and moves the passage. A prose
     /// translation whose paragraphs differ in length by a factor of ten
     /// landed thirty passages short of the Greek on the first pass. Each pass
-    /// measures what the last one revealed, and three settle it.
+    /// measures what the last one revealed.
+    ///
+    /// A passage far from the ones drawn is reached by setting the offset,
+    /// not by the list's ScrollIntoView. That draws every passage on the way:
+    /// 37,000 of them to reach the middle of the Iliad scholia and come back,
+    /// which took six seconds, and Livy's last chapter took thirty-eight with
+    /// both pages following. Setting the offset draws only what lands on
+    /// screen, so the distance left is estimated from the passages drawn
+    /// there, and the next pass looks again.
     /// </remarks>
     public void ScrollToTop(int index)
     {
         if (_scroller == null || index < 0 || index >= _rows.Count) return;
 
-        for (var pass = 0; pass < 4; pass++)
+        for (var pass = 0; pass < 10; pass++)
         {
-            _list.ScrollIntoView(index);
             _list.UpdateLayout();
 
-            if (_list.ContainerFromIndex(index) is not { } container) return;
-            var position = container.TranslatePoint(new Point(0, 0), _scroller);
-            if (position == null) return;
+            double distance;
+            if (_list.ContainerFromIndex(index) is { } container)
+            {
+                if (container.TranslatePoint(new Point(0, 0), _scroller) is not { } position) return;
+                distance = position.Y - TopInset;
+                if (Math.Abs(distance) < 1) return;
+            }
+            else if (IsNearDrawn(index) || !TryEstimateDistance(index, out distance))
+            {
+                _list.ScrollIntoView(index);
+                continue;
+            }
 
-            var error = position.Value.Y - TopInset;
-            if (Math.Abs(error) < 1) return;
+            var before = _scroller.Offset.Y;
+            _scroller.Offset = new Vector(_scroller.Offset.X, Math.Max(0, before + distance));
 
-            _scroller.Offset = new Vector(_scroller.Offset.X, Math.Max(0, _scroller.Offset.Y + error));
-            _list.UpdateLayout();
+            // At the end of the text the last passages cannot reach the top.
+            if (Math.Abs(_scroller.Offset.Y - before) < 0.5) return;
         }
+    }
+
+    /// <summary>
+    /// How far down the page <paramref name="index"/> starts, reckoned from
+    /// the first passage drawn and the average height of those drawn.
+    /// </summary>
+    private bool TryEstimateDistance(int index, out double distance)
+    {
+        distance = 0;
+        var drawn = _list.GetRealizedContainers()
+            .Select(c => (Index: _list.IndexFromContainer(c), Control: c))
+            .Where(d => d.Index >= 0 && d.Control.Bounds.Height > 0)
+            .ToList();
+        if (drawn.Count == 0) return false;
+
+        var first = drawn.MinBy(d => d.Index);
+        if (first.Control.TranslatePoint(new Point(0, 0), _scroller!) is not { } top) return false;
+
+        var average = drawn.Average(d => d.Control.Bounds.Height);
+        distance = top.Y + (index - first.Index) * average - TopInset;
+        return true;
     }
 
     /// <summary>The citation of the selected passage, as the footer shows it.</summary>
@@ -427,11 +506,28 @@ public sealed class ReaderPane : UserControl
             VerticalAlignment = VerticalAlignment.Top
         };
 
-        var body = new Run(row.Node.Text);
+        // The reading face goes on the runs, because the block's own face is
+        // the one its lines are measured from: see SteadyLines below. Words
+        // that quote an earlier passage are a run of their own, underlined.
+        var segments = QuotationSegments(row.Node.Text, row.Quotations);
+        var at = 0;
+        foreach (var segment in segments)
+        {
+            if (segment.Start > at) text.Inlines!.Add(new Run(row.Node.Text[at..segment.Start]) { FontFamily = _list.FontFamily });
+            text.Inlines!.Add(new Run(row.Node.Text[segment.Start..segment.End])
+            {
+                FontFamily = _list.FontFamily,
+                TextDecorations = QuotedUnderline(text)
+            });
+            at = segment.End;
+        }
+
+        if (at < row.Node.Text.Length || segments.Count == 0)
+            text.Inlines!.Add(new Run(row.Node.Text[at..]) { FontFamily = _list.FontFamily });
+
         var marks = new Run { FontFamily = FontFamily.Default, FontSize = 12, BaselineAlignment = BaselineAlignment.Center };
         marks.Bind(TextElement.ForegroundProperty, text.GetResourceObservable("Cc.Accent"));
-        text.Inlines!.Add(body);
-        text.Inlines.Add(marks);
+        text.Inlines!.Add(marks);
 
         void ShowMarks() => marks.Text = row.Marks == PassageMarks.None ? string.Empty : "  " + PassageMarkSymbols.Suffix(row.Marks).Trim();
         ShowMarks();
@@ -483,12 +579,21 @@ public sealed class ReaderPane : UserControl
             text.Bind(TextBlock.ForegroundProperty, text.GetResourceObservable("Cc.InkMuted"));
         }
 
-        text.LineHeight = (text.FontSize > 0 && !double.IsNaN(text.FontSize) ? text.FontSize : FontSizeDip) * 1.38;
+        // The row is not in the list yet, so a size it inherits from the pane
+        // reads as Avalonia's default of 12 here. Asked that way, every line
+        // was 16.6 high whatever the reader's text size: at 12pt, lines barely
+        // a hair apart. Only a speaker or a heading sets a size of its own.
+        var size = text.IsSet(TextBlock.FontSizeProperty) ? text.FontSize : FontSizeDip;
+        text.LineHeight = size * 1.38;
 
-        ToolTip.SetTip(text, TooltipFor(row.Node));
+        // A Greek line holding an elision mark, which Palatino Linotype lacks,
+        // otherwise drops into the line below it on Windows.
+        SteadyLines.Steady(text, _list.FontFamily, size);
+
+        ToolTip.SetTip(text, TooltipFor(row.Node, row.Quotations));
         ToolTip.SetShowDelay(text, 900);
 
-        if (!_showCitationMargin) return new Border { Padding = new Thickness(10, 2), Child = text };
+        if (!_showCitationMargin) return Wrap(text, new Thickness(10, 2));
 
         var margin = new TextBlock
         {
@@ -506,12 +611,129 @@ public sealed class ReaderPane : UserControl
         Grid.SetColumn(text, 1);
         grid.Children.Add(margin);
         grid.Children.Add(text);
-        return new Border { Padding = new Thickness(2, 2, 10, 2), Child = grid };
+        return Wrap(grid, new Thickness(2, 2, 10, 2));
+
+        // A background, even a clear one, so a press anywhere on the row
+        // reaches the row before the list item that holds it.
+        Control Wrap(Control child, Thickness padding)
+        {
+            var border = new Border { Padding = padding, Child = child, Background = Brushes.Transparent };
+            if (segments.Count > 0) HookQuotations(border, text, row, segments);
+            return border;
+        }
     }
 
-    private static string TooltipFor(TextNode node)
+    /// <summary>
+    /// The pointer over quoted words shows a hand, and a click on them goes
+    /// to the line they quote. On the press, not the release: the list item
+    /// may take the pointer on the press to select the row, and the release
+    /// then never reaches the row. The jump waits until the press has
+    /// selected the row, so the quoting passage is where Back returns to.
+    /// </summary>
+    private void HookQuotations(Border border, TextBlock text, PassageRow row, IReadOnlyList<QuotationSegment> segments)
+    {
+        border.PointerMoved += (_, e) =>
+            border.Cursor = SegmentAt(text, e.GetPosition(text), segments) != null ? HandCursor.Value : null;
+        border.PointerExited += (_, _) => border.Cursor = null;
+        border.PointerPressed += (_, e) =>
+        {
+            if (e.ClickCount != 1 || e.KeyModifiers != KeyModifiers.None) return;
+            if (!e.GetCurrentPoint(text).Properties.IsLeftButtonPressed) return;
+            if (SegmentAt(text, e.GetPosition(text), segments) is not { } segment) return;
+
+            Dispatcher.UIThread.Post(() => QuotationActivated?.Invoke(this, row, segment.Spans));
+        };
+    }
+
+    private static readonly Lazy<Cursor> HandCursor = new(() => new Cursor(StandardCursorType.Hand));
+
+    /// <summary>
+    /// The quoted stretch under the pointer, if any. Asked of each stretch's
+    /// own rectangles rather than of the layout's point test, which reports a
+    /// point on the second line of a wrapped passage as outside the text
+    /// whenever the line is set taller than its font - as every reader line is.
+    /// </summary>
+    private static QuotationSegment? SegmentAt(TextBlock text, Point point, IReadOnlyList<QuotationSegment> segments)
+    {
+        var layout = text.TextLayout;
+        foreach (var segment in segments)
+        foreach (var rect in layout.HitTestTextRange(segment.Start, segment.End - segment.Start))
+            if (rect.Inflate(new Thickness(0, 2)).Contains(point)) return segment;
+
+        return null;
+    }
+
+    /// <summary>
+    /// Clicks the quoted words at <paramref name="characterIndex"/> in the
+    /// passage at <paramref name="index"/>, as a press on them would - for the
+    /// tests, which cannot always aim a pointer at a word.
+    /// </summary>
+    internal bool ActivateQuotation(int index, int characterIndex)
+    {
+        if (index < 0 || index >= _rows.Count) return false;
+
+        var row = _rows[index];
+        foreach (var segment in QuotationSegments(row.Node.Text, row.Quotations))
+        {
+            if (characterIndex < segment.Start || characterIndex >= segment.End) continue;
+            QuotationActivated?.Invoke(this, row, segment.Spans);
+            return true;
+        }
+
+        return false;
+    }
+
+    /// <summary>A stretch of quoted words, and every quotation it belongs to.</summary>
+    internal readonly record struct QuotationSegment(int Start, int End, IReadOnlyList<QuotedSpan> Spans);
+
+    /// <summary>
+    /// The quoted stretches of a passage, overlapping quotations merged into
+    /// one: two links found through two names often cover nearly the same
+    /// words, and two underlines that half overlap read as neither. Positions
+    /// that do not fit the text are left out rather than trusted.
+    /// </summary>
+    internal static List<QuotationSegment> QuotationSegments(string text, IReadOnlyList<QuotedSpan> spans)
+    {
+        var segments = new List<QuotationSegment>();
+        foreach (var span in spans.Where(s => s.Start >= 0 && s.End <= text.Length && s.Start < s.End).OrderBy(s => s.Start))
+        {
+            if (segments.Count > 0 && span.Start < segments[^1].End)
+            {
+                var last = segments[^1];
+                segments[^1] = new QuotationSegment(last.Start, Math.Max(last.End, span.End), last.Spans.Append(span).ToList());
+            }
+            else
+            {
+                segments.Add(new QuotationSegment(span.Start, span.End, new List<QuotedSpan> { span }));
+            }
+        }
+
+        return segments;
+    }
+
+    /// <summary>A thin underline in the accent colour, for words that quote an earlier passage.</summary>
+    private static TextDecorationCollection QuotedUnderline(TextBlock owner)
+    {
+        var line = new TextDecoration
+        {
+            Location = TextDecorationLocation.Underline,
+            StrokeThickness = 1,
+            StrokeThicknessUnit = TextDecorationUnit.Pixel,
+            StrokeOffset = 2,
+            StrokeOffsetUnit = TextDecorationUnit.Pixel
+        };
+        line.Bind(TextDecoration.StrokeProperty, owner.GetResourceObservable("Cc.Accent"));
+        return new TextDecorationCollection { line };
+    }
+
+    private static string TooltipFor(TextNode node, IReadOnlyList<QuotedSpan> quotations)
     {
         var citation = PassageCitation.Bracketed(node.CitationRef, node.Milestone);
-        return node.IsAthetized ? citation + " - bracketed by the editor as probably not authentic" : citation;
+        var tip = node.IsAthetized ? citation + " - bracketed by the editor as probably not authentic" : citation;
+        if (quotations.Count == 0) return tip;
+
+        var quoted = quotations.Select(q => q.Label).Distinct(StringComparer.Ordinal).ToList();
+        var named = string.Join("; ", quoted.Take(3)) + (quoted.Count > 3 ? $"; and {quoted.Count - 3} more" : string.Empty);
+        return $"{tip}\nQuotes {named} - found by machine. Click the underlined words to go there.";
     }
 }

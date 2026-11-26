@@ -39,6 +39,14 @@ public static class DbConnectionFactory
         if (remember) SavePathPreference(databasePath);
     }
 
+    /// <summary>
+    /// Points at no database, as on a first run, for a library that was
+    /// configured and then could not be opened. The remembered path is left
+    /// as it is: the file is still the reader's library, and the next launch
+    /// should try it again.
+    /// </summary>
+    public static void Forget() => _databasePath = null;
+
     /// <summary>Where a database lands if the user never picks anywhere else.</summary>
     public static string DefaultDatabasePath => Path.Combine(PreferencesFolder.Root, "classicacodex.db");
 
@@ -173,19 +181,35 @@ public static class DbConnectionFactory
     public static async Task<SqliteConnection> OpenConnectionAsync(CancellationToken cancellationToken = default)
     {
         var conn = CreateConnection();
-        await conn.OpenAsync(cancellationToken);
 
-        await using (var pragmaCmd = conn.CreateCommand())
+        try
         {
-            pragmaCmd.CommandText =
-                "PRAGMA foreign_keys = ON; " +
-                "PRAGMA journal_mode = WAL; " +
-                "PRAGMA synchronous = NORMAL; " +
-                "PRAGMA temp_store = MEMORY; " +
-                "PRAGMA cache_size = -64000;";
-            await pragmaCmd.ExecuteNonQueryAsync(cancellationToken);
-        }
+            await conn.OpenAsync(cancellationToken);
 
-        return conn;
+            await using (var pragmaCmd = conn.CreateCommand())
+            {
+                pragmaCmd.CommandText =
+                    "PRAGMA foreign_keys = ON; " +
+                    "PRAGMA journal_mode = WAL; " +
+                    "PRAGMA synchronous = NORMAL; " +
+                    "PRAGMA temp_store = MEMORY; " +
+                    "PRAGMA cache_size = -64000;";
+                await pragmaCmd.ExecuteNonQueryAsync(cancellationToken);
+            }
+
+            return conn;
+        }
+        catch
+        {
+            // A file that is not a database opens, and fails at the first
+            // statement. Left undisposed, the connection held the file open
+            // until the garbage collector got to it, so the reader could not
+            // move, replace or delete their damaged library while the app was
+            // running. Cleared from the pool as well, since a disposed
+            // connection otherwise waits there with the file still open.
+            SqliteConnection.ClearPool(conn);
+            await conn.DisposeAsync();
+            throw;
+        }
     }
 }

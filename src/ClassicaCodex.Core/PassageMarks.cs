@@ -14,7 +14,14 @@ public enum PassageMarks
     None = 0,
     Inquiry = 1,
     Tag = 2,
-    Bookmark = 4
+    Bookmark = 4,
+
+    /// <summary>
+    /// A later author quotes this passage - a machine-found link from the
+    /// shipped quotation table, not something the reader recorded. See
+    /// ClassicaCodex.Core.Quotations.QuotationIndex.
+    /// </summary>
+    QuotedBy = 8
 }
 
 /// <summary>
@@ -31,12 +38,19 @@ public enum PassageMarks
 /// looks the same wherever it appears, and so the run never ends on the
 /// question mark, which trailing a sentence would read as punctuation rather
 /// than as a mark.
+///
+/// The fourth, an opening quotation mark, says a later author quotes the
+/// line. It comes last because it is the only one the reader did not make,
+/// and an opening rather than a closing mark so that it cannot be read as the
+/// end of a quotation in the text: nothing opens a quotation after the last
+/// word of a line.
 /// </summary>
 public static class PassageMarkSymbols
 {
     public const string Inquiry = "?";
     public const string Tag = "#";
     public const string Bookmark = "★";
+    public const string QuotedBy = "“";
 
     /// <summary>
     /// What to append to a line, including its leading gap, or an empty string
@@ -51,10 +65,11 @@ public static class PassageMarkSymbols
     {
         if (marks == PassageMarks.None) return string.Empty;
 
-        var symbols = new List<string>(3);
+        var symbols = new List<string>(4);
         if (marks.HasFlag(PassageMarks.Inquiry)) symbols.Add(Inquiry);
         if (marks.HasFlag(PassageMarks.Tag)) symbols.Add(Tag);
         if (marks.HasFlag(PassageMarks.Bookmark)) symbols.Add(Bookmark);
+        if (marks.HasFlag(PassageMarks.QuotedBy)) symbols.Add(QuotedBy);
 
         return "   " + string.Join(" ", symbols);
     }

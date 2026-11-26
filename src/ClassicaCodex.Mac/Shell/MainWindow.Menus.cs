@@ -23,6 +23,7 @@ using ClassicaCodex.Mac.Features.MedievalHands;
 using ClassicaCodex.Mac.Features.Morphology;
 using ClassicaCodex.Mac.Features.MythNetwork;
 using ClassicaCodex.Mac.Features.PlacesMap;
+using ClassicaCodex.Mac.Features.QuotedBy;
 using ClassicaCodex.Mac.Features.Reactions;
 using ClassicaCodex.Mac.Features.Research;
 using ClassicaCodex.Mac.Features.Search;
@@ -192,6 +193,15 @@ public partial class MainWindow
         menu.Items.Add(Item("Find Cross-Language Echo…", "CrossLanguage", p => EchoFeature.CrossLanguageAsync(this, p)));
         menu.Items.Add(Item("Reception History…", "Reception", p => { EchoFeature.ReceptionHistory(this, p); return Task.CompletedTask; }));
 
+        // The two ends of a machine-found quotation: the later passages that
+        // quote this line, and the earlier line this passage quotes. Each
+        // shown only on a line that has one, which the “ mark and the
+        // underline already say.
+        var quotedBy = Item("Quoted By…", "Quotes", p => QuotedByFeature.OpenAsync(this, p));
+        var quotes = new MenuItem { Header = "Go to Quoted Passage", Icon = Glyphs.Icon("Quotes", 14) };
+        menu.Items.Add(quotedBy);
+        menu.Items.Add(quotes);
+
         var reactions = Item("Fictional Ancient Reactions…", "Reactions", _ =>
         {
             if (_openWork != null) ReactionsFeature.Open(this, _openWork, Sidebar.AuthorNameFor(_openWork));
@@ -267,6 +277,10 @@ public partial class MainWindow
             viewOnline.IsVisible = page != null;
             if (page != null) viewOnline.Header = $"View on {page.Host}…";
             margin.IsChecked = CitationMarginSettings.Enabled;
+            quotedBy.IsVisible = pane.MarksAt(pane.SelectedIndex).HasFlag(PassageMarks.QuotedBy);
+            quotes.Items.Clear();
+            foreach (var item in QuotedSourceItems(DistinctSources(pane.QuotationsAt(pane.SelectedIndex)))) quotes.Items.Add(item);
+            quotes.IsVisible = quotes.Items.Count > 0;
             readAloud.IsVisible = SpeechService.IsAvailable;
             stopReading.IsVisible = SpeechService.IsAvailable && SpeechService.IsSpeaking;
             BuildKindMenu(show, pane);
@@ -461,6 +475,17 @@ public partial class MainWindow
         KeyBindings.Add(new KeyBinding { Gesture = item.Gesture, Command = new MenuKey(action, () => item.IsEnabled) });
     }
 
+    /// <summary>
+    /// A second key for a menu command, which the menu has no room to show.
+    /// Like the item's own key, it does nothing while the item is greyed out.
+    /// </summary>
+    private void AlsoKey(string gesture, NativeMenuItem? item, Action action) =>
+        KeyBindings.Add(new KeyBinding
+        {
+            Gesture = KeyGesture.Parse(gesture),
+            Command = new MenuKey(action, () => item?.IsEnabled ?? true)
+        });
+
     private sealed class MenuKey(Action action, Func<bool> enabled) : ICommand
     {
         public event EventHandler? CanExecuteChanged { add { } remove { } }
@@ -555,8 +580,19 @@ public partial class MainWindow
                 Command("Parchment (Light)", () => ApplyAppearance(AppearanceChoice.Light)),
                 Command("Lamplight (Dark)", () => ApplyAppearance(AppearanceChoice.Dark)))));
 
-        _backItem = Command("Back", () => _ = GoHistoryAsync(-1), $"{cmd}+OemOpenBrackets");
-        _forwardItem = Command("Forward", () => _ = GoHistoryAsync(1), $"{cmd}+OemCloseBrackets");
+        // Windows has its own keys for these, which the classic app answers
+        // and every browser does: Alt+Left and Alt+Right, and F1 for Help.
+        // The menu shows those there, and the Ctrl keys go on working beside
+        // them for anyone who learned this app on a Mac.
+        var windows = OperatingSystem.IsWindows();
+        _backItem = Command("Back", () => _ = GoHistoryAsync(-1), windows ? "Alt+Left" : $"{cmd}+OemOpenBrackets");
+        _forwardItem = Command("Forward", () => _ = GoHistoryAsync(1), windows ? "Alt+Right" : $"{cmd}+OemCloseBrackets");
+        if (windows)
+        {
+            AlsoKey("Ctrl+OemOpenBrackets", _backItem, () => _ = GoHistoryAsync(-1));
+            AlsoKey("Ctrl+OemCloseBrackets", _forwardItem, () => _ = GoHistoryAsync(1));
+            AlsoKey("Ctrl+Shift+OemQuestion", null, () => OpenTool("help"));
+        }
         bar.Add(Submenu("Go",
             _backItem,
             _forwardItem,
@@ -596,7 +632,7 @@ public partial class MainWindow
             Tool("harmonics")));
 
         bar.Add(Submenu("Help",
-            Command("Classica Codex Help", () => OpenTool("help"), $"{cmd}+Shift+OemQuestion"),
+            Command("Classica Codex Help", () => OpenTool("help"), windows ? "F1" : $"{cmd}+Shift+OemQuestion"),
             Tool("starting-points"),
             new NativeMenuItemSeparator(),
             Command("About Classica Codex", () => OpenTool("about"))));

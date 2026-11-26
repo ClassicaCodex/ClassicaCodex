@@ -338,11 +338,11 @@ public class LexicalTests
     [AvaloniaFact]
     public void Lexicon_entries_are_reflowed_into_prose_with_a_paragraph_per_sense()
     {
-        var reflowed = WordStudyWindow.Reflow("mh=nis ,\nDor.\nand\nAeol.\nma=n- , h( , gen.\nA.\nmh/nios\n, later");
+        var reflowed = ClassicaCodex.Core.LexiconEntryText.Reflow("mh=nis ,\nDor.\nand\nAeol.\nma=n- , h( , gen.\nA.\nmh/nios\n, later");
         Assert.Equal("mh=nis , Dor. and Aeol. ma=n- , h( , gen.\n\nA. mh/nios , later", reflowed);
 
         Assert.Equal("căno , cĕcĭni (ancient\n\nI. imp. cante\n\nII. Act.",
-            WordStudyWindow.Reflow("căno , cĕcĭni (ancient\nI. imp. cante\nII. Act."));
+            ClassicaCodex.Core.LexiconEntryText.Reflow("căno , cĕcĭni (ancient\nI. imp. cante\nII. Act."));
     }
 
     private static async Task<MainWindow?> OpenLibraryAsync()

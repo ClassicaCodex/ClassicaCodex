@@ -461,6 +461,11 @@ public sealed class MorphologyWindow : FeatureWindow
         var font = ScriptFonts.Compose(_readingFont, ScriptFonts.FamilyFor(r.Text));
         PassageText.AddHighlighted(text, PassageText.RowText(r.Text), w => w == matched, font, 14.5);
 
+        // Every run names its face and size, so the block's are only what its
+        // lines are measured from: the passage's size, steadied.
+        text.FontSize = 14.5;
+        SteadyLines.Steady(text, font);
+
         ToolTip.SetTip(text, $"{PassageCitation.Bracketed(r.CitationRef, r.Milestone)}   {r.Tag}");
         ToolTip.SetShowDelay(text, 700);
         return text;

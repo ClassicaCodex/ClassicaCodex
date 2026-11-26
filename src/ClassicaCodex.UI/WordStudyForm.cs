@@ -664,13 +664,9 @@ public class WordStudyForm : ScaledForm
             {
                 if (sb.Length > 0) sb.AppendLine().AppendLine(new string('-', 40)).AppendLine();
 
-                // LSJ stores its entry bodies in Beta Code, same as its
-                // headwords - the Greek has to be decoded to Unicode or the
-                // definition reads as "sunair-esiw/ths , ou , o(". Only the
-                // Greek is touched; the English glosses interleaved with it
-                // are left alone. Latin (Lewis & Short) bodies are already
-                // Latin script and pass through untouched.
-                var body = language == "grc" ? BetaCodeConverter.ConvertMixed(entry) : entry;
+                // LSJ's Beta Code decoded to Greek letters, as the workbench
+                // does for the same entries.
+                var body = LexiconEntryText.Decode(entry, language);
 
                 sb.Append(entryHeadword);
                 if (!string.IsNullOrEmpty(source)) sb.Append("   [").Append(source).Append(']');
