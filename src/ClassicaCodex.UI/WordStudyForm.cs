@@ -666,7 +666,7 @@ public class WordStudyForm : ScaledForm
 
                 // LSJ's Beta Code decoded to Greek letters, as the workbench
                 // does for the same entries.
-                var body = LexiconEntryText.Decode(entry, language);
+                var body = ClassicaCodex.Core.Lexicon.LexiconCitationMarkup.Plain(LexiconEntryText.Decode(entry, language));
 
                 sb.Append(entryHeadword);
                 if (!string.IsNullOrEmpty(source)) sb.Append("   [").Append(source).Append(']');

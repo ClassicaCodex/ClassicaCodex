@@ -21,7 +21,14 @@ public enum PassageMarks
     /// shipped quotation table, not something the reader recorded. See
     /// ClassicaCodex.Core.Quotations.QuotationIndex.
     /// </summary>
-    QuotedBy = 8
+    QuotedBy = 8,
+
+    /// <summary>
+    /// LSJ or Lewis and Short cites this passage - read from the dictionaries'
+    /// own citations, in the library's citations table. See
+    /// ClassicaCodex.Core.Lexicon.PassageIndex for how a citation finds its line.
+    /// </summary>
+    Dictionary = 16
 }
 
 /// <summary>
@@ -44,6 +51,10 @@ public enum PassageMarks
 /// and an opening rather than a closing mark so that it cannot be read as the
 /// end of a quotation in the text: nothing opens a quotation after the last
 /// word of a line.
+///
+/// The fifth, a section sign, says a dictionary cites the line: the mark a
+/// reference work puts beside what it refers to, and in every font. It comes
+/// after the quotation mark, the other one the reader did not make.
 /// </summary>
 public static class PassageMarkSymbols
 {
@@ -51,6 +62,7 @@ public static class PassageMarkSymbols
     public const string Tag = "#";
     public const string Bookmark = "★";
     public const string QuotedBy = "“";
+    public const string Dictionary = "§";
 
     /// <summary>
     /// What to append to a line, including its leading gap, or an empty string
@@ -65,11 +77,12 @@ public static class PassageMarkSymbols
     {
         if (marks == PassageMarks.None) return string.Empty;
 
-        var symbols = new List<string>(4);
+        var symbols = new List<string>(5);
         if (marks.HasFlag(PassageMarks.Inquiry)) symbols.Add(Inquiry);
         if (marks.HasFlag(PassageMarks.Tag)) symbols.Add(Tag);
         if (marks.HasFlag(PassageMarks.Bookmark)) symbols.Add(Bookmark);
         if (marks.HasFlag(PassageMarks.QuotedBy)) symbols.Add(QuotedBy);
+        if (marks.HasFlag(PassageMarks.Dictionary)) symbols.Add(Dictionary);
 
         return "   " + string.Join(" ", symbols);
     }

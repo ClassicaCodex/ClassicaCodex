@@ -84,12 +84,20 @@ Marks at the end of a line
    #  it carries at least one tag
    ★  it is bookmarked
    “  a later author quotes it (see Quoted By, below)
+   §  LSJ or Lewis & Short cites it (see Cited in the Dictionaries, below)
 
    All three appear together, in that order, on a line that has all three. A line tagged five times still shows one #: the mark says there is something recorded here, not how much.
 
    They are drawn, not stored - copying, exporting or searching a line gives you the text and nothing else, the same way an athetized line is shown in italic rather than by putting brackets into the words. Three plain characters rather than icons, in the accent colour - the same three the Windows app draws, so a line marked on either machine reads the same on both.
 
-   The fourth, “, is not yours: it comes from the quotation links that ship with the app, and comes last.
+   The fourth, “, is not yours: it comes from the quotation links that ship with the app, and comes last. Nor is the fifth, §, which comes from the dictionaries' own citations.
+
+Cited in the Dictionaries
+   A line LSJ or Lewis & Short cites carries a § at its end. Right-click it and choose Cited in the Dictionaries to see the entries that cite it: the headword, the sense it is cited under, and the words the entry prints before the citation - usually the phrase it quotes and the meaning it gives it - with the whole entry a click further. Read down the list and it is a lexicographer's commentary on the line.
+
+   The citations are the dictionaries' own, as the Perseus Digital Library marked them up. Each is matched to a line by its reference, and the dictionaries and the library's editions number many works differently: of 40 matched citations read against the passages they open, 37 opened the one the dictionary quotes, and the other three a section or chapter away, where the edition divides the text differently. Where the dictionary cites a chapter, the chapter's first line is the one marked. Citations to works your library does not hold, or numbers no edition in it follows (Plautus by act, scene and line; Aristotle by Bekker page where the edition has none), mark nothing.
+
+   The dictionaries loaded before this version kept no citations. Run the Dictionaries step in Setup again to get them.
 
 Quoted By
    A line later authors quote carries a “ at its end. Right-click it and choose Quoted By to see the quoting passages, earliest author first: each quoter's wording set against the edition's, with the words that differ marked, and Go to Passage to read the quotation where it stands. Back returns to the line.
@@ -113,6 +121,7 @@ Right-click (or Control-click) a line for:
    Find Cross-Language Echo - the same idea across languages (see Translate)
    Reception History - the same, split into earlier and later authors
    Quoted By - the later passages that quote this line, on a line marked “
+   Cited in the Dictionaries - the LSJ and Lewis & Short entries that cite this line, on a line marked §
    Go to Quoted Passage - the earlier line this passage quotes, on a passage with underlined words
    Fictional Ancient Reactions - the argument a work's first audiences might have had, staged and labelled as fiction, for the works that have one
    Translate - look up, generate, or listen to an English rendering of the line
@@ -356,6 +365,8 @@ Occurrences start scoped to the work you are reading, because the corpus-wide co
 You'll get the dictionary headwords that form could come from (sometimes more than one - that ambiguity is real and worth seeing rather than having it guessed away), the full paradigm of attested forms, the dictionary entry itself, and every occurrence across the corpus.
 
 Dictionary entries come from Liddell-Scott-Jones for Greek and Lewis & Short for Latin. Load them from Setup if you haven't.
+
+Each entry keeps its citations where the dictionary printed them, set back in a smaller, fainter face so the definition reads first. A citation in the accent colour opens a passage of your library: hover it to see the line, click it to go there - the window stays open for the next one, and Back in the reader returns to where you were. A citation in grey names a work or a numbering your library does not have, and is shown as printed. Dictionaries loaded before this version kept no citations; run the Dictionaries step in Setup again to add them.
 """),
 
         ("Analysis tools", """

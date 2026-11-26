@@ -187,7 +187,7 @@ public class EditionRepository
     /// One mapper because they must agree: an ordinal corrected in one and
     /// missed in the other reads every field after it out of the wrong column.
     /// </summary>
-    private static Edition Read(System.Data.Common.DbDataReader reader) => new()
+    internal static Edition Read(System.Data.Common.DbDataReader reader) => new()
     {
         EditionId = reader.GetInt32(0),
         WorkId = reader.GetInt32(1),

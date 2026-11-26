@@ -15,6 +15,7 @@ using ClassicaCodex.Mac.Features.Arcade;
 using ClassicaCodex.Mac.Features.Bookmarks;
 using ClassicaCodex.Mac.Features.Compare;
 using ClassicaCodex.Mac.Features.Concordance;
+using ClassicaCodex.Mac.Features.DictionaryCitations;
 using ClassicaCodex.Mac.Features.Echoes;
 using ClassicaCodex.Mac.Features.Export;
 using ClassicaCodex.Mac.Features.Help;
@@ -202,6 +203,11 @@ public partial class MainWindow
         menu.Items.Add(quotedBy);
         menu.Items.Add(quotes);
 
+        // The dictionary entries that cite the line, on a line marked §.
+        var citedIn = Item("Cited in the Dictionaries…", "WordStudy",
+            p => DictionaryCitationsFeature.OpenAsync(this, p, DictionaryCitationsAt(pane, p.Node)));
+        menu.Items.Add(citedIn);
+
         var reactions = Item("Fictional Ancient Reactions…", "Reactions", _ =>
         {
             if (_openWork != null) ReactionsFeature.Open(this, _openWork, Sidebar.AuthorNameFor(_openWork));
@@ -278,6 +284,7 @@ public partial class MainWindow
             if (page != null) viewOnline.Header = $"View on {page.Host}…";
             margin.IsChecked = CitationMarginSettings.Enabled;
             quotedBy.IsVisible = pane.MarksAt(pane.SelectedIndex).HasFlag(PassageMarks.QuotedBy);
+            citedIn.IsVisible = pane.MarksAt(pane.SelectedIndex).HasFlag(PassageMarks.Dictionary);
             quotes.Items.Clear();
             foreach (var item in QuotedSourceItems(DistinctSources(pane.QuotationsAt(pane.SelectedIndex)))) quotes.Items.Add(item);
             quotes.IsVisible = quotes.Items.Count > 0;

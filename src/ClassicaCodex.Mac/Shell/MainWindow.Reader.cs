@@ -25,6 +25,14 @@ public partial class MainWindow
     private readonly EditionRepository _editionRepo = new();
     private readonly TextNodeRepository _textNodeRepo = new();
     private readonly PassageMarkRepository _passageMarkRepo = new();
+    private readonly LexiconCitationRepository _lexiconCitationRepo = new();
+
+    /// <summary>
+    /// The dictionary citations each pane's edition receives, by citation
+    /// reference: what the § mark stands for, and what Cited in the
+    /// Dictionaries lists.
+    /// </summary>
+    private readonly Dictionary<ReaderPane, IReadOnlyDictionary<string, IReadOnlyList<long>>> _paneDictionaryCitations = new();
 
     // Only ever asked whether a pane's edition has anything to offer, when
     // that edition loads - see ReaderPaneCapabilities.
@@ -417,10 +425,7 @@ public partial class MainWindow
             .SelectMany(g => g)
             .ToHashSet();
 
-        var ordered = editions
-            .OrderBy(EditionLabels.Descriptor, StringComparer.OrdinalIgnoreCase)
-            .ThenBy(e => e.CtsUrn, StringComparer.OrdinalIgnoreCase)
-            .ToList();
+        var ordered = ReaderEditionOrder.Ordered(editions);
 
         var options = ordered
             .Select(e => new EditionOption(e, BuildEditionLabel(
@@ -548,6 +553,7 @@ public partial class MainWindow
         _paneSource[pane] = (edition, emptyMessage);
         _paneKinds[pane] = new List<string>();
         _prefaces[pane] = null;
+        _paneDictionaryCitations[pane] = new Dictionary<string, IReadOnlyList<long>>();
 
         // Reset for the same reason as the preface: an edition that offers
         // less than the last one must not inherit its menu.
@@ -592,6 +598,13 @@ public partial class MainWindow
                 return;
             }
 
+            // Matched against every passage of the edition, as Word Study
+            // matches a citation, so the two agree on which line is cited.
+            var cited = await DictionaryCitationsAsync(edition, nodes);
+            if (_paneFillGeneration[pane] != generation) return;
+            _paneDictionaryCitations[pane] = cited;
+            AddDictionaryMarks(marks, cited);
+
             // A translator's preface has nothing opposite it in the original,
             // so it is held back and offered from the page's menu.
             var prefaceNodes = nodes.Where(IsPrefaceNode).ToList();
@@ -625,6 +638,46 @@ public partial class MainWindow
             pane.ShowMessage($"Couldn't load this edition: {ex.Message}", edition);
         }
     }
+
+    /// <summary>
+    /// The dictionary citations of an edition's lines, by citation reference.
+    /// Empty, rather than an error, for a library whose dictionaries were
+    /// loaded before their citations were kept.
+    /// </summary>
+    private async Task<IReadOnlyDictionary<string, IReadOnlyList<long>>> DictionaryCitationsAsync(Edition edition, IReadOnlyList<TextNode> nodes)
+    {
+        var byReference = new Dictionary<string, IReadOnlyList<long>>(StringComparer.Ordinal);
+
+        // A mark, not the text: if the citations cannot be read, the edition
+        // still opens, unmarked, rather than not at all.
+        IReadOnlyDictionary<long, IReadOnlyList<long>> byNode;
+        try
+        {
+            byNode = await Task.Run(() => _lexiconCitationRepo.CitationsByPassageAsync(
+                edition, nodes.Select(n => (n.TextNodeId, n.CitationRef, n.Milestone)).ToList()));
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            return byReference;
+        }
+
+        foreach (var node in nodes)
+            if (byNode.TryGetValue(node.TextNodeId, out var ids)) byReference[node.CitationRef] = ids;
+        return byReference;
+    }
+
+    /// <summary>Adds the § mark to every line a dictionary cites. Drawn from the citations, not recorded, so added again whenever the marks are re-read.</summary>
+    private static void AddDictionaryMarks(Dictionary<string, PassageMarks> marks, IReadOnlyDictionary<string, IReadOnlyList<long>> cited)
+    {
+        foreach (var reference in cited.Keys)
+            marks[reference] = (marks.TryGetValue(reference, out var existing) ? existing : PassageMarks.None) | PassageMarks.Dictionary;
+    }
+
+    /// <summary>The dictionary citations of one line in a pane, for Cited in the Dictionaries.</summary>
+    internal IReadOnlyList<long> DictionaryCitationsAt(ReaderPane pane, TextNode node) =>
+        _paneDictionaryCitations.TryGetValue(pane, out var cited) && cited.TryGetValue(node.CitationRef, out var ids)
+            ? ids
+            : Array.Empty<long>();
 
     /// <summary>
     /// Adds the “ mark to every line of the edition that a later passage
@@ -757,6 +810,7 @@ public partial class MainWindow
             if (source.Edition == null) continue;
             var marks = await _passageMarkRepo.GetForEditionAsync(source.Edition.EditionId, source.Edition.CtsUrn);
             AddQuotedByMarks(marks, QuotationIndex.Current, source.Edition);
+            if (_paneDictionaryCitations.TryGetValue(pane, out var cited)) AddDictionaryMarks(marks, cited);
             pane.SetPassageMarks(marks);
         }
     }

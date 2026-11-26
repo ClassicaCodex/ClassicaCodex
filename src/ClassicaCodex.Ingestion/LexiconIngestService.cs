@@ -2,6 +2,7 @@ using System.Text;
 using System.Xml;
 using System.Xml.Linq;
 using ClassicaCodex.Core;
+using ClassicaCodex.Core.Lexicon;
 using ClassicaCodex.Core.Models;
 using ClassicaCodex.Data.Repositories;
 
@@ -33,14 +34,21 @@ public class LexiconIngestService
     private static readonly string[] HeadwordAttributeNames = { "key", "sortkey", "n" };
     private static readonly string[] HeadwordElementNames = { "orth" };
 
-    // Markup that shouldn't end up in the readable entry text.
-    private static readonly string[] SkipElementNames = { "bibl", "biblscope", "title", "author" };
+    // Markup that shouldn't end up in the readable entry text: an author or
+    // title standing outside a citation. Inside one they are part of what the
+    // citation prints, and a citation is kept whole - see AppendText.
+    private static readonly string[] SkipElementNames = { "biblscope", "title", "author" };
 
     // Perseus lexicon filenames pack language and lexicon into dotted /
     // hyphenated tokens: grc.lsj.perseus-eng3.xml, lat.ls.perseus-eng1.xml.
     private static readonly char[] TokenSeparators = { '.', '-', '_', ' ' };
 
-    private const int MaxEntryLength = 20000;
+    // Counted in what a reader sees - the text and each citation as printed,
+    // not the passages the citations name. Twice the old cap, which counted a
+    // text with no citations in it: with them, 30 of LSJ's and Lewis and
+    // Short's 268,084 rows are cut, where 91 were before - the article, logos
+    // and the rest that were always too long.
+    private const int MaxEntryLength = 40000;
 
     /// <param name="path">Folder or single file to ingest lexicon entries from.</param>
     /// <param name="fallbackLanguage">
@@ -209,6 +217,25 @@ public class LexiconIngestService
     private static IEnumerable<Definition> ExtractFromFile(
         string path, string language, string sourceName, CancellationToken cancellationToken)
     {
+        foreach (var entry in ReadEntryElements(path, cancellationToken))
+        foreach (var definition in BuildDefinitions(entry, language, sourceName))
+            yield return definition;
+    }
+
+    /// <summary>
+    /// Every entry element of one lexicon file, with the language and lexicon
+    /// the file belongs to - the raw TEI, for the tool that measures the
+    /// citations against a library and has to see what each one quotes.
+    /// </summary>
+    public static IEnumerable<(XElement Entry, string Language, string Source)> ReadEntryElements(
+        string file, string fallbackLanguage, string fallbackSource, CancellationToken cancellationToken = default)
+    {
+        var (language, source) = DetectLanguageAndSource(file, fallbackLanguage, fallbackSource);
+        foreach (var entry in ReadEntryElements(file, cancellationToken)) yield return (entry, language, source);
+    }
+
+    private static IEnumerable<XElement> ReadEntryElements(string path, CancellationToken cancellationToken)
+    {
         var tempPath = Path.Combine(Path.GetTempPath(), $"classicacodex-lex-{Guid.NewGuid():N}.xml");
 
         try
@@ -242,10 +269,7 @@ public class LexiconIngestService
                     continue; // one bad entry shouldn't end the file
                 }
 
-                foreach (var definition in BuildDefinitions(entry, language, sourceName))
-                {
-                    yield return definition;
-                }
+                yield return entry;
             }
         }
         finally
@@ -325,10 +349,20 @@ public class LexiconIngestService
 
     private static IEnumerable<Definition> BuildDefinitions(XElement entry, string language, string sourceName)
     {
-        var text = FlattenEntry(entry);
-        if (string.IsNullOrWhiteSpace(text)) yield break;
+        var (text, citations) = FlattenEntry(entry, language);
+        if (string.IsNullOrWhiteSpace(LexiconCitationMarkup.Plain(text))) yield break;
 
-        if (text.Length > MaxEntryLength) text = text[..MaxEntryLength] + "...";
+        var (cut, kept) = LexiconCitationMarkup.Truncate(text, MaxEntryLength);
+        if (cut.Length != text.Length)
+        {
+            text = cut;
+            citations = citations.Where(c => c.Ordinal < kept).ToList();
+        }
+
+        // The citations go with the first row only: the others are the same
+        // entry under another spelling, and the passages it cites should list
+        // it once.
+        var first = true;
 
         var seenKeys = new HashSet<string>(StringComparer.Ordinal);
         var isGreek = string.Equals(language, "grc", StringComparison.OrdinalIgnoreCase);
@@ -353,8 +387,10 @@ public class LexiconIngestService
                 NormalizedHeadword = normalized,
                 Language = language,
                 Entry = text,
-                Source = sourceName
+                Source = sourceName,
+                Citations = first ? citations : Array.Empty<LexiconCitation>()
             };
+            first = false;
         }
     }
 
@@ -405,20 +441,46 @@ public class LexiconIngestService
     }
 
     /// <summary>
-    /// Flattens an entry's markup into readable text, dropping the citation
-    /// apparatus. A full lexicon entry is dense with references to ancient
-    /// sources; keeping them would bury the actual definition, and the app
-    /// already has its own way of finding passages.
+    /// Flattens an entry's markup into readable text, with its citations kept
+    /// in place and marked off (see <see cref="LexiconCitationMarkup"/>), and
+    /// the citations that name a passage listed for the citations table.
+    ///
+    /// They used to be dropped, on the reasoning that a lexicon entry is dense
+    /// with references and they would bury the definition. That left Word
+    /// Study quoting Greek and Latin without saying where from, which to a
+    /// classicist makes the entry look broken; the citations are what LSJ and
+    /// Lewis and Short are for. Word Study sets them back in a smaller, fainter
+    /// face instead, so the definition still reads first.
     /// </summary>
-    private static string FlattenEntry(XElement entry)
+    public static (string Text, List<LexiconCitation> Citations) FlattenEntry(XElement entry, string language)
     {
-        var sb = new StringBuilder();
-        AppendText(entry, sb);
-        return CollapseWhitespace(sb.ToString());
+        var state = new FlattenState(new LexiconCitationReader(language));
+        AppendText(entry, state, senseDepth: 0);
+        return (CollapseWhitespace(state.Text.ToString()), state.Citations);
     }
 
-    private static void AppendText(XElement element, StringBuilder sb)
+    private sealed class FlattenState(LexiconCitationReader reader)
     {
+        public StringBuilder Text { get; } = new();
+        public LexiconCitationReader Reader { get; } = reader;
+        public List<LexiconCitation> Citations { get; } = new();
+        public SortedDictionary<int, string> Senses { get; } = new();
+        public int Ordinal { get; set; }
+
+        /// <summary>The sense being read, as the dictionary numbers it: "A.II.2". Null before the first.</summary>
+        public string? Sense
+        {
+            get
+            {
+                var path = string.Join('.', Senses.Values.Where(v => v.Length > 0));
+                return path.Length > 0 ? path : null;
+            }
+        }
+    }
+
+    private static void AppendText(XElement element, FlattenState state, int senseDepth)
+    {
+        var sb = state.Text;
         foreach (var node in element.Nodes())
         {
             switch (node)
@@ -428,18 +490,44 @@ public class LexiconIngestService
                     break;
 
                 case XElement child:
-                    if (SkipElementNames.Contains(child.Name.LocalName, StringComparer.OrdinalIgnoreCase)) continue;
+                    var name = child.Name.LocalName;
+
+                    // A citation, whole: what it prints, and the passage it
+                    // names where it names one that can be trusted.
+                    if (string.Equals(name, "bibl", StringComparison.OrdinalIgnoreCase))
+                    {
+                        var label = LexiconCitationReader.Label(child);
+                        if (label.Length == 0) continue;
+
+                        var target = state.Reader.Read(child);
+                        if (target != null) state.Citations.Add(new LexiconCitation(state.Ordinal, target, state.Sense));
+                        state.Ordinal++;
+                        sb.Append(LexiconCitationMarkup.Write(target, label)).Append(' ');
+                        continue;
+                    }
+
+                    if (SkipElementNames.Contains(name, StringComparer.OrdinalIgnoreCase)) continue;
 
                     // Start a new line at each numbered sense so long
                     // entries stay readable instead of running together.
-                    if (string.Equals(child.Name.LocalName, "sense", StringComparison.OrdinalIgnoreCase))
+                    if (string.Equals(name, "sense", StringComparison.OrdinalIgnoreCase))
                     {
-                        var n = child.Attribute("n")?.Value;
+                        var n = child.Attribute("n")?.Value?.Trim() ?? string.Empty;
                         sb.AppendLine();
-                        if (!string.IsNullOrWhiteSpace(n)) sb.Append(n).Append(". ");
+                        if (n.Length > 0) sb.Append(n).Append(". ");
+
+                        // LSJ and Lewis and Short set their senses side by
+                        // side and say how deep each is in @level; nesting is
+                        // the fallback for a dictionary that nests instead.
+                        var level = int.TryParse(child.Attribute("level")?.Value, out var stated) ? stated : senseDepth + 1;
+                        foreach (var deeper in state.Senses.Keys.Where(k => k >= level).ToList()) state.Senses.Remove(deeper);
+                        state.Senses[level] = n;
+
+                        AppendText(child, state, level);
+                        continue;
                     }
 
-                    AppendText(child, sb);
+                    AppendText(child, state, senseDepth);
                     break;
             }
         }

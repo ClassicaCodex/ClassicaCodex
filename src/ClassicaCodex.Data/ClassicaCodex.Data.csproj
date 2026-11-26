@@ -38,6 +38,7 @@
 
   <ItemGroup>
     <InternalsVisibleTo Include="ClassicaCodex.Mac.Tests" />
+    <InternalsVisibleTo Include="ClassicaCodex.Data.Tests" />
   </ItemGroup>
 
 </Project>
