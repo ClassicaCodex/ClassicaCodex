@@ -258,6 +258,60 @@ public class TranslationTests : IClassFixture<TranslationTestLibrary>
     }
 
     [AvaloniaFact]
+    public async Task Workbench_shows_LSJ_entries_in_Greek_letters_as_prose()
+    {
+        if (await OpenReaderAsync() is not { } window) return;
+
+        var work = WorkTitled(window, "Iliad");
+        Assert.True(await window.OpenWorkAsync(work.WorkId));
+        await Screens.Settle(4);
+
+        var host = new RecordingHost(window);
+        var opening = TranslationFeature.OpenWorkbenchAsync(host, work);
+        await Screens.Settle(4);
+
+        var prompt = window.OwnedWindows.Single(w => w.Title == "Translate This Work");
+        prompt.GetVisualDescendants().OfType<TextBox>().Single().Text = "Iliad draft";
+        Click(prompt.GetVisualDescendants().OfType<Button>().Single(b => b.Content as string == "Save"));
+        await opening;
+        await Screens.Settle(6);
+
+        var workbench = TranslationFeature.WorkbenchFor(work.WorkId)!;
+        Assert.NotNull(workbench);
+        Assert.Equal(0, workbench.Index);
+
+        // μῆνιν, the first word of the poem. LSJ stores the entry as
+        // "mh=nis ,\nDor.\nand\nAeol." - Beta Code, broken at every TEI
+        // element - and the workbench printed it so.
+        workbench.WordList.SelectedIndex = 0;
+        await Screens.Settle(6);
+        var menis = workbench.ReferenceText;
+        Assert.StartsWith("μῆνιν", menis);
+        Assert.Contains("μῆνις ,", menis);
+        Assert.Contains("wrath", menis);
+        Assert.Contains("Dor. and Aeol.", menis);
+        Assert.DoesNotContain("mh=nis", menis);
+        Assert.DoesNotContain("mh/nios", menis);
+
+        // πολλὰς in the third line, under πολύς: "polu/s , Att. pollh/, polu/".
+        await workbench.MoveAsync(1);
+        await workbench.MoveAsync(1);
+        Assert.Equal(2, workbench.Index);
+        workbench.WordList.SelectedIndex = 0;
+        await Screens.Settle(6);
+        var polus = workbench.ReferenceText;
+        Assert.StartsWith("πολλὰς", polus);
+        Assert.Contains("πολύς , Att. πολλή, πολύ;", polus);
+        Assert.DoesNotContain("polu/s", polus);
+        Assert.DoesNotContain("pollh/", polus);
+        await Photograph(workbench, "translation-workbench-lsj");
+
+        workbench.Close();
+        await Screens.Settle(4);
+        window.Close();
+    }
+
+    [AvaloniaFact]
     public async Task Workbench_asks_which_original_when_there_is_more_than_one()
     {
         if (await OpenReaderAsync() is not { } window) return;
