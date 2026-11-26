@@ -1325,12 +1325,16 @@ public static class SchemaInitializer
             @"ALTER TABLE TextNodes ADD COLUMN IsVerse INTEGER NOT NULL DEFAULT 0;"
         },
 
-        // The dictionaries' citations, one row for each citation in an LSJ or
-        // Lewis and Short entry that names a passage: the entry it is in and
-        // its place there, the work, edition and reference it names, and the
-        // sense it was printed under. It is what lets the reader mark a line
-        // LSJ cites and list the entries that cite it, a lookup by work the
-        // entries' own text cannot answer. Word Study does not need it: an
+        // From migration 36 on, the entries run newest first, each under its own
+        // comment: add the next one at the top of this run. The order on the page
+        // does not matter - EnsureSchemaAsync applies them by number.
+
+        // v42: the dictionaries' citations, one row for each citation in an
+        // LSJ or Lewis and Short entry that names a passage: the entry it is
+        // in and its place there, the work, edition and reference it names,
+        // and the sense it was printed under. It is what lets the reader mark
+        // a line LSJ cites and list the entries that cite it, a lookup by work
+        // the entries' own text cannot answer. Word Study does not need it: an
         // entry carries its citations in its text.
         //
         // Empty until the dictionary step is run again, since the entries
@@ -1341,84 +1345,7 @@ public static class SchemaInitializer
             LexiconCitationsIndexDdl
         },
 
-        // v36: store the word index once instead of twice.
-        //
-        // See WordIndexTableDdl for the measurements. The short version is that
-        // the old shape kept every (word, line) pair in the table's rowid
-        // B-tree AND again in a covering index that was the only thing ever
-        // read - 1,054 MB where 474 MB does the same work.
-        //
-        // Dropped and recreated empty rather than copied across. The word index
-        // is pure derived data with nothing of the reader's in it, rebuilt from
-        // the corpus by one pass of the Setup Wizard, and copying 26 million
-        // rows into a new table would need room for both at once - on a
-        // database this size that is the one migration step likeliest to run a
-        // disk out of space.
-        //
-        // The cost is that search falls back to its no-index path until the
-        // index is rebuilt, which is slower and loses accent-insensitivity but
-        // is never wrong. SetupWizardForm already compares indexed lines
-        // against total lines and says when the index needs building, so an
-        // upgraded library reports itself as needing exactly what it needs.
-        // Four Patrologia Latina catalogue files carry a trailing space inside
-        // the urn attribute, upstream - stoa0096.stoa003, stoa0104p.stoa002,
-        // stoa0201d.stoa001 and stoa0223.stoa001, and no other file in any
-        // collection. A work's URN is its identity, so a stray space does not
-        // make an untidy work, it makes a second one: the same text listed
-        // twice in the library, one copy holding the edition and one empty,
-        // with nothing on screen to say why. Three of the four collided with
-        // the CSEL entry for the same text, which is where the empty
-        // "Carmina" and "Ad Vigilium" under Paulinus and Pseudo-Cyprian came
-        // from.
-        //
-        // The readers trim now, so new imports are clean, and the upsert trims
-        // as well so no future reader can undo that. Neither helps a library
-        // that already has the duplicates: the bad row keeps its edition, so
-        // nothing revisits it and it stays forever. Hence a repair.
-        //
-        // Editions move to the surviving twin first, then the emptied
-        // duplicate goes, then anything left with no twin is simply trimmed.
-        // That order matters - trimming first would collide with the twin on
-        // the unique index and take the whole migration down with it.
-        // Stephanus and Bekker pagination, which the parser used to discard
-        // with the <milestone/> that carried it. Beside CitationRef rather
-        // than replacing it: a citation is an identity here - bookmarks, tags,
-        // apparatus and bilingual pairing all resolve through
-        // (EditionId, CitationRef) - and several passages legitimately share
-        // one Stephanus section, so a reference a reader cites by cannot also
-        // be the key a bookmark holds.
-        //
-        // The column arrives empty and fills on the next ingest of a text that
-        // has the markers. Nothing else needs it, and no other work changes.
-        // Whether a setup step FINISHED, which is not the same question as
-        // whether it put anything in the library - and the wizard was asking
-        // the second while answering the first. A step reported "Already
-        // loaded." as soon as one edition carried its collection name, so an
-        // ingest cancelled twenty minutes into ninety, or killed by a closed
-        // lid, came back the next day green and done. The reader then had a
-        // fifth of a corpus and no way to tell, until they searched for a
-        // passage they knew was in Perseus and it was not there.
-        //
-        // Back-filled from what is already here, deliberately. An existing
-        // library is a library someone has been using; reporting all of its
-        // steps as unfinished on first launch of this version would be a
-        // worse lie than the one being fixed, and would send them to re-run
-        // a ninety-minute download they do not need.
-        // Research projects pointing at a work that is no longer there.
-        //
-        // Migration 37 merged each trailing-space duplicate work onto its twin and
-        // deleted it - with foreign keys off, as every migration runs, so the
-        // ON DELETE SET NULL that would have detached a project on that row never
-        // fired. The project kept a dead WorkId, and since re-adoption only looks
-        // for a NULL, the Research Bench never listed it again; a later work given
-        // the same id would have inherited it. Migration 31 had also copied the
-        // spaced URN into WorkCtsUrn, so the identity it would reattach by was the
-        // one that no longer existed either.
-        //
-        // Repaired by identity, not by guessing: trim the URN, then move a dangling
-        // project to the work that carries it, or to NULL where none does, so it
-        // reattaches when that work is installed. Both statements are idempotent.
-        // Saved stylometry runs that recorded samples as their pool size.
+        // v41: Saved stylometry runs that recorded samples as their pool size.
         //
         // A run saved its pool as its neighbour count plus the target. With
         // sampling on, every neighbour is a sample, so a run on the Faust Book
@@ -1439,6 +1366,20 @@ public static class SchemaInitializer
                WHERE ChunkSize > 0;"
         },
 
+        // v40: Research projects pointing at a work that is no longer there.
+        //
+        // Migration 37 merged each trailing-space duplicate work onto its twin and
+        // deleted it - with foreign keys off, as every migration runs, so the
+        // ON DELETE SET NULL that would have detached a project on that row never
+        // fired. The project kept a dead WorkId, and since re-adoption only looks
+        // for a NULL, the Research Bench never listed it again; a later work given
+        // the same id would have inherited it. Migration 31 had also copied the
+        // spaced URN into WorkCtsUrn, so the identity it would reattach by was the
+        // one that no longer existed either.
+        //
+        // Repaired by identity, not by guessing: trim the URN, then move a dangling
+        // project to the work that carries it, or to NULL where none does, so it
+        // reattaches when that work is installed. Both statements are idempotent.
         [40] = new[]
         {
             "UPDATE ResearchProjects SET WorkCtsUrn = TRIM(WorkCtsUrn) WHERE WorkCtsUrn <> TRIM(WorkCtsUrn);",
@@ -1449,6 +1390,22 @@ public static class SchemaInitializer
                  AND NOT EXISTS (SELECT 1 FROM Works w WHERE w.WorkId = ResearchProjects.WorkId);"
         },
 
+        // v39: whether a setup step finished.
+        //
+        // Whether a setup step FINISHED, which is not the same question as
+        // whether it put anything in the library - and the wizard was asking
+        // the second while answering the first. A step reported "Already
+        // loaded." as soon as one edition carried its collection name, so an
+        // ingest cancelled twenty minutes into ninety, or killed by a closed
+        // lid, came back the next day green and done. The reader then had a
+        // fifth of a corpus and no way to tell, until they searched for a
+        // passage they knew was in Perseus and it was not there.
+        //
+        // Back-filled from what is already here, deliberately. An existing
+        // library is a library someone has been using; reporting all of its
+        // steps as unfinished on first launch of this version would be a
+        // worse lie than the one being fixed, and would send them to re-run
+        // a ninety-minute download they do not need.
         [39] = new[]
         {
             @"CREATE TABLE IF NOT EXISTS CollectionCompletions (
@@ -1462,11 +1419,45 @@ public static class SchemaInitializer
                   WHERE Collection IS NOT NULL AND TRIM(Collection) <> '';"
         },
 
+        // v38: Stephanus and Bekker pagination.
+        //
+        // Stephanus and Bekker pagination, which the parser used to discard
+        // with the <milestone/> that carried it. Beside CitationRef rather
+        // than replacing it: a citation is an identity here - bookmarks, tags,
+        // apparatus and bilingual pairing all resolve through
+        // (EditionId, CitationRef) - and several passages legitimately share
+        // one Stephanus section, so a reference a reader cites by cannot also
+        // be the key a bookmark holds.
+        //
+        // The column arrives empty and fills on the next ingest of a text that
+        // has the markers. Nothing else needs it, and no other work changes.
         [38] = new[]
         {
             "ALTER TABLE TextNodes ADD COLUMN Milestone TEXT NULL;"
         },
 
+        // v37: works split in two by a trailing space in their URN.
+        //
+        // Four Patrologia Latina catalogue files carry a trailing space inside
+        // the urn attribute, upstream - stoa0096.stoa003, stoa0104p.stoa002,
+        // stoa0201d.stoa001 and stoa0223.stoa001, and no other file in any
+        // collection. A work's URN is its identity, so a stray space does not
+        // make an untidy work, it makes a second one: the same text listed
+        // twice in the library, one copy holding the edition and one empty,
+        // with nothing on screen to say why. Three of the four collided with
+        // the CSEL entry for the same text, which is where the empty
+        // "Carmina" and "Ad Vigilium" under Paulinus and Pseudo-Cyprian came
+        // from.
+        //
+        // The readers trim now, so new imports are clean, and the upsert trims
+        // as well so no future reader can undo that. Neither helps a library
+        // that already has the duplicates: the bad row keeps its edition, so
+        // nothing revisits it and it stays forever. Hence a repair.
+        //
+        // Editions move to the surviving twin first, then the emptied
+        // duplicate goes, then anything left with no twin is simply trimmed.
+        // That order matters - trimming first would collide with the twin on
+        // the unique index and take the whole migration down with it.
         [37] = new[]
         {
             @"UPDATE Editions
@@ -1497,6 +1488,25 @@ public static class SchemaInitializer
             "  AND NOT EXISTS (SELECT 1 FROM Editions t WHERE t.CtsUrn = TRIM(Editions.CtsUrn) AND t.EditionId <> Editions.EditionId);"
         },
 
+        // v36: store the word index once instead of twice.
+        //
+        // See WordIndexTableDdl for the measurements. The short version is that
+        // the old shape kept every (word, line) pair in the table's rowid
+        // B-tree AND again in a covering index that was the only thing ever
+        // read - 1,054 MB where 474 MB does the same work.
+        //
+        // Dropped and recreated empty rather than copied across. The word index
+        // is pure derived data with nothing of the reader's in it, rebuilt from
+        // the corpus by one pass of the Setup Wizard, and copying 26 million
+        // rows into a new table would need room for both at once - on a
+        // database this size that is the one migration step likeliest to run a
+        // disk out of space.
+        //
+        // The cost is that search falls back to its no-index path until the
+        // index is rebuilt, which is slower and loses accent-insensitivity but
+        // is never wrong. SetupWizardForm already compares indexed lines
+        // against total lines and says when the index needs building, so an
+        // upgraded library reports itself as needing exactly what it needs.
         [36] = new[]
         {
             "DROP INDEX IF EXISTS IX_WordIndex_Word;",
