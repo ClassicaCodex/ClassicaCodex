@@ -76,6 +76,38 @@ public static class CrashLog
     }
 
     /// <summary>
+    /// The classic Windows app's last word when a background thread fails and
+    /// the runtime is about to end the process. Shown by Windows itself, on
+    /// the failing thread, because by now the UI thread may be the thing that
+    /// is stuck, and an Avalonia window waits on it.
+    /// </summary>
+    [System.Runtime.Versioning.SupportedOSPlatform("windows")]
+    public static void SayClosingOnWindows(Exception ex)
+    {
+        try
+        {
+            var inner = ex;
+            while (inner.InnerException != null) inner = inner.InnerException;
+
+            var message = "Classica Codex hit an error it can't recover from and has to close.\n\n"
+                + inner.Message + "\n\n"
+                + "Details were written to:\n" + LogFile + "\n\n"
+                + "If this keeps happening, please report it with that file attached at " + ProjectLinks.Issues;
+
+            MessageBoxW(IntPtr.Zero, message, "Classica Codex - closing", MbOk | MbIconError | MbSetForeground | MbTopMost);
+        }
+        catch (Exception)
+        {
+            // The log is already written; there is nothing sensible left to try.
+        }
+    }
+
+    private const uint MbOk = 0x0, MbIconError = 0x10, MbSetForeground = 0x10000, MbTopMost = 0x40000;
+
+    [System.Runtime.InteropServices.DllImport("user32.dll", CharSet = System.Runtime.InteropServices.CharSet.Unicode)]
+    private static extern int MessageBoxW(IntPtr owner, string text, string caption, uint type);
+
+    /// <summary>
     /// Said in full on Windows, where the log is the one the Windows app
     /// writes to, so that a report shows which of the two it came from.
     /// </summary>

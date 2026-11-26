@@ -1,4 +1,5 @@
 using Avalonia.Controls;
+using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
 using Avalonia.VisualTree;
 using ClassicaCodex.Data;
@@ -92,6 +93,72 @@ public class ReaderBehaviourTests
         await Screens.Settle(8);
 
         Assert.Equal(agamemnon.WorkId, window.OpenWork?.WorkId);
+        window.Close();
+    }
+
+    /// <summary>
+    /// A jump far into a long work draws what lands on screen, not every
+    /// passage on the way: the list's own ScrollIntoView drew 37,000 rows to
+    /// reach the middle of the Iliad scholia and back, which took six seconds.
+    /// Counted rather than timed, so a slow machine cannot fail it.
+    /// </summary>
+    [AvaloniaFact]
+    public async Task A_far_jump_draws_only_what_lands_on_screen()
+    {
+        if (await OpenSampleAsync() is not { } window) return;
+
+        var iliad = window.LibraryWorks.First(w => w.Title == "Iliad");
+        Assert.True(await window.OpenWorkAsync(iliad.WorkId));
+        await Screens.Settle(6);
+
+        var original = Panes(window).Single(p => p.Role == PaneRole.Original);
+        Assert.True(original.Count > 10000, $"the Iliad has {original.Count} lines");
+
+        var drawn = 0;
+        foreach (var pane in Panes(window)) pane.List.ContainerPrepared += (_, _) => drawn++;
+
+        foreach (var target in new[] { original.Count - 1, original.Count / 2, original.Count / 3, 0 })
+        {
+            original.ScrollToTop(target);
+            await Screens.Settle(4);
+            if (target < original.Count - 40) Assert.Equal(target, original.TopIndex);
+        }
+
+        Assert.True(drawn < 1500, $"{drawn} rows drawn for four jumps");
+        window.Close();
+    }
+
+    /// <summary>
+    /// Alt+Left with the reader's own list focused - the list reads Left
+    /// itself, so this is the case where the key could fail to arrive.
+    /// </summary>
+    [AvaloniaFact]
+    public async Task On_Windows_Alt_Left_goes_back_from_inside_the_reader()
+    {
+        if (!OperatingSystem.IsWindows()) return;
+        if (await OpenSampleAsync() is not { } window) return;
+
+        var agamemnon = window.LibraryWorks.First(w => w.Title.Contains("Agamemnon"));
+        var aeneid = window.LibraryWorks.First(w => w.Title.Contains("Aeneid"));
+        Assert.True(await window.OpenWorkAsync(agamemnon.WorkId));
+        await Screens.Settle(6);
+        var latin = (await new EditionRepository().GetByWorkAsync(aeneid.WorkId)).First(e => e.Language == "lat");
+        var line = (await new TextNodeRepository().GetByEditionAsync(latin.EditionId))[100];
+        await window.NavigateToPassageAsync(aeneid.WorkId, line.TextNodeId);
+        await Screens.Settle(8);
+        Assert.Equal(aeneid.WorkId, window.OpenWork?.WorkId);
+
+        var original = Panes(window).Single(p => p.Role == PaneRole.Original);
+        original.List.Focus();
+        await Screens.Settle(2);
+        window.KeyPress(Avalonia.Input.Key.Left, Avalonia.Input.RawInputModifiers.Alt, Avalonia.Input.PhysicalKey.ArrowLeft, null);
+        await Screens.Settle(8);
+
+        Assert.Equal(agamemnon.WorkId, window.OpenWork?.WorkId);
+
+        window.KeyPress(Avalonia.Input.Key.Right, Avalonia.Input.RawInputModifiers.Alt, Avalonia.Input.PhysicalKey.ArrowRight, null);
+        await Screens.Settle(8);
+        Assert.Equal(aeneid.WorkId, window.OpenWork?.WorkId);
         window.Close();
     }
 }

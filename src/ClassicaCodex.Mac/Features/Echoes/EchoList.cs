@@ -94,13 +94,12 @@ internal static class EchoUi
     {
         var block = new TextBlock
         {
-            Text = text,
-            FontFamily = ScriptFonts.Compose(readingFont, ScriptFonts.FamilyFor(text)),
             FontSize = size,
             TextWrapping = TextWrapping.Wrap,
             LineHeight = size * 1.34,
             FlowDirection = ScriptFonts.IsRightToLeft(text) ? FlowDirection.RightToLeft : FlowDirection.LeftToRight
         };
+        SteadyLines.SetText(block, text, ScriptFonts.Compose(readingFont, ScriptFonts.FamilyFor(text)));
 
         if (maxLines > 0)
         {

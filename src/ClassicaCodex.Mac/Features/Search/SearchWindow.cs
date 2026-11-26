@@ -1428,15 +1428,16 @@ public sealed class SearchWindow : FeatureWindow
         }
 
         var reading = (FontFamily)this.FindResource("Cc.SourceFont")!;
+        var face = ScriptFonts.Compose(reading, ScriptFonts.FamilyFor(row.Text));
         var text = new TextBlock
         {
             TextWrapping = TextWrapping.Wrap,
             TextTrimming = TextTrimming.CharacterEllipsis,
             MaxLines = 2,
             FontSize = 14,
-            LineHeight = 20,
-            FontFamily = ScriptFonts.Compose(reading, ScriptFonts.FamilyFor(row.Text))
+            LineHeight = 20
         };
+        SteadyLines.Steady(text, face);
 
         var lead = new Run(row.Lead + ":  ") { FontFamily = FontFamily.Default, FontSize = 12.5, FontWeight = FontWeight.SemiBold };
         lead.Bind(TextElement.ForegroundProperty, text.GetResourceObservable("Cc.InkMuted"));
@@ -1446,15 +1447,15 @@ public sealed class SearchWindow : FeatureWindow
         var pos = 0;
         foreach (var (start, length) in ResultText.HighlightSpans(row.Text, _highlightTerms, _highlightWords, _highlightWholeWordsOnly))
         {
-            if (start > pos) text.Inlines.Add(new Run(row.Text[pos..start]));
+            if (start > pos) text.Inlines.Add(new Run(row.Text[pos..start]) { FontFamily = face });
 
-            var match = new Run(row.Text.Substring(start, length));
+            var match = new Run(row.Text.Substring(start, length)) { FontFamily = face };
             match.Bind(TextElement.BackgroundProperty, highlight);
             text.Inlines.Add(match);
             pos = start + length;
         }
 
-        if (pos < row.Text.Length) text.Inlines.Add(new Run(row.Text[pos..]));
+        if (pos < row.Text.Length) text.Inlines.Add(new Run(row.Text[pos..]) { FontFamily = face });
 
         if (!string.IsNullOrEmpty(row.Citation))
         {

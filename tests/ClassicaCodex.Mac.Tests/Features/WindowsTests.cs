@@ -72,6 +72,67 @@ public class WindowsTests
         Assert.True(left.Count == 0, string.Join(Environment.NewLine, left));
     }
 
+    /// <summary>
+    /// The classic app's keys, and every browser's: Alt+Left and Alt+Right
+    /// for Back and Forward, F1 for Help. The Ctrl keys the menu used to show
+    /// keep working beside them.
+    /// </summary>
+    [Avalonia.Headless.XUnit.AvaloniaFact]
+    public void Back_Forward_and_Help_answer_the_Windows_keys()
+    {
+        if (!OnWindows()) return;
+
+        var main = new ClassicaCodex.Mac.Shell.MainWindow();
+        var keys = main.KeyBindings.Select(k => k.Gesture.ToString()).ToList();
+
+        foreach (var chord in new[] { "Alt+Left", "Alt+Right", "F1", "Ctrl+OemOpenBrackets", "Ctrl+OemCloseBrackets", "Ctrl+Shift+OemQuestion" })
+        {
+            Assert.Contains(Avalonia.Input.KeyGesture.Parse(chord).ToString(), keys);
+        }
+
+        Assert.Equal(keys.Count, keys.Distinct().Count());
+        main.Close();
+    }
+
+    /// <summary>
+    /// This app replaced the classic one as the Windows download, and a reader
+    /// who chose lamplight there should not open it on parchment.
+    /// </summary>
+    [Fact]
+    public void A_classic_readers_light_or_dark_comes_across()
+    {
+        var file = Path.Combine(PreferencesFolder.Root, "theme.txt");
+        var before = File.Exists(file) ? File.ReadAllText(file) : null;
+        Directory.CreateDirectory(PreferencesFolder.Root);
+
+        try
+        {
+            File.Delete(file);
+            Assert.Equal(AppearanceChoice.System, MacSettings.AppearanceFromClassicApp());
+
+            File.WriteAllText(file, "Dark");
+            Assert.Equal(AppearanceChoice.Dark, MacSettings.AppearanceFromClassicApp());
+
+            File.WriteAllText(file, "Light");
+            Assert.Equal(AppearanceChoice.Light, MacSettings.AppearanceFromClassicApp());
+        }
+        finally
+        {
+            if (before == null) File.Delete(file);
+            else File.WriteAllText(file, before);
+        }
+    }
+
+    [Fact]
+    public void Help_teaches_the_Windows_keys_for_Back_Forward_and_Help()
+    {
+        var help = string.Join("\n", HelpTopics.All.Select(topic => SystemWords.ForWindows(HelpOutline.Expand(topic.Body))));
+
+        Assert.Contains("Alt+Left and Alt+Right do the same, as in a browser, and both are in the Go menu.", help);
+        Assert.Contains("F1 opens this help, and Alt+Left and Alt+Right walk back", help);
+        Assert.DoesNotContain("Ctrl+[", help);
+    }
+
     [Fact]
     public void Explorer_is_given_the_path_in_quotes_after_the_comma() =>
         Assert.Equal("/select,\"C:\\My Library\\classicacodex.db\"", MacShell.ExplorerArguments("C:\\My Library\\classicacodex.db"));

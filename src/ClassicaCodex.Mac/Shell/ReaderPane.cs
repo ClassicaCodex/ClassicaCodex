@@ -8,6 +8,7 @@ using Avalonia.Threading;
 using Avalonia.VisualTree;
 using ClassicaCodex.Core;
 using ClassicaCodex.Core.Models;
+using ClassicaCodex.Mac.Common;
 using ClassicaCodex.Mac.Platform;
 using ClassicaCodex.UI;
 
@@ -299,11 +300,31 @@ public sealed class ReaderPane : UserControl
         UpdateReference();
     }
 
+    /// <summary>
+    /// Brings a passage into view, scrolling as little as it can when the
+    /// passage is near, and by <see cref="ScrollToTop"/> when it is not.
+    /// </summary>
     public void EnsureVisible(int index)
     {
         if (index < 0 || index >= _rows.Count) return;
-        _list.ScrollIntoView(index);
+
+        if (IsNearDrawn(index)) _list.ScrollIntoView(index);
+        else ScrollToTop(index);
     }
+
+    /// <summary>
+    /// Within a screen or so of the passages drawn now. The list's own
+    /// ScrollIntoView draws every passage between here and there, which costs
+    /// nothing for the next one and five seconds for one fifteen thousand
+    /// passages away; a jump that far goes by offset instead.
+    /// </summary>
+    private bool IsNearDrawn(int index)
+    {
+        var drawn = _list.GetRealizedContainers().Select(c => _list.IndexFromContainer(c)).Where(i => i >= 0).ToList();
+        return drawn.Count > 0 && index >= drawn.Min() - NearRows && index <= drawn.Max() + NearRows;
+    }
+
+    private const int NearRows = 40;
 
     /// <summary>
     /// The first passage whose row reaches into the visible area - what the
@@ -341,27 +362,64 @@ public sealed class ReaderPane : UserControl
     /// now on screen corrects the guess and moves the passage. A prose
     /// translation whose paragraphs differ in length by a factor of ten
     /// landed thirty passages short of the Greek on the first pass. Each pass
-    /// measures what the last one revealed, and three settle it.
+    /// measures what the last one revealed.
+    ///
+    /// A passage far from the ones drawn is reached by setting the offset,
+    /// not by the list's ScrollIntoView. That draws every passage on the way:
+    /// 37,000 of them to reach the middle of the Iliad scholia and come back,
+    /// which took six seconds, and Livy's last chapter took thirty-eight with
+    /// both pages following. Setting the offset draws only what lands on
+    /// screen, so the distance left is estimated from the passages drawn
+    /// there, and the next pass looks again.
     /// </remarks>
     public void ScrollToTop(int index)
     {
         if (_scroller == null || index < 0 || index >= _rows.Count) return;
 
-        for (var pass = 0; pass < 4; pass++)
+        for (var pass = 0; pass < 10; pass++)
         {
-            _list.ScrollIntoView(index);
             _list.UpdateLayout();
 
-            if (_list.ContainerFromIndex(index) is not { } container) return;
-            var position = container.TranslatePoint(new Point(0, 0), _scroller);
-            if (position == null) return;
+            double distance;
+            if (_list.ContainerFromIndex(index) is { } container)
+            {
+                if (container.TranslatePoint(new Point(0, 0), _scroller) is not { } position) return;
+                distance = position.Y - TopInset;
+                if (Math.Abs(distance) < 1) return;
+            }
+            else if (IsNearDrawn(index) || !TryEstimateDistance(index, out distance))
+            {
+                _list.ScrollIntoView(index);
+                continue;
+            }
 
-            var error = position.Value.Y - TopInset;
-            if (Math.Abs(error) < 1) return;
+            var before = _scroller.Offset.Y;
+            _scroller.Offset = new Vector(_scroller.Offset.X, Math.Max(0, before + distance));
 
-            _scroller.Offset = new Vector(_scroller.Offset.X, Math.Max(0, _scroller.Offset.Y + error));
-            _list.UpdateLayout();
+            // At the end of the text the last passages cannot reach the top.
+            if (Math.Abs(_scroller.Offset.Y - before) < 0.5) return;
         }
+    }
+
+    /// <summary>
+    /// How far down the page <paramref name="index"/> starts, reckoned from
+    /// the first passage drawn and the average height of those drawn.
+    /// </summary>
+    private bool TryEstimateDistance(int index, out double distance)
+    {
+        distance = 0;
+        var drawn = _list.GetRealizedContainers()
+            .Select(c => (Index: _list.IndexFromContainer(c), Control: c))
+            .Where(d => d.Index >= 0 && d.Control.Bounds.Height > 0)
+            .ToList();
+        if (drawn.Count == 0) return false;
+
+        var first = drawn.MinBy(d => d.Index);
+        if (first.Control.TranslatePoint(new Point(0, 0), _scroller!) is not { } top) return false;
+
+        var average = drawn.Average(d => d.Control.Bounds.Height);
+        distance = top.Y + (index - first.Index) * average - TopInset;
+        return true;
     }
 
     /// <summary>The citation of the selected passage, as the footer shows it.</summary>
@@ -427,7 +485,9 @@ public sealed class ReaderPane : UserControl
             VerticalAlignment = VerticalAlignment.Top
         };
 
-        var body = new Run(row.Node.Text);
+        // The reading face goes on the run, because the block's own face is
+        // the one its lines are measured from: see SteadyLines below.
+        var body = new Run(row.Node.Text) { FontFamily = _list.FontFamily };
         var marks = new Run { FontFamily = FontFamily.Default, FontSize = 12, BaselineAlignment = BaselineAlignment.Center };
         marks.Bind(TextElement.ForegroundProperty, text.GetResourceObservable("Cc.Accent"));
         text.Inlines!.Add(body);
@@ -483,7 +543,16 @@ public sealed class ReaderPane : UserControl
             text.Bind(TextBlock.ForegroundProperty, text.GetResourceObservable("Cc.InkMuted"));
         }
 
-        text.LineHeight = (text.FontSize > 0 && !double.IsNaN(text.FontSize) ? text.FontSize : FontSizeDip) * 1.38;
+        // The row is not in the list yet, so a size it inherits from the pane
+        // reads as Avalonia's default of 12 here. Asked that way, every line
+        // was 16.6 high whatever the reader's text size: at 12pt, lines barely
+        // a hair apart. Only a speaker or a heading sets a size of its own.
+        var size = text.IsSet(TextBlock.FontSizeProperty) ? text.FontSize : FontSizeDip;
+        text.LineHeight = size * 1.38;
+
+        // A Greek line holding an elision mark, which Palatino Linotype lacks,
+        // otherwise drops into the line below it on Windows.
+        SteadyLines.Steady(text, _list.FontFamily, size);
 
         ToolTip.SetTip(text, TooltipFor(row.Node));
         ToolTip.SetShowDelay(text, 900);

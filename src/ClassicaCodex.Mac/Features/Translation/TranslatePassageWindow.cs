@@ -104,13 +104,12 @@ public sealed class TranslatePassageWindow : FeatureWindow
 
         var passage = new SelectableTextBlock
         {
-            Text = node.Text,
             TextWrapping = TextWrapping.Wrap,
-            FontFamily = ScriptFonts.Compose(passageFont, ScriptFonts.FamilyFor(node.Text)),
             FlowDirection = ScriptFonts.IsRightToLeft(node.Text) ? FlowDirection.RightToLeft : FlowDirection.LeftToRight,
             FontSize = 16,
             LineHeight = 23
         };
+        SteadyLines.SetText(passage, node.Text, ScriptFonts.Compose(passageFont, ScriptFonts.FamilyFor(node.Text)));
         var passageBox = Boxed(passage, 120);
 
         // Listen.

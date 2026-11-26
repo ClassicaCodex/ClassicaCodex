@@ -1,3 +1,9 @@
+> **Historical.** These are the notes for Classica Codex 3.16.1, the last release of the classic
+> Windows app. It has been followed by
+> [Classica Codex 3.17.0](https://github.com/ClassicaCodex/ClassicaCodex/releases/tag/v3.17.0).
+> Any download link or SHA-256 below refers to the 3.16.1 ZIP, not to the current
+> one, so do not check a current download against a checksum printed here.
+
 # Classica Codex 3.16.1
 
 Setup puts right two things the AI translations turned up.

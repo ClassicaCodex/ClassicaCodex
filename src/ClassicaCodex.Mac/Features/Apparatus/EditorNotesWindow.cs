@@ -77,15 +77,14 @@ public sealed class EditorNotesWindow : FeatureWindow
         };
         var line = new SelectableTextBlock
         {
-            Text = node.Text,
             TextWrapping = TextWrapping.Wrap,
             FontSize = 16,
             LineHeight = 23,
             MaxLines = 4,
             TextTrimming = TextTrimming.WordEllipsis
         };
-        if (!string.IsNullOrWhiteSpace(lineFont)) line.FontFamily = new FontFamily(lineFont);
-        else Prose.UseFont(line, "Cc.SourceFont");
+        SteadyLines.SetText(line, node.Text,
+            !string.IsNullOrWhiteSpace(lineFont) ? new FontFamily(lineFont) : SteadyLines.Face("Cc.SourceFont"));
         ToolTip.SetTip(line, node.Text);
 
         var lineStack = new StackPanel();
@@ -135,7 +134,7 @@ public sealed class EditorNotesWindow : FeatureWindow
         // this shows the whole thing, selectable so it can be copied into a
         // note.
         _detail = new SelectableTextBlock { TextWrapping = TextWrapping.Wrap, FontSize = 14.5, LineHeight = 21 };
-        Prose.UseFont(_detail, "Cc.SourceFont");
+        SteadyLines.SetText(_detail, string.Empty, SteadyLines.Face("Cc.SourceFont"));
         var detailPage = new Border
         {
             Classes = { "page" },
@@ -171,7 +170,7 @@ public sealed class EditorNotesWindow : FeatureWindow
 
     internal string StatusText => _status.Text ?? string.Empty;
 
-    internal string DetailText => _detail.Text ?? string.Empty;
+    internal string DetailText => SteadyLines.TextOf(_detail);
 
     internal Task ShowWholeEditionAsync() => ChooseAsync(wholeEdition: true);
 
@@ -220,7 +219,7 @@ public sealed class EditorNotesWindow : FeatureWindow
 
         if (entries.Count == 0)
         {
-            _detail.Text = string.Empty;
+            SteadyLines.SetText(_detail, string.Empty, SteadyLines.Face("Cc.SourceFont"));
 
             // Absence has two quite different causes and the distinction
             // matters: an edition can carry no apparatus at all, or carry one
@@ -285,7 +284,7 @@ public sealed class EditorNotesWindow : FeatureWindow
         var index = _entryList.SelectedIndex;
         if (index < 0 || index >= _entries.Count)
         {
-            _detail.Text = string.Empty;
+            SteadyLines.SetText(_detail, string.Empty, SteadyLines.Face("Cc.SourceFont"));
             return;
         }
 
@@ -301,6 +300,6 @@ public sealed class EditorNotesWindow : FeatureWindow
         lines.Add(string.Empty);
         lines.Add(e.Content);
 
-        _detail.Text = string.Join(Environment.NewLine, lines);
+        SteadyLines.SetText(_detail, string.Join(Environment.NewLine, lines), SteadyLines.Face("Cc.SourceFont"));
     }
 }

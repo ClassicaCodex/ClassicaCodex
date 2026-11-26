@@ -200,7 +200,7 @@ internal sealed class CollationWindow : FeatureWindow
 
     internal DataGrid Rows => _rows;
 
-    internal string LeftDetailText => _leftDetail.Text ?? string.Empty;
+    internal string LeftDetailText => SteadyLines.TextOf(_leftDetail);
 
     internal IReadOnlyList<IReadOnlyList<string>> ExportTable => ExportRows();
 
@@ -237,7 +237,6 @@ internal sealed class CollationWindow : FeatureWindow
     private static SelectableTextBlock DetailText() => new()
     {
         TextWrapping = TextWrapping.Wrap,
-        FontFamily = EchoUi.SourceFont,
         FontSize = ReadingFontSettings.SourceSize * 96.0 / 72.0,
         LineHeight = ReadingFontSettings.SourceSize * 96.0 / 72.0 * 1.38,
         Margin = new Thickness(14, 10)
@@ -552,11 +551,12 @@ internal sealed class CollationWindow : FeatureWindow
     {
         if (_rows.SelectedItem is not RowView { Row: var row })
         {
-            _leftDetail.Text = _rightDetail.Text = string.Empty;
+            SteadyLines.SetText(_leftDetail, string.Empty, EchoUi.SourceFont);
+            SteadyLines.SetText(_rightDetail, string.Empty, EchoUi.SourceFont);
             return;
         }
 
-        _leftDetail.Text = row.Left ?? "(this edition has nothing at this reference)";
-        _rightDetail.Text = row.Right ?? "(this edition has nothing at this reference)";
+        SteadyLines.SetText(_leftDetail, row.Left ?? "(this edition has nothing at this reference)", EchoUi.SourceFont);
+        SteadyLines.SetText(_rightDetail, row.Right ?? "(this edition has nothing at this reference)", EchoUi.SourceFont);
     }
 }
