@@ -114,6 +114,51 @@ sorts the hits by whether their author came before or after.
 
 <img width="900" alt="Intertextual echoes of Aeneid 6.851, ranked by shared rare words: James I's Basilikon Doron, Augustine's City of God and the Historia Augusta share five, and Proba's Cento rebuilds the line a little further down" src="docs/images/intertextual-echoes.png" />
 
+## See who quoted a line
+
+Quotations in later authors are the indirect tradition: the testimonia a
+critical edition prints, and the evidence for who read what. A line that later
+authors quote carries a “ at its end. Right-click it and choose **Quoted By…**:
+the quoting passages, earliest author first, each with the quoter's wording set
+against the edition's and the words that differ marked, and a jump to the
+quoting passage that Back returns from. In the quoting passage the quoted words
+are underlined, and clicking them goes back to the line.
+
+<img width="900" alt="Quoted By for Terence, Andria 68 (obsequium amicos, veritas odium parit): twelve quoting passages in Lactantius, Jerome and later writers, each with the quoter's words above the edition's and the search that found it" src="docs/images/quoted-by.png" />
+
+**Where the links come from.** Two machine searches, run over the library, and
+checked by no one:
+
+- **Testimonia** looks for an author named beside a word of citing (*ut ait
+  Vergilius*, ὡς Πλάτων φησίν), then for the named author's passage that shares
+  at least two four-word runs with the 30 words either side of the name. Greek
+  and Latin; most of its 18,583 links are the Fathers quoting scripture, then
+  Homer, Plato and the rest. In each of two development samples of 40 of its
+  citations, 37 were genuine. Those samples judged the citation; the line it was
+  matched to was spot-checked, not sampled.
+- **Afterlives** matches Latin quotations of the classics in the Patrologia and
+  CSEL by shared rare words and by runs of consecutive words, whether or not the
+  source is named. Only the 4,135 quotations it rated high are shipped (5,225
+  links, since some span two lines). A second AI, Codex, read a fresh random
+  sample of 40 of them and judged 35 genuine. Its low-rated rows, right about a
+  third of the time, are left out.
+
+So expect roughly one link in ten to be wrong. The window opens by saying so,
+and each quoter says which search found it and how strongly: the number of
+shared four-word runs, or Afterlives' score and which of its searches found the
+passage, and whether the quoter is a cento built from Virgil or early-modern
+Latin that Migne prints under an ancient name. Recall is far from complete:
+Testimonia finds a quotation only where its author is named, and Afterlives
+only in Latin.
+
+Together they mark 10,341 lines in 640 editions, quoted from 20,466 passages,
+wherever your library holds both ends. What ships inside the app is a table of
+edition URNs, citation references and character positions, about 600 KB, and
+no text: every word the window shows comes from your own library. Where your
+copy of a passage reads differently from the one a link was found in, the
+quoted words are found again by matching them, and the window says so.
+`tools/QuotationLinks` rebuilds the table from the two searches' output.
+
 ## And the rest
 
 <details>
@@ -196,6 +241,7 @@ You can add your own as JSON in a `Reactions` folder beside the program — see
 - **Validation bench** — leave-one-out validation, a parameter-stability grid, and controlled perturbation with synthetic contamination and same-author controls. Reports how much contamination the method could detect at all, which is what a null result needs to mean anything. Experiments save with their seed and pool; every table exports to CSV, text or Excel. See [Notes on Burrows's Delta](docs/stylometry-notes.md) for what it can and cannot tell you
 - **Concordance** (KWIC) search across the whole library
 - **Echo Finder** and **Reception Tracker** — find intertextual echoes, and track how a passage gets reused by later authors
+- **Quoted By** — the later passages that quote a line, with each quoter's wording set against the edition's, and a link back from every quotation to the line it quotes. Machine-found links that ship with the app (see [See who quoted a line](#see-who-quoted-a-line))
 - **Cross-Language Echo** — the same idea across languages, for finding where a Latin (or English) passage is reworking a Greek original, or vice versa
 - **Compare** two passages, or two translations of the same work, side by side
 - **Translate it yourself** — a workbench for working through a text one passage at a time, with the passage before and after shown for context, every word clickable for its dictionary headword, grammatical parse and LSJ or Lewis & Short entry, and an alphabet reference for a script you don't read yet. Your translation becomes an edition like any other. AI help is available per word or per passage, but always appears beside your work rather than in it, and the published translation stays out of reach until you've written something
@@ -329,6 +375,8 @@ Classica Codex doesn't own or bundle any of the texts, dictionaries, or linguist
 The Greek lemma data is not the only entry above marked **noncommercial** — part of CATMuS is too, and so are 289 of the 500 BFM texts. The Medieval Hands window names the licence beside whichever manuscript is selected rather than leaving it to a table; the BFM texts carry theirs per text, as the table above says. The Greek lemma data is the one that constrains the project as a whole — it can't be sold, and because it's woven into the search and Word Study features, that restriction carries over to the whole project as distributed. Which is fine: Classica Codex is a free personal tool, and it's going to stay that way regardless. (WordNet's license, despite doing a similar job for English, doesn't carry the same restriction — it's permissive and doesn't add a second constraint on top of the Greek lemma data's.)
 
 The AI features are a separate case from all of the above: not a bundled dataset, just an optional connection to a third-party API (Anthropic's Claude or Google's Gemini) that you supply your own key for. Translation is the obvious one, but the research side uses it too — proposing projects, challenging a hypothesis, drafting a synthesis, glossing a word, reading a passage against its parallels. All of it is off until you enter a key, every send is a button you press, and unless you turn the confirmation off each one tells you what is about to leave. Project discovery also queries Crossref (api.crossref.org) for publication metadata, sending only the search terms shown in the editable box. None of it is required to use the app.
+
+The Quoted By links are the one thing that ships inside the app, and they carry no text: a table of edition URNs, citation references and character positions, found by the Testimonia and Afterlives searches over the texts above. The words the Quoted By window shows are read from your own library. See [See who quoted a line](#see-who-quoted-a-line).
 
 ### What Marlowe isn't here
 

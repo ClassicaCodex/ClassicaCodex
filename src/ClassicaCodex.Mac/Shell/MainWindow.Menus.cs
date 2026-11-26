@@ -23,6 +23,7 @@ using ClassicaCodex.Mac.Features.MedievalHands;
 using ClassicaCodex.Mac.Features.Morphology;
 using ClassicaCodex.Mac.Features.MythNetwork;
 using ClassicaCodex.Mac.Features.PlacesMap;
+using ClassicaCodex.Mac.Features.QuotedBy;
 using ClassicaCodex.Mac.Features.Reactions;
 using ClassicaCodex.Mac.Features.Research;
 using ClassicaCodex.Mac.Features.Search;
@@ -192,6 +193,15 @@ public partial class MainWindow
         menu.Items.Add(Item("Find Cross-Language Echo…", "CrossLanguage", p => EchoFeature.CrossLanguageAsync(this, p)));
         menu.Items.Add(Item("Reception History…", "Reception", p => { EchoFeature.ReceptionHistory(this, p); return Task.CompletedTask; }));
 
+        // The two ends of a machine-found quotation: the later passages that
+        // quote this line, and the earlier line this passage quotes. Each
+        // shown only on a line that has one, which the “ mark and the
+        // underline already say.
+        var quotedBy = Item("Quoted By…", "Quotes", p => QuotedByFeature.OpenAsync(this, p));
+        var quotes = new MenuItem { Header = "Go to Quoted Passage", Icon = Glyphs.Icon("Quotes", 14) };
+        menu.Items.Add(quotedBy);
+        menu.Items.Add(quotes);
+
         var reactions = Item("Fictional Ancient Reactions…", "Reactions", _ =>
         {
             if (_openWork != null) ReactionsFeature.Open(this, _openWork, Sidebar.AuthorNameFor(_openWork));
@@ -267,6 +277,10 @@ public partial class MainWindow
             viewOnline.IsVisible = page != null;
             if (page != null) viewOnline.Header = $"View on {page.Host}…";
             margin.IsChecked = CitationMarginSettings.Enabled;
+            quotedBy.IsVisible = pane.MarksAt(pane.SelectedIndex).HasFlag(PassageMarks.QuotedBy);
+            quotes.Items.Clear();
+            foreach (var item in QuotedSourceItems(DistinctSources(pane.QuotationsAt(pane.SelectedIndex)))) quotes.Items.Add(item);
+            quotes.IsVisible = quotes.Items.Count > 0;
             readAloud.IsVisible = SpeechService.IsAvailable;
             stopReading.IsVisible = SpeechService.IsAvailable && SpeechService.IsSpeaking;
             BuildKindMenu(show, pane);

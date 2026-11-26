@@ -5,8 +5,10 @@ using Avalonia.Media;
 using Avalonia.Threading;
 using ClassicaCodex.Core;
 using ClassicaCodex.Core.Models;
+using ClassicaCodex.Core.Quotations;
 using ClassicaCodex.Data.Repositories;
 using ClassicaCodex.Mac.Common;
+using ClassicaCodex.Mac.Features.QuotedBy;
 using ClassicaCodex.UI;
 
 namespace ClassicaCodex.Mac.Shell;
@@ -97,8 +99,13 @@ public partial class MainWindow
 
             pane.UserSelected += OnPaneUserSelected;
             pane.TopChanged += OnPaneTopChanged;
+            pane.QuotationActivated += OnQuotationActivated;
             pane.List.ContextMenu = BuildPaneMenu(pane);
         }
+
+        // The quotation table is read once, whole; started now so the first
+        // work opened does not wait for it.
+        _ = Task.Run(() => QuotationIndex.Current);
 
         LinkPanesButton.IsChecked = _panesLinked;
         RefreshLinkPanesButton();
@@ -273,6 +280,11 @@ public partial class MainWindow
     /// </summary>
     public async Task NavigateToPassageAsync(int workId, long textNodeId)
     {
+        // Where the reader is before the jump is a place too, as the page a
+        // browser leaves is: without it, Back from a quoter returned to the
+        // top of the work rather than to the line that was quoted.
+        if (CurrentPosition() is { } here) RecordHistory(here.WorkId, here.TextNodeId);
+
         if (await NavigateToPassageCoreAsync(workId, textNodeId)) RecordHistory(workId, textNodeId);
     }
 
@@ -568,6 +580,9 @@ public partial class MainWindow
             var marks = await _passageMarkRepo.GetForEditionAsync(edition.EditionId, edition.CtsUrn);
             if (_paneFillGeneration[pane] != generation) return;
 
+            var quotations = await Task.Run(() => QuotationIndex.Current);
+            AddQuotedByMarks(marks, quotations, edition);
+
             var nodes = await _textNodeRepo.GetByEditionAsync(edition.EditionId);
             if (_paneFillGeneration[pane] != generation) return;
 
@@ -600,12 +615,107 @@ public partial class MainWindow
                     string.Join(Environment.NewLine + Environment.NewLine, prefaceNodes.Select(n => n.Text)));
             }
 
-            pane.Fill(edition, visible, marks);
+            var quoted = await QuotedSpansAsync(quotations, edition, visible);
+            if (_paneFillGeneration[pane] != generation) return;
+
+            pane.Fill(edition, visible, marks, quoted);
         }
         catch (Exception ex)
         {
             pane.ShowMessage($"Couldn't load this edition: {ex.Message}", edition);
         }
+    }
+
+    /// <summary>
+    /// Adds the “ mark to every line of the edition that a later passage
+    /// quotes. Drawn from the shipped table, not the library, so it is added
+    /// here and again whenever the recorded marks are re-read.
+    /// </summary>
+    private static void AddQuotedByMarks(Dictionary<string, PassageMarks> marks, QuotationIndex quotations, Edition edition)
+    {
+        foreach (var reference in quotations.QuotedReferencesIn(edition.CtsUrn))
+            marks[reference] = (marks.TryGetValue(reference, out var existing) ? existing : PassageMarks.None) | PassageMarks.QuotedBy;
+    }
+
+    /// <summary>
+    /// The quoted words in each of these passages, by node id, with the line
+    /// each leads to - for the underline and the link back. Only where the
+    /// passage's text is the one the link was found in, since the positions
+    /// are into that text, and only where the quoted line is in this library,
+    /// since a link that cannot be followed should not look like one.
+    /// </summary>
+    private static async Task<IReadOnlyDictionary<long, IReadOnlyList<QuotedSpan>>?> QuotedSpansAsync(
+        QuotationIndex quotations, Edition edition, IReadOnlyList<TextNode> nodes)
+    {
+        var byReference = quotations.QuotationsIn(edition.CtsUrn)
+            .GroupBy(l => l.Quoting.CitationRef, StringComparer.Ordinal)
+            .ToDictionary(g => g.Key, g => g.ToList(), StringComparer.Ordinal);
+        if (byReference.Count == 0) return null;
+
+        var repository = new QuotationRepository();
+        var result = new Dictionary<long, IReadOnlyList<QuotedSpan>>();
+
+        foreach (var node in nodes)
+        {
+            if (!byReference.TryGetValue(node.CitationRef, out var links)) continue;
+
+            var fingerprint = TextFingerprint.Of(node.Text);
+            var spans = new List<QuotedSpan>();
+            foreach (var link in links.Where(l => l.QuotingFingerprint == fingerprint))
+            {
+                if (await repository.GetEditionAsync(link.Source.EditionUrn) is not { } source) continue;
+
+                var label = $"{source.AuthorName}, {source.WorkTitle} {PassageCitation.Display(link.Source.CitationRef)}".Trim();
+                spans.Add(new QuotedSpan(link.QuotingStart, link.QuotingEnd, label, link));
+            }
+
+            if (spans.Count > 0) result[node.TextNodeId] = spans;
+        }
+
+        return result;
+    }
+
+    /// <summary>
+    /// Quoted words were clicked: go to the line they quote, or, where two
+    /// quotations share the words, offer both.
+    /// </summary>
+    private async void OnQuotationActivated(ReaderPane pane, PassageRow row, IReadOnlyList<QuotedSpan> spans)
+    {
+        try
+        {
+            var distinct = DistinctSources(spans);
+            if (distinct.Count == 1)
+            {
+                await QuotedByFeature.GoToSourceAsync(this, distinct[0]);
+                return;
+            }
+
+            var menu = new ContextMenu();
+            foreach (var item in QuotedSourceItems(distinct)) menu.Items.Add(item);
+            menu.Open(pane.List);
+        }
+        catch (Exception ex)
+        {
+            await Alert.Error(this, "Couldn't open the quoted passage", ex.Message);
+        }
+    }
+
+    /// <summary>One of each quoted line: two links found through two names can lead to the same one.</summary>
+    private static List<QuotedSpan> DistinctSources(IEnumerable<QuotedSpan> spans) =>
+        spans.GroupBy(s => (s.Link.Source, s.Link.SourceFingerprint)).Select(g => g.First()).ToList();
+
+    /// <summary>A menu entry for each quoted line, each going to it.</summary>
+    private List<MenuItem> QuotedSourceItems(IEnumerable<QuotedSpan> spans)
+    {
+        var items = new List<MenuItem>();
+        foreach (var span in spans)
+        {
+            var item = new MenuItem { Header = span.Label, Icon = Glyphs.Icon("Quotes", 14) };
+            item.Click += async (_, _) => await QuotedByFeature.GoToSourceAsync(this, span);
+            items.Add(item);
+        }
+
+        return items;
     }
 
     /// <summary>
@@ -645,7 +755,9 @@ public partial class MainWindow
         foreach (var (pane, source) in _paneSource.ToList())
         {
             if (source.Edition == null) continue;
-            pane.SetPassageMarks(await _passageMarkRepo.GetForEditionAsync(source.Edition.EditionId, source.Edition.CtsUrn));
+            var marks = await _passageMarkRepo.GetForEditionAsync(source.Edition.EditionId, source.Edition.CtsUrn);
+            AddQuotedByMarks(marks, QuotationIndex.Current, source.Edition);
+            pane.SetPassageMarks(marks);
         }
     }
 

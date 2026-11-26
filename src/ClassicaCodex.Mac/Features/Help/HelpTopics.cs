@@ -83,10 +83,22 @@ Marks at the end of a line
    ?  an inquiry has been started from this passage
    #  it carries at least one tag
    ★  it is bookmarked
+   “  a later author quotes it (see Quoted By, below)
 
    All three appear together, in that order, on a line that has all three. A line tagged five times still shows one #: the mark says there is something recorded here, not how much.
 
    They are drawn, not stored - copying, exporting or searching a line gives you the text and nothing else, the same way an athetized line is shown in italic rather than by putting brackets into the words. Three plain characters rather than icons, in the accent colour - the same three the Windows app draws, so a line marked on either machine reads the same on both.
+
+   The fourth, “, is not yours: it comes from the quotation links that ship with the app, and comes last.
+
+Quoted By
+   A line later authors quote carries a “ at its end. Right-click it and choose Quoted By to see the quoting passages, earliest author first: each quoter's wording set against the edition's, with the words that differ marked, and Go to Passage to read the quotation where it stands. Back returns to the line.
+
+   In the quoting passage the quoted words are underlined. Click them to go to the line they quote, or use Go to Quoted Passage on the right-click menu.
+
+   The links were found by machine and nobody has checked them. Testimonia finds an author named beside a word of citing, then the line sharing at least two four-word runs with the words around the name: in each of two development samples of 40 of its citations, 37 were genuine. Afterlives matches Latin quotations of the classics by shared rare words and runs of words, named or not, and only its high-rated quotations ship: a second AI judged 35 of a sample of 40 genuine. Expect roughly one link in ten to be wrong. Each quoter says which search found it and how strongly.
+
+   A link shows only where your library holds both passages. No text ships with the links - every word shown comes from your own library - and where your copy of a passage reads differently from the one a link was found in, the quoted words are found again by matching, and the window says so.
 
    They are per edition, not per work. A passage bookmarked in the Greek does not show a star opposite it in the translation, because that is a different passage with its own annotations - even though both sides carry the same citation reference. And because tags and bookmarks are recorded against that reference rather than an internal id, the marks come back after a corpus is re-ingested, along with the annotations they stand for.
 
@@ -100,6 +112,8 @@ Right-click (or Control-click) a line for:
    Find Echoes - look for passages elsewhere that share rare wording
    Find Cross-Language Echo - the same idea across languages (see Translate)
    Reception History - the same, split into earlier and later authors
+   Quoted By - the later passages that quote this line, on a line marked “
+   Go to Quoted Passage - the earlier line this passage quotes, on a passage with underlined words
    Fictional Ancient Reactions - the argument a work's first audiences might have had, staged and labelled as fiction, for the works that have one
    Translate - look up, generate, or listen to an English rendering of the line
    Word Study - look the words up properly
