@@ -71,7 +71,36 @@ public sealed class MacSettings
             // Fall through to the defaults.
         }
 
-        return new MacSettings();
+        return new MacSettings { Appearance = AppearanceFromClassicApp() };
+    }
+
+    /// <summary>
+    /// The classic Windows app's light or dark, for a reader opening this app
+    /// for the first time on a PC where they used that one: this app replaced
+    /// it as the Windows download in 3.17.0, and the parchment or lamplight
+    /// they had should still be there. That app had no "follow Windows", and
+    /// writes theme.txt only when the theme is switched, so a saved theme was
+    /// chosen and is kept. With no theme.txt the reader never chose, and this
+    /// app follows the system as it does anywhere else.
+    /// </summary>
+    internal static AppearanceChoice AppearanceFromClassicApp()
+    {
+        try
+        {
+            var file = Path.Combine(PreferencesFolder.Root, "theme.txt");
+            if (!File.Exists(file)) return AppearanceChoice.System;
+
+            return File.ReadAllText(file).Trim().ToLowerInvariant() switch
+            {
+                "dark" => AppearanceChoice.Dark,
+                "light" => AppearanceChoice.Light,
+                _ => AppearanceChoice.System
+            };
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            return AppearanceChoice.System;
+        }
     }
 
     public void Save()

@@ -35,12 +35,11 @@ public sealed class PrefaceWindow : FeatureWindow
 
         var body = new SelectableTextBlock
         {
-            Text = Text,
             TextWrapping = TextWrapping.Wrap,
             FontSize = 15,
             LineHeight = 23
         };
-        Prose.UseFont(body, "Cc.TranslationFont");
+        SteadyLines.SetText(body, Text, SteadyLines.Face("Cc.TranslationFont"));
 
         var column = new StackPanel { Margin = new Thickness(40, 30, 40, 36), MaxWidth = 660 };
         column.Children.Add(new TextBlock { Text = "PREFACE", Classes = { "section" }, Margin = new Thickness(0, 0, 0, 6) });

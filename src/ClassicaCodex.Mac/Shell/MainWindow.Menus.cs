@@ -461,6 +461,17 @@ public partial class MainWindow
         KeyBindings.Add(new KeyBinding { Gesture = item.Gesture, Command = new MenuKey(action, () => item.IsEnabled) });
     }
 
+    /// <summary>
+    /// A second key for a menu command, which the menu has no room to show.
+    /// Like the item's own key, it does nothing while the item is greyed out.
+    /// </summary>
+    private void AlsoKey(string gesture, NativeMenuItem? item, Action action) =>
+        KeyBindings.Add(new KeyBinding
+        {
+            Gesture = KeyGesture.Parse(gesture),
+            Command = new MenuKey(action, () => item?.IsEnabled ?? true)
+        });
+
     private sealed class MenuKey(Action action, Func<bool> enabled) : ICommand
     {
         public event EventHandler? CanExecuteChanged { add { } remove { } }
@@ -555,8 +566,19 @@ public partial class MainWindow
                 Command("Parchment (Light)", () => ApplyAppearance(AppearanceChoice.Light)),
                 Command("Lamplight (Dark)", () => ApplyAppearance(AppearanceChoice.Dark)))));
 
-        _backItem = Command("Back", () => _ = GoHistoryAsync(-1), $"{cmd}+OemOpenBrackets");
-        _forwardItem = Command("Forward", () => _ = GoHistoryAsync(1), $"{cmd}+OemCloseBrackets");
+        // Windows has its own keys for these, which the classic app answers
+        // and every browser does: Alt+Left and Alt+Right, and F1 for Help.
+        // The menu shows those there, and the Ctrl keys go on working beside
+        // them for anyone who learned this app on a Mac.
+        var windows = OperatingSystem.IsWindows();
+        _backItem = Command("Back", () => _ = GoHistoryAsync(-1), windows ? "Alt+Left" : $"{cmd}+OemOpenBrackets");
+        _forwardItem = Command("Forward", () => _ = GoHistoryAsync(1), windows ? "Alt+Right" : $"{cmd}+OemCloseBrackets");
+        if (windows)
+        {
+            AlsoKey("Ctrl+OemOpenBrackets", _backItem, () => _ = GoHistoryAsync(-1));
+            AlsoKey("Ctrl+OemCloseBrackets", _forwardItem, () => _ = GoHistoryAsync(1));
+            AlsoKey("Ctrl+Shift+OemQuestion", null, () => OpenTool("help"));
+        }
         bar.Add(Submenu("Go",
             _backItem,
             _forwardItem,
@@ -596,7 +618,7 @@ public partial class MainWindow
             Tool("harmonics")));
 
         bar.Add(Submenu("Help",
-            Command("Classica Codex Help", () => OpenTool("help"), $"{cmd}+Shift+OemQuestion"),
+            Command("Classica Codex Help", () => OpenTool("help"), windows ? "F1" : $"{cmd}+Shift+OemQuestion"),
             Tool("starting-points"),
             new NativeMenuItemSeparator(),
             Command("About Classica Codex", () => OpenTool("about"))));

@@ -233,14 +233,17 @@ public sealed class CreateTranslationWindow : FeatureWindow
         {
             Classes = { "reader" },
             Padding = new Thickness(6, 8),
-            ItemTemplate = new FuncDataTemplate<string>((text, _) => new TextBlock
+            ItemTemplate = new FuncDataTemplate<string>((text, _) =>
             {
-                Text = text,
-                TextWrapping = TextWrapping.Wrap,
-                FontFamily = ScriptFonts.Compose(font, ScriptFonts.FamilyFor(text ?? string.Empty)),
-                FontSize = 14,
-                LineHeight = 20,
-                Margin = new Thickness(8, 1)
+                var block = new TextBlock
+                {
+                    TextWrapping = TextWrapping.Wrap,
+                    FontSize = 14,
+                    LineHeight = 20,
+                    Margin = new Thickness(8, 1)
+                };
+                SteadyLines.SetText(block, text, ScriptFonts.Compose(font, ScriptFonts.FamilyFor(text ?? string.Empty)));
+                return block;
             })
         };
     }

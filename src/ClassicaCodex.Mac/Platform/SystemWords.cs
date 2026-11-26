@@ -147,6 +147,13 @@ internal static class SystemWords
         (", as in Safari,", ",", ","),
         (" - the same keys Safari uses, for the same reason.", ".", "."),
 
+        // Windows' own keys for Back, Forward and Help, which the menu shows
+        // there. The Ctrl keys still work, but these are the ones to teach.
+        ("Ctrl+[ and Ctrl+] do the same, and both", "Ctrl+[ and Ctrl+] do the same, and both",
+            "Alt+Left and Alt+Right do the same, as in a browser, and both"),
+        ("Ctrl+? opens this help, and Ctrl+[ and Ctrl+] walk back", "Ctrl+? opens this help, and Ctrl+[ and Ctrl+] walk back",
+            "F1 opens this help, and Alt+Left and Alt+Right walk back"),
+
         // The other app, on the system where there are two.
         ("the Windows app ships with", "the Windows app ships with", "the classic Windows app ships with"),
         ("the same file name the Windows app uses", "the same file name the Windows app uses", "the same file the classic Windows app uses"),

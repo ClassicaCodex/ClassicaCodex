@@ -3,10 +3,11 @@
 Written to check the claim before anything makes it: can a Windows reader do
 everything in this front end that they can do in the WinForms app?
 
-**Every tool has a counterpart. Not every behaviour does.** All 84 functional
-forms have an equivalent here, and the 85th is a WinForms scaling base class
-with nothing to port. The gaps are five behaviours of the main window and
-startup, and some smaller differences.
+**Every tool has a counterpart, and the five missing behaviours are in.** All
+84 functional forms have an equivalent here, and the 85th is a WinForms
+scaling base class with nothing to port. The five behaviours of the main
+window and startup that were missing when this was first written are now
+here too (see below). Some smaller differences remain.
 
 ## What this is based on
 
@@ -21,22 +22,32 @@ Ingestion are also called from here or from a file this project compiles, and
 all 33 Help topic titles match. The first is a check of method names, and the
 bodies of the Help topics were not compared.
 
-## Truly missing
+## Once missing, now here
 
 | Behaviour | Classic app | Here |
 |---|---|---|
-| F1 opens Help | `MainForm.cs:3204` | Help is Ctrl+Shift+? only |
-| Alt+Left and Alt+Right go Back and Forward | `MainForm.cs:3184`, `3188` | Ctrl+[ and Ctrl+], and the toolbar arrows |
-| A library that isn't available at launch is named, with Retry. This is usually a drive that isn't plugged in | `Program.cs:91-97` | The general Choose your library page, which doesn't name the path. Setting up a new library from it makes both apps forget the old location |
-| A library that can't be opened (locked, corrupt) is reported at launch | `Program.cs:113-119` | Written to `errors.log`, and the main window opens with nothing said |
-| A fatal crash on a background thread shows a dialog before the app closes | `CrashReporter.cs:51`, `102-106` | Written to `errors.log` only. Errors on the UI thread do show a dialog |
+| F1 opens Help | `MainForm.cs:3204` | F1, shown in the Help menu. Ctrl+Shift+? still works |
+| Alt+Left and Alt+Right go Back and Forward | `MainForm.cs:3184`, `3188` | Alt+Left and Alt+Right, shown in the Go menu and the toolbar tips. Ctrl+[ and Ctrl+] still work |
+| A library that isn't available at launch is named, with Retry. This is usually a drive that isn't plugged in | `Program.cs:91-97` | The same box, with Retry and Cancel, over the Choose your library page (`Shell/LaunchLibrary.cs`) |
+| A library that can't be opened (locked, corrupt) is reported at launch | `Program.cs:113-119` | Reported, with the path and the error, and the Choose your library page behind it |
+| A fatal crash on a background thread shows a dialog before the app closes | `CrashReporter.cs:51`, `102-106` | The same message, shown by Windows on the failing thread (`CrashLog.SayClosingOnWindows`) |
+
+## Found since, and fixed
+
+- **Greek lines ran into each other.** Palatino Linotype has no U+02BC, the
+  elision mark in every Perseus Greek text, so Windows drew it from Segoe UI,
+  which stands taller, and the line holding it dropped onto the next. About
+  three Greek passages in ten have one. `Common/SteadyLines.cs` measures every
+  line the same way, in the reader and in the windows that show passages.
+- **The reader's line height ignored the text size.** Each line was 16.6
+  pixels high at any size. It is now 1.38 times the text size, as intended.
 
 ## Smaller differences
 
 - **Text size.** The sliders, the link between them and live changes are all here, in the toolbar's flyout and Settings. The Greek and English sample lines aren't, and nor is a Cancel that restores the opening sizes. The reader itself shows the result, and half-point steps and keyboard sizing are new here.
 - **AI Translation Settings.** Everything is here, in Settings. The Tools menu's item opens Settings on its General pane rather than AI, and closing without Save stands in for a Cancel button.
-- **Theme.** A theme chosen in the classic app (`theme.txt`) isn't picked up. This app follows Windows until told otherwise.
-- **Layout cache.** The classic app keeps measured text in `layout-cache` to reopen very long works quickly. This app has no such cache, and how it compares on a work as long as Pliny hasn't been measured.
+- **Theme.** The first time this app opens, it takes the light or dark a reader chose in the classic app (`theme.txt`). With no choice there, it follows Windows. After that the two are set separately.
+- **Layout cache.** The classic app keeps measured text in `layout-cache` to reopen very long works quickly. This app has no such cache and doesn't need one. Measured on the longest works in a full library (Holinshed's History of England, Livy, Pliny's Natural History, the Iliad scholia at 30,000 passages), each opens in under a second and a jump to any passage lands in about a fifth of a second. Until November 2026 a jump far into one took up to 38 seconds, because the list drew every passage on the way; see ReaderPane.ScrollToTop.
 
 ## Window by window
 
@@ -80,7 +91,7 @@ The 22 forms with no same-named window are in bold.
 | Ingest | `Features/Setup/IngestWindow.cs` | same | strings |
 | IntertextualAtlas | `Features/Research/Echoes/IntertextualAtlasWindow.cs` | same | strings |
 | LemmaIngest | `Features/Setup/LemmaIngestWindow.cs` | same | strings |
-| Main | `Shell/MainWindow*.cs`, `LibrarySidebar.cs`, `ReaderPane.cs` | partial: see Truly missing | menus, toolbar and context menus read both |
+| Main | `Shell/MainWindow*.cs`, `LibrarySidebar.cs`, `ReaderPane.cs` | same, once the five behaviours above were added | menus, toolbar and context menus read both |
 | ManuscriptPages | `Features/MedievalHands/ManuscriptPagesWindow.cs` | same | strings |
 | MenotaPlan | `Features/Setup/MenotaPlanWindow.cs` | same | strings |
 | Morphology | `Features/Morphology/MorphologyWindow.cs` | same | strings |
