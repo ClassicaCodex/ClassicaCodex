@@ -55,4 +55,9 @@ Windows download already left them out.
 
 1,919 tests, zero warnings.
 
-SHA-256  (added once the release is published)
+The downloads are not code-signed, so if you would rather check one than trust it:
+
+```
+SHA-256  4b2e33fddb86df0b930a82efd0dbb9aaf3db96da167ccb8c5e70ee1f8d733bb2  ClassicaCodex-v3.20.0-win-x64.zip
+SHA-256  67db9b828252328edbb8eca249e46c79519229f57346dda049ced402f0668a9e  ClassicaCodex-v3.20.0-win-arm64.zip
+```
