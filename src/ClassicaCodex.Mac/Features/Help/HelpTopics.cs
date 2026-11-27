@@ -173,6 +173,8 @@ Go to Citation
 
    A work's identifier will do in place of an edition's (tlg0020.tlg001 457), and so will a whole CTS URN (urn:cts:greekLit:tlg0020.tlg001.perseus-grc2:457). A range opens at its first line. If the citation names an edition your library does not have, the same work is searched in the edition it does have, and the window says so, since the two may be numbered differently. A museum object the Atlas cites, artifact:London E 163, opens in the Art and Archaeology browser.
 
+   References as books print them work too: Thuc. 2.40.1, Pl. Resp. 514a, Verg. Aen. 4.1, Cic. Off. 1.22, or the names written out, Plato, Republic 514a. The abbreviations are the ones LSJ and Lewis & Short use, and the longer forms most books use instead: Thuc. as well as LSJ's Th., Resp. as well as R. Paste a whole footnote and every reference in it is listed with its line; Return opens the one chosen and moves to the next, and the window stays open until you close it. A number alone after a reference is in the same work (Hdt. 1.1, 5.3), id. is the same author and ibid. the same work, and an orator is cited by speech (Dem. 18.169). A footnote's line is looked for in the Greek or Latin before any translation, and opens in a translation only where the original is numbered differently.
+
 Keyboard shortcuts
    Escape closes any window you are looking at - a results list, a map, a comparison - and so does ⌘W, as in any Mac app. Escape deliberately does nothing in Setup or while a corpus is being ingested, where it would abandon work halfway rather than dismiss a view.
 

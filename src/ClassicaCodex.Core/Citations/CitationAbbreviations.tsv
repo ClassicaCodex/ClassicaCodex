@@ -1,0 +1,2368 @@
+# How LSJ and Lewis and Short abbreviate the works they cite. Built by tools/CitationAbbreviations
+# from the Perseus lexica (PerseusDL/lexica, CC BY-SA 4.0): each citation Perseus gave a CTS URN pairs
+# the abbreviation as printed with the work the URN names.
+#   a <abbreviation> <work> <citations>  - the abbreviation names that work, in that many citations
+#   s <abbreviation> <number> <work>     - an orator cited by speech: the first number picks the work
+a	A.	tlg0085.tlg008	762
+a	A. Ag.	tlg0085.tlg005	2248
+a	A. Ch.	tlg0085.tlg006	1166
+a	A. Eleg.	tlg0085.tlg009	9
+a	A. Eu.	tlg0085.tlg007	1101
+a	A. Pers.	tlg0085.tlg002	1380
+a	A. Pr.	tlg0085.tlg003	2006
+a	A. Supp.	tlg0085.tlg001	1046
+a	A. Th.	tlg0085.tlg004	1367
+a	A., Th.	tlg0085.tlg004	2
+a	A.D. Adv.	tlg0082.tlg002	287
+a	A.D. Conj.	tlg0082.tlg003	98
+a	A.D. Pron.	tlg0082.tlg001	353
+a	A.D. Synt.	tlg0082.tlg004	560
+a	A.R.	tlg0001.tlg001	2500
+a	AJ	tlg0526.tlg001	6
+a	APo.	tlg0086.tlg001	30
+a	APr.	tlg0086.tlg001	36
+a	Abd.	tlg0062.tlg052	2
+a	Abst.	tlg2034.tlg003	2
+a	Abyd.	tlg0116.tlg001	3
+a	Acad.Ind.	tlg1595.tlg602	2
+a	Ach.	tlg0019.tlg001	54
+a	Ach.Tat.	tlg0532.tlg001	175
+a	Ach.Tat. Intr.Arat.	tlg2133.tlg001	29
+a	Achae.	tlg0309.tlg001	66
+a	Act.Ap.	tlg0031.tlg005	548
+a	Acus.	tlg0392.tlg001	11
+a	Acut.	tlg0627.tlg004	36
+a	Adam. Phgn.	tlg0731.tlg001	8
+a	Adam. Vent.	tlg0731.tlg002	17
+a	Adv.	tlg0082.tlg002	9
+a	Aed.	tlg4029.tlg003	8
+a	Ael.	tlg0545.tlg004	112
+a	Ael. Ep.	tlg0545.tlg003	16
+a	Ael. NA	tlg0545.tlg001	1329
+a	Ael. Tact.	tlg0546.tlg001	204
+a	Ael. Tact. [	tlg0546.tlg001	2
+a	Ael. VH	tlg0545.tlg002	407
+a	Ael.Dion.	tlg1323.tlg001	91
+a	Aem.	tlg0007.tlg019	10
+a	Aen.Gaz. Ep.	tlg4001.tlg002	4
+a	Aen.Gaz. Thphr.	tlg4001.tlg001	32
+a	Aen.Tact.	tlg0058.tlg001	386
+a	Aequil.	tlg0552.tlg005	2
+s	Aeschin.	1	tlg0026.tlg001
+s	Aeschin.	2	tlg0026.tlg002
+s	Aeschin.	3	tlg0026.tlg003
+a	Aeschin. Ep.	tlg0026.tlg004	18
+a	Aeschin.Socr.	tlg0673.tlg001	25
+a	Aeschrio	tlg0679.tlg001	10
+a	Aesop.	tlg0096.tlg002	164
+a	Aet.	tlg0533.tlg001	3
+a	Aff.	tlg0627.tlg025	7
+a	Afric. Cest.	tlg2956.tlg002	18
+a	Ag.	tlg0085.tlg005	165
+a	Agath.	tlg4024.tlg001	262
+a	Agatharch.	tlg0067.tlg001	167
+a	Agatharch. Fr.Hist.	tlg0067.tlg002	9
+a	Agatho	tlg0318.tlg001	13
+a	Agathocl.	tlg0688.tlg001	10
+a	Ages.	tlg0032.tlg009	29
+a	Ages.	tlg0007.tlg044	12
+a	Agis	tlg0007.tlg051	3
+a	Aglaïas	tlg0676.tlg001	19
+a	Aj.	tlg0011.tlg003	95
+a	Al.	tlg0022.tlg002	41
+a	Alc.	tlg0383.tlg001	367
+a	Alc.	tlg0006.tlg002	42
+a	Alc.Com.	tlg0400.tlg001	33
+a	Alcid. Od.	tlg0610.tlg001	5
+a	Alcid. Soph.	tlg0610.tlg001	18
+a	Alcin. Intr.	tlg0693.tlg002	3
+a	Alciphr.	tlg0640.tlg001	681
+a	Alcm.	tlg0291.tlg001	244
+a	Alcmaeon	tlg0766.tlg001	6
+a	Alex.	tlg0402.tlg001	783
+a	Alex. Fig.	tlg0594.tlg002	44
+a	Alex. Rh.	tlg0594.tlg001	2
+a	Alex.Aet.	tlg0216.tlg001	36
+a	Alex.Aphr. Fat.	tlg0732.tlg014	5
+a	Alex.Aphr. Febr.	tlg0732.tlg003	9
+a	Alex.Aphr. Mixt.	tlg0732.tlg001	3
+a	Alex.Aphr. Pr.	tlg0732.tlg002	219
+a	Alex.Aphr. Quaest.	tlg0732.tlg013	6
+a	Alex.Aphr. de An.	tlg0732.tlg010	26
+a	Alex.Aphr. in APr.	tlg0732.tlg005	3
+a	Alex.Aphr. in Metaph.	tlg0732.tlg004	73
+a	Alex.Aphr. in Mete.	tlg0732.tlg008	32
+a	Alex.Aphr. in SE	tlg0732.tlg009	8
+a	Alex.Aphr. in Sens.	tlg0732.tlg007	32
+a	Alex.Aphr. in Top.	tlg0732.tlg006	99
+a	Alex.Polyh.	tlg0697.tlg001	5
+a	Alex.Trall.	tlg0744.tlg001	264
+a	Alex.Trall. Febr.	tlg0744.tlg002	47
+a	Alex.Trall. Verm.	tlg0744.tlg004	3
+a	Alexand.Com.	tlg0401.tlg001	3
+a	Alyp.	tlg2135.tlg001	6
+a	Am.	tlg0061.tlg002	10
+a	Am.	tlg0527.tlg037	9
+a	Amips.	tlg0403.tlg001	45
+a	Ammon.	tlg0289.tlg001	4
+a	Ammon. Diff.	tlg0708.tlg001	65
+a	Ammon. in APr.	tlg4016.tlg004	19
+a	Ammon. in Cat.	tlg4016.tlg002	10
+a	Ammon. in Int.	tlg4016.tlg003	20
+a	Ammon. in Porph.	tlg4016.tlg001	10
+a	Amphis	tlg0404.tlg001	101
+a	An.	tlg0032.tlg006	126
+a	Anach.	tlg0062.tlg034	11
+a	Anacr.	tlg0237.tlg001	250
+a	Anacreont.	tlg4105.tlg001	27
+a	Anan.	tlg0238.tlg001	15
+a	Anat.	tlg0627.tlg040	2
+a	Anaxandr.	tlg0405.tlg001	191
+a	Anaxarch.	tlg0714.tlg001	2
+a	Anaxil.	tlg0406.tlg001	87
+a	Anaximand.	tlg0725.tlg001	3
+a	Anaximen.	tlg0617.tlg001	3
+a	Anaxipp.	tlg0407.tlg001	43
+s	And.	1	tlg0027.tlg001
+s	And.	2	tlg0027.tlg002
+s	And.	3	tlg0027.tlg003
+s	And.	4	tlg0027.tlg004
+a	Andr.	tlg0006.tlg006	65
+a	Andronic.Rhod.	tlg1124.tlg001	3
+a	Androt.	tlg1125.tlg001	5
+a	Anon.Lond.	tlg0643.tlg001	65
+a	Anon.Rhythm.	tlg-014.tlg001	2
+a	Anon.Rhythm. Oxy.	tlg0088.tlg005	9
+a	Anon.Vat.	tlg0582.tlg001	4
+a	Ant.	tlg0011.tlg002	144
+a	Ant.	tlg0007.tlg058	30
+a	Ant.Diog.	tlg1148.tlg001	9
+a	Ant.Lib.	tlg0651.tlg001	127
+a	Antag.	tlg0215.tlg001	4
+a	Anticl.	tlg1140.tlg001	8
+a	Antid.	tlg0409.tlg001	6
+a	Antig. Mir.	tlg0568.tlg001	80
+a	Antim.	tlg0239.tlg002	83
+a	Antim. Eleg.	tlg0239.tlg001	12
+a	Antim. [	tlg0239.tlg002	3
+a	Antip.Stoic.	tlg1146.tlg001	31
+a	Antiph.	tlg0410.tlg001	796
+s	Antipho	1	tlg0028.tlg001
+s	Antipho	2	tlg0028.tlg002
+s	Antipho	3	tlg0028.tlg003
+s	Antipho	4	tlg0028.tlg004
+s	Antipho	5	tlg0028.tlg005
+s	Antipho	6	tlg0028.tlg006
+a	Antipho Soph.	tlg1147.tlg001	119
+a	Antisth. Od.	tlg0591.tlg001	2
+a	Ap.	tlg0059.tlg002	42
+a	Ap.	tlg0032.tlg005	6
+a	Ap.Ty. Ep.	tlg0619.tlg003	14
+a	Aph.	tlg0627.tlg012	52
+a	Aphth. Prog.	tlg2200.tlg006	32
+a	Apoc.	tlg0031.tlg027	119
+a	Apol.	tlg0062.tlg059	5
+a	Apollod.	tlg0548.tlg001	137
+a	Apollod. Poliorc.	tlg1165.tlg001	177
+a	Apollod.Car.	tlg0411.tlg001	14
+a	Apollod.Com.	tlg0413.tlg001	25
+a	Apollod.Gel.	tlg0413.tlg001	3
+a	Apollod.Stoic.	tlg1166.tlg001	5
+a	Apollon. Lex.	tlg1168.tlg001	3
+a	Apollon. Mir.	tlg0569.tlg001	29
+a	Apollon.Cit.	tlg0660.tlg001	50
+a	Apollon.Perg. Con.	tlg0550.tlg001	35
+a	Apolloph.	tlg0414.tlg001	16
+a	Apostol.	tlg9009.tlg001	12
+a	App.	tlg0551.tlg015	6
+a	App. BC	tlg0551.tlg017	604
+a	App. Gall.	tlg0551.tlg005	11
+a	App. Hann.	tlg0551.tlg008	39
+a	App. Hisp.	tlg0551.tlg007	85
+a	App. Ill.	tlg0551.tlg012	21
+a	App. Ital.	tlg0551.tlg003	4
+a	App. Mac.	tlg0551.tlg011	16
+a	App. Mith.	tlg0551.tlg014	125
+a	App. Praef.	tlg0551.tlg001	10
+a	App. Pun.	tlg0551.tlg009	123
+a	App. Reg.	tlg0551.tlg002	4
+a	App. Sam.	tlg0551.tlg004	12
+a	App. Sic.	tlg0551.tlg006	3
+a	App. Syr.	tlg0551.tlg013	51
+a	Aps. Rh.	tlg2027.tlg001	11
+a	Ar.	tlg0019.tlg012	949
+a	Ar. Ach.	tlg0019.tlg001	1326
+a	Ar. Av.	tlg0019.tlg006	1343
+a	Ar. Ec.	tlg0019.tlg010	608
+a	Ar. Eq.	tlg0019.tlg002	1438
+a	Ar. Lys.	tlg0019.tlg007	803
+a	Ar. Nu.	tlg0019.tlg003	1455
+a	Ar. Pax	tlg0019.tlg005	893
+a	Ar. Pl.	tlg0019.tlg011	1050
+a	Ar. Ra.	tlg0019.tlg009	1246
+a	Ar. Th.	tlg0019.tlg008	757
+a	Ar. V.	tlg0019.tlg004	1359
+a	Ar.Byz. Epit.	tlg0644.tlg001	52
+a	Arar.	tlg0415.tlg001	20
+a	Arat.	tlg0653.tlg001	595
+a	Arc.	tlg2116.tlg001	28
+a	Arched.	tlg0416.tlg001	14
+a	Archemach.	tlg1174.tlg001	2
+a	Archestr.	tlg1175.tlg001	113
+a	Archil.	tlg0232.tlg001	383
+a	Archim. Aequil.	tlg0552.tlg005	21
+a	Archim. Aren.	tlg0552.tlg006	29
+a	Archim. Bov.	tlg0552.tlg012	3
+a	Archim. Circ.	tlg0552.tlg002	2
+a	Archim. Con.Sph.	tlg0552.tlg003	23
+a	Archim. Eratosth.	tlg0552.tlg010	2
+a	Archim. Fluit.	tlg0552.tlg008	12
+a	Archim. Quadr.	tlg0552.tlg007	3
+a	Archim. Sph.Cyl.	tlg0552.tlg001	54
+a	Archim. Spir.	tlg0552.tlg004	21
+a	Archim. Stom.	tlg0552.tlg009	2
+a	Archipp.	tlg0417.tlg001	88
+a	Archyt.	tlg0620.tlg001	57
+a	Archyt.Amph.	tlg1176.tlg001	2
+a	Aret. CA	tlg0719.tlg003	350
+a	Aret. CD	tlg0719.tlg004	190
+a	Aret. SA	tlg0719.tlg001	254
+a	Aret. SD	tlg0719.tlg002	492
+a	Aret., SD	tlg0719.tlg002	2
+a	Arion	tlg2658.tlg001	13
+a	Ariphron	tlg0378.tlg001	3
+a	Arist.	tlg0086.tlg051	447
+a	Arist. APo.	tlg0086.tlg001	112
+a	Arist. APr.	tlg0086.tlg001	126
+a	Arist. Ath.	tlg0086.tlg003	442
+a	Arist. Aud.	tlg0086.tlg004	69
+a	Arist. Cael.	tlg0086.tlg005	214
+a	Arist. Cat.	tlg0086.tlg006	80
+a	Arist. Col.	tlg0086.tlg007	66
+a	Arist. Div.Somn.	tlg0086.tlg008	15
+a	Arist. EE	tlg0086.tlg009	114
+a	Arist. EN	tlg0086.tlg010	1272
+a	Arist. Frr.	tlg0086.tlg049	5
+a	Arist. GA	tlg0086.tlg012	535
+a	Arist. GC	tlg0086.tlg013	61
+a	Arist. HA	tlg0086.tlg014	3132
+a	Arist. IA	tlg0086.tlg015	75
+a	Arist. Insomn.	tlg0086.tlg016	21
+a	Arist. Int.	tlg0086.tlg017	32
+a	Arist. Juv.	tlg0086.tlg018	17
+a	Arist. LI	tlg0086.tlg019	5
+a	Arist. Long.	tlg0086.tlg020	10
+a	Arist. MA	tlg0086.tlg021	15
+a	Arist. MM	tlg0086.tlg022	66
+a	Arist. Mech.	tlg0086.tlg023	81
+a	Arist. Mem.	tlg0086.tlg024	17
+a	Arist. Metaph.	tlg0086.tlg025	503
+a	Arist. Mete.	tlg0086.tlg026	669
+a	Arist. Mir.	tlg0086.tlg027	257
+a	Arist. Mu.	tlg0086.tlg028	374
+a	Arist. Oec.	tlg0086.tlg029	122
+a	Arist. PA	tlg0086.tlg030	552
+a	Arist. Ph.	tlg0086.tlg031	307
+a	Arist. Phgn.	tlg0086.tlg032	170
+a	Arist. Po.	tlg0086.tlg034	321
+a	Arist. Pol.	tlg0086.tlg035	1690
+a	Arist. Pr.	tlg0086.tlg036	1061
+a	Arist. Resp.	tlg0086.tlg037	61
+a	Arist. Rh.	tlg0086.tlg038	1002
+a	Arist. Rh.Al.	tlg0547.tlg001	144
+a	Arist. SE	tlg0086.tlg039	100
+a	Arist. Sens.	tlg0086.tlg041	56
+a	Arist. Somn.Vig.	tlg0086.tlg042	32
+a	Arist. Spir.	tlg0086.tlg043	33
+a	Arist. Top.	tlg0086.tlg044	238
+a	Arist. VV	tlg0086.tlg045	52
+a	Arist. Vent.	tlg0086.tlg046	14
+a	Arist. Xen.	tlg0086.tlg047	11
+a	Arist. de An.	tlg0086.tlg002	187
+a	Arist., Metaph.	tlg0086.tlg025	2
+a	Aristaenet.	tlg4000.tlg001	236
+a	Aristag.	tlg0418.tlg001	3
+a	Aristarch.Sam.	tlg1181.tlg001	9
+a	Aristeas Epic.	tlg1182.tlg001	2
+a	Aristias	tlg0305.tlg001	9
+a	Aristid. Or.	tlg0284.tlg001	278
+a	Aristid. Rh.	tlg0284.tlg056	41
+a	Aristid.Quint.	tlg2054.tlg001	125
+a	Aristobul.	tlg1187.tlg001	7
+a	Aristocl.Hist.	tlg2302.tlg001	6
+a	Aristodem.	tlg1875.tlg001	7
+a	Aristomen.	tlg0419.tlg001	20
+a	Aristonous	tlg0204.tlg001	21
+a	Aristonym.	tlg0420.tlg001	5
+a	Aristopho	tlg0421.tlg001	42
+a	Aristox. Fr.Hist.	tlg0088.tlg004	25
+a	Aristox. Harm.	tlg0088.tlg001	61
+a	Aristox. Rhyth.	tlg0088.tlg002	9
+a	Arr.	tlg0074.tlg018	30
+a	Arr. Alan.	tlg0074.tlg006	5
+a	Arr. An.	tlg0074.tlg001	334
+a	Arr. Cyn.	tlg0074.tlg003	27
+a	Arr. Epict.	tlg0074.tlg-02	844
+a	Arr. Ind.	tlg0074.tlg002	69
+a	Arr. Peripl.M.Eux.	tlg0074.tlg004	11
+a	Arr. Tact.	tlg0074.tlg005	239
+a	Art.	tlg0627.tlg010	78
+a	Artem.	tlg0553.tlg001	487
+a	Artemo	tlg0136.tlg001	3
+a	Ascl. in Metaph.	tlg4018.tlg001	47
+a	Asclep.Tragil.	tlg1200.tlg001	3
+a	Asin.	tlg0061.tlg001	3
+a	Asius	tlg0242.tlg001	8
+a	Asius Fr.Ep.	tlg0242.tlg002	6
+a	Asp. in EN	tlg0615.tlg001	62
+a	Astr.	tlg0062.tlg048	3
+a	Astramps. Onir.	tlg2642.tlg001	4
+a	Astramps. Orac.	tlg2642.tlg002	26
+a	Ath.	tlg0008.tlg001	3008
+a	Ath.Mech.	tlg1204.tlg001	120
+a	Athanis	tlg2387.tlg001	2
+a	Athenio	tlg0422.tlg001	17
+a	Att.	phi0474.phi057	27
+a	Aud.	tlg0086.tlg004	9
+a	Aug. Ep.	stoa0040.stoa011	193
+a	Aug. Ep. ad Hier.	stoa0040.stoa011	2
+a	Aug. Ep. ad Maced.	stoa0040.stoa011	2
+a	Aus. Ep.	tlg2643.tlg001	14
+a	Aus. Epigr.	tlg2643.tlg002	3
+a	Aut.	tlg0559.tlg002	4
+a	Autocr.	tlg0423.tlg001	5
+a	Autol.	tlg1210.tlg001	16
+a	Autol. Sph.	tlg1210.tlg001	5
+a	Av.	tlg0019.tlg006	149
+a	Ax.	tlg0059.tlg038	8
+a	Axionic.	tlg0424.tlg001	27
+a	Axiop.	tlg0521.tlg005	17
+s	Aët.	1	tlg0718.tlg001
+s	Aët.	2	tlg0718.tlg002
+s	Aët.	3	tlg0718.tlg003
+s	Aët.	4	tlg0718.tlg004
+s	Aët.	5	tlg0718.tlg005
+s	Aët.	6	tlg0718.tlg006
+s	Aët.	7	tlg0718.tlg007
+s	Aët.	8	tlg0718.tlg008
+s	Aët.	9	tlg0718.tlg009
+s	Aët.	10	tlg0718.tlg010
+s	Aët.	11	tlg0718.tlg011
+s	Aët.	12	tlg0718.tlg012
+s	Aët.	13	tlg0718.tlg013
+s	Aët.	14	tlg0718.tlg014
+s	Aët.	15	tlg0718.tlg015
+s	Aët.	16	tlg0718.tlg016
+a	B.	tlg0199.tlg001	654
+a	B.	tlg0199.tlg002	175
+a	B. Scol.Oxy.	tlg0199.tlg004	19
+a	BC	tlg0551.tlg017	13
+a	BJ	tlg0526.tlg004	18
+a	Ba.	tlg0006.tlg017	100
+a	Babr.	tlg0614.tlg001	362
+a	Bacch. Harm.	tlg2136.tlg001	25
+a	Bato	tlg0425.tlg001	24
+a	Bato Sinop.	tlg1219.tlg001	2
+a	Batr.	tlg1220.tlg001	213
+a	Bel.	tlg0559.tlg012	3
+a	Beros.	tlg1222.tlg001	3
+a	Besant. Ara	tlg0144.tlg001	2
+a	Bion	tlg0036.tlg001	59
+a	Bion	tlg0036.tlg003	50
+a	Bito	tlg1226.tlg001	54
+a	Blaes.	tlg1227.tlg001	5
+a	Boeth.Stoic.	tlg2397.tlg001	5
+a	Brut.	tlg0007.tlg061	19
+a	Brut. Ep.	tlg1803.tlg001	3
+a	C.	tlg0024.tlg001	10
+a	CA	tlg0719.tlg003	13
+a	CD	tlg0719.tlg004	12
+a	CG	tlg0007.tlg052	3
+a	CP	tlg0093.tlg002	107
+a	Ca.	tlg0527.tlg031	6
+a	Cael.	tlg0086.tlg005	38
+a	Caes.	tlg0007.tlg048	19
+a	Caes. B. C.	phi0448.phi002	2153
+a	Caes. B. G.	phi0448.phi001	4517
+a	Cal.	tlg0062.tlg013	4
+a	Call.	tlg0533.tlg001	479
+a	Call. Aet.	tlg0533.tlg001	122
+a	Call. Ap.	tlg0533.tlg002	104
+a	Call. Cer.	tlg0533.tlg002	89
+a	Call. Del.	tlg0533.tlg002	219
+a	Call. Dian.	tlg0533.tlg002	228
+a	Call. Epigr.	tlg0533.tlg003	157
+a	Call. Hec.	tlg0533.tlg001	48
+a	Call. Iamb.	tlg0533.tlg001	85
+a	Call. Jov.	tlg0533.tlg002	96
+a	Call. Lav.Pall.	tlg0533.tlg002	65
+a	Call. Sos.	tlg0533.tlg001	8
+a	Call. Sos. vi	tlg0533.tlg001	3
+a	Call. in *dihgh/seis vii	tlg0147.tlg001	2
+a	Call.Com.	tlg0426.tlg001	23
+a	Callin.	tlg0243.tlg001	14
+a	Callistr. Stat.	tlg4091.tlg001	44
+a	Callistr.Hist.	tlg1239.tlg001	2
+a	Callix.	tlg1240.tlg001	163
+a	Cam.	tlg0007.tlg011	12
+a	Canthar.	tlg0428.tlg001	8
+a	Carc.	tlg0310.tlg001	8
+a	Carm.Pop.	tlg0295.tlg001	2
+a	Carn.	tlg0627.tlg043	3
+a	Caryst.	tlg1245.tlg001	7
+a	Cass. Pr.	tlg0733.tlg001	74
+a	Cass.Fel.	tlg0733.tlg001	27
+a	Castorio	tlg0382.tlg001	9
+a	Cat.	phi0472.phi001	1513
+a	Cat.Ma.	tlg0007.tlg025	8
+a	Cat.Mi.	tlg0007.tlg050	16
+a	Ceb.	tlg1247.tlg001	38
+a	Cels.	phi0836.phi002	1592
+a	Cephisod.	tlg0429.tlg001	18
+a	Cer.	tlg0533.tlg002	6
+a	Cerc.	tlg1250.tlg001	111
+a	Certamen	tlg1252.tlg001	3
+a	Ch.	tlg0085.tlg006	186
+a	Chaerem.	tlg0328.tlg001	43
+a	Chaerem.Hist.	tlg2424.tlg001	2
+a	Charax	tlg1254.tlg001	4
+a	Chares	tlg1255.tlg001	12
+a	Chares	tlg1255.tlg002	3
+a	Chariclid.	tlg0430.tlg001	3
+a	Charito	tlg0554.tlg001	108
+a	Charon	tlg1258.tlg001	4
+a	Charon	tlg1258.tlg002	2
+a	Chilo	tlg1261.tlg001	2
+a	Chio Ep.	tlg0041.tlg001	22
+a	Chionid.	tlg0431.tlg001	12
+a	Choeril.	tlg1263.tlg001	19
+a	Choerob. in Theod.	tlg4093.tlg001	150
+a	Chrm.	tlg0059.tlg018	19
+a	Chrysipp.Stoic.	tlg1264.tlg001	434
+a	Cic.	tlg0007.tlg055	17
+a	Cic. Acad.	phi0474.phi045	3
+a	Cic. Aem. Scaur.	phi0474.phi029	5
+a	Cic. Agr.	phi0474.phi011	464
+a	Cic. Am.	phi0474.phi052	24
+a	Cic. Arat.	phi0474.phi060	108
+a	Cic. Arat. Phaen.	phi0474.phi060	2
+a	Cic. Arch.	phi0474.phi016	139
+a	Cic. Att.	phi0474.phi057	3594
+a	Cic. Balb.	phi0474.phi026	193
+a	Cic. Brut.	phi0474.phi039	995
+a	Cic. Caecin.	phi0474.phi008	304
+a	Cic. Cael.	phi0474.phi024	332
+a	Cic. Cat.	phi0474.phi013	591
+a	Cic. Clu.	phi0474.phi010	599
+a	Cic. Deiot.	phi0474.phi034	124
+a	Cic. Div.	phi0474.phi053	1433
+a	Cic. Div. ap. Caecil.	phi0474.phi004	6
+a	Cic. Div. in Caecil.	phi0474.phi004	159
+a	Cic. Div. in Caecin.	phi0474.phi004	5
+a	Cic. Dom.	phi0474.phi020	153
+a	Cic. Fam.	phi0474.phi056	3555
+a	Cic. Fat.	phi0474.phi054	136
+a	Cic. Fin.	phi0474.phi048	1350
+a	Cic. Flac.	phi0474.phi017	4
+a	Cic. Font.	phi0474.phi007	118
+a	Cic. Har. Resp.	phi0474.phi021	76
+a	Cic. Imp. Pomp.	phi0474.phi009	249
+a	Cic. Inv.	phi0474.phi036	592
+a	Cic. Lael.	phi0474.phi052	666
+a	Cic. Leg.	phi0474.phi044	760
+a	Cic. Leg. Agr.	phi0474.phi011	4
+a	Cic. Lig.	phi0474.phi033	71
+a	Cic. Marcell.	phi0474.phi032	30
+a	Cic. Mil.	phi0474.phi031	389
+a	Cic. Mur.	phi0474.phi014	403
+a	Cic. N. D.	phi0474.phi050	1962
+a	Cic. ND	phi0474.phi050	12
+a	Cic. Off.	phi0474.phi055	1651
+a	Cic. Opt. Gen.	phi0474.phi041	36
+a	Cic. Opt. Gen. Or.	phi0474.phi041	9
+a	Cic. Or.	phi0474.phi040	790
+a	Cic. Orat.	phi0474.phi040	14
+a	Cic. Par.	phi0474.phi047	140
+a	Cic. Part. Or.	phi0474.phi038	92
+a	Cic. Phil.	phi0474.phi035	1450
+a	Cic. Pis.	phi0474.phi027	466
+a	Cic. Planc.	phi0474.phi028	378
+a	Cic. Prov. Cons.	phi0474.phi025	134
+a	Cic. Q.	phi0474.phi058	542
+a	Cic. QF	phi0474.phi058	13
+a	Cic. Quinct.	phi0474.phi001	21
+a	Cic. Rab. Perd.	phi0474.phi012	96
+a	Cic. Rab. Post.	phi0474.phi030	119
+a	Cic. Red. Quir.	phi0474.phi018	7
+a	Cic. Red. in Sen.	phi0474.phi019	17
+a	Cic. Rep.	phi0474.phi043	1401
+a	Cic. Rosc. Am.	phi0474.phi002	603
+a	Cic. Rosc. Com.	phi0474.phi003	174
+a	Cic. Scaur.	phi0474.phi029	22
+a	Cic. Sen.	phi0474.phi051	430
+a	Cic. Sest.	phi0474.phi022	500
+a	Cic. Sull.	phi0474.phi015	220
+a	Cic. Tim.	phi0474.phi072	19
+a	Cic. Top.	phi0474.phi042	169
+a	Cic. Tull.	phi0474.phi006	9
+a	Cic. Tusc.	phi0474.phi049	2257
+a	Cic. Univ.	phi0474.phi072	177
+a	Cic. Vatin.	phi0474.phi023	89
+a	Cic. Verr.	phi0474.phi005	4651
+a	Cic. ad Brut.	phi0474.phi039	11
+a	Cic. de Imp. Pomp.	phi0474.phi009	2
+a	Cic. de Or.	phi0474.phi037	2394
+a	Cim.	tlg0007.tlg035	4
+a	Cleanth.Stoic.	tlg1269.tlg001	44
+a	Clearch.	tlg1270.tlg001	152
+a	Clearch.Com.	tlg0432.tlg001	9
+a	Clem.Al. Paed.	tlg0555.tlg002	4
+a	Clem.Al. Protr.	tlg0555.tlg001	4
+a	Clem.Al. Strom.	tlg0555.tlg004	14
+a	Cleobulina	tlg0244.tlg001	2
+a	Cleom.	tlg1272.tlg001	162
+a	Cleonid. Harm.	tlg0361.tlg001	43
+a	Clit.	tlg0059.tlg029	3
+a	Clitarch.	tlg1279.tlg001	7
+a	Clytus	tlg1282.tlg001	5
+a	Coac.	tlg0627.tlg017	59
+a	Col.	phi0845.phi001	4080
+a	Col. Arb.	phi0845.phi002	69
+a	Col. Arbor.	phi0845.phi002	10
+a	Col. R. R.	phi0845.phi001	15
+a	Col. de Arb.	phi0845.phi002	2
+a	Coluth.	tlg4081.tlg001	96
+a	Com.Adesp.	tlg0408.tlg001	130
+a	Comp.	tlg0081.tlg012	14
+a	Comp.Ages.Pomp.	tlg0007.tlg046	2
+a	Comp.Thes.Rom.	tlg0007.tlg003	2
+a	Con.Sph.	tlg0552.tlg003	2
+a	Conj.	tlg0082.tlg003	7
+a	Conon	tlg1285.tlg001	36
+a	Cont.	tlg0062.tlg023	4
+a	Cor.	tlg0007.tlg016	9
+a	Cord.	tlg0627.tlg045	2
+a	Corinn.	tlg0294.tlg001	43
+a	Corn. ND	tlg0654.tlg002	384
+a	Corp.Herm.	tlg1286.tlg001	30
+a	Cra.	tlg0059.tlg005	74
+a	Crass.	tlg0007.tlg039	12
+a	Crates Com.	tlg0433.tlg001	88
+a	Crateuas	tlg0657.tlg001	12
+a	Cratin.	tlg0434.tlg001	711
+a	Cratin.Jun.	tlg0435.tlg001	24
+a	Cri.	tlg0059.tlg003	13
+a	Criti.	tlg0059.tlg032	21
+a	Critias	tlg0319.tlg001	145
+a	Crito Com.	tlg0436.tlg001	3
+a	Crobyl.	tlg0437.tlg001	22
+a	Ctes.	tlg0845.tlg002	70
+a	Curt.	phi0860.phi001	2121
+a	Cyc.	tlg0006.tlg001	59
+a	Cydias	tlg0368.tlg001	2
+a	Cyn.	tlg0032.tlg014	20
+a	Cypr.	tlg1296.tlg001	4
+a	Cyr.	tlg0032.tlg007	153
+s	D.	1	tlg0014.tlg001
+s	D.	2	tlg0014.tlg002
+s	D.	3	tlg0014.tlg003
+s	D.	4	tlg0014.tlg004
+s	D.	5	tlg0014.tlg005
+s	D.	6	tlg0014.tlg006
+s	D.	7	tlg0014.tlg007
+s	D.	8	tlg0014.tlg008
+s	D.	9	tlg0014.tlg009
+s	D.	10	tlg0014.tlg010
+s	D.	11	tlg0014.tlg011
+s	D.	12	tlg0014.tlg012
+s	D.	13	tlg0014.tlg013
+s	D.	14	tlg0014.tlg014
+s	D.	15	tlg0014.tlg015
+s	D.	16	tlg0014.tlg016
+s	D.	17	tlg0014.tlg017
+s	D.	18	tlg0014.tlg018
+s	D.	19	tlg0014.tlg019
+s	D.	20	tlg0014.tlg020
+s	D.	21	tlg0014.tlg021
+s	D.	22	tlg0014.tlg022
+s	D.	23	tlg0014.tlg023
+s	D.	24	tlg0014.tlg024
+s	D.	25	tlg0014.tlg025
+s	D.	26	tlg0014.tlg026
+s	D.	27	tlg0014.tlg027
+s	D.	28	tlg0014.tlg028
+s	D.	29	tlg0014.tlg029
+s	D.	30	tlg0014.tlg030
+s	D.	31	tlg0014.tlg031
+s	D.	32	tlg0014.tlg032
+s	D.	33	tlg0014.tlg033
+s	D.	34	tlg0014.tlg034
+s	D.	35	tlg0014.tlg035
+s	D.	36	tlg0014.tlg036
+s	D.	37	tlg0014.tlg037
+s	D.	38	tlg0014.tlg038
+s	D.	39	tlg0014.tlg039
+s	D.	40	tlg0014.tlg040
+s	D.	41	tlg0014.tlg041
+s	D.	42	tlg0014.tlg042
+s	D.	43	tlg0014.tlg043
+s	D.	44	tlg0014.tlg044
+s	D.	45	tlg0014.tlg045
+s	D.	46	tlg0014.tlg046
+s	D.	47	tlg0014.tlg047
+s	D.	48	tlg0014.tlg048
+s	D.	49	tlg0014.tlg049
+s	D.	50	tlg0014.tlg050
+s	D.	51	tlg0014.tlg051
+s	D.	52	tlg0014.tlg052
+s	D.	53	tlg0014.tlg053
+s	D.	54	tlg0014.tlg054
+s	D.	55	tlg0014.tlg055
+s	D.	56	tlg0014.tlg056
+s	D.	57	tlg0014.tlg057
+s	D.	58	tlg0014.tlg058
+s	D.	59	tlg0014.tlg059
+s	D.	60	tlg0014.tlg060
+s	D.	61	tlg0014.tlg061
+a	D. Ep.	tlg0014.tlg063	67
+a	D. Prooem.	tlg0014.tlg062	48
+a	D.C.	tlg0385.tlg001	1829
+a	D.Chr.	tlg0612.tlg001	398
+a	D.H.	tlg0081.tlg001	1943
+a	D.H. Comp.	tlg0081.tlg012	472
+a	D.H. Dem.	tlg0081.tlg006	188
+a	D.H. Din.	tlg0081.tlg009	30
+a	D.H. Is.	tlg0081.tlg005	35
+a	D.H. Isoc.	tlg0081.tlg004	46
+a	D.H. Lys.	tlg0081.tlg003	62
+a	D.H. Orat.Vett.	tlg0081.tlg002	5
+a	D.H. Pomp.	tlg0081.tlg015	56
+a	D.H. Rh.	tlg0081.tlg016	148
+a	D.H. Th.	tlg0081.tlg010	122
+a	D.H. Vett.Cens.	tlg0081.tlg001	17
+a	D.L.	tlg0004.tlg001	1080
+a	D.P.	tlg0084.tlg001	422
+a	D.S.	tlg0060.tlg001	3366
+a	D.T.	tlg0063.tlg001	192
+a	DDeor.	tlg0062.tlg068	7
+a	DMar.	tlg0062.tlg067	3
+a	DMeretr.	tlg0062.tlg069	10
+a	DMort.	tlg0062.tlg066	12
+a	Da.	tlg0527.tlg056	12
+a	Daimachus	tlg2482.tlg001	4
+a	Dam.	tlg4066.tlg001	14
+a	Dam. Isid.	tlg4066.tlg002	93
+a	Dam. Pr.	tlg4066.tlg003	867
+a	Damian. Opt.	tlg2627.tlg001	11
+a	Damox.	tlg0438.tlg001	42
+a	David Proll.	tlg4021.tlg001	12
+a	De.	tlg0527.tlg005	44
+a	Decl.	tlg2200.tlg005	2
+a	Del.	tlg0533.tlg002	9
+a	Dem.	tlg0081.tlg006	16
+a	Dem.	tlg0007.tlg054	6
+a	Dem.Bith.	tlg1308.tlg001	4
+a	Demad.	tlg0535.tlg001	6
+a	Demetr.	tlg0007.tlg057	7
+a	Demetr. Eloc.	tlg0613.tlg001	309
+a	Demetr.Com.Vet.	tlg0439.tlg001	6
+a	Demetr.Lac.	tlg1300.tlg001	10
+a	Democh.	tlg1303.tlg001	5
+a	Democr.	tlg0161.tlg001	515
+a	Democr. [	tlg0161.tlg001	2
+a	Democr.Eph.	tlg1305.tlg001	6
+a	Demod.	tlg0059.tlg038	2
+a	Demon	tlg1307.tlg001	3
+a	Demon.	tlg0062.tlg008	2
+a	Demonic.	tlg0441.tlg001	2
+a	Demoph. Sent.	tlg1759.tlg001	6
+a	Descr.	tlg2200.tlg006	3
+a	Dexipp.	tlg2141.tlg001	2
+a	Dexipp. in Cat.	tlg2036.tlg001	17
+a	Diagor.	tlg0371.tlg001	2
+a	Dialex.	tlg1309.tlg001	6
+a	Dian.	tlg0533.tlg002	4
+a	Dicaearch.	tlg0066.tlg001	47
+a	Dicaearch.Hist.	tlg0066.tlg001	9
+a	Dieb.Judic.	tlg0627.tlg053	2
+a	Dieuchid.	tlg1313.tlg001	3
+a	Din.	tlg0029.tlg001	224
+a	Din.	tlg0029.tlg007	58
+a	Dinol.	tlg1315.tlg001	9
+a	Dinon	tlg1316.tlg001	7
+a	Dio	tlg0007.tlg060	8
+a	Diocl.	tlg0664.tlg001	208
+a	Diocl.Com.	tlg0443.tlg001	15
+a	Diod.Com.	tlg0444.tlg001	14
+a	Diog. Ep.	tlg1325.tlg001	34
+a	Diog.Apoll.	tlg1319.tlg001	33
+a	Diog.Ath.	tlg0320.tlg001	9
+a	Diog.Bab.Stoic.	tlg1320.tlg001	21
+a	Diog.Oen.	tlg1321.tlg001	143
+a	Diog.Sinop.	tlg0334.tlg001	3
+a	Diogenian.	tlg0097.tlg001	67
+a	Diogenian.Epicur.	tlg1322.tlg001	16
+a	Diom.	tlg4175.tlg002	11
+a	Dion.Byz.	tlg0083.tlg003	22
+a	Dionys. Av.	tlg0084.tlg003	34
+a	Dionys.Com.	tlg0445.tlg001	28
+a	Dionys.Eleg.	tlg0246.tlg001	7
+a	Dionys.Trag.	tlg0350.tlg001	11
+a	Dioph.	tlg2039.tlg001	29
+a	Diox.	tlg0446.tlg001	6
+a	Diph.	tlg0447.tlg001	271
+a	Dips.	tlg0062.tlg054	3
+a	Dith.Oxy.	tlg0033.tlg005	2
+a	Dom.	tlg0062.tlg009	5
+a	Doroth.	tlg1337.tlg001	6
+a	Dosiad. Ara	tlg0208.tlg001	16
+a	Dosiad.Hist.	tlg1338.tlg001	5
+a	Dromo	tlg0448.tlg001	6
+a	Duris	tlg0178.tlg001	57
+a	E. Alc.	tlg0006.tlg002	653
+a	E. Andr.	tlg0006.tlg006	616
+a	E. Andr. [	tlg0006.tlg006	2
+a	E. Ba.	tlg0006.tlg017	833
+a	E. Cyc.	tlg0006.tlg001	469
+a	E. El.	tlg0006.tlg012	613
+a	E. Ep.	tlg1367.tlg001	6
+a	E. HF	tlg0006.tlg009	635
+a	E. Hec.	tlg0006.tlg007	863
+a	E. Hel.	tlg0006.tlg014	698
+a	E. Hel. [	tlg0006.tlg014	2
+a	E. Heracl.	tlg0006.tlg004	399
+a	E. Hipp.	tlg0006.tlg005	878
+a	E. Hipp. [	tlg0006.tlg005	2
+a	E. IA	tlg0006.tlg018	635
+a	E. IA [	tlg0006.tlg018	4
+a	E. IT	tlg0006.tlg013	681
+a	E. Ion	tlg0006.tlg010	753
+a	E. Ion [	tlg0006.tlg010	2
+a	E. Med.	tlg0006.tlg003	868
+a	E. Or.	tlg0006.tlg016	981
+a	E. Or. [	tlg0006.tlg016	8
+a	E. Ph.	tlg0006.tlg015	1009
+a	E. Ph. [	tlg0006.tlg015	6
+a	E. Rh.	tlg0006.tlg019	404
+a	E. Supp.	tlg0006.tlg008	639
+a	E. Tr.	tlg0006.tlg011	568
+a	E., Hec.	tlg0006.tlg007	3
+a	EE	tlg0086.tlg009	15
+a	EM	tlg4099.tlg001	1498
+a	EN	tlg0086.tlg010	126
+a	Ec.	tlg0019.tlg010	102
+a	Ec.	tlg0527.tlg030	12
+a	Ecphantid.	tlg0449.tlg001	4
+a	El.	tlg0011.tlg005	162
+a	El.	tlg0006.tlg012	79
+a	Electr.	tlg0062.tlg005	2
+a	Eleg.Alex.Adesp.	tlg0231.tlg001	2
+a	Elias in Cat.	tlg4020.tlg002	14
+a	Elias in Porph.	tlg4020.tlg001	15
+a	Emp.	tlg1342.tlg001	596
+a	Emp. Sphaer.	tlg1342.tlg002	2
+a	Ep.	tlg0059.tlg036	21
+a	Ep.	tlg0537.tlg006	11
+a	Ep.	tlg0014.tlg063	7
+a	Ep.Col.	tlg0031.tlg012	60
+a	Ep.Eph.	tlg0031.tlg010	97
+a	Ep.Gal.	tlg0031.tlg009	79
+a	Ep.Hebr.	tlg0031.tlg019	148
+a	Ep.Jac.	tlg0031.tlg020	71
+a	Ep.Jud.	tlg0031.tlg126	16
+a	Ep.Phil.	tlg0031.tlg011	73
+a	Ep.Philem.	tlg0031.tlg018	5
+a	Ep.Rom.	tlg0031.tlg006	246
+a	Ep.Tit.	tlg0031.tlg017	35
+a	Ephipp.	tlg0450.tlg001	121
+a	Ephor.	tlg0536.tlg001	65
+a	Epic.Alex.Adesp.	tlg1344.tlg001	4
+a	Epich.	tlg0521.tlg001	498
+a	Epich. [	tlg0521.tlg001	20
+a	Epicr.	tlg0451.tlg001	63
+a	Epict.	tlg0557.tlg-01	8
+a	Epict. Ench.	tlg0557.tlg002	74
+a	Epict. Gnom.	tlg0557.tlg004	25
+a	Epicur.	tlg0537.tlg003	299
+a	Epicur. Ep.	tlg0537.tlg006	537
+a	Epicur. Nat.	tlg0537.tlg003	199
+a	Epicur. Sent.	tlg0537.tlg001	84
+a	Epicur. Sent.Vat.	tlg0537.tlg002	74
+a	Epid.	tlg0627.tlg006	94
+a	Epig.	tlg0179.tlg001	12
+a	Epil.	tlg0453.tlg001	11
+a	Epimenid.	tlg1347.tlg001	11
+a	Epin.	tlg0454.tlg001	21
+a	Epin.	tlg0059.tlg035	12
+a	Epit.	tlg0541.tlg009	10
+a	Eq.	tlg0019.tlg002	78
+a	Eq.	tlg0032.tlg013	19
+a	Eq.Mag.	tlg0032.tlg012	20
+a	Eratosth.	tlg4063.tlg001	41
+a	Eratosth. Cat.	tlg0222.tlg001	29
+a	Erinn.	tlg1355.tlg001	15
+a	Eriph.	tlg0455.tlg001	6
+a	Erot.	tlg0716.tlg002	18
+a	Erot.	tlg0716.tlg001	2
+a	Erx.	tlg0059.tlg038	3
+a	Es.	tlg0527.tlg019	9
+a	Et.Gud.	tlg4098.tlg001	37
+a	Eu.	tlg0085.tlg007	188
+a	Euang.	tlg0456.tlg001	7
+a	Eub.	tlg0458.tlg001	409
+a	Eubulid.	tlg0457.tlg001	3
+a	Euc.	tlg1799.tlg001	131
+a	Euc. Dat.	tlg1799.tlg007	3
+a	Euc. Opt.	tlg1799.tlg009	7
+a	Euc. Phaen.	tlg1799.tlg012	21
+a	Euc. Sect.Can.	tlg1799.tlg015	6
+a	Eudox. Ars	tlg1358.tlg003	32
+a	Eudox.Com.	tlg0399.tlg001	2
+a	Eum.	tlg0007.tlg041	9
+a	Eumel.	tlg0298.tlg001	7
+a	Eun. Hist.	tlg2050.tlg002	131
+a	Eun. VS	tlg2050.tlg001	139
+a	Eup.	tlg0461.tlg001	599
+a	Euph.	tlg0221.tlg001	191
+a	Euph. Fr.Hist.	tlg0221.tlg003	2
+a	Euphro	tlg0460.tlg001	42
+a	Eus. DE	tlg2018.tlg005	2
+a	Eus. PE	tlg2018.tlg001	313
+a	Eus.Mynd.	tlg2640.tlg001	55
+a	Eust.	tlg4083.tlg001	2377
+a	Eustr. in APo.	tlg4031.tlg001	10
+a	Eustr. in EN	tlg4031.tlg002	103
+a	Euthd.	tlg0059.tlg021	42
+a	Euthphr.	tlg0059.tlg001	17
+a	Euthycl.	tlg0462.tlg001	2
+a	Eux.	tlg0030.tlg003	2
+a	Ev.Jo.	tlg0031.tlg004	167
+a	Ev.Luc.	tlg0031.tlg003	469
+a	Ev.Marc.	tlg0031.tlg002	264
+a	Ev.Matt.	tlg0031.tlg001	507
+a	Even.	tlg0251.tlg001	3
+a	Ex.	tlg0527.tlg002	35
+a	Exc.	tlg0358.tlg004	3
+a	Ez.	tlg0527.tlg053	27
+a	Ezek. Exag.	tlg0343.tlg001	45
+a	Fab.	tlg0007.tlg013	13
+a	Fam.	phi0474.phi056	3
+a	Febr.	tlg0744.tlg002	6
+a	Fist.	tlg0627.tlg030	5
+a	Flam.	tlg0007.tlg028	7
+a	Flor.	phi1242.phi001	932
+a	Fract.	tlg0627.tlg009	27
+a	Fract.	tlg0565.tlg002	3
+a	Fug.	tlg0062.tlg043	5
+a	GA	tlg0086.tlg012	155
+a	GC	tlg0086.tlg013	22
+a	Gal. Anim.Pass.	tlg0057.tlg029	24
+a	Gal. Consuet.	tlg0057.tlg103	5
+a	Gal. Inst.Log.	tlg0057.tlg081	4
+a	Gal. Libr.Ord.	tlg0057.tlg105	4
+a	Gal. Libr.Propr.	tlg0057.tlg104	12
+a	Gal. Med.Phil.	tlg0057.tlg003	2
+a	Gal. Nat.Fac.	tlg0057.tlg010	60
+a	Gal. Opt.Doctr.	tlg0057.tlg002	3
+a	Gal. Parv.Pil.	tlg0057.tlg034	6
+a	Gal. Phil.Hist.	tlg0530.tlg042	16
+a	Gal. Protr.	tlg0057.tlg001	26
+a	Gal. Sect.Intr.	tlg0057.tlg004	19
+a	Gal. Thras.	tlg0057.tlg033	60
+a	Gal. UP	tlg0057.tlg017	431
+a	Gal. Vict.Att.	tlg0057.tlg019	18
+a	Galb.	tlg0007.tlg065	9
+a	Gall.	tlg0062.tlg019	7
+a	Gaud.Harm.	tlg2137.tlg001	11
+a	Ge.	tlg0527.tlg001	41
+a	Gell.	phi1254.phi001	4011
+a	Gem.	tlg1383.tlg001	164
+a	Gem. Calend.	tlg1383.tlg002	9
+a	Geog.	tlg0363.tlg009	3
+a	Gland.	tlg0627.tlg042	4
+a	Gorg.	tlg0593.tlg001	9
+a	Gorg. Hel.	tlg0593.tlg003	27
+a	Gorg. Pal.	tlg0593.tlg003	22
+a	Gorgon	tlg2357.tlg001	2
+a	Goth.	tlg4029.tlg001	5
+a	Gp.	tlg4080.tlg001	292
+a	Greg.Cor.	tlg4092.tlg001	6
+a	Grg.	tlg0059.tlg023	134
+a	Gym.	tlg0638.tlg007	4
+a	H.	tlg0023.tlg001	20
+a	H.	tlg0579.tlg001	4
+a	HA	tlg0086.tlg014	120
+a	HF	tlg0006.tlg009	93
+a	HG	tlg0032.tlg001	111
+a	HP	tlg0093.tlg001	39
+a	Hann.	tlg0551.tlg008	4
+a	Hanno Peripl.	tlg0064.tlg001	8
+a	Harm.	tlg0062.tlg060	2
+a	Harmod.	tlg1388.tlg001	8
+a	Hb.	tlg0527.tlg043	3
+a	Hdn.	tlg0015.tlg001	549
+a	Hdn. Epim.	tlg0087.tlg036	223
+a	Hdn. Fig.	tlg0087.tlg035	28
+a	Hdn. Philet.	tlg0087.tlg037	11
+a	Hdt.	tlg0016.tlg001	13616
+a	Hec.	tlg0006.tlg007	59
+a	Hecat.	tlg0538.tlg001	64
+a	Hecat.Abd.	tlg1390.tlg001	3
+a	Hegem.	tlg0463.tlg001	3
+a	Hegesand.	tlg1392.tlg001	42
+a	Hegesipp.	tlg1396.tlg001	7
+a	Hegesipp.Com.	tlg0464.tlg001	13
+a	Hel.	tlg0006.tlg014	93
+a	Heliod. in EN	tlg4033.tlg003	16
+a	Heliod.Hist.	tlg1400.tlg001	2
+a	Hellanic.	tlg0539.tlg001	47
+a	Henioch.	tlg0465.tlg001	30
+a	Heph.	tlg1402.tlg001	161
+a	Heph.Astr.	tlg2043.tlg001	214
+a	Her.	tlg0638.tlg004	5
+a	Her.	tlg0541.tlg010	2
+a	Heracl.	tlg0006.tlg004	46
+a	Heraclid. Pol.	tlg1407.tlg001	17
+a	Heraclid.Cum.	tlg1406.tlg001	8
+a	Heraclid.Lemb.	tlg1407.tlg002	5
+a	Heraclit.	tlg1415.tlg001	228
+a	Heraclit. All.	tlg1414.tlg001	80
+a	Heraclit. Ep.	tlg1411.tlg001	23
+a	Heraclit. Incred.	tlg1413.tlg001	22
+a	Herm.	tlg0062.tlg063	8
+a	Herm. in Phdr.	tlg2317.tlg001	164
+a	Herm.Hist.	tlg2384.tlg001	9
+a	Herm.Iamb.	tlg1420.tlg001	2
+a	Hermesian.	tlg0213.tlg001	59
+a	Hermipp.	tlg0252.tlg001	199
+a	Hermipp.Hist.	tlg1421.tlg001	5
+a	Hermog. Id.	tlg0592.tlg004	207
+a	Hermog. Inv.	tlg0592.tlg003	101
+a	Hermog. Meth.	tlg0592.tlg005	30
+a	Hermog. Prog.	tlg0592.tlg001	36
+a	Hermog. Stat.	tlg0592.tlg002	62
+a	Hero Aut.	tlg0559.tlg002	140
+a	Hero Bel.	tlg0559.tlg012	131
+a	Hero Dioptr.	tlg0559.tlg007	19
+a	Hero Metr.	tlg0559.tlg006	16
+a	Hero Spir.	tlg0559.tlg001	165
+a	Herod.	tlg0650.tlg001	516
+a	Herodor.	tlg1427.tlg001	4
+a	Hes.	tlg0020.tlg007	202
+a	Hes. Op.	tlg0020.tlg002	1329
+a	Hes. Op. [	tlg0020.tlg002	4
+a	Hes. Sc.	tlg0020.tlg003	594
+a	Hes. Sc. [	tlg0020.tlg003	2
+a	Hes. Th.	tlg0020.tlg001	1093
+a	Hes. Th. [	tlg0020.tlg001	2
+a	Hier.	tlg0032.tlg008	20
+a	Hierocl.	tlg1429.tlg001	30
+a	Hierocl. Prov.	tlg2571.tlg001	12
+a	Hierocl. in CA	tlg2571.tlg001	276
+a	Him. Ecl.	tlg2051.tlg001	44
+a	Him. Or.	tlg2051.tlg001	104
+a	Hipp.	tlg0006.tlg005	78
+a	Hipparch.	tlg1431.tlg001	124
+a	Hipparch.Com.	tlg0468.tlg001	5
+a	Hippiatr.	tlg0738.tlg001	154
+a	Hippol. Haer.	tlg2115.tlg001	9
+a	Hippon.	tlg0233.tlg001	210
+a	Hippys	tlg1438.tlg001	2
+a	Hirt. B. G.	phi0448.phi001	301
+a	Hirt. ib.	phi0448.phi001	4
+a	Hist.Conscr.	tlg0062.tlg053	9
+a	Hld.	tlg0658.tlg001	774
+a	Ho.	tlg0527.tlg036	6
+a	Hom.	tlg0013.tlg001	2
+a	Hom.	tlg1595.tlg492	2
+a	Hom. Epigr.	tlg0012.tlg003	81
+a	Hor. C.	phi0893.phi001	3473
+a	Hor. Epod.	phi0893.phi003	708
+a	Hor. Od.	phi0893.phi001	149
+a	Hor. S.	phi0893.phi004	2731
+a	Horap.	tlg2052.tlg001	49
+a	Hp. Acut.	tlg0627.tlg004	344
+a	Hp. Aff.	tlg0627.tlg025	74
+a	Hp. Alim.	tlg0627.tlg046	45
+a	Hp. Anat.	tlg0627.tlg040	14
+a	Hp. Aph.	tlg0627.tlg012	508
+a	Hp. Art.	tlg0627.tlg010	843
+a	Hp. Carn.	tlg0627.tlg043	30
+a	Hp. Coac.	tlg0627.tlg017	245
+a	Hp. Cord.	tlg0627.tlg045	47
+a	Hp. Decent.	tlg0627.tlg050	85
+a	Hp. Dent.	tlg0627.tlg041	21
+a	Hp. Dieb.Judic.	tlg0627.tlg053	5
+a	Hp. Ep.	tlg0627.tlg055	294
+a	Hp. Epid.	tlg0627.tlg006	937
+a	Hp. Fist.	tlg0627.tlg030	30
+a	Hp. Flat.	tlg0627.tlg021	48
+a	Hp. Foet.Exsect.	tlg0627.tlg039	9
+a	Hp. Fract.	tlg0627.tlg009	385
+a	Hp. Gland.	tlg0627.tlg042	29
+a	Hp. Haem.	tlg0627.tlg029	16
+a	Hp. Hebd.	tlg0627.tlg044	14
+a	Hp. Hum.	tlg0627.tlg015	53
+a	Hp. Int.	tlg0627.tlg032	159
+a	Hp. Judic.	tlg0627.tlg052	14
+a	Hp. Jusj.	tlg0627.tlg013	2
+a	Hp. Lex	tlg0627.tlg014	24
+a	Hp. Liqu.	tlg0627.tlg022	44
+a	Hp. Loc.Hom.	tlg0627.tlg026	131
+a	Hp. Medic.	tlg0627.tlg049	37
+a	Hp. Morb.	tlg0627.tlg023	390
+a	Hp. Morb.Sacr.	tlg0627.tlg027	62
+a	Hp. Mul.	tlg0627.tlg036	653
+a	Hp. Nat.Hom.	tlg0627.tlg019	33
+a	Hp. Nat.Mul.	tlg0627.tlg033	148
+a	Hp. Nat.Puer.	tlg0627.tlg024	90
+a	Hp. Oct.	tlg0627.tlg035	12
+a	Hp. Off.	tlg0627.tlg008	118
+a	Hp. Oss.	tlg0627.tlg048	68
+a	Hp. Praec.	tlg0627.tlg051	83
+a	Hp. Prog.	tlg0627.tlg003	172
+a	Hp. Prog. [	tlg0627.tlg003	2
+a	Hp. Prorrh.	tlg0627.tlg016	225
+a	Hp. Salubr.	tlg0627.tlg020	15
+a	Hp. Septim.	tlg0627.tlg034	21
+a	Hp. Superf.	tlg0627.tlg038	62
+a	Hp. Ulc.	tlg0627.tlg028	74
+a	Hp. VC	tlg0627.tlg007	136
+a	Hp. VM	tlg0627.tlg001	293
+a	Hp. Vict.	tlg0627.tlg031	265
+a	Hp. Vid.Ac.	tlg0627.tlg047	8
+a	Hp. Virg.	tlg0627.tlg037	15
+a	Hp. de Arte	tlg0627.tlg018	51
+a	Hp.Ma.	tlg0059.tlg025	20
+a	Hp.Mi.	tlg0059.tlg026	15
+a	Hsch.Mil.	tlg2274.tlg001	3
+a	Hum.	tlg0627.tlg015	2
+a	Hymn.Mag.	tlg0579.tlg001	2
+a	Hyp.	tlg0030.tlg007	151
+a	Hyp. Ath.	tlg0030.tlg005	44
+a	Hyp. Epit.	tlg0030.tlg006	16
+a	Hyp. Eux.	tlg0030.tlg003	86
+a	Hyp. Lyc.	tlg0030.tlg002	45
+a	Hyp. Phil.	tlg0030.tlg004	9
+a	I.	tlg0033.tlg004	103
+a	IA	tlg0006.tlg018	82
+a	IA	tlg0086.tlg015	18
+a	IA [	tlg0006.tlg018	4
+a	IT	tlg0006.tlg013	104
+a	Iamb.	tlg0533.tlg001	5
+a	Iamb. Comm.Math.	tlg2023.tlg003	101
+a	Iamb. Myst.	tlg2023.tlg006	329
+a	Iamb. Protr.	tlg2023.tlg002	185
+a	Iamb. VP	tlg2023.tlg001	308
+a	Iamb. in Nic.	tlg2023.tlg004	215
+a	Iamb.Bab.	tlg1441.tlg001	10
+a	Ibyc. Oxy.	tlg0293.tlg001	9
+a	Icar.	tlg0062.tlg021	8
+a	Ign.	tlg0093.tlg005	9
+a	Il.	tlg0012.tlg001	14884
+a	Il.Parv.	tlg1444.tlg001	2
+a	Il.Pers.	tlg1445.tlg001	2
+a	Im.	tlg1600.tlg001	20
+a	Im.	tlg0062.tlg039	8
+a	Ind.	tlg0062.tlg028	5
+a	Insomn.	tlg0086.tlg016	3
+a	Inst.	tlg4036.tlg005	2
+a	Int.	tlg0627.tlg032	20
+a	Int.	tlg0086.tlg017	10
+a	Inv.	tlg0592.tlg003	5
+a	Ion	tlg0006.tlg010	93
+a	Ion	tlg0059.tlg027	16
+s	Is.	1	tlg0017.tlg001
+s	Is.	2	tlg0017.tlg002
+s	Is.	3	tlg0017.tlg003
+s	Is.	4	tlg0017.tlg004
+s	Is.	5	tlg0017.tlg005
+s	Is.	6	tlg0017.tlg006
+s	Is.	7	tlg0017.tlg007
+s	Is.	8	tlg0017.tlg008
+s	Is.	9	tlg0017.tlg009
+s	Is.	10	tlg0017.tlg0010
+s	Is.	11	tlg0017.tlg0011
+s	Is.	12	tlg0017.tlg0012
+s	Is.	29	tlg0527.tlg048
+s	Is.	40	tlg0527.tlg048
+s	Is.	44	tlg0527.tlg048
+s	Is.	45	tlg0527.tlg048
+s	Is.	63	tlg0527.tlg048
+a	Isid.Char.	tlg0070.tlg001	9
+s	Isoc.	1	tlg0010.tlg007
+s	Isoc.	2	tlg0010.tlg013
+s	Isoc.	3	tlg0010.tlg014
+s	Isoc.	4	tlg0010.tlg011
+s	Isoc.	5	tlg0010.tlg020
+s	Isoc.	6	tlg0010.tlg016
+s	Isoc.	7	tlg0010.tlg018
+s	Isoc.	8	tlg0010.tlg017
+s	Isoc.	9	tlg0010.tlg015
+s	Isoc.	10	tlg0010.tlg009
+s	Isoc.	11	tlg0010.tlg010
+s	Isoc.	12	tlg0010.tlg021
+s	Isoc.	13	tlg0010.tlg008
+s	Isoc.	14	tlg0010.tlg012
+s	Isoc.	15	tlg0010.tlg019
+s	Isoc.	16	tlg0010.tlg004
+s	Isoc.	17	tlg0010.tlg005
+s	Isoc.	18	tlg0010.tlg002
+s	Isoc.	19	tlg0010.tlg006
+s	Isoc.	20	tlg0010.tlg003
+s	Isoc.	21	tlg0010.tlg001
+s	Isoc. Ep.	1	tlg0010.tlg022
+s	Isoc. Ep.	2	tlg0010.tlg027
+s	Isoc. Ep.	4	tlg0010.tlg029
+s	Isoc. Ep.	5	tlg0010.tlg028
+s	Isoc. Ep.	6	tlg0010.tlg023
+s	Isoc. Ep.	7	tlg0010.tlg026
+s	Isoc. Ep.	8	tlg0010.tlg025
+s	Isoc. Ep.	9	tlg0010.tlg024
+a	Ister	tlg1450.tlg001	21
+a	Isyll.	tlg0201.tlg001	36
+a	J. AJ	tlg0526.tlg001	1716
+a	J. Ap.	tlg0526.tlg003	121
+a	J. BJ	tlg0526.tlg004	931
+a	J. Vit.	tlg0526.tlg002	43
+a	JConf.	tlg0062.tlg017	3
+a	JTr.	tlg0062.tlg018	13
+a	Jb.	tlg0527.tlg032	20
+a	Jd.	tlg0527.tlg009	35
+a	Je.	tlg0527.tlg049	30
+a	Jn.	tlg0527.tlg041	2
+a	Jo.	tlg0527.tlg006	13
+a	Jo.Gaz.	tlg2578.tlg001	9
+a	Jo.Gaz. Ecphr.	tlg2578.tlg001	13
+a	Ju.	tlg0527.tlg020	9
+a	Judic.	tlg0627.tlg052	4
+a	Jul. Caes.	tlg2003.tlg003	70
+a	Jul. Ep.	tlg2003.tlg013	146
+a	Jul. Gal.	tlg2003.tlg017	56
+a	Jul. Mis.	tlg2003.tlg012	62
+a	Jul. Or.	tlg2003.tlg001	763
+a	Just. Nov.	tlg2734.tlg013	309
+a	Juv.	phi1276.phi001	3361
+a	Kol.	tlg0541.tlg019	2
+a	L.	tlg0579.tlg003	2
+a	LI	tlg0086.tlg019	4
+a	LXX	tlg0527.tlg024	252
+a	LXX	tlg0527.tlg026	188
+a	LXX	tlg0527.tlg011	162
+a	LXX	tlg0527.tlg013	157
+a	LXX Am.	tlg0527.tlg037	36
+a	LXX Ba.	tlg0527.tlg050	17
+a	LXX Bel	tlg0527.tlg058	4
+a	LXX Ca.	tlg0527.tlg031	45
+a	LXX Da.	tlg0527.tlg056	63
+a	LXX De.	tlg0527.tlg005	199
+a	LXX Ec.	tlg0527.tlg030	63
+a	LXX Ep.Je.	tlg0527.tlg052	12
+a	LXX Es.	tlg0527.tlg019	57
+a	LXX Ex.	tlg0527.tlg002	388
+a	LXX Ez.	tlg0527.tlg053	127
+a	LXX Ge.	tlg0527.tlg001	420
+a	LXX Hb.	tlg0527.tlg043	11
+a	LXX Hg.	tlg0527.tlg045	3
+a	LXX Ho.	tlg0527.tlg036	35
+a	LXX Is.	tlg0527.tlg048	204
+a	LXX Jb.	tlg0527.tlg032	192
+a	LXX Jd.	tlg0527.tlg009	136
+a	LXX Je.	tlg0527.tlg049	144
+a	LXX Jl.	tlg0527.tlg039	18
+a	LXX Jn.	tlg0527.tlg041	8
+a	LXX Jo.	tlg0527.tlg006	79
+a	LXX Ju.	tlg0527.tlg020	63
+a	LXX La.	tlg0527.tlg051	20
+a	LXX Le.	tlg0527.tlg003	251
+a	LXX Ma.	tlg0527.tlg047	7
+a	LXX Mi.	tlg0527.tlg038	17
+a	LXX Na.	tlg0527.tlg042	17
+a	LXX Ne.	tlg0527.tlg018	46
+a	LXX Nu.	tlg0527.tlg004	197
+a	LXX Ob.	tlg0527.tlg040	3
+a	LXX Pr.	tlg0527.tlg029	156
+a	LXX Ps.	tlg0527.tlg027	300
+a	LXX Ru.	tlg0527.tlg010	19
+a	LXX Si.	tlg0527.tlg034	252
+a	LXX Su.	tlg0527.tlg054	7
+a	LXX To.	tlg0527.tlg021	65
+a	LXX Wi.	tlg0527.tlg035	220
+a	LXX Za.	tlg0527.tlg046	27
+a	LXX Ze.	tlg0527.tlg044	4
+a	LXX, Ex.	tlg0527.tlg002	3
+a	LXX, Ge.	tlg0527.tlg001	5
+a	LXX, Jb.	tlg0527.tlg032	3
+a	La.	tlg0059.tlg019	32
+a	La.	tlg0527.tlg051	7
+a	Lac.	tlg0032.tlg010	24
+a	Lamprocl.	tlg0370.tlg001	5
+a	Lap.	tlg0093.tlg004	6
+a	Lasus	tlg0366.tlg001	3
+a	Le.	tlg0527.tlg003	27
+a	Leont. in Arat.	tlg4167.tlg001	2
+a	Lesb.Gramm.	tlg1460.tlg001	6
+a	Lesb.Rh.	tlg0649.tlg001	6
+a	Lex.	tlg0062.tlg046	3
+a	Lg.	tlg0059.tlg034	330
+a	Lib.	tlg1595.tlg271	6
+a	Lib. Arg.D.	tlg2200.tlg007	2
+a	Lib. Decl.	tlg2200.tlg005	184
+a	Lib. Descr.	tlg2200.tlg006	33
+a	Lib. Ep.	tlg2200.tlg001	84
+a	Lib. Eth.	tlg2200.tlg006	9
+a	Lib. Or.	tlg2200.tlg004	345
+a	Lib. Ref.	tlg2200.tlg006	2
+a	Lib. Thes.	tlg2200.tlg006	2
+a	Lib. Vit.	tlg2200.tlg006	2
+a	Licymn.	tlg0374.tlg001	3
+a	Limen.	tlg0203.tlg001	32
+a	Liqu.	tlg0627.tlg022	4
+a	Liv.	phi0914.phi001	15439
+a	Loc.Hom.	tlg0627.tlg026	6
+a	Long.	tlg0086.tlg020	2
+a	Longin.	tlg2178.tlg004	3
+a	Longin. Proll.Heph.	tlg1402.tlg001	12
+a	Longin. Rh.	tlg2178.tlg001	18
+a	Longus	tlg0561.tlg001	176
+a	Luc.	phi0917.phi001	1770
+a	Luc. Abd.	tlg0062.tlg052	52
+a	Luc. Alex.	tlg0062.tlg038	203
+a	Luc. Am.	tlg0061.tlg002	301
+a	Luc. Anach.	tlg0062.tlg034	116
+a	Luc. Apol.	tlg0062.tlg059	25
+a	Luc. Asin.	tlg0061.tlg001	130
+a	Luc. Astr.	tlg0062.tlg048	28
+a	Luc. Bacch.	tlg0062.tlg003	29
+a	Luc. Cal.	tlg0062.tlg013	58
+a	Luc. Cat.	tlg0062.tlg016	68
+a	Luc. Charid.	tlg0061.tlg008	23
+a	Luc. Cont.	tlg0062.tlg023	62
+a	Luc. Cyn.	tlg0061.tlg006	16
+a	Luc. DDeor.	tlg0062.tlg068	173
+a	Luc. DMar.	tlg0062.tlg067	81
+a	Luc. DMeretr.	tlg0062.tlg069	124
+a	Luc. DMort.	tlg0062.tlg066	204
+a	Luc. Dem.Enc.	tlg0061.tlg003	86
+a	Luc. Demon.	tlg0062.tlg008	39
+a	Luc. Deor.Conc.	tlg0062.tlg050	14
+a	Luc. Dips.	tlg0062.tlg054	11
+a	Luc. Dom.	tlg0062.tlg009	45
+a	Luc. Electr.	tlg0062.tlg005	3
+a	Luc. Ep.Sat.	tlg0061.tlg-02	20
+a	Luc. Eun.	tlg0062.tlg047	19
+a	Luc. Fug.	tlg0062.tlg043	48
+a	Luc. Gall.	tlg0062.tlg019	105
+a	Luc. Halc.	tlg0061.tlg004	18
+a	Luc. Harm.	tlg0062.tlg060	12
+a	Luc. Herc.	tlg0062.tlg004	9
+a	Luc. Herm.	tlg0062.tlg063	192
+a	Luc. Herod.	tlg0062.tlg056	17
+a	Luc. Hes.	tlg0062.tlg061	14
+a	Luc. Hipp.	tlg0062.tlg002	25
+a	Luc. Hist.Conscr.	tlg0062.tlg053	199
+a	Luc. Icar.	tlg0062.tlg021	78
+a	Luc. Im.	tlg0062.tlg039	63
+a	Luc. Ind.	tlg0062.tlg028	90
+a	Luc. JConf.	tlg0062.tlg017	15
+a	Luc. JTr.	tlg0062.tlg018	141
+a	Luc. Jud.Voc.	tlg0062.tlg014	27
+a	Luc. Laps.	tlg0062.tlg058	25
+a	Luc. Lex.	tlg0062.tlg046	308
+a	Luc. Luct.	tlg0062.tlg036	43
+a	Luc. Macr.	tlg0062.tlg011	22
+a	Luc. Merc.Cond.	tlg0062.tlg033	146
+a	Luc. Musc.Enc.	tlg0062.tlg006	25
+a	Luc. Nav.	tlg0062.tlg065	85
+a	Luc. Nec.	tlg0062.tlg035	78
+a	Luc. Ner.	tlg0638.tlg005	19
+a	Luc. Nigr.	tlg0062.tlg007	134
+a	Luc. Ocyp.	tlg0061.tlg005	36
+a	Luc. Par.	tlg0062.tlg030	59
+a	Luc. Patr.Enc.	tlg0062.tlg010	6
+a	Luc. Peregr.	tlg0062.tlg042	66
+a	Luc. Philops.	tlg0062.tlg031	80
+a	Luc. Pisc.	tlg0062.tlg025	123
+a	Luc. Pr.Im.	tlg0062.tlg040	39
+a	Luc. Prom.	tlg0062.tlg020	48
+a	Luc. Prom.Es	tlg0062.tlg064	27
+a	Luc. Pseudol.	tlg0062.tlg049	69
+a	Luc. Rh.Pr.	tlg0062.tlg037	68
+a	Luc. Sacr.	tlg0062.tlg027	40
+a	Luc. Salt.	tlg0062.tlg045	158
+a	Luc. Sat.	tlg0062.tlg055	50
+a	Luc. Scyth.	tlg0062.tlg062	19
+a	Luc. Sol.	tlg0062.tlg070	46
+a	Luc. Somn.	tlg0062.tlg029	66
+a	Luc. Symp.	tlg0062.tlg015	67
+a	Luc. Syr.D.	tlg0062.tlg041	74
+a	Luc. Tim.	tlg0062.tlg022	242
+a	Luc. Tox.	tlg0062.tlg044	133
+a	Luc. Tyr.	tlg0062.tlg051	27
+a	Luc. Vit.Auct.	tlg0062.tlg024	75
+a	Luc. Zeux.	tlg0062.tlg057	36
+a	Lucr.	phi0550.phi001	4846
+a	Ly.	tlg0059.tlg020	17
+a	Lyc.	tlg0341.tlg001	8
+a	Lyc.	tlg0007.tlg004	6
+a	Lycophronid.	tlg0381.tlg001	2
+a	Lycurg.	tlg0034.tlg001	245
+a	Lycurg.	tlg0034.tlg002	36
+a	Lyd. Mens.	tlg2580.tlg002	144
+a	Lyd. Ost.	tlg2580.tlg003	77
+a	Lync.	tlg0471.tlg001	5
+a	Lyr.Adesp.	tlg0297.tlg001	8
+a	Lyr.Alex.Adesp.	tlg0230.tlg001	12
+s	Lys.	1	tlg0540.tlg001
+s	Lys.	2	tlg0540.tlg002
+s	Lys.	3	tlg0540.tlg003
+s	Lys.	4	tlg0540.tlg004
+s	Lys.	5	tlg0540.tlg005
+s	Lys.	6	tlg0540.tlg006
+s	Lys.	7	tlg0540.tlg007
+s	Lys.	8	tlg0540.tlg008
+s	Lys.	9	tlg0540.tlg009
+s	Lys.	10	tlg0540.tlg010
+s	Lys.	11	tlg0540.tlg011
+s	Lys.	12	tlg0540.tlg012
+s	Lys.	13	tlg0540.tlg013
+s	Lys.	14	tlg0540.tlg014
+s	Lys.	15	tlg0540.tlg015
+s	Lys.	16	tlg0540.tlg016
+s	Lys.	17	tlg0540.tlg017
+s	Lys.	18	tlg0540.tlg018
+s	Lys.	19	tlg0540.tlg019
+s	Lys.	20	tlg0540.tlg020
+s	Lys.	21	tlg0540.tlg021
+s	Lys.	22	tlg0540.tlg022
+s	Lys.	23	tlg0540.tlg023
+s	Lys.	24	tlg0540.tlg024
+s	Lys.	25	tlg0540.tlg025
+s	Lys.	26	tlg0540.tlg026
+s	Lys.	27	tlg0540.tlg027
+s	Lys.	28	tlg0540.tlg028
+s	Lys.	29	tlg0540.tlg029
+s	Lys.	30	tlg0540.tlg030
+s	Lys.	31	tlg0540.tlg031
+s	Lys.	32	tlg0540.tlg032
+s	Lys.	33	tlg0540.tlg033
+s	Lys.	34	tlg0540.tlg034
+s	Lys.	95	tlg0019.tlg007
+s	Lys.	117	tlg0019.tlg007
+s	Lys.	964	tlg0019.tlg007
+s	Lys.	1045	tlg0019.tlg007
+a	Lysipp.	tlg0472.tlg001	16
+a	M.	tlg0544.tlg002	16
+a	M.Ant.	tlg0562.tlg001	577
+a	MA	tlg0086.tlg021	2
+a	MM	tlg0086.tlg022	12
+a	Ma.	tlg0527.tlg047	23
+a	Mac.	tlg0551.tlg011	2
+a	Macar.	tlg9008.tlg001	11
+a	Maced. Pae.	tlg0202.tlg001	5
+a	Macho	tlg0473.tlg001	6
+a	Magn.	tlg0474.tlg001	8
+a	Maiist.	tlg1475.tlg001	59
+a	Man.	tlg2583.tlg001	822
+a	Mar.	tlg0007.tlg031	13
+a	Marc.	tlg0007.tlg022	8
+a	Marc.Sid.	tlg0281.tlg001	47
+a	Marcellin. Puls.	tlg0667.tlg001	42
+a	Marcellin. Vit. Thuc.	tlg2585.tlg001	14
+a	Marcian. Peripl.	tlg4003.tlg001	5
+a	Margites	tlg0253.tlg001	2
+a	Mart.	phi1294.phi002	2940
+a	Matro	tlg1486.tlg003	4
+a	Matro Conv.	tlg1486.tlg001	48
+a	Matro Parod.	tlg1486.tlg002	3
+a	Max.	tlg1487.tlg001	130
+a	Max. Epit.	tlg1487.tlg002	2
+a	Max.Tyr.	tlg0563.tlg001	337
+a	Mech.	tlg0086.tlg023	5
+a	Med.	tlg0006.tlg003	64
+a	Medic.	tlg0627.tlg049	3
+a	Megasth.	tlg1489.tlg001	4
+a	Melanipp.	tlg0373.tlg001	10
+a	Meliss.	tlg1494.tlg001	13
+a	Melissa Ep.	tlg0051.tlg001	3
+a	Mem.	tlg0032.tlg002	65
+a	Memn.	tlg1496.tlg001	33
+a	Men.	tlg0541.tlg001	985
+a	Men. Epit.	tlg0541.tlg009	188
+a	Men. Georg.	tlg0541.tlg003	36
+a	Men. Georg.	tlg0541.tlg004	7
+a	Men. Her.	tlg0541.tlg010	16
+a	Men. Her.	tlg0541.tlg011	5
+a	Men. Kith.	tlg0541.tlg018	11
+a	Men. Kith.	tlg0541.tlg017	2
+a	Men. Kol.	tlg0541.tlg019	10
+a	Men. Kol.	tlg0541.tlg020	4
+a	Men. Mon.	tlg0541.tlg047	113
+a	Men. Per.	tlg0541.tlg028	10
+a	Men. Per.	tlg0541.tlg027	7
+a	Men. Pk.	tlg0541.tlg025	107
+a	Men. Sam.	tlg0541.tlg029	129
+a	Men.Prot.	tlg4076.tlg001	9
+a	Men.Rh.	tlg2586.tlg001	11
+a	Menaechm.	tlg1497.tlg001	5
+a	Menecl.	tlg1499.tlg001	2
+a	Meno Iatr.	tlg0643.tlg001	28
+a	Menodot.	tlg1506.tlg001	3
+a	Merc.Cond.	tlg0062.tlg033	13
+a	Mesom. Mus.	tlg0268.tlg001	2
+a	Mesom. Nem.	tlg0268.tlg001	3
+a	Mesom. Sol.	tlg0268.tlg001	7
+a	Metag.	tlg0475.tlg001	27
+a	Metaph.	tlg0086.tlg025	165
+a	Mete.	tlg0086.tlg026	62
+a	Meth.	tlg0592.tlg005	2
+a	Metrod.	tlg4077.tlg001	20
+a	Mi.	tlg0527.tlg038	6
+a	Mich. in EN	tlg4034.tlg001	32
+a	Mich. in PN	tlg4034.tlg002	23
+a	Mimn.	tlg0255.tlg001	52
+a	Min.	tlg0059.tlg033	3
+a	Mir.	tlg0086.tlg027	19
+a	Mith.	tlg0551.tlg014	10
+a	Mnaseas	tlg1514.tlg001	5
+a	Mnesim.	tlg0476.tlg001	64
+a	Moer.	tlg1515.tlg001	61
+a	Molpis	tlg1516.tlg001	2
+a	Mon.	tlg0541.tlg047	2
+a	Morb.	tlg0627.tlg023	42
+a	Morb.Sacr.	tlg0627.tlg027	6
+a	Mort.	tlg1595.tlg113	5
+a	Mosch.	tlg0035.tlg001	269
+a	Mu.	tlg0086.tlg028	42
+a	Mul.	tlg0627.tlg036	76
+a	Musae.	tlg0576.tlg001	91
+a	Mx.	tlg0059.tlg028	14
+a	Myia Ep.	tlg0509.tlg001	4
+a	Myro	tlg1523.tlg001	8
+a	Myrtil.	tlg0477.tlg001	6
+a	N.	tlg0033.tlg003	142
+a	NA	tlg0545.tlg001	14
+a	ND	phi0474.phi050	2
+a	Na.	tlg0527.tlg042	7
+a	Nat.	tlg0537.tlg003	20
+a	Nat.Fac.	tlg0057.tlg010	4
+a	Nat.Hom.	tlg0627.tlg019	4
+a	Nat.Mul.	tlg0627.tlg033	27
+a	Nat.Puer.	tlg0627.tlg024	5
+a	Nausicr.	tlg0478.tlg001	10
+a	Nausiph.	tlg2334.tlg001	10
+a	Nav.	tlg0062.tlg065	6
+a	Ne.	tlg0527.tlg018	10
+a	Neanth.	tlg1525.tlg001	9
+a	Nec.	tlg0062.tlg035	3
+a	Neophr.	tlg0307.tlg001	4
+a	Nep.	phi0588.phi001	3
+a	Nep. Ages.	phi0588.phi017	99
+a	Nep. Alc.	phi0588.phi007	34
+a	Nep. Alcib.	phi0588.phi007	143
+a	Nep. Arist.	phi0588.phi003	34
+a	Nep. Att.	phi0588.phi025	301
+a	Nep. Cat.	phi0588.phi024	19
+a	Nep. Cato	phi0588.phi024	15
+a	Nep. Chabr.	phi0588.phi012	35
+a	Nep. Cim.	phi0588.phi005	40
+a	Nep. Con.	phi0588.phi009	49
+a	Nep. Dat.	phi0588.phi014	139
+a	Nep. Datam.	phi0588.phi014	2
+a	Nep. Dio	phi0588.phi010	2
+a	Nep. Dion	phi0588.phi010	82
+a	Nep. Dion.	phi0588.phi010	35
+a	Nep. Ep.	phi0588.phi015	14
+a	Nep. Epam.	phi0588.phi015	113
+a	Nep. Eum.	phi0588.phi018	178
+a	Nep. Ham.	phi0588.phi022	27
+a	Nep. Hamilc.	phi0588.phi022	4
+a	Nep. Han.	phi0588.phi023	7
+a	Nep. Hann.	phi0588.phi023	146
+a	Nep. Iph.	phi0588.phi011	9
+a	Nep. Iphic.	phi0588.phi011	6
+a	Nep. Iphicr.	phi0588.phi011	17
+a	Nep. Lys.	phi0588.phi006	46
+a	Nep. Mil.	phi0588.phi001	2
+a	Nep. Milt.	phi0588.phi001	151
+a	Nep. Paus.	phi0588.phi004	91
+a	Nep. Pel.	phi0588.phi016	12
+a	Nep. Pelop.	phi0588.phi016	54
+a	Nep. Phoc.	phi0588.phi019	35
+a	Nep. Reg.	phi0588.phi021	26
+a	Nep. Th.	phi0588.phi008	2
+a	Nep. Them.	phi0588.phi002	157
+a	Nep. Thras.	phi0588.phi008	50
+a	Nep. Tim.	phi0588.phi020	23
+a	Nep. Timol.	phi0588.phi020	40
+a	Nep. Timoth.	phi0588.phi013	28
+a	Nestor	tlg1528.tlg001	2
+a	Nic.	tlg0007.tlg038	12
+a	Nic. Al.	tlg0022.tlg002	781
+a	Nic. Th.	tlg0022.tlg001	1171
+a	Nic.Dam.	tlg0577.tlg001	76
+a	Nic.Dam. Vit.Caes.	tlg0577.tlg002	4
+a	Nicaenet.	tlg0218.tlg001	4
+a	Nico	tlg0479.tlg001	4
+a	Nicoch.	tlg0480.tlg001	30
+a	Nicocl.	tlg1534.tlg001	3
+a	Nicol. Prog.	tlg2904.tlg001	6
+a	Nicol.Com.	tlg0481.tlg001	14
+a	Nicom. Ar.	tlg0358.tlg001	209
+a	Nicom. Exc.	tlg0358.tlg004	7
+a	Nicom. Harm.	tlg0358.tlg002	90
+a	Nicom.Com.	tlg0482.tlg001	26
+a	Nicopho	tlg0483.tlg001	40
+a	Nicostr.	tlg2037.tlg001	14
+a	Nicostr.Com.	tlg0484.tlg001	39
+a	Nigr.	tlg0062.tlg007	6
+a	Nonn. D.	tlg2045.tlg001	1607
+a	Nu.	tlg0019.tlg003	125
+a	Nu.	tlg0527.tlg004	32
+a	Num.	tlg0007.tlg005	5
+a	Nymphis	tlg1544.tlg001	12
+a	Nymphod.	tlg0578.tlg001	10
+a	O.	tlg0033.tlg001	62
+a	OC	tlg0011.tlg007	173
+a	OT	tlg0011.tlg004	115
+a	Ocell.	tlg1545.tlg001	85
+a	Oct.	tlg0627.tlg035	2
+a	Od.	tlg0012.tlg002	10561
+a	Oec.	tlg0032.tlg003	64
+a	Off.	tlg0627.tlg008	5
+a	Olymp. Proll.	tlg4019.tlg001	2
+a	Olymp. Vit.Pl.	tlg0004.tlg001	9
+a	Olymp. in Alc.	tlg4019.tlg004	46
+a	Olymp. in Cat.	tlg4019.tlg002	7
+a	Olymp. in Grg.	tlg4019.tlg005	30
+a	Olymp. in Mete.	tlg4019.tlg003	166
+a	Olymp. in Phd.	tlg4019.tlg006	35
+a	Olymp. in Phlb.	tlg4066.tlg006	11
+a	Olymp.Alch.	tlg2589.tlg001	9
+a	Olymp.Hist.	tlg2590.tlg001	2
+a	Onos.	tlg0648.tlg001	288
+a	Op.	tlg0020.tlg002	30
+a	Ophel.	tlg0485.tlg001	2
+a	Opp. C.	tlg0024.tlg001	771
+a	Opp. H.	tlg0023.tlg001	1139
+a	Or.	tlg0006.tlg016	90
+a	Orib.	tlg0722.tlg001	2215
+a	Orib. Syn.	tlg0722.tlg004	79
+a	Origenes Cels.	tlg2042.tlg001	18
+a	Orion	tlg2591.tlg001	11
+a	Orph.	tlg0579.tlg011	292
+a	Orph. A.	tlg0579.tlg002	411
+a	Orph. H.	tlg0579.tlg001	499
+a	Orph. L.	tlg0579.tlg003	199
+a	Oss.	tlg0627.tlg048	7
+a	Oth.	tlg0007.tlg066	2
+a	Ov. A. A.	phi0959.phi004	739
+a	Ov. Am.	phi0959.phi001	742
+a	Ov. F.	phi0959.phi007	1850
+a	Ov. H.	phi0959.phi002	1124
+a	Ov. Hal.	phi0959.phi014	65
+a	Ov. Ib.	phi0959.phi010	153
+a	Ov. M.	phi0959.phi006	7768
+a	Ov. M. Fac.	phi0959.phi003	3
+a	Ov. Med. Fac.	phi0959.phi003	27
+a	Ov. P.	phi0959.phi009	639
+a	Ov. Tr.	phi0959.phi008	964
+a	Oxy.	tlg0009.tlg001	4
+a	P.	tlg0033.tlg002	163
+a	PA	tlg0086.tlg030	189
+a	PHal.	tlg1581.tlg001	12
+a	PS	tlg1608.tlg001	6
+a	Pae.	tlg0033.tlg005	20
+a	Palaeph.	tlg2450.tlg001	81
+a	Pall. in Hp.	tlg0726.tlg001	51
+a	Pancrat. Oxy.	tlg1555.tlg001	20
+a	Panyas.	tlg1557.tlg001	19
+a	Papp.	tlg2032.tlg001	89
+a	Parm.	tlg1562.tlg001	186
+a	Parmeno	tlg1565.tlg001	4
+a	Parrhas.	tlg1567.tlg001	2
+a	Parth.	tlg0655.tlg001	112
+a	Paul.Aeg.	tlg0715.tlg001	692
+a	Paus.	tlg0525.tlg001	1002
+a	Pax	tlg0019.tlg005	127
+a	Pel.	tlg0007.tlg021	4
+a	Per.	tlg0007.tlg012	15
+a	Peripl.M.Rubr.	tlg0071.tlg001	34
+a	Pers.	phi0969.phi001	671
+a	Pers.	tlg0085.tlg002	88
+a	Pers.Stoic.	tlg2403.tlg001	6
+a	Petr. S.	phi0972.phi001	31
+a	Petron.	tlg1026.tlg001	20
+a	Ph.	tlg0018.tlg001	3974
+a	Ph. Bel.	tlg1599.tlg001	537
+a	Ph.Bybl.	tlg1416.tlg001	2
+a	Ph.Byz. Mir.	tlg2595.tlg001	43
+a	Phaedr.	phi0975.phi001	661
+a	Phalar. Ep.	tlg0053.tlg001	128
+a	Phanocl.	tlg0214.tlg001	14
+a	Phanod.	tlg1583.tlg001	7
+a	Phd.	tlg0059.tlg004	101
+a	Phdr.	tlg0059.tlg012	122
+a	Pherecr.	tlg0486.tlg001	564
+a	Pherecyd.	tlg2329.tlg001	64
+a	Pherecyd.Syr.	tlg0630.tlg001	13
+a	Phgn.	tlg0086.tlg032	15
+a	Phil.	tlg0007.tlg027	3
+a	Philem.	tlg0487.tlg001	287
+a	Philem.Jun.	tlg0488.tlg001	2
+a	Philetaer.	tlg0489.tlg001	31
+a	Philippid.	tlg0490.tlg001	52
+a	Philist.	tlg1591.tlg001	12
+a	Phillis	tlg2594.tlg001	2
+a	Philoch.	tlg0583.tlg001	61
+a	Philod.Scarph.	tlg0205.tlg001	11
+a	Philol.	tlg1596.tlg001	59
+a	Philol. [	tlg1596.tlg001	2
+a	Philomnest.	tlg1598.tlg001	5
+a	Philonid.	tlg0492.tlg001	19
+a	Philops.	tlg0062.tlg031	13
+a	Philosteph.Hist.	tlg0584.tlg001	2
+a	Philostr. Dial.	tlg0638.tlg006	8
+a	Philostr. Ep.	tlg0638.tlg002	62
+a	Philostr. Gym.	tlg0638.tlg007	131
+a	Philostr. Her.	tlg0638.tlg004	143
+a	Philostr. Im.	tlg1600.tlg001	308
+a	Philostr. VA	tlg0638.tlg001	605
+a	Philostr. VS	tlg0638.tlg003	331
+a	Philostr.Jun. Im.	tlg0652.tlg001	53
+a	Philox.	tlg1601.tlg001	89
+a	Philum. Ven.	tlg0671.tlg001	176
+a	Philyll.	tlg0494.tlg001	62
+a	Phlb.	tlg0059.tlg010	63
+a	Phld. Acad.Ind.	tlg1595.tlg602	90
+a	Phld. Hom.	tlg1595.tlg492	47
+a	Phld. Lib.	tlg1595.tlg271	218
+a	Phld. Mort.	tlg1595.tlg113	129
+a	Phld. Oec.	tlg1595.tlg241	115
+a	Phld. Piet.	tlg1595.tlg080	140
+a	Phld. Po.	tlg1595.tlg290	212
+a	Phld. Sign.	tlg1595.tlg472	189
+a	Phld. Sto.	tlg1595.tlg512	18
+a	Phld. Vit.	tlg1595.tlg150	135
+a	Phleg. Mir.	tlg0585.tlg001	19
+a	Phlp. in APo.	tlg4015.tlg003	15
+a	Phlp. in APr.	tlg4015.tlg002	18
+a	Phlp. in Cat.	tlg4015.tlg001	15
+a	Phlp. in GA	tlg4015.tlg007	35
+a	Phlp. in GC	tlg4015.tlg006	11
+a	Phlp. in Mete.	tlg4015.tlg005	55
+a	Phlp. in Ph.	tlg4015.tlg009	58
+a	Phoc.	tlg1604.tlg001	33
+a	Phoc.	tlg0007.tlg049	5
+a	Phoeb. Fig.	tlg2596.tlg001	25
+a	Phoen.	tlg1606.tlg001	30
+a	Phoenicid.	tlg0495.tlg001	12
+a	Phot.	tlg4040.tlg029	6
+a	Phot. Bibl.	tlg4040.tlg001	98
+a	Phryn. PS	tlg1608.tlg001	308
+a	Phryn.Com.	tlg0496.tlg001	109
+a	Phryn.Trag.	tlg0303.tlg001	14
+a	Phylarch.	tlg1609.tlg001	88
+a	Pi.	tlg0033.tlg005	427
+a	Pi. Dith.Oxy.	tlg0033.tlg005	8
+a	Pi. I.	tlg0033.tlg004	550
+a	Pi. N.	tlg0033.tlg003	1172
+a	Pi. O.	tlg0033.tlg001	1754
+a	Pi. P.	tlg0033.tlg002	2024
+a	Pi. Pae.	tlg0033.tlg005	112
+a	Pi. Parth.	tlg0033.tlg005	17
+a	Pi., P.	tlg0033.tlg002	2
+a	Piet.	tlg1595.tlg080	7
+a	Pisand.	tlg0288.tlg001	2
+a	Pisc.	tlg0062.tlg025	9
+a	Pittac.	tlg0631.tlg001	2
+a	Pk.	tlg0541.tlg025	13
+a	Pl.	tlg0019.tlg011	161
+a	Pl. Amat.	tlg0059.tlg016	14
+a	Pl. Ap.	tlg0059.tlg002	471
+a	Pl. Ax.	tlg0059.tlg038	217
+a	Pl. Chrm.	tlg0059.tlg018	138
+a	Pl. Clit.	tlg0059.tlg029	13
+a	Pl. Cra.	tlg0059.tlg005	505
+a	Pl. Cri.	tlg0059.tlg003	144
+a	Pl. Criti.	tlg0059.tlg032	246
+a	Pl. Def.	tlg0059.tlg037	101
+a	Pl. Demod.	tlg0059.tlg038	8
+a	Pl. Ep.	tlg0059.tlg036	204
+a	Pl. Epigr.	tlg0059.tlg039	29
+a	Pl. Epin.	tlg0059.tlg035	68
+a	Pl. Erx.	tlg0059.tlg038	39
+a	Pl. Euthd.	tlg0059.tlg021	281
+a	Pl. Euthphr.	tlg0059.tlg001	130
+a	Pl. Grg.	tlg0059.tlg023	839
+a	Pl. Hipparch.	tlg0059.tlg015	18
+a	Pl. Hp.Ma.	tlg0059.tlg025	133
+a	Pl. Hp.Mi.	tlg0059.tlg026	47
+a	Pl. Ion	tlg0059.tlg027	77
+a	Pl. Just.	tlg0059.tlg038	4
+a	Pl. La.	tlg0059.tlg019	153
+a	Pl. Lg.	tlg0059.tlg034	3308
+a	Pl. Ly.	tlg0059.tlg020	143
+a	Pl. Men.	tlg0059.tlg024	197
+a	Pl. Min.	tlg0059.tlg033	35
+a	Pl. Mx.	tlg0059.tlg028	134
+a	Pl. Phd.	tlg0059.tlg004	986
+a	Pl. Phdr.	tlg0059.tlg012	1036
+a	Pl. Phlb.	tlg0059.tlg010	381
+a	Pl. Plt.	tlg0059.tlg008	639
+a	Pl. Prm.	tlg0059.tlg009	124
+a	Pl. Prt.	tlg0059.tlg022	810
+a	Pl. R.	tlg0059.tlg030	3483
+a	Pl. Sis.	tlg0059.tlg038	18
+a	Pl. Smp.	tlg0059.tlg011	778
+a	Pl. Sph.	tlg0059.tlg007	468
+a	Pl. Thg.	tlg0059.tlg017	32
+a	Pl. Tht.	tlg0059.tlg006	960
+a	Pl. Ti.	tlg0059.tlg031	1109
+a	Pl. Virt.	tlg0059.tlg038	2
+a	Pl., Grg.	tlg0059.tlg023	2
+a	Pl., Lg.	tlg0059.tlg034	2
+a	Pl., Phdr.	tlg0059.tlg012	2
+a	Pl., R.	tlg0059.tlg030	4
+a	Pl.Com.	tlg0497.tlg001	374
+a	Plat. Phaedr.	tlg0059.tlg012	2
+a	Platon. Diff.Com.	tlg1615.tlg001	2
+a	Plaut. Am.	phi0119.phi001	1092
+a	Plaut. As.	phi0119.phi002	755
+a	Plaut. As. Grex.	phi0119.phi002	2
+a	Plaut. Aul.	phi0119.phi003	632
+a	Plaut. Bacch.	phi0119.phi004	790
+a	Plaut. Capt.	phi0119.phi005	858
+a	Plaut. Cas.	phi0119.phi006	536
+a	Plaut. Cist.	phi0119.phi007	324
+a	Plaut. Curc.	phi0119.phi008	553
+a	Plaut. Ep.	phi0119.phi009	433
+a	Plaut. Men.	phi0119.phi010	537
+a	Plaut. Merc.	phi0119.phi011	480
+a	Plaut. Mil.	phi0119.phi012	963
+a	Plaut. Most.	phi0119.phi013	747
+a	Plaut. Pers.	phi0119.phi014	517
+a	Plaut. Poen.	phi0119.phi015	760
+a	Plaut. Ps.	phi0119.phi016	857
+a	Plaut. Rud.	phi0119.phi017	775
+a	Plaut. Stich.	phi0119.phi018	451
+a	Plaut. Trin.	phi0119.phi019	919
+a	Plaut. Truc.	phi0119.phi020	513
+a	Plaut. Truc.	phi0119.phi019	118
+a	Plb.	tlg0543.tlg001	5707
+a	Plin.	phi0978.phi001	17787
+a	Plin. H. N.	phi0978.phi001	24
+a	Plin. HN	phi0978.phi001	804
+a	Plot.	tlg2000.tlg001	943
+a	Plt.	tlg0059.tlg008	94
+a	Plu.	tlg0007.tlg145	22
+a	Plu. Aem.	tlg0007.tlg019	179
+a	Plu. Ages.	tlg0007.tlg044	83
+a	Plu. Agis	tlg0007.tlg051	35
+a	Plu. Alc.	tlg0007.tlg015	149
+a	Plu. Alex.	tlg0007.tlg047	310
+a	Plu. Ant.	tlg0007.tlg058	241
+a	Plu. Arat.	tlg0007.tlg063	114
+a	Plu. Arist.	tlg0007.tlg024	61
+a	Plu. Art.	tlg0007.tlg064	88
+a	Plu. Brut.	tlg0007.tlg061	101
+a	Plu. CG	tlg0007.tlg052	56
+a	Plu. Caes.	tlg0007.tlg048	228
+a	Plu. Cam.	tlg0007.tlg011	163
+a	Plu. Cat.Ma.	tlg0007.tlg025	102
+a	Plu. Cat.Mi.	tlg0007.tlg050	132
+a	Plu. Cic.	tlg0007.tlg055	140
+a	Plu. Cim.	tlg0007.tlg035	66
+a	Plu. Cleom.	tlg0007.tlg051	77
+a	Plu. Comp.Ag.Gracch.	tlg0007.tlg053	4
+a	Plu. Comp.Ages.Pomp.	tlg0007.tlg046	4
+a	Plu. Comp.Alc.Cor.	tlg0007.tlg017	3
+a	Plu. Comp.Cim.Luc.	tlg0007.tlg037	7
+a	Plu. Comp.Dem.Cic.	tlg0007.tlg056	9
+a	Plu. Comp.Dion.Brut.	tlg0007.tlg062	5
+a	Plu. Comp.Eum.Sert.	tlg0007.tlg043	3
+a	Plu. Comp.Lyc.Num.	tlg0007.tlg006	18
+a	Plu. Comp.Lys.Sull.	tlg0007.tlg034	5
+a	Plu. Comp.Pel.Marc.	tlg0007.tlg023	7
+a	Plu. Comp.Per.Fab.	tlg0007.tlg014	10
+a	Plu. Comp.Phil.Flam.	tlg0007.tlg029	3
+a	Plu. Comp.Sol.Publ.	tlg0007.tlg009	2
+a	Plu. Comp.Thes.Rom.	tlg0007.tlg003	4
+a	Plu. Cor.	tlg0007.tlg016	98
+a	Plu. Crass.	tlg0007.tlg039	129
+a	Plu. Dem.	tlg0007.tlg054	90
+a	Plu. Demetr.	tlg0007.tlg057	145
+a	Plu. Dio	tlg0007.tlg060	90
+a	Plu. Eum.	tlg0007.tlg041	57
+a	Plu. Fab.	tlg0007.tlg013	143
+a	Plu. Flam.	tlg0007.tlg028	70
+a	Plu. Galb.	tlg0007.tlg065	103
+a	Plu. Lib.	tlg0007.tlg143	4
+a	Plu. Luc.	tlg0007.tlg036	150
+a	Plu. Lyc.	tlg0007.tlg004	203
+a	Plu. Lys.	tlg0007.tlg032	99
+a	Plu. Mar.	tlg0007.tlg031	171
+a	Plu. Marc.	tlg0007.tlg022	111
+a	Plu. Nic.	tlg0007.tlg038	98
+a	Plu. Num.	tlg0007.tlg005	159
+a	Plu. Oth.	tlg0007.tlg066	52
+a	Plu. Pel.	tlg0007.tlg021	78
+a	Plu. Per.	tlg0007.tlg012	270
+a	Plu. Phil.	tlg0007.tlg027	77
+a	Plu. Phoc.	tlg0007.tlg049	93
+a	Plu. Pomp.	tlg0007.tlg045	241
+a	Plu. Publ.	tlg0007.tlg008	102
+a	Plu. Pyrrh.	tlg0007.tlg030	115
+a	Plu. Rom.	tlg0007.tlg002	176
+a	Plu. Sert.	tlg0007.tlg042	80
+a	Plu. Sol.	tlg0007.tlg007	177
+a	Plu. Strom.	tlg0094.tlg-01	2
+a	Plu. Sull.	tlg0007.tlg033	177
+a	Plu. TG	tlg0007.tlg052	66
+a	Plu. Them.	tlg0007.tlg010	143
+a	Plu. Thes.	tlg0007.tlg001	136
+a	Plu. Tim.	tlg0007.tlg018	103
+a	Po.	tlg0086.tlg034	42
+a	Po.	tlg1595.tlg290	7
+a	Pol.	tlg0086.tlg035	104
+a	Polem. Call.	tlg1617.tlg001	21
+a	Polem. Cyn.	tlg1617.tlg001	17
+a	Polem.Hist.	tlg0586.tlg001	49
+a	Polem.Phgn.	tlg1617.tlg001	49
+a	Polioch.	tlg0498.tlg001	8
+a	Poll.	tlg0542.tlg001	3673
+a	Polyaen.	tlg1620.tlg001	277
+a	Polycharm.	tlg1623.tlg001	4
+a	Polyclit.	tlg1625.tlg001	2
+a	Polystr.	tlg1628.tlg001	11
+a	Polyzel.	tlg0499.tlg001	21
+a	Pomp.	tlg0007.tlg045	21
+a	Pomp.	tlg0081.tlg015	6
+a	Pompon. ib.	tlg0081.tlg015	5
+a	Porph. Abst.	tlg2034.tlg003	549
+a	Porph. Antr.	tlg2034.tlg004	100
+a	Porph. Chr.	tlg2034.tlg023	98
+a	Porph. Gaur.	tlg0530.tlg006	58
+a	Porph. Intr.	tlg2034.tlg006	9
+a	Porph. Marc.	tlg2034.tlg005	77
+a	Porph. Plot.	tlg2034.tlg001	52
+a	Porph. Sent.	tlg2034.tlg008	113
+a	Porph. VP	tlg2034.tlg002	51
+a	Porph. in Cat.	tlg2034.tlg007	26
+a	Porph. in Harm.	tlg2034.tlg021	24
+a	Porph. in Ptol.	tlg2034.tlg028	24
+a	Posidipp.	tlg0500.tlg001	75
+a	Posidon.	tlg1866.tlg001	159
+a	Pr.	tlg0086.tlg036	148
+a	Pr.	tlg0085.tlg003	35
+a	Pr.Im.	tlg0062.tlg040	5
+a	Pratin.	tlg1833.tlg001	2
+a	Praxill.	tlg0372.tlg001	4
+a	Prisc.Lyd.	tlg4014.tlg001	12
+a	Prm.	tlg0059.tlg009	27
+a	Procl. Chr.	tlg4036.tlg023	3
+a	Procl. H.	tlg4036.tlg015	55
+a	Procl. Hyp.	tlg4036.tlg002	128
+a	Procl. Inst.	tlg4036.tlg005	225
+a	Procl. Par.Ptol.	tlg4036.tlg022	109
+a	Procl. Theol.Plat.	tlg4036.tlg019	26
+a	Procl. in Alc.	tlg4036.tlg007	97
+a	Procl. in Cra.	tlg4036.tlg009	64
+a	Procl. in Euc.	tlg4036.tlg011	68
+a	Procl. in Prm.	tlg4036.tlg008	249
+a	Procl. in Ti.	tlg4036.tlg010	73
+a	Procop. Aed.	tlg4029.tlg003	76
+a	Procop. Arc.	tlg4029.tlg002	139
+a	Procop. Goth.	tlg4029.tlg001	77
+a	Procop. Pers.	tlg4029.tlg001	53
+a	Procop. Vand.	tlg4029.tlg001	25
+a	Procop.Gaz.	tlg2598.tlg001	4
+a	Procop.Gaz. Ecphr.	tlg2598.tlg010	6
+a	Procop.Gaz. Ep.	tlg2598.tlg019	28
+a	Procop.Gaz. Pan.	tlg2598.tlg011	4
+a	Prodic.	tlg1634.tlg001	6
+a	Prog.	tlg0627.tlg003	21
+a	Prog.	tlg0592.tlg001	3
+a	Prom.	tlg0062.tlg020	4
+a	Pron.	tlg0082.tlg001	13
+a	Prooem.	tlg0014.tlg062	7
+a	Prop.	phi0620.phi001	2211
+a	Prorrh.	tlg0627.tlg016	23
+a	Protag.	tlg1635.tlg001	8
+a	Protagorid.	tlg1636.tlg001	6
+a	Prt.	tlg0059.tlg022	106
+a	Ps.	tlg0527.tlg027	62
+a	Ps.-Callisth.	tlg1386.tlg001	114
+a	Ps.-Democr.	tlg1306.tlg001	6
+a	Ps.-Phoc.	tlg1605.tlg001	105
+a	Psalm.Solom.	tlg0527.tlg035	4
+a	Pseudol.	tlg0062.tlg049	10
+a	Ptol.	tlg1640.tlg001	3
+a	Ptol. Geog.	tlg0363.tlg009	95
+a	Ptol. Harm.	tlg0363.tlg010	73
+a	Ptol. Judic.	tlg0363.tlg008	5
+a	Ptol. Tetr.	tlg0363.tlg007	751
+a	Ptol.Ascal.	tlg1643.tlg001	2
+a	Ptol.Euerg.	tlg1645.tlg001	27
+a	Publ.	tlg0007.tlg008	2
+a	Pun.	tlg0551.tlg009	8
+a	Pyrrh.	tlg0007.tlg030	9
+a	Pythaen.	tlg1649.tlg001	3
+a	Pythag.	tlg0632.tlg001	2
+a	Python	tlg0337.tlg001	6
+a	Q. Cic. Fam.	phi0474.phi056	3
+a	Q. Cic. Pet. Cons.	phi0478.phi003	33
+a	Q. Cic. Petit. Cons.	phi0478.phi003	49
+a	Q.S.	tlg2046.tlg001	723
+a	Quint.	phi1002.phi001	7928
+a	R.	tlg0059.tlg030	364
+a	Ra.	tlg0019.tlg009	152
+a	Resp.	tlg0086.tlg037	14
+a	Rh.	tlg0598.tlg001	139
+a	Rh.	tlg0086.tlg038	113
+a	Rh.	tlg0006.tlg019	44
+a	Rh.Al.	tlg0547.tlg001	12
+a	Rh.Pr.	tlg0062.tlg037	6
+a	Rhian.	tlg0219.tlg001	35
+a	Rhinth.	tlg1654.tlg001	24
+a	Rom.	tlg0007.tlg002	3
+a	Ru.	tlg0527.tlg010	6
+a	Ruf. Anat.	tlg0564.tlg004	54
+a	Ruf. Onom.	tlg0564.tlg003	171
+a	Ruf. Ren.Ves.	tlg0564.tlg001	45
+a	Ruf. Sat.Gon.	tlg0564.tlg002	14
+a	Ruf. Syn.Puls.	tlg0564.tlg007	21
+a	S.	tlg0011.tlg008	1500
+a	S. Aj.	tlg0011.tlg003	1664
+a	S. Ant.	tlg0011.tlg002	1554
+a	S. El.	tlg0011.tlg005	1366
+a	S. Eleg.	tlg0011.tlg009	3
+a	S. Fr. [	tlg0011.tlg008	6
+a	S. OC	tlg0011.tlg007	1745
+a	S. OT	tlg0011.tlg004	1693
+a	S. Ph.	tlg0011.tlg006	1451
+a	S. Tr.	tlg0011.tlg001	1358
+a	S., Aj.	tlg0011.tlg003	2
+a	S.E. M.	tlg0544.tlg002	1113
+a	S.E. P.	tlg0544.tlg001	440
+a	SA	tlg0719.tlg001	4
+a	SD	tlg0719.tlg002	20
+a	SE	tlg0086.tlg039	13
+a	Sacr.	tlg0062.tlg027	5
+a	Sall. C.	phi0631.phi001	1261
+a	Sall. Cat.	phi0631.phi001	4
+a	Sall. H.	phi0631.phi003	176
+a	Sall. Hist.	phi0631.phi003	4
+a	Sall. J	phi0631.phi002	12
+a	Sall. J.	phi0631.phi002	1729
+a	Sall. Jug.	phi0631.phi002	2
+a	Sall. Or. ad Caes.	phi0631.phi007	9
+a	Sall. Rep. Ord.	phi0631.phi007	3
+a	Sall. Rep. Ordin.	phi0631.phi007	2
+a	Sallust.	tlg2049.tlg001	24
+a	Salt.	tlg0062.tlg045	6
+a	Sam.	tlg0541.tlg029	12
+a	Sannyr.	tlg0501.tlg001	18
+a	Sapph. Oxy.	tlg0009.tlg001	18
+a	Sapph. Supp.	tlg0009.tlg001	238
+a	Sat.	tlg0062.tlg055	6
+a	Sat.Gon.	tlg0564.tlg002	2
+a	Satyr.	tlg1660.tlg001	18
+a	Sc.	tlg0020.tlg003	19
+a	Scamon	tlg2330.tlg001	3
+a	Sch. A.R.	tlg0001.tlg001	158
+a	Scol.	tlg0296.tlg001	2
+a	Scyl.	tlg0065.tlg001	18
+a	Scymn.	tlg0068.tlg001	51
+a	Scyth.	tlg0062.tlg062	2
+a	Sect.Intr.	tlg0057.tlg004	3
+a	Secund. Sent.	tlg1521.tlg002	105
+a	Semon.	tlg0260.tlg001	171
+a	Semus	tlg1663.tlg001	29
+a	Sen. Agam.	phi1017.phi007	76
+a	Sen. Agm.	phi1017.phi007	8
+a	Sen. Apoc.	phi1017.phi011	19
+a	Sen. Apocol.	phi1017.phi011	8
+a	Sen. Ben.	phi1017.phi013	531
+a	Sen. Brev. Vit.	stoa0255.stoa004	75
+a	Sen. Clem.	phi1017.phi014	101
+a	Sen. Cons. Helv.	stoa0255.stoa006	15
+a	Sen. Cons. Marc.	stoa0255.stoa007	12
+a	Sen. Cons. Polyb.	stoa0255.stoa008	6
+a	Sen. Cons. ad Helv.	stoa0255.stoa006	45
+a	Sen. Cons. ad Marc.	stoa0255.stoa007	53
+a	Sen. Cons. ad Polyb.	stoa0255.stoa008	17
+a	Sen. Const.	stoa0255.stoa009	33
+a	Sen. Const. Sap.	stoa0255.stoa009	24
+a	Sen. Contr	phi1014.phi001	5
+a	Sen. Contr.	phi1014.phi001	246
+a	Sen. Dial.	phi1017.phi012	4
+a	Sen. Ep	phi1017.phi015	5
+a	Sen. Ep.	phi1017.phi015	1797
+a	Sen. Helv.	stoa0255.stoa006	3
+a	Sen. Herc. Fur.	phi1017.phi001	127
+a	Sen. Herc. Oet.	phi1017.phi009	152
+a	Sen. Here. Fur.	phi1017.phi001	2
+a	Sen. Hipp.	phi1017.phi005	7
+a	Sen. Hippol.	phi1017.phi005	141
+a	Sen. Ira	stoa0255.stoa010	225
+a	Sen. Ira.	stoa0255.stoa010	3
+a	Sen. Lud. Mort. Claud.	phi1017.phi011	5
+a	Sen. Med.	phi1017.phi004	99
+a	Sen. N. Q.	phi1017.phi016	12
+a	Sen. Oct.	phi1017.phi010	7
+a	Sen. Octav.	phi1017.phi010	2
+a	Sen. Oed.	phi1017.phi006	6
+a	Sen. Oedip.	phi1017.phi006	69
+a	Sen. Oet.	phi1017.phi009	4
+a	Sen. Ot. Sap.	stoa0255.stoa011	14
+a	Sen. Phaedr.	phi1017.phi005	3
+a	Sen. Phoen.	phi1017.phi003	32
+a	Sen. Polyb.	stoa0255.stoa008	8
+a	Sen. Prov.	stoa0255.stoa012	47
+a	Sen. Q. N.	phi1017.phi016	571
+a	Sen. Suas.	phi1014.phi003	47
+a	Sen. Thyest.	phi1017.phi008	92
+a	Sen. Tranq.	stoa0255.stoa013	98
+a	Sen. Tranq. An.	stoa0255.stoa013	14
+a	Sen. Troad.	phi1017.phi002	81
+a	Sen. Vit. B.	stoa0255.stoa014	2
+a	Sen. Vit. Beat.	stoa0255.stoa014	145
+a	Sen. ad Helv.	stoa0255.stoa006	11
+a	Sen. ad Marc.	stoa0255.stoa007	11
+a	Sen. ad Polyb.	stoa0255.stoa008	5
+a	Sen. de Clem.	phi1017.phi014	2
+a	Sen. de Const. Sap.	stoa0255.stoa009	2
+a	Sen. de Ira.	stoa0255.stoa010	2
+a	Sen. de Prov.	stoa0255.stoa012	2
+a	Sens.	tlg0086.tlg041	16
+a	Sens.	tlg0093.tlg003	2
+a	Sent.	tlg0537.tlg001	5
+a	Sent.Vat.	tlg0537.tlg002	5
+a	Sert.	tlg0007.tlg042	6
+a	Sever. Clyst.	tlg0748.tlg001	29
+a	Si.	tlg0527.tlg034	43
+a	Sign.	tlg1595.tlg472	6
+a	Sign.	tlg0093.tlg010	5
+a	Simon.	tlg0261.tlg001	492
+a	Simp. in Cael.	tlg4013.tlg002	111
+a	Simp. in Cat.	tlg4013.tlg003	94
+a	Simp. in Epict.	tlg4013.tlg006	104
+a	Simp. in Ph.	tlg4013.tlg004	259
+a	Sm.	tlg2042.tlg083	3
+a	Smp.	tlg0059.tlg011	89
+a	Smp.	tlg0032.tlg004	33
+a	Socr. Ep.	tlg0637.tlg001	47
+a	Socr.Rhod.	tlg1679.tlg001	4
+a	Sol.	tlg0263.tlg001	220
+a	Sol. [	tlg0263.tlg001	2
+a	Somn.	tlg0062.tlg029	5
+a	Somn.Vig.	tlg0086.tlg042	6
+a	Sopat.	tlg1682.tlg001	54
+a	Sophil.	tlg0502.tlg001	15
+a	Sophr.	tlg0524.tlg001	203
+a	Sor.	tlg0565.tlg001	1631
+a	Sor. Fasc.	tlg0565.tlg003	72
+a	Sor. Fract.	tlg0565.tlg002	45
+a	Sor. [	tlg0565.tlg001	3
+a	Sosib.	tlg1685.tlg001	9
+a	Sosicr.	tlg0503.tlg001	8
+a	Sosip.	tlg0504.tlg001	24
+a	Sosiph.	tlg0338.tlg001	4
+a	Sosith.	tlg0340.tlg001	17
+a	Sostrat.	tlg1688.tlg001	2
+a	Sotad.	tlg1691.tlg001	17
+a	Sotad.Com.	tlg0505.tlg001	35
+a	Sotion	tlg0587.tlg001	14
+a	Sph.	tlg0059.tlg007	89
+a	Sph.Cyl.	tlg0552.tlg001	2
+a	Sphaer.	tlg1342.tlg002	4
+a	Sphaer.Stoic.	tlg1693.tlg001	6
+a	Spir.	tlg0559.tlg001	6
+a	Spir.	tlg0086.tlg043	4
+a	Spir.	tlg0552.tlg004	3
+a	Stad.	tlg0077.tlg001	2
+a	Stat.	tlg0592.tlg002	3
+a	Stat. Ach.	phi1020.phi003	53
+a	Stat. S.	phi1020.phi002	871
+a	Stat. Th.	phi1020.phi001	1678
+a	Steph. in Gal.	tlg0724.tlg001	27
+a	Steph. in Hp.	tlg0724.tlg002	167
+a	Steph. in Int.	tlg9019.tlg001	5
+a	Steph. in Rh.	tlg9020.tlg001	17
+a	Steph.Com.	tlg0506.tlg001	2
+a	Stesich.	tlg0292.tlg001	54
+a	Stesimbr.	tlg1923.tlg001	3
+a	Stob. App.	tlg2037.tlg001	4
+a	Str.	tlg0099.tlg001	3367
+a	Strato Com.	tlg0507.tlg001	21
+a	Stratt.	tlg0508.tlg001	118
+a	Sud.	tlg0093.tlg010	4
+a	Suet Aug.	phi1348.phi012	3
+a	Suet. Aug.	phi1348.phi012	1441
+a	Suet. Caes.	phi1348.phi011	1030
+a	Suet. Cal.	phi1348.phi014	4
+a	Suet. Calig.	phi1348.phi014	706
+a	Suet. Claud.	phi1348.phi015	524
+a	Suet. Dom.	phi1348.phi022	272
+a	Suet. Galb.	phi1348.phi017	213
+a	Suet. Gram.	phi1348.phi004	137
+a	Suet. Gramm.	phi1348.phi004	5
+a	Suet. Ner.	phi1348.phi016	776
+a	Suet. Oth.	phi1348.phi018	135
+a	Suet. Rhet.	phi1348.phi004	42
+a	Suet. Tib.	phi1348.phi013	766
+a	Suet. Tit.	phi1348.phi021	102
+a	Suet. Vesp.	phi1348.phi020	260
+a	Suet. Vit.	phi1348.phi019	196
+a	Sull.	tlg0007.tlg033	16
+a	Superf.	tlg0627.tlg038	6
+a	Supp.	tlg0085.tlg001	112
+a	Supp.	tlg0006.tlg008	63
+a	Sus.	tlg0264.tlg001	2
+a	Symm.	phi0620.phi001	29
+a	Symp.	tlg0062.tlg015	2
+a	Synt.	tlg0082.tlg004	48
+a	Syr.	tlg0551.tlg013	4
+a	Syr.D.	tlg0062.tlg041	3
+a	Syrian. in Hermog.	tlg4017.tlg004	17
+a	Syrian. in Metaph.	tlg4017.tlg001	80
+a	TG	tlg0007.tlg052	3
+a	Tac. A.	phi1351.phi005	4696
+a	Tac. Agr.	phi1351.phi001	409
+a	Tac. Dial.	phi1351.phi003	29
+a	Tac. G.	phi1351.phi002	439
+a	Tac. H.	phi1351.phi004	2014
+a	Telecl.	tlg0510.tlg001	89
+a	Teles	tlg1699.tlg001	53
+a	Telesill.	tlg0369.tlg001	3
+a	Telest.	tlg0377.tlg001	26
+a	Ter. Ad.	phi0134.phi006	946
+a	Ter. And.	phi0134.phi001	1136
+a	Ter. Eun.	phi0134.phi003	1168
+a	Ter. Heaut.	phi0134.phi002	967
+a	Ter. Hec.	phi0134.phi005	582
+a	Ter. Phorm.	phi0134.phi004	764
+a	Terp.	tlg0299.tlg001	12
+a	Tetr.	tlg0363.tlg007	9
+a	Th.	tlg0003.tlg001	9255
+a	Th. [	tlg0003.tlg001	2
+a	Theagen.	tlg1709.tlg001	4
+a	Theano Ep.	tlg0054.tlg001	13
+a	Thebaïs	tlg1712.tlg001	4
+a	Them.	tlg0007.tlg010	3
+s	Them. Or.	1	tlg2001.tlg001
+s	Them. Or.	2	tlg2001.tlg002
+s	Them. Or.	3	tlg2001.tlg003
+s	Them. Or.	4	tlg2001.tlg004
+s	Them. Or.	5	tlg2001.tlg005
+s	Them. Or.	6	tlg2001.tlg006
+s	Them. Or.	7	tlg2001.tlg007
+s	Them. Or.	8	tlg2001.tlg008
+s	Them. Or.	9	tlg2001.tlg009
+s	Them. Or.	10	tlg2001.tlg010
+s	Them. Or.	11	tlg2001.tlg011
+s	Them. Or.	13	tlg2001.tlg013
+s	Them. Or.	14	tlg2001.tlg014
+s	Them. Or.	15	tlg2001.tlg015
+s	Them. Or.	16	tlg2001.tlg016
+s	Them. Or.	17	tlg2001.tlg017
+s	Them. Or.	18	tlg2001.tlg018
+s	Them. Or.	19	tlg2001.tlg019
+s	Them. Or.	20	tlg2001.tlg020
+s	Them. Or.	21	tlg2001.tlg021
+s	Them. Or.	22	tlg2001.tlg022
+s	Them. Or.	23	tlg2001.tlg023
+s	Them. Or.	24	tlg2001.tlg024
+s	Them. Or.	25	tlg2001.tlg025
+s	Them. Or.	26	tlg2001.tlg026
+s	Them. Or.	27	tlg2001.tlg027
+s	Them. Or.	28	tlg2001.tlg028
+s	Them. Or.	29	tlg2001.tlg029
+s	Them. Or.	30	tlg2001.tlg030
+s	Them. Or.	31	tlg2001.tlg031
+s	Them. Or.	32	tlg2001.tlg032
+s	Them. Or.	33	tlg2001.tlg033
+a	Them. in APo.	tlg2001.tlg038	7
+a	Them. in Ph.	tlg2001.tlg039	22
+a	Themist. Ep.	tlg0055.tlg001	15
+a	Theo Sm. in Ptol.	tlg1724.tlg001	2
+a	Theoc.	tlg0005.tlg001	2736
+a	Theoc. Beren.	tlg0005.tlg004	4
+a	Theoc. Ep.	tlg0005.tlg002	81
+a	Theodect.	tlg0329.tlg001	17
+a	Theodos. Can.	tlg2020.tlg001	9
+a	Theognet.	tlg0511.tlg001	9
+a	Theol.Plat.	tlg4036.tlg019	3
+a	Theon Prog.	tlg0607.tlg001	43
+a	Theophil.	tlg0512.tlg001	15
+a	Theopomp.Com.	tlg0513.tlg001	106
+a	Theopomp.Hist.	tlg0566.tlg001	96
+a	Thes.	tlg0007.tlg001	4
+a	Thespis	tlg0301.tlg001	6
+a	Thg.	tlg0059.tlg017	9
+a	Thom.Mag.	tlg9023.tlg001	13
+a	Thphr.	tlg0093.tlg010	125
+a	Thphr. CP	tlg0093.tlg002	1083
+a	Thphr. Char.	tlg0093.tlg009	420
+a	Thphr. HP	tlg0093.tlg001	2493
+a	Thphr. Ign.	tlg0093.tlg005	120
+a	Thphr. Lap.	tlg0093.tlg004	130
+a	Thphr. Lass.	tlg0093.tlg010	27
+a	Thphr. Metaph.	tlg0093.tlg006	29
+a	Thphr. Od.	tlg0093.tlg010	124
+a	Thphr. Sens.	tlg0093.tlg003	107
+a	Thphr. Sign.	tlg0093.tlg010	111
+a	Thphr. Sud.	tlg0093.tlg010	40
+a	Thphr. Vent.	tlg0093.tlg010	90
+a	Thphr. Vert.	tlg0093.tlg010	14
+a	Thras.	tlg0057.tlg033	2
+a	Thrasym.	tlg4264.tlg001	3
+a	Tht.	tlg0059.tlg006	157
+a	Thugen.	tlg0514.tlg001	3
+a	Ti.	tlg0059.tlg031	121
+a	Ti.Locr.	tlg1734.tlg001	229
+a	Tib.	phi0060.phi001	1227
+a	Tib. Fig.	tlg2601.tlg001	10
+a	Tim.	tlg0376.tlg001	16
+a	Tim.	tlg0062.tlg022	10
+a	Tim.	tlg0007.tlg018	8
+a	Tim. Pers.	tlg0376.tlg001	138
+a	Tim.Com.	tlg0517.tlg001	4
+a	Tim.Gaz.	tlg2449.tlg001	2
+a	Timae.	tlg1733.tlg001	45
+a	Timocl.	tlg0515.tlg001	111
+a	Timocr.	tlg0265.tlg001	18
+a	Timostr.	tlg0516.tlg001	5
+a	Titanomach.	tlg1737.tlg001	3
+a	To.	tlg0527.tlg021	8
+a	Top.	tlg0086.tlg044	44
+a	Tox.	tlg0062.tlg044	12
+a	Tr.	tlg0011.tlg001	140
+a	Tr.	tlg0006.tlg011	72
+a	Trag.Adesp.	tlg1738.tlg001	32
+a	Tryph.	tlg0647.tlg001	187
+a	Trypho	tlg0609.tlg003	7
+a	Trypho Pass.	tlg0609.tlg002	4
+a	Trypho Trop.	tlg0609.tlg001	22
+a	Tyrt.	tlg0266.tlg001	105
+a	Tz. Diff. Poet.	tlg9022.tlg004	2
+a	Tz. H.	tlg9022.tlg001	494
+a	Tz. Proll.Com.	tlg9022.tlg003	4
+a	UP	tlg0057.tlg017	43
+a	Ulc.	tlg0627.tlg028	4
+a	V.	tlg0019.tlg004	147
+a	VA	tlg0638.tlg001	6
+a	VC	tlg0627.tlg007	6
+a	VM	tlg0627.tlg001	10
+a	VS	tlg0638.tlg003	12
+a	VV	tlg0086.tlg045	3
+a	Val. Fl.	phi1035.phi001	1355
+a	Val. Max.	phi1038.phi001	1178
+a	Vand.	tlg4029.tlg001	2
+a	Varr. L L.	phi0684.phi001	2
+a	Varr. L. L.	phi0684.phi001	1714
+a	Varr. L.L.	phi0684.phi001	4
+a	Vect.	tlg0032.tlg011	13
+a	Vent.	tlg0086.tlg046	2
+a	Vent.	tlg0093.tlg010	2
+a	Verg. A.	phi0690.phi003	7893
+a	Verg. E.	phi0690.phi001	997
+a	Verg. G.	phi0690.phi002	2645
+a	Vett.Val.	tlg1764.tlg001	943
+a	Vict.	tlg0627.tlg031	12
+a	Vict.Att.	tlg0057.tlg019	6
+a	Vid.Ac.	tlg0627.tlg047	3
+a	Vit.	tlg1595.tlg150	3
+a	Vit.Auct.	tlg0062.tlg024	5
+a	Vit.Philonid.	tlg1779.tlg003	3
+a	Vitr.	phi1056.phi001	1687
+a	Wi.	tlg0527.tlg035	17
+a	X. Ages.	tlg0032.tlg009	222
+a	X. An.	tlg0032.tlg006	2370
+a	X. An. [	tlg0032.tlg006	3
+a	X. Ap.	tlg0032.tlg005	86
+a	X. Ath.	tlg0032.tlg015	98
+a	X. Cyn.	tlg0032.tlg014	584
+a	X. Cyr.	tlg0032.tlg007	3069
+a	X. Ep.	tlg1754.tlg001	9
+a	X. Eq.	tlg0032.tlg013	419
+a	X. Eq.Mag.	tlg0032.tlg012	144
+a	X. HG	tlg0032.tlg001	1957
+a	X. Hier.	tlg0032.tlg008	159
+a	X. Lac.	tlg0032.tlg010	207
+a	X. Mem.	tlg0032.tlg002	1500
+a	X. Oec.	tlg0032.tlg003	615
+a	X. Smp.	tlg0032.tlg004	414
+a	X. Vect.	tlg0032.tlg011	129
+a	X., Cyr.	tlg0032.tlg007	3
+a	X., Mem.	tlg0032.tlg002	2
+a	X.Eph.	tlg0641.tlg001	44
+a	Xanth.	tlg1751.tlg001	15
+a	Xen.	tlg0086.tlg047	3
+a	Xenarch.	tlg0518.tlg001	61
+a	Xeno	tlg0519.tlg001	2
+a	Xenocr.	tlg1009.tlg001	47
+a	Xenoph.	tlg0267.tlg001	144
+a	Za.	tlg0527.tlg046	10
+a	Ze.	tlg0527.tlg044	5
+a	Zen.	tlg0596.tlg001	134
+a	Zeno Eleat.	tlg0595.tlg001	3
+a	ZenoStoic.	tlg0635.tlg001	4
+a	Zonae. Fig.	tlg4243.tlg001	5
+a	Zonar.	tlg3136.tlg001	3
+a	Zos.	tlg2687.tlg001	71
+a	Zos.Alch.	tlg2687.tlg001	37
+a	a	tlg0086.tlg034	4
+a	a	tlg0086.tlg036	3
+a	b	tlg0086.tlg014	12
+a	b	tlg0086.tlg010	7
+a	de An.	tlg0086.tlg002	52
+a	de Arte	tlg0627.tlg018	2
+a	h.AP.	tlg0013.tlg003	2
+a	h.Ap.	tlg0013.tlg003	287
+a	h.Bacch.	tlg0013.tlg007	16
+a	h.Cer.	tlg0013.tlg002	296
+s	h.Hom.	1	tlg0013.tlg001
+s	h.Hom.	6	tlg0013.tlg006
+s	h.Hom.	7	tlg0013.tlg007
+s	h.Hom.	8	tlg0013.tlg008
+s	h.Hom.	9	tlg0013.tlg009
+s	h.Hom.	10	tlg0013.tlg010
+s	h.Hom.	11	tlg0013.tlg011
+s	h.Hom.	12	tlg0013.tlg012
+s	h.Hom.	14	tlg0013.tlg014
+s	h.Hom.	15	tlg0013.tlg015
+s	h.Hom.	16	tlg0013.tlg016
+s	h.Hom.	17	tlg0013.tlg017
+s	h.Hom.	18	tlg0013.tlg018
+s	h.Hom.	19	tlg0013.tlg019
+s	h.Hom.	20	tlg0013.tlg020
+s	h.Hom.	22	tlg0013.tlg022
+s	h.Hom.	23	tlg0013.tlg023
+s	h.Hom.	24	tlg0013.tlg024
+s	h.Hom.	26	tlg0013.tlg026
+s	h.Hom.	27	tlg0013.tlg027
+s	h.Hom.	28	tlg0013.tlg028
+s	h.Hom.	29	tlg0013.tlg029
+s	h.Hom.	30	tlg0013.tlg030
+s	h.Hom.	31	tlg0013.tlg031
+s	h.Hom.	32	tlg0013.tlg032
+s	h.Hom.	33	tlg0013.tlg033
+a	h.Mart.	tlg0013.tlg008	9
+a	h.Merc.	tlg0013.tlg004	370
+a	h.Pan.	tlg0013.tlg019	18
+a	h.Ven.	tlg0013.tlg005	132
+a	in Alc.	tlg4036.tlg007	5
+a	in Cat.	tlg4013.tlg003	2
+a	in Cra.	tlg4036.tlg009	2
+a	in Epict.	tlg4013.tlg006	2
+a	in Nic.	tlg2023.tlg004	3
+a	in Ph.	tlg4013.tlg004	6
+a	in Prm.	tlg4036.tlg008	3
+a	in SE	tlg0732.tlg009	2
+a	in Sens.	tlg0732.tlg007	2
+a	in Theod.	tlg4093.tlg001	2
+a	in Ti.	tlg4036.tlg010	7
+a	iv	tlg0579.tlg011	2
+a	x	tlg0059.tlg031	2

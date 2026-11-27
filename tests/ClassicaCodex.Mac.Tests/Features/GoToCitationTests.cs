@@ -14,16 +14,18 @@ using Xunit;
 namespace ClassicaCodex.Mac.Tests.Features;
 
 /// <summary>
-/// Go to Citation, end to end: a citation copied from one of the pages is on
-/// the clipboard, Go to Citation fills it in and shows the line it names, and
-/// Open puts the reader on that line. On a library of its own - two lines of
-/// the Theogony stored as Perseus stores them, with the edition's URN in
-/// front of each number - so it runs everywhere.
+/// Go to Citation, end to end: a citation copied from one of the pages, or a
+/// footnote, is on the clipboard; Go to Citation fills it in and shows the
+/// lines it names; and Open puts the reader on each line. On a library of its
+/// own - lines of the Theogony stored as Perseus stores them, with the
+/// edition's URN in front of each number, and the start of the Iliad - so it
+/// runs everywhere.
 /// </summary>
 public class GoToCitationTests
 {
     private const string Theogony = "tlg0020.tlg001.perseus-grc2";
     private const string Line457 = "Ζῆνά τε μητιόεντα, θεῶν πατέρʼ ἠδὲ καὶ ἀνδρῶν,";
+    private const string Iliad1 = "μῆνιν ἄειδε θεὰ Πηληϊάδεω Ἀχιλῆος";
 
     private sealed class Library : IAsyncDisposable
     {
@@ -43,12 +45,20 @@ public class GoToCitationTests
             await using (var cmd = conn.CreateCommand())
             {
                 cmd.CommandText = $@"
-                    INSERT INTO Authors (AuthorId, CtsUrn, Name, Namespace) VALUES (1, 'urn:cts:greekLit:tlg0020', 'Hesiod', 'greekLit');
-                    INSERT INTO Works (WorkId, AuthorId, CtsUrn, Title) VALUES (1, 1, 'urn:cts:greekLit:tlg0020.tlg001', 'Theogony');
-                    INSERT INTO Editions (EditionId, WorkId, CtsUrn, Kind, Language, Collection) VALUES (1, 1, '{Theogony}', 'Original', 'grc', 'perseus-greek');
+                    INSERT INTO Authors (AuthorId, CtsUrn, Name, Namespace) VALUES
+                        (1, 'urn:cts:greekLit:tlg0020', 'Hesiod', 'greekLit'),
+                        (2, 'urn:cts:greekLit:tlg0012', 'Homer', 'greekLit');
+                    INSERT INTO Works (WorkId, AuthorId, CtsUrn, Title) VALUES
+                        (1, 1, 'urn:cts:greekLit:tlg0020.tlg001', 'Theogony'),
+                        (2, 2, 'urn:cts:greekLit:tlg0012.tlg001', 'Iliad');
+                    INSERT INTO Editions (EditionId, WorkId, CtsUrn, Kind, Language, Collection) VALUES
+                        (1, 1, '{Theogony}', 'Original', 'grc', 'perseus-greek'),
+                        (2, 2, 'tlg0012.tlg001.perseus-grc2', 'Original', 'grc', 'perseus-greek');
                     INSERT INTO TextNodes (EditionId, CitationRef, SortOrder, Text, IsVerse) VALUES
                         (1, 'urn:cts:greekLit:{Theogony}.456', 1, 'ἄλλους μὲν ...', 1),
-                        (1, 'urn:cts:greekLit:{Theogony}.457', 2, '{Line457}', 1);";
+                        (1, 'urn:cts:greekLit:{Theogony}.457', 2, '{Line457}', 1),
+                        (2, '1.1', 3, '{Iliad1}', 1),
+                        (2, '1.2', 4, 'οὐλομένην, ἣ μυρίʼ Ἀχαιοῖς ἄλγεʼ ἔθηκε,', 1);";
                 await cmd.ExecuteNonQueryAsync();
             }
 
@@ -82,9 +92,14 @@ public class GoToCitationTests
 
     private static async Task Until(Func<bool> condition)
     {
-        for (var i = 0; i < 60 && !condition(); i++) await Screens.Settle(1);
+        for (var i = 0; i < 80 && !condition(); i++) await Screens.Settle(1);
         Assert.True(condition());
     }
+
+    private static string? SelectedLine(MainWindow window) =>
+        window.GetVisualDescendants().OfType<ReaderPane>().SingleOrDefault(p => p.Role == PaneRole.Original)?.SelectedNode?.Text;
+
+    private static void Click(Button button) => button.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
 
     [AvaloniaFact]
     public async Task A_copied_citation_is_filled_in_shown_and_opened_in_the_reader()
@@ -93,7 +108,7 @@ public class GoToCitationTests
         var window = await library.OpenAsync();
 
         var copied = await ClipboardText.SetAsync(window, $"{Theogony} 457");
-        var going = GoToCitationFeature.OpenAsync(window);
+        await GoToCitationFeature.OpenAsync(window);
         await Screens.Settle(4);
 
         var dialog = window.OwnedWindows.OfType<GoToCitationWindow>().Single();
@@ -104,13 +119,9 @@ public class GoToCitationTests
         Assert.Equal("Hesiod, Theogony 457", dialog.HeadingText);
         Assert.True(dialog.OpenButton.IsEnabled);
 
-        dialog.OpenButton.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
-        await Until(() => going.IsCompleted);
-        await going;
-        await Screens.Settle(8);
-
-        var pane = window.GetVisualDescendants().OfType<ReaderPane>().Single(p => p.Role == PaneRole.Original);
-        Assert.Equal(Line457, pane.SelectedNode!.Text);
+        Click(dialog.OpenButton);
+        await Until(() => !window.OwnedWindows.OfType<GoToCitationWindow>().Any());
+        await Until(() => SelectedLine(window) == Line457);
     }
 
     [AvaloniaFact]
@@ -119,7 +130,7 @@ public class GoToCitationTests
         await using var library = new Library();
         var window = await library.OpenAsync();
 
-        var dialog = new GoToCitationWindow(new CopiedCitationResolver());
+        var dialog = new GoToCitationWindow(new CopiedCitationResolver(), _ => Task.CompletedTask);
         dialog.Show(window);
         await Screens.Settle(2);
 
@@ -130,7 +141,7 @@ public class GoToCitationTests
         Assert.Equal("Open at the Start", dialog.OpenButton.Content);
 
         dialog.Box.Text = "tlg9999.tlg001.perseus-grc1 1.1";
-        await Until(() => dialog.Shown is CitationLookupResult { Outcome: CitationLookupOutcome.NotInLibrary });
+        await Until(() => dialog.NoteText.Contains("tlg9999"));
         Assert.Contains("Nothing in this library has the identifier tlg9999.tlg001.perseus-grc1", dialog.NoteText);
         Assert.False(dialog.OpenButton.IsEnabled);
 
@@ -138,5 +149,66 @@ public class GoToCitationTests
         await Until(() => dialog.NoteText.Contains("Medieval Hands"));
         Assert.Contains("choose Paris, BnF, lat. 9768", dialog.NoteText);
         Assert.False(dialog.OpenButton.IsEnabled);
+    }
+
+    [AvaloniaFact]
+    public async Task A_footnote_is_listed_and_each_reference_opened_in_turn()
+    {
+        await using var library = new Library();
+        var window = await library.OpenAsync();
+
+        var dialog = new GoToCitationWindow(new CopiedCitationResolver(), result => OpenInReader(window, result));
+        dialog.Show(window);
+        await Screens.Settle(2);
+
+        dialog.Box.Text = "See Hes. Th. 457; Hom. Il. 1.1; Th. 2.40.1 and Smith 23.";
+        await Until(() => dialog.Shown is IReadOnlyList<FootnoteLookup>);
+
+        Assert.True(dialog.References.IsVisible);
+        var rows = dialog.References.ItemsSource!.Cast<FootnoteLookup>().ToList();
+        Assert.Equal(new[] { "Hes. Th. 457", "Hom. Il. 1.1", "Th. 2.40.1" }, rows.Select(r => r.Written));
+        Assert.Equal(CitationLookupOutcome.NotInLibrary, rows[2].Result!.Outcome);
+        Assert.Contains("Not read as references: Smith 23", dialog.NoteText);
+        Assert.Same(rows[0], dialog.References.SelectedItem);
+        Screens.Save(dialog, "go-to-citation-footnote");
+
+        // Open: the first line, and the next reference is chosen.
+        Click(dialog.OpenButton);
+        await Until(() => SelectedLine(window) == Line457);
+        Assert.Same(rows[1], dialog.References.SelectedItem);
+
+        Click(dialog.OpenButton);
+        await Until(() => SelectedLine(window) == Iliad1);
+        Assert.Contains(dialog, window.OwnedWindows);
+    }
+
+    [AvaloniaFact]
+    public async Task A_footnote_on_the_clipboard_is_filled_in_and_one_reference_opens_like_a_citation()
+    {
+        await using var library = new Library();
+        var window = await library.OpenAsync();
+
+        const string Footnote = "As Hesiod puts it (Hes. Th. 457), the father of gods and men.";
+        if (!await ClipboardText.SetAsync(window, Footnote)) return; // no clipboard on this machine
+        await GoToCitationFeature.OpenAsync(window);
+
+        var dialog = window.OwnedWindows.OfType<GoToCitationWindow>().Single();
+        await Until(() => dialog.Box.Text == Footnote);
+        await Until(() => dialog.Shown is IReadOnlyList<FootnoteLookup>);
+
+        // One reference shows as a copied citation does, and Open closes the window.
+        Assert.False(dialog.References.IsVisible);
+        Assert.Equal("Hesiod, Theogony 457", dialog.HeadingText);
+        Screens.Save(dialog, "go-to-citation-one-reference");
+
+        Click(dialog.OpenButton);
+        await Until(() => !window.OwnedWindows.OfType<GoToCitationWindow>().Any());
+        await Until(() => SelectedLine(window) == Line457);
+    }
+
+    private static async Task OpenInReader(MainWindow window, object result)
+    {
+        if (result is CitationLookupResult { Edition: { } edition, TextNodeId: { } passage })
+            await window.NavigateToPassageAsync(edition.WorkId, passage);
     }
 }

@@ -1,5 +1,6 @@
 using System.Text.RegularExpressions;
 using ClassicaCodex.Core;
+using ClassicaCodex.Core.Citations;
 using ClassicaCodex.Core.Lexicon;
 using ClassicaCodex.Core.Models;
 using Microsoft.Data.Sqlite;
@@ -44,6 +45,17 @@ public sealed record CitationLookupResult(
 /// <summary>A museum object a citation names, as the Art and Archaeology step stored it.</summary>
 public sealed record CitedArtifact(string ArtifactId, string Name, string? Type, string? Location, string? Description);
 
+/// <summary>A reference found in a footnote, and what looking it up came to.</summary>
+/// <param name="Reference">The reference as the footnote writes it.</param>
+/// <param name="Result">What looking it up came to; null where its names match no work at all.</param>
+/// <param name="Work">The work it was looked up in.</param>
+/// <param name="Written">The reference as written, from the first of its names that named the work: "Thuc. 2.40.1" out of "See Thuc. 2.40.1".</param>
+public sealed record FootnoteLookup(FootnoteReference Reference, CitationLookupResult? Result, string? Work, string Written)
+{
+    /// <summary>Whether its names were read as a work, whether or not the library has it.</summary>
+    public bool Recognised => Result != null;
+}
+
 /// <summary>
 /// Finds the passage a copied citation names (<see cref="CopiedCitation"/>).
 ///
@@ -65,6 +77,13 @@ public sealed record CitedArtifact(string ArtifactId, string Name, string? Type,
 /// Stephanus or Bekker reference within a page's range. A copied reference is
 /// the library's own and is almost always exact; the rest is for a reference
 /// typed from a printed book.
+///
+/// <b>Footnotes.</b> <see cref="LookUpFootnoteAsync"/> takes text that cites
+/// the way books do - "Thuc. 2.40.1; cf. Pl. Resp. 514a" - and looks up each
+/// reference in it: <see cref="FootnoteReader"/> finds them, and
+/// <see cref="WorkAbbreviations"/> says which work each one's abbreviation
+/// names. Only the works that match its names best are tried, so a reference
+/// to a work the library lacks says so rather than opening a near miss.
 /// </summary>
 public sealed class CopiedCitationResolver
 {
@@ -81,6 +100,7 @@ public sealed class CopiedCitationResolver
     private readonly Dictionary<int, EditionPassages> _passages = new();
     private List<Edition>? _editions;
     private List<(int WorkId, string Key)>? _works;
+    private WorkAbbreviations? _abbreviations;
 
     /// <param name="arrange">
     /// The editions of a work in the order the reader offers them, the one it
@@ -113,6 +133,98 @@ public sealed class CopiedCitationResolver
         }
     }
 
+    /// <summary>
+    /// Every reference in a footnote, looked up, in the order written. Empty
+    /// where the text holds none. A reference whose names match no work comes
+    /// back without a result, so the window can say which it could not read.
+    /// </summary>
+    public async Task<IReadOnlyList<FootnoteLookup>> LookUpFootnoteAsync(string? text, CancellationToken cancellationToken = default)
+    {
+        var references = FootnoteReader.Read(text);
+        if (references.Count == 0) return Array.Empty<FootnoteLookup>();
+
+        await _gate.WaitAsync(cancellationToken);
+        try
+        {
+            await using var conn = await DbConnectionFactory.OpenConnectionAsync(cancellationToken);
+            var abbreviations = await AbbreviationsAsync(conn, cancellationToken);
+            var lookups = new List<FootnoteLookup>();
+            string? previous = null;
+
+            foreach (var reference in references)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                var candidates = reference.Kind switch
+                {
+                    FootnoteReferenceKind.Named => abbreviations.Match(reference.Names, reference.Passage),
+                    FootnoteReferenceKind.SameAuthor when previous != null => abbreviations.MatchByAuthorOf(previous, reference.Names, reference.Passage),
+                    FootnoteReferenceKind.SameWork when previous != null => abbreviations.Continue(previous, reference.Passage),
+                    _ => Array.Empty<WorkCandidate>()
+                };
+
+                var lookup = await LookUpCandidatesAsync(conn, text!, reference, candidates, cancellationToken);
+                lookups.Add(lookup);
+                if (lookup.Work != null) previous = lookup.Work;
+            }
+
+            return lookups;
+        }
+        finally
+        {
+            _gate.Release();
+        }
+    }
+
+    /// <summary>
+    /// The reference looked up in the works its names match best - only those
+    /// that match as well as the first, so a work the library lacks is said to
+    /// be missing rather than replaced by a weaker match that it holds.
+    /// </summary>
+    private async Task<FootnoteLookup> LookUpCandidatesAsync(
+        SqliteConnection conn, string text, FootnoteReference reference, IReadOnlyList<WorkCandidate> candidates, CancellationToken cancellationToken)
+    {
+        if (candidates.Count == 0) return new FootnoteLookup(reference, null, null, reference.Written);
+
+        var written = reference.WrittenFrom(text, candidates[0].NamesUsed);
+        CitationLookupResult? fallback = null;
+        string? fallbackWork = null;
+        foreach (var candidate in candidates.Where(c => c.Score == candidates[0].Score).Take(3))
+        {
+            var result = await LookUpOnceAsync(conn, new CopiedCitation(candidate.Work, string.Join('.', candidate.Passage)), cancellationToken, originalsFirst: true);
+
+            // "Plin. 2, 47, 48, § 128": the book and the section, where the
+            // edition numbers by section.
+            if (result.Outcome == CitationLookupOutcome.ReferenceNotFound && reference.Section is { } section && candidate.Passage.Count > 0)
+            {
+                var bySection = await LookUpOnceAsync(conn, new CopiedCitation(candidate.Work, $"{candidate.Passage[0]}.{section}"), cancellationToken, originalsFirst: true);
+                if (bySection.Outcome == CitationLookupOutcome.Found) result = bySection;
+            }
+
+            if (result.Outcome == CitationLookupOutcome.Found) return new FootnoteLookup(reference, result, candidate.Work, written);
+            if (fallback == null || (fallback.Outcome == CitationLookupOutcome.NotInLibrary && result.Outcome == CitationLookupOutcome.ReferenceNotFound))
+            {
+                fallback = result;
+                fallbackWork = candidate.Work;
+            }
+        }
+
+        return new FootnoteLookup(reference, fallback, fallbackWork, written);
+    }
+
+    /// <summary>The works of the library as the abbreviations are matched against them, read once.</summary>
+    private async Task<WorkAbbreviations> AbbreviationsAsync(SqliteConnection conn, CancellationToken cancellationToken)
+    {
+        if (_abbreviations != null) return _abbreviations;
+
+        var works = new List<LibraryWork>();
+        await using var cmd = conn.CreateCommand();
+        cmd.CommandText = "SELECT w.CtsUrn, a.Name, w.Title FROM Works w JOIN Authors a ON a.AuthorId = w.AuthorId WHERE w.CtsUrn IS NOT NULL;";
+        await using var reader = await cmd.ExecuteReaderAsync(cancellationToken);
+        while (await reader.ReadAsync(cancellationToken))
+            works.Add(new LibraryWork(Key(reader.GetString(0)), reader.IsDBNull(1) ? string.Empty : reader.GetString(1), reader.IsDBNull(2) ? string.Empty : reader.GetString(2)));
+        return _abbreviations = new WorkAbbreviations(works);
+    }
+
     /// <summary>The museum object with this name, or null where the library has none - or no Art and Archaeology at all.</summary>
     public static async Task<CitedArtifact?> LookUpArtifactAsync(string name, CancellationToken cancellationToken = default)
     {
@@ -134,7 +246,16 @@ public sealed class CopiedCitationResolver
         }
     }
 
-    private async Task<CitationLookupResult> LookUpOnceAsync(SqliteConnection conn, CopiedCitation citation, CancellationToken cancellationToken)
+    /// <param name="originalsFirst">
+    /// Search a work's originals, exactly and then loosely, before any
+    /// translation. A footnote cites the Greek or the Latin, and a
+    /// translation's own numbering can match exactly where the original's
+    /// needs the looser match - Thucydides' Greek numbers 2.40.1 as 2.40.1.1,
+    /// a French translation as 2.40.1. A copied citation names its edition,
+    /// and is searched as one list.
+    /// </param>
+    private async Task<CitationLookupResult> LookUpOnceAsync(
+        SqliteConnection conn, CopiedCitation citation, CancellationToken cancellationToken, bool originalsFirst = false)
     {
         var (candidates, substituted) = await CandidatesAsync(conn, Key(citation.Identifier), cancellationToken);
         if (candidates.Count == 0) return CitationLookupResult.NotInLibrary;
@@ -150,19 +271,26 @@ public sealed class CopiedCitationResolver
                 : await NotFoundAsync(conn, first, substituted, cancellationToken);
         }
 
-        foreach (var edition in candidates)
-        {
-            var passages = await PassagesAsync(conn, edition, cancellationToken);
-            foreach (var reference in references)
-                if (passages.Exact.TryGetValue(reference, out var id)) return await FoundAsync(conn, edition, id, substituted, cancellationToken);
-        }
+        var groups = originalsFirst
+            ? new[] { candidates.Where(e => e.Kind == EditionKind.Original).ToList(), candidates.Where(e => e.Kind != EditionKind.Original).ToList() }
+            : new[] { candidates.ToList() };
 
-        foreach (var edition in candidates)
+        foreach (var group in groups)
         {
-            var passages = await PassagesAsync(conn, edition, cancellationToken);
-            foreach (var reference in references)
-                if (passages.Index.Find(reference.Split('.')) is { } hit)
-                    return await FoundAsync(conn, edition, hit.TextNodeId, substituted, cancellationToken);
+            foreach (var edition in group)
+            {
+                var passages = await PassagesAsync(conn, edition, cancellationToken);
+                foreach (var reference in references)
+                    if (passages.Exact.TryGetValue(reference, out var id)) return await FoundAsync(conn, edition, id, substituted, cancellationToken);
+            }
+
+            foreach (var edition in group)
+            {
+                var passages = await PassagesAsync(conn, edition, cancellationToken);
+                foreach (var reference in references)
+                    if (passages.Index.Find(reference.Split('.')) is { } hit)
+                        return await FoundAsync(conn, edition, hit.TextNodeId, substituted, cancellationToken);
+            }
         }
 
         return await NotFoundAsync(conn, candidates[0], substituted, cancellationToken);

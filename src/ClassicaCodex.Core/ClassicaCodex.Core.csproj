@@ -87,6 +87,14 @@
          it is read once, whole, and some thirty thousand references repeat
          a great deal. See QuotationLinkFile. -->
     <EmbeddedResource Include="Quotations\QuotationLinks.tsv.gz" />
+
+    <!-- How LSJ and Lewis and Short abbreviate the works they cite, and which
+         work each abbreviation names, for Go to Citation to read a footnote's
+         "Thuc. 2.40.1" or "Pl. R. 514a". Built by tools/CitationAbbreviations
+         from the Perseus lexica. No dictionary text is in it, only the
+         abbreviations, the works' identifiers and how often each was seen.
+         See CitationAbbreviations. -->
+    <EmbeddedResource Include="Citations\CitationAbbreviations.tsv" />
   </ItemGroup>
 
   <ItemGroup>
